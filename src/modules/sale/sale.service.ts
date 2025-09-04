@@ -1,12 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { CreateConsumerSaleInput } from './dto/create-consumer-sale.input';
 import { CreateResellerSaleInput } from './dto/create-reseller-sale.input';
 import { SaleStatus } from '../../shared/prismagraphql/prisma/sale-status.enum';
 import { UpdateQuotationStatusInput } from './dto/update-quotation-status.input';
-import { CreateQuotationInput } from './dto/create-quotation.input';
-import { QuotationCreateInput } from '../../shared/prismagraphql/quotation';
+// import { QuotationCreateInput } from '../../shared/prismagraphql/quotation';
 import { SaleType } from 'src/shared/prismagraphql/prisma/sale-type.enum';
 import { CreateConsumerPaymentInput } from './dto/create-consumer-payment.input';
 import { PaymentStatus } from '../../shared/prismagraphql/prisma/payment-status.enum';
@@ -16,6 +19,13 @@ import { MovementDirection } from 'src/shared/prismagraphql/prisma/movement-dire
 import { MovementType } from 'src/shared/prismagraphql/prisma/movement-type.enum';
 import { CreateFulfillmentInput } from './dto/create-fulfillment.input';
 import { CreateResellerPaymentInput } from './dto/create-reseller-payment.input';
+import { SaleChannel } from 'src/shared/prismagraphql/prisma/sale-channel.enum';
+import { QuotationStatus } from 'src/shared/prismagraphql/prisma/quotation-status.enum';
+import { CreateQuotationDraftInput } from './dto/create-quotation-draft.input';
+import { CheckoutConsumerQuotationInput } from './dto/checkout-consumer-quotation.input';
+import { ConfirmResellerQuotationInput } from './dto/confirm-reseller-quotation.input';
+import { BillerConvertQuotationInput } from './dto/biller-convert-quotation.input';
+import { FulfillConsumerSaleInput } from './dto/fulfill-consumer-sale.input';
 
 @Injectable()
 export class SalesService {
@@ -40,16 +50,48 @@ export class SalesService {
     return q;
   }
 
-  async createQuotation(data: QuotationCreateInput) {
+  async createQuotationDraft(input: CreateQuotationDraftInput) {
+    if (input.type === SaleType.CONSUMER && !input.consumerId) {
+      throw new BadRequestException(
+        'consumerId is required for CONSUMER quotations',
+      );
+    }
+    if (input.type === SaleType.RESELLER && !input.resellerId) {
+      throw new BadRequestException(
+        'resellerId is required for RESELLER quotations',
+      );
+    }
+    const total = input.items.reduce(
+      (sum, item) => sum + item.quantity * item.unitPrice,
+      0,
+    );
     const q = await this.prisma.quotation.create({
-      data,
+      data: {
+        type: input.type,
+        channel: input.channel,
+        storeId: input.storeId,
+        consumerId: input.consumerId || null,
+        resellerId: input.resellerId || null,
+        billerId: input.billerId || null,
+        status: QuotationStatus.DRAFT,
+        totalAmount: total,
+        items: {
+          create: input.items.map((i) => ({
+            productVariantId: i.productVariantId,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+          })),
+        },
+      },
       include: { items: true },
     });
-    await this.notificationService.createNotification(
-      q.billerId,
-      'QUOTATION',
-      `New quotation from ${q.resellerId}`,
-    );
+    if (q.billerId) {
+      await this.notificationService.createNotification(
+        q.billerId,
+        'QUOTATION_DRAFT_CREATED',
+        `Quotation ${q.id} created (draft).`,
+      );
+    }
     return q;
   }
 
@@ -59,12 +101,156 @@ export class SalesService {
       data: { status: input.status },
       include: { items: true },
     });
+    const notifyUserId = q.resellerId || q.consumerId || q.billerId;
+    if (!notifyUserId) {
+      throw new BadRequestException('No valid user ID found for notification');
+    }
     await this.notificationService.createNotification(
-      q.resellerId,
+      notifyUserId,
       'QUOTATION_UPDATED',
       `Quotation ${q.id} ${q.status}`,
     );
     return q;
+  }
+
+  async checkoutConsumerQuotation(input: CheckoutConsumerQuotationInput) {
+    const q = await this.prisma.quotation.findUnique({
+      where: { id: input.quotationId },
+      include: { items: true },
+    });
+    if (!q) throw new NotFoundException('Quotation not found');
+    if (q.type !== SaleType.CONSUMER) {
+      throw new BadRequestException('Quotation is not a CONSUMER quotation');
+    }
+    if (!q.consumerId) {
+      throw new BadRequestException('Quotation missing consumerId');
+    }
+    const total = q.items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+    const order = await this.prisma.saleOrder.create({
+      data: {
+        storeId: q.storeId,
+        billerId: input.billerId,
+        type: SaleType.CONSUMER,
+        status: SaleStatus.PENDING,
+        totalAmount: total,
+      },
+    });
+    const sale = await this.prisma.consumerSale.create({
+      data: {
+        saleOrderId: order.id,
+        quotationId: q.id,
+        customerId: q.consumerId,
+        storeId: q.storeId,
+        billerId: input.billerId,
+        channel: q.channel as SaleChannel,
+        status: SaleStatus.PENDING,
+        totalAmount: total,
+        items: {
+          create: q.items.map((i) => ({
+            productVariantId: i.productVariantId,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+    await this.prisma.quotation.update({
+      where: { id: q.id },
+      data: { status: QuotationStatus.APPROVED, saleOrderId: order.id },
+    });
+    await this.notificationService.createNotification(
+      sale.billerId,
+      'CONSUMER_SALE_CREATED_FROM_QUOTATION',
+      `Sale ${sale.id} created from quotation ${q.id}.`,
+    );
+    return sale;
+  }
+
+  async confirmResellerQuotation(input: ConfirmResellerQuotationInput) {
+    const q = await this.prisma.quotation.findUnique({
+      where: { id: input.quotationId },
+      include: { items: true },
+    });
+    if (!q) throw new NotFoundException('Quotation not found');
+    if (q.type !== SaleType.RESELLER) {
+      throw new BadRequestException('Quotation is not a RESELLER quotation');
+    }
+    if (!q.resellerId) {
+      throw new BadRequestException('Quotation missing resellerId');
+    }
+    const total = q.items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+    const order = await this.prisma.saleOrder.create({
+      data: {
+        storeId: q.storeId,
+        billerId: input.billerId,
+        type: SaleType.RESELLER,
+        status: SaleStatus.PENDING,
+        totalAmount: total,
+      },
+    });
+    const sale = await this.prisma.resellerSale.create({
+      data: {
+        SaleOrderid: order.id,
+        quotationId: q.id,
+        resellerId: q.resellerId,
+        billerId: input.billerId,
+        storeId: q.storeId,
+        status: SaleStatus.PENDING,
+        totalAmount: total,
+        items: {
+          create: q.items.map((i) => ({
+            productVariantId: i.productVariantId,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+    await this.prisma.quotation.update({
+      where: { id: q.id },
+      data: { status: QuotationStatus.APPROVED, saleOrderId: order.id },
+    });
+    await this.notificationService.createNotification(
+      sale.billerId,
+      'RESELLER_SALE_CREATED_FROM_QUOTATION',
+      `Reseller sale ${sale.id} created from quotation ${q.id}.`,
+    );
+    return sale;
+  }
+
+  async billerConvertConfirmedQuotation(input: BillerConvertQuotationInput) {
+    const q = await this.prisma.quotation.findUnique({
+      where: { id: input.quotationId },
+      include: { items: true },
+    });
+    if (!q) throw new NotFoundException('Quotation not found');
+    if (q.status !== QuotationStatus.CONFIRMED) {
+      throw new BadRequestException(
+        'Quotation must be CONFIRMED for biller conversion',
+      );
+    }
+    if (q.saleOrderId) {
+      throw new BadRequestException('Quotation already converted');
+    }
+    if (q.type === SaleType.CONSUMER) {
+      await this.checkoutConsumerQuotation({
+        quotationId: q.id,
+        billerId: input.billerId,
+      });
+    } else if (q.type === SaleType.RESELLER) {
+      await this.confirmResellerQuotation({
+        quotationId: q.id,
+        billerId: input.billerId,
+      });
+    } else {
+      throw new BadRequestException('Unsupported quotation type');
+    }
+    const updated = await this.prisma.quotation.findUnique({
+      where: { id: q.id },
+    });
+    return updated!;
   }
 
   // Consumer Sales
@@ -172,7 +358,7 @@ export class SalesService {
     return receipt;
   }
 
-  async fulfillConsumerSale(input: { id: string }) {
+  async fulfillConsumerSale(input: FulfillConsumerSaleInput) {
     const sale = await this.prisma.consumerSale.findUnique({
       where: { id: input.id },
       include: { items: true },

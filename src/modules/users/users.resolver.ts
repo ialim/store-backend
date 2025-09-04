@@ -23,7 +23,7 @@ export class UsersResolver {
 
   @Query(() => User, { nullable: false })
   findFirstUser(@Args() args: FindFirstUserArgs) {
-    this.userService.findFirst(args);
+    return this.userService.findFirst(args);
   }
 
   @Query(() => User, { nullable: false })

@@ -10,9 +10,10 @@ import { StaffModule } from './modules/staff/staff.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { VerificationModule } from './modules/verification/verification.module';
 import { CatalogueModule } from './modules/catalogue/catalogue.module';
-import { StoreModule } from './modules/store/srore.module';
+import { StoreModule } from './modules/store/store.module';
 import { PurchaseModule } from './modules/purchase/purchase.module';
 import { StockModule } from './modules/stock/stock.module';
+import { SaleModule } from './modules/sale/sale.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { StockModule } from './modules/stock/stock.module';
     PrismaModule,
     StaffModule,
     StockModule,
+    SaleModule,
     StoreModule,
     UsersModule,
     VerificationModule,

@@ -19,10 +19,59 @@ import { CreateConsumerReceiptInput } from './dto/create-consumer-receipt.input'
 import { CreateFulfillmentInput } from './dto/create-fulfillment.input';
 import { CreateResellerSaleInput } from './dto/create-reseller-sale.input';
 import { CreateResellerPaymentInput } from './dto/create-reseller-payment.input';
+import { Quotation } from '../../shared/prismagraphql/quotation/quotation.model';
+import { UpdateQuotationStatusInput } from './dto/update-quotation-status.input';
+import { CreateQuotationDraftInput } from './dto/create-quotation-draft.input';
+import { CheckoutConsumerQuotationInput } from './dto/checkout-consumer-quotation.input';
+import { ConfirmResellerQuotationInput } from './dto/confirm-reseller-quotation.input';
+import { BillerConvertQuotationInput } from './dto/biller-convert-quotation.input';
+import { FulfillConsumerSaleInput } from './dto/fulfill-consumer-sale.input';
 
 @Resolver()
 export class SalesResolver {
   constructor(private readonly salesService: SalesService) {}
+
+  // Quotation flow
+  @Mutation(() => Quotation)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('RESELLER', 'BILLER', 'CONSUMER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  createQuotationDraft(@Args('input') input: CreateQuotationDraftInput) {
+    return this.salesService.createQuotationDraft(input);
+  }
+
+  @Mutation(() => Quotation)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('RESELLER', 'BILLER', 'CONSUMER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  updateQuotationStatus(@Args('input') input: UpdateQuotationStatusInput) {
+    return this.salesService.updateQuotationStatus(input);
+  }
+
+  @Mutation(() => ConsumerSale)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('CONSUMER', 'BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  checkoutConsumerQuotation(
+    @Args('input') input: CheckoutConsumerQuotationInput,
+  ) {
+    return this.salesService.checkoutConsumerQuotation(input);
+  }
+
+  @Mutation(() => ResellerSale)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('RESELLER', 'BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  confirmResellerQuotation(
+    @Args('input') input: ConfirmResellerQuotationInput,
+  ) {
+    return this.salesService.confirmResellerQuotation(input);
+  }
+
+  @Mutation(() => Quotation)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  billerConvertConfirmedQuotation(
+    @Args('input') input: BillerConvertQuotationInput,
+  ) {
+    return this.salesService.billerConvertConfirmedQuotation(input);
+  }
 
   @Mutation(() => ConsumerSale)
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -55,7 +104,7 @@ export class SalesResolver {
   @Mutation(() => ConsumerSale)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
-  fulfillConsumerSale(@Args('input') input: { id: string }) {
+  fulfillConsumerSale(@Args('input') input: FulfillConsumerSaleInput) {
     return this.salesService.fulfillConsumerSale(input);
   }
 
