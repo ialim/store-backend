@@ -1,0 +1,29 @@
+// payment.prisma
+model Payment {
+  id               String         @id @default(uuid())
+  type             PaymentType
+  sourceId         String         // User or Customer who made payment
+  referenceEntity  String         // e.g., 'ResellerSale', 'ConsumerSale', 'PurchaseOrder'
+  referenceId      String         // Actual ID of the sale/invoice/order
+  amount           Float
+  method           PaymentMethod
+  receivedAt       DateTime       @default(now())
+  receivedById     String
+
+  receivedBy       User           @relation(fields: [receivedById], references: [id])
+}
+
+enum PaymentType {
+  CONSUMER
+  RESELLER
+  SUPPLIER
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD
+  WALLET
+  BANK
+  MIXED
+}

@@ -1,0 +1,80 @@
+// return.prisma
+model SalesReturn {
+  id              String   @id @default(uuid())
+  type            SaleType
+  consumerSaleId  String?
+  resellerSaleId  String?
+  returnedById    String
+  receivedById    String
+  storeId         String
+  status          ReturnStatus
+  returnLocation  ReturnLocation
+  isApprovedLate  Boolean  @default(false)
+  approvedById    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  consumerSale    ConsumerSale? @relation(fields: [consumerSaleId], references: [id])
+  resellerSale    ResellerSale? @relation(fields: [resellerSaleId], references: [id])
+  returnedBy      User          @relation("SalesReturnRequesters", fields: [returnedById], references: [id])
+  receivedBy      User          @relation("SalesReturnReceivers", fields: [receivedById], references: [id])
+  approvedBy      User?         @relation("SalesReturnApprovers", fields: [approvedById], references: [id])
+  store           Store         @relation(fields: [storeId], references: [id])
+  items           SalesReturnItem[]
+}
+
+model SalesReturnItem {
+  id                String   @id @default(uuid())
+  salesReturnId     String
+  productVariantId  String
+  quantity          Int
+  condition         String
+
+  return            SalesReturn     @relation(fields: [salesReturnId], references: [id])
+  productVariant    ProductVariant  @relation(fields: [productVariantId], references: [id])
+}
+
+model PurchaseReturn {
+  id              String   @id @default(uuid())
+  supplierId      String
+  initiatedById   String
+  approvedById    String
+  status          ReturnStatus
+  reason          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  supplier        Supplier  @relation(fields: [supplierId], references: [id])
+  initiatedBy     User      @relation("PurchaseReturnInitiators", fields: [initiatedById], references: [id])
+  approvedBy      User      @relation("PurchaseReturnApprovers", fields: [approvedById], references: [id])
+  items           PurchaseReturnItem[]
+}
+
+model PurchaseReturnItem {
+  id                String   @id @default(uuid())
+  purchaseReturnId  String
+  productVariantId  String
+  batchId           String
+  quantity          Int
+
+  return            PurchaseReturn     @relation(fields: [purchaseReturnId], references: [id])
+  productVariant    ProductVariant     @relation(fields: [productVariantId], references: [id])
+  batch             StockReceiptBatch  @relation(fields: [batchId], references: [id])
+}
+
+enum SaleType {
+  CONSUMER
+  RESELLER
+}
+
+enum ReturnStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  FULFILLED
+}
+
+enum ReturnLocation {
+  LAGOS
+  OUTSIDE_LAGOS
+}

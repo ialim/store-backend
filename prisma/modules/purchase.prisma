@@ -1,0 +1,65 @@
+// purchase.prisma
+model Supplier {
+  id              String   @id @default(uuid())
+  name            String
+  contactInfo     Json?
+  isFrequent      Boolean  @default(false)
+  creditLimit     Float
+  currentBalance  Float    @default(0)
+  paymentTerms    String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  purchaseOrders  PurchaseOrder[]
+  payments        SupplierPayment[]
+  returns         PurchaseReturn[]
+}
+
+model PurchaseOrder {
+  id              String   @id @default(uuid())
+  supplierId      String
+  invoiceNumber   String
+  status          PurchaseOrderStatus
+  dueDate         DateTime
+  totalAmount     Float
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  supplier        Supplier @relation(fields: [supplierId], references: [id])
+  items           PurchaseOrderItem[]
+  receipts        StockReceiptBatch[]
+  payments        SupplierPayment[]
+}
+
+model PurchaseOrderItem {
+  id                String   @id @default(uuid())
+  purchaseOrderId   String
+  productVariantId  String
+  quantity          Int
+  unitCost          Float
+
+  purchaseOrder     PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id])
+  productVariant    ProductVariant @relation(fields: [productVariantId], references: [id])
+}
+
+model SupplierPayment {
+  id              String   @id @default(uuid())
+  supplierId      String
+  purchaseOrderId String?
+  amount          Float
+  paymentDate     DateTime
+  method          String
+  notes           String?
+
+  supplier        Supplier       @relation(fields: [supplierId], references: [id])
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+}
+
+enum PurchaseOrderStatus {
+  PENDING
+  RECEIVED
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+}

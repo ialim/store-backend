@@ -1,0 +1,257 @@
+// sales.prisma
+enum SaleChannel {
+  WEB
+  APP
+  IN_STORE
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum FulfillmentType {
+  PICKUP
+  DELIVERY
+}
+
+enum FulfillmentStatus {
+  PENDING
+  ASSIGNED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+model SaleOrder {
+  id           String      @id @default(uuid())
+  storeId      String
+  billerId     String
+  type         SaleType
+  status       SaleStatus  @default(PENDING)
+  totalAmount  Float
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
+  resellerSaleid String?
+
+  consumerSale ConsumerSale?  
+  resellerSale ResellerSale?
+  fulfillment  Fulfillment?
+  quotation    Quotation? 
+
+  ConsumerPayment ConsumerPayment[]
+
+  ResellerPayment ResellerPayment[]
+}
+
+model Quotation {
+  id           String   @id @default(uuid())
+  type         SaleType
+  channel      SaleChannel
+  storeId      String
+  consumerId   String?
+  resellerId   String?
+  billerId     String?
+  status       QuotationStatus @default(DRAFT)
+  totalAmount  Float
+  saleOrderId  String? @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  store        Store          @relation(fields: [storeId], references: [id])
+  biller       User?          @relation("BillerQuotation", fields: [billerId], references: [id])
+  consumer     Customer?      @relation(fields: [consumerId], references: [id])
+  reseller     User?          @relation("ResellerQuotation", fields: [resellerId], references: [id])
+  items        QuotationItem[]
+  sale         ResellerSale?
+  SaleOrder    SaleOrder?     @relation(fields: [saleOrderId], references: [id])
+
+  ConsumerSale ConsumerSale[]
+}
+
+model QuotationItem {
+  id              String   @id @default(uuid())
+  quotationId     String
+  productVariantId String
+  quantity        Int
+  unitPrice       Float
+
+  quotation       Quotation       @relation(fields: [quotationId], references: [id])
+  productVariant  ProductVariant  @relation(fields: [productVariantId], references: [id])
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  CONFIRMED
+  APPROVED
+  REJECTED
+}
+
+model ResellerSale {
+  id              String   @id @default(uuid())
+  resellerId      String
+  billerId        String
+  storeId         String
+  quotationId     String? @unique
+  status          SaleStatus
+  totalAmount     Float
+  approvedById    String?
+  approvedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  reseller        User     @relation("ResellerSales", fields: [resellerId], references: [id])
+  biller          User     @relation("BillerSales", fields: [billerId], references: [id])
+  approvedBy      User?    @relation("ResellerSaleApprovals", fields: [approvedById], references: [id])
+  quotation       Quotation? @relation(fields: [quotationId], references: [id])
+  store           Store    @relation(fields: [storeId], references: [id])
+  items           ResellerSaleItem[]
+  payments        ResellerPayment[]
+
+  SalesReturn SalesReturn[]
+
+  SaleOrderid String @unique
+  SaleOrder SaleOrder @relation(fields: [SaleOrderid], references: [id])
+}
+
+model ResellerSaleItem {
+  id               String   @id @default(uuid())
+  resellerSaleId   String
+  productVariantId String
+  quantity         Int
+  unitPrice        Float
+
+  sale             ResellerSale   @relation(fields: [resellerSaleId], references: [id])
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+}
+
+model ResellerPayment {
+  id             String   @id @default(uuid())
+  saleOrderId    String
+  resellerId     String
+  resellerSaleId String?
+  amount         Float
+  method         PaymentMethod
+  reference      String?
+  status         PaymentStatus   @default(PENDING)
+  receivedAt     DateTime @default(now())
+  receivedById   String
+
+  saleOrder      SaleOrder       @relation(fields: [saleOrderId], references: [id])
+  reseller       User     @relation("ResellerPayments", fields: [resellerId], references: [id])
+  sale           ResellerSale? @relation(fields: [resellerSaleId], references: [id])
+  receivedBy     User     @relation("ResellerPaymentCollectors", fields: [receivedById], references: [id])
+}
+
+model Customer {
+  id               String   @id @default(uuid())
+  fullName         String
+  phone            String?
+  email            String?
+  preferredStoreId String?
+
+  preferredStore   Store?   @relation(fields: [preferredStoreId], references: [id])
+  sales            ConsumerSale[]
+
+  CustomerPreferenceProfile CustomerPreferenceProfile[]
+
+  Quotation Quotation[]
+}
+
+model ConsumerSale {
+  id               String   @id @default(uuid())
+  customerId       String?
+  storeId          String
+  billerId         String
+  channel          SaleChannel
+  saleOrderId      String @unique
+  quotationId      String?
+  status           SaleStatus
+  totalAmount      Float
+  adjustmentType   AdjustmentType?
+  adjustedById     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  customer         Customer? @relation(fields: [customerId], references: [id])
+  store            Store     @relation(fields: [storeId], references: [id])
+  biller           User      @relation(fields: [billerId], references: [id], name: "Biller")
+  adjustedBy       User?     @relation(fields: [adjustedById], references: [id])
+  quotation        Quotation? @relation(fields: [quotationId], references: [id])
+  items            ConsumerSaleItem[]
+  payments         ConsumerPayment[]
+  receipt          ConsumerReceipt?
+  SalesReturn SalesReturn[]
+  CustomerProfile CustomerProfile[]
+
+  SaleOrder SaleOrder @relation(fields: [saleOrderId], references: [id])
+}
+
+model ConsumerSaleItem {
+  id               String   @id @default(uuid())
+  consumerSaleId   String
+  productVariantId String
+  quantity         Int
+  unitPrice        Float
+
+  sale             ConsumerSale   @relation(fields: [consumerSaleId], references: [id])
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+}
+
+model ConsumerPayment {
+  id              String   @id @default(uuid())
+  consumerSaleId  String
+  saleOrderId      String
+  amount          Float
+  method          PaymentMethod
+  status           PaymentStatus   @default(PENDING)
+  receivedAt      DateTime @default(now())
+  reference       String?
+
+  saleOrder        SaleOrder       @relation(fields: [saleOrderId], references: [id])
+  sale            ConsumerSale @relation(fields: [consumerSaleId], references: [id])
+}
+
+model ConsumerReceipt {
+  id              String   @id @default(uuid())
+  consumerSaleId  String @unique
+  issuedById      String
+  issuedAt        DateTime @default(now())
+  receiptUrl      String?
+
+  sale            ConsumerSale @relation(fields: [consumerSaleId], references: [id])
+  issuedBy        User         @relation(fields: [issuedById], references: [id])
+}
+
+model Fulfillment {
+  id                  String             @id @default(uuid())
+  saleOrderId         String             @unique
+  type                FulfillmentType
+  deliveryPersonnelId String?
+  deliveryAddress     String?
+  status              FulfillmentStatus @default(PENDING)
+  cost                Float?
+  confirmationPin     String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  saleOrder           SaleOrder          @relation(fields: [saleOrderId], references: [id])
+  deliveryPersonnel   User?              @relation(fields: [deliveryPersonnelId], references: [id])
+}
+
+enum AdjustmentType {
+  NONE
+  INCREASE
+  DISCOUNT
+}
+
+enum SaleStatus {
+  PENDING
+  APPROVED
+  FULFILLED
+  CANCELLED
+  PAID
+}

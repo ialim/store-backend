@@ -1,0 +1,48 @@
+// product.prisma
+model Product {
+  id           String           @id @default(uuid())
+  name         String
+  description  String?
+  barcode      String?          @unique
+  categoryId   String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  category     ProductCategory  @relation(fields: [categoryId], references: [id])
+  variants     ProductVariant[]
+}
+
+model ProductCategory {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  products  Product[]
+}
+
+model ProductVariant {
+  id               String   @id @default(uuid())
+  productId        String
+  size             String
+  concentration    String
+  packaging        String
+  barcode          String?  @unique
+  price            Float
+  resellerPrice    Float
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  product          Product  @relation(fields: [productId], references: [id])
+
+  stockItems       Stock[]
+  receiptItems     StockReceiptBatchItem[]
+  quotationItems   QuotationItem[]
+  resellerItems    ResellerSaleItem[]
+  consumerItems    ConsumerSaleItem[]
+  returnItems      SalesReturnItem[]
+  purchaseReturnItems PurchaseReturnItem[]
+  transferItems    StockTransferItem[]
+  stats            ProductSalesStats?
+
+  PurchaseOrderItem PurchaseOrderItem[]
+
+  StockMovementItem StockMovementItem[]
+}

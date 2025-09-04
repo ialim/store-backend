@@ -1,0 +1,126 @@
+// user.prisma
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  passwordHash   String
+  roleId         String
+  tier           UserTier?
+  referralCode   String?  @unique
+  referredBy     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  isEmailVerified               Boolean  @default(false)
+  emailVerificationToken        String?  @unique
+  emailVerificationTokenExpiry  DateTime?
+
+  role           Role     @relation(fields: [roleId], references: [id])
+  resellerProfile ResellerProfile?
+  customerProfile CustomerProfile?
+  resellerPaymentsMade ResellerPayment[] @relation("ResellerPayments")
+  resellerPaymentsReceived ResellerPayment[] @relation("ResellerPaymentCollectors")
+  adminLogs      AdminActionLog[] @relation("AdminActions")
+  supportMessages SupportMessage[]
+  ConsumerSale ConsumerSale[] @relation(name: "Biller")
+  ConsumerSaleAdjustedBys ConsumerSale[]
+  StockReceiptBatchReceivedBys StockReceiptBatch[] @relation("StockReceivedBy")
+  StockReceiptBatchConfirmedBys StockReceiptBatch[] @relation("StockConfirmedBy")
+  StockTransferRequests StockTransfer[] @relation("TransferRequests")
+  StockTransferApprovals StockTransfer[] @relation("TransferApprovals")
+  Store Store[] @relation("StoreManagers")
+  ConsumerReceipt ConsumerReceipt[]
+  ResellerSales ResellerSale[] @relation("ResellerSales")
+  BillerResellerSale ResellerSale[] @relation("BillerSales")
+  ResellerSale ResellerSale[] @relation("ResellerSaleApprovals")
+  
+  SalesReturnReceivers SalesReturn[] @relation("SalesReturnReceivers")
+  SalesReturnRequesters SalesReturn[] @relation("SalesReturnRequesters")
+  SalesReturn SalesReturn[] @relation("SalesReturnApprovers")
+  PurchaseReturnInitiators PurchaseReturn[] @relation("PurchaseReturnInitiators")
+  PurchaseReturnApprovers PurchaseReturn[] @relation("PurchaseReturnApprovers")
+  Payment Payment[]
+  ResellerTierHistory ResellerTierHistory[]
+  ResellerTierHistoryChangedBys ResellerTierHistory[] @relation("TierChangedBy")
+  ResellerProfile ResellerProfile[] @relation("BillerResellers")
+
+  Notification Notification[]
+
+  Fulfillment Fulfillment[]
+
+  BillerQuotation Quotation[] @relation("BillerQuotation")
+
+  ResellerQuotation Quotation[] @relation("ResellerQuotation")
+}
+
+model CustomerProfile {
+  userId           String   @id
+  fullName         String
+  phone            String?
+  email            String?
+  gender           String?
+  birthday         DateTime?
+  referredById       String?  
+  preferredStoreId String?
+  preferencesid String?
+  profileStatus   ProfileStatus @default(PENDING)
+  requestedAt     DateTime      @default(now())
+  activatedAt     DateTime?
+  isPhoneVerified             Boolean  @default(false)
+  phoneVerificationCode       String?
+  phoneVerificationCodeExpiry DateTime?
+
+  user             User     @relation(fields: [userId], references: [id])
+  preferredStore   Store?   @relation(fields: [preferredStoreId], references: [id])
+  referredBy         CustomerProfile? @relation("CustomerReferrals", fields: [referredById], references: [userId])
+  referrals          CustomerProfile[] @relation("CustomerReferrals")
+  sales            ConsumerSale[]
+  preferences      CustomerPreferenceProfile? @relation(fields: [preferencesid], references: [id]) 
+}
+
+model ResellerProfile {
+  userId             String   @id
+  billerId           String
+  tier               UserTier
+  creditLimit        Float
+  outstandingBalance Float   @default(0)
+  isActive           Boolean  @default(true)
+  profileStatus   ProfileStatus @default(PENDING)
+  requestedAt     DateTime      @default(now())
+  activatedAt     DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?
+
+  user               User     @relation(fields: [userId], references: [id])
+  biller             User     @relation("BillerResellers", fields: [billerId], references: [id])
+}
+
+model Role {
+  id          String        @id @default(uuid())
+  name        String        @unique
+  description String?
+  createdBy   String?
+  createdAt   DateTime      @default(now())
+  permissions Permission[]  @relation("RolePermissions")
+  users       User[]
+}
+
+model Permission {
+  id       String  @id @default(uuid())
+  name     String  @unique
+  module   String
+  action   String
+  roles    Role[]  @relation("RolePermissions")
+}
+
+enum UserTier {
+  ZERO
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum ProfileStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+}

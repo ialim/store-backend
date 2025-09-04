@@ -1,0 +1,68 @@
+// analytics.prisma
+model ProductSalesStats {
+  id               String   @id @default(uuid())
+  productVariantId String   @unique
+  totalSold        Int      @default(0)
+  totalReturned    Int      @default(0)
+  lastSoldAt       DateTime?
+  monthlySales     Json
+
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+}
+
+model CustomerPreferenceProfile {
+  id                       String   @id @default(uuid())
+  customerId               String   @unique
+  frequentlyBoughtVariants Json
+  lastPurchaseDate         DateTime?
+  eligibleForDiscounts     Boolean  @default(false)
+
+  customer                 Customer @relation(fields: [customerId], references: [id])
+
+  CustomerProfile CustomerProfile[]
+}
+
+model ResellerTierHistory {
+  id         String   @id @default(uuid())
+  userId     String
+  fromTier   UserTier
+  toTier     UserTier
+  changedBy  String
+  changedAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+  admin      User     @relation("TierChangedBy", fields: [changedBy], references: [id])
+}
+
+model PromotionCampaign {
+  id             String   @id @default(uuid())
+  name           String
+  description    String?
+  targetGroup    TargetGroup
+  discountType   DiscountType
+  discountValue  Float
+  startsAt       DateTime
+  endsAt         DateTime
+  status         CampaignStatus
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+enum TargetGroup {
+  ALL
+  TOP_CUSTOMERS
+  INACTIVE_CUSTOMERS
+  RESELLERS
+  SPECIFIC_TIER
+}
+
+enum DiscountType {
+  PERCENT
+  FLAT
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+}

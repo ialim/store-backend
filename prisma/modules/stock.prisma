@@ -1,0 +1,135 @@
+// stock.prisma
+model Store {
+  id             String   @id @default(uuid())
+  name           String
+  location       String?
+  isMain         Boolean  @default(false)
+  managerId      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  manager        User     @relation("StoreManagers", fields: [managerId], references: [id])
+  stocks         Stock[]
+  receipts       StockReceiptBatch[]
+  transfersOut   StockTransfer[] @relation("TransfersOut")
+  transfersIn    StockTransfer[] @relation("TransfersIn")
+  customerSales  ConsumerSale[]
+  salesReturns   SalesReturn[]
+  resellerSales  ResellerSale[]
+  movements      StockMovement[]
+  Customer       Customer[]
+  CustomerProfile CustomerProfile[]
+
+  Quotation Quotation[]
+}
+
+model Stock {
+  id               String   @id @default(uuid())
+  storeId          String
+  productVariantId String
+  quantity         Int
+  reserved         Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  store            Store         @relation(fields: [storeId], references: [id])
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+}
+
+model StockReceiptBatch {
+  id              String   @id @default(uuid())
+  purchaseOrderId String
+  storeId         String
+  receivedById    String
+  confirmedById   String
+  waybillUrl      String?
+  receivedAt      DateTime @default(now())
+
+  store           Store     @relation(fields: [storeId], references: [id])
+  receivedBy      User      @relation("StockReceivedBy", fields: [receivedById], references: [id])
+  confirmedBy     User      @relation("StockConfirmedBy", fields: [confirmedById], references: [id])
+  items           StockReceiptBatchItem[]
+  purchaseReturns PurchaseReturnItem[]
+
+  PurchaseOrder PurchaseOrder[]
+}
+
+model StockReceiptBatchItem {
+  id                 String   @id @default(uuid())
+  stockReceiptBatchId String
+  productVariantId   String
+  quantity           Int
+
+  batch              StockReceiptBatch @relation(fields: [stockReceiptBatchId], references: [id])
+  productVariant     ProductVariant    @relation(fields: [productVariantId], references: [id])
+}
+
+model StockTransfer {
+  id             String   @id @default(uuid())
+  fromStoreId    String
+  toStoreId      String
+  requestedById  String
+  approvedById   String
+  status         TransferStatus
+  createdAt      DateTime @default(now())
+
+  fromStore      Store   @relation("TransfersOut", fields: [fromStoreId], references: [id])
+  toStore        Store   @relation("TransfersIn", fields: [toStoreId], references: [id])
+  requestedBy    User    @relation("TransferRequests", fields: [requestedById], references: [id])
+  approvedBy     User    @relation("TransferApprovals", fields: [approvedById], references: [id])
+  items          StockTransferItem[]
+}
+
+model StockTransferItem {
+  id               String   @id @default(uuid())
+  stockTransferId  String
+  productVariantId String
+  quantity         Int
+
+  transfer         StockTransfer  @relation(fields: [stockTransferId], references: [id])
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+}
+
+/// Unified stock movements
+model StockMovement {
+  id              String             @id @default(uuid())
+  storeId         String
+  direction       MovementDirection
+  movementType    MovementType
+  referenceEntity String
+  referenceId     String
+  createdAt       DateTime           @default(now())
+
+  store           Store              @relation(fields: [storeId], references: [id])
+  items           StockMovementItem[]
+}
+
+model StockMovementItem {
+  id               String          @id @default(uuid())
+  stockMovementId  String
+  productVariantId String
+  quantity         Int
+
+  movement         StockMovement    @relation(fields: [stockMovementId], references: [id])
+  productVariant   ProductVariant   @relation(fields: [productVariantId], references: [id])
+}
+
+enum MovementDirection {
+  IN
+  OUT
+}
+
+enum MovementType {
+  PURCHASE         // from supplier
+  TRANSFER         // between stores
+  RETURN_SALE      // returned by customer/reseller
+  RETURN_PURCHASE  // returned to supplier
+  SALE             // sold to customer/reseller
+}
+
+enum TransferStatus {
+  PENDING
+  APPROVED
+  COMPLETED
+  REJECTED
+}
