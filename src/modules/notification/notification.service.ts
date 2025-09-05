@@ -1,13 +1,31 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { DomainEventsService } from '../events/services/domain-events.service';
 
 @Injectable()
 export class NotificationService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private domainEvents: DomainEventsService,
+  ) {}
 
   async createNotification(userId: string, type: string, message: string) {
-    // Direct write used by legacy flows and outbox handler
-    return this.prisma.notification.create({ data: { userId, type, message } });
+    // Publish via outbox; NotificationOutboxHandler writes the Notification row
+    await this.domainEvents.publish(
+      'NOTIFICATION',
+      {
+        notifications: [
+          {
+            userId,
+            type,
+            message,
+          },
+        ],
+      },
+      { aggregateType: 'Notification', aggregateId: undefined },
+    );
+    // No immediate DB write; return a synthetic object shape to preserve call sites
+    return { userId, type, message } as any;
   }
 
   async getNotifications(userId: string) {

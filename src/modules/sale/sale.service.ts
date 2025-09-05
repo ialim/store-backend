@@ -107,20 +107,7 @@ export class SalesService {
         'QUOTATION_DRAFT_CREATED',
         `Quotation ${q.id} created (draft).`,
       );
-      await this.domainEvents.publish(
-        'QUOTATION_DRAFT_CREATED',
-        {
-          quotationId: q.id,
-          notifications: [
-            {
-              userId: q.billerId,
-              type: 'QUOTATION_DRAFT_CREATED',
-              message: `Quotation ${q.id} created (draft).`,
-            },
-          ],
-        },
-        { aggregateType: 'Quotation', aggregateId: q.id },
-      );
+      // Outbox will handle notification via NotificationService
     }
     return q;
   }
@@ -156,20 +143,7 @@ export class SalesService {
           'QUOTATION_CONFIRMED',
           `Quotation ${q.id} confirmed.`,
         );
-        await this.domainEvents.publish(
-          'QUOTATION_CONFIRMED',
-          {
-            quotationId: q.id,
-            notifications: [
-              {
-                userId: notify,
-                type: 'QUOTATION_CONFIRMED',
-                message: `Quotation ${q.id} confirmed.`,
-              },
-            ],
-          },
-          { aggregateType: 'Quotation', aggregateId: q.id },
-        );
+        // Outbox will handle notification via NotificationService
       }
     }
 
@@ -261,23 +235,7 @@ export class SalesService {
           'ORDER_ENTERED_SALE_PHASE',
           `Order ${q.saleOrderId} approved; awaiting payment/credit check.`,
         );
-        await this.domainEvents.publish(
-          'ORDER_ENTERED_SALE_PHASE',
-          {
-            orderId: q.saleOrderId,
-            notifications: [
-              {
-                userId: q.billerId,
-                type: 'ORDER_ENTERED_SALE_PHASE',
-                message: `Order ${q.saleOrderId} approved; awaiting payment/credit check.`,
-              },
-            ],
-          },
-          {
-            aggregateType: 'SaleOrder',
-            aggregateId: q.saleOrderId || undefined,
-          },
-        );
+        // Outbox will handle notification via NotificationService
       }
       const store = await this.prisma.store.findUnique({
         where: { id: q.storeId },
@@ -288,23 +246,7 @@ export class SalesService {
           'SALE_PHASE_NOTIFICATION',
           `Order ${q.saleOrderId} is in sale phase for store ${store.name}.`,
         );
-        await this.domainEvents.publish(
-          'SALE_PHASE_NOTIFICATION',
-          {
-            orderId: q.saleOrderId,
-            notifications: [
-              {
-                userId: store.managerId,
-                type: 'SALE_PHASE_NOTIFICATION',
-                message: `Order ${q.saleOrderId} is in sale phase for store ${store.name}.`,
-              },
-            ],
-          },
-          {
-            aggregateType: 'SaleOrder',
-            aggregateId: q.saleOrderId || undefined,
-          },
-        );
+        // Outbox will handle notification via NotificationService
       }
     }
 
@@ -615,20 +557,7 @@ export class SalesService {
       'CONSUMER_SALE_FULFILLED',
       `Sale ${updated.id} fulfilled.`,
     );
-    await this.domainEvents.publish(
-      'CONSUMER_SALE_FULFILLED',
-      {
-        saleId: updated.id,
-        notifications: [
-          {
-            userId: updated.billerId,
-            type: 'CONSUMER_SALE_FULFILLED',
-            message: `Sale ${updated.id} fulfilled.`,
-          },
-        ],
-      },
-      { aggregateType: 'ConsumerSale', aggregateId: updated.id },
-    );
+    // Outbox will handle notification via NotificationService
     return updated;
   }
 
@@ -815,40 +744,14 @@ export class SalesService {
           'FULFILLMENT_REQUESTED',
           `Order ${orderId} ready for fulfillment at store ${store.name}.`,
         );
-        await this.domainEvents.publish(
-          'FULFILLMENT_REQUESTED',
-          {
-            orderId,
-            notifications: [
-              {
-                userId: store.managerId,
-                type: 'FULFILLMENT_REQUESTED',
-                message: `Order ${orderId} ready for fulfillment at store ${store.name}.`,
-              },
-            ],
-          },
-          { aggregateType: 'SaleOrder', aggregateId: orderId },
-        );
+        // Outbox will handle notification via NotificationService
       }
       await this.notificationService.createNotification(
         so.billerId,
         'ORDER_ADVANCED_TO_FULFILLMENT',
         `Order ${orderId} advanced to fulfillment phase.`,
       );
-      await this.domainEvents.publish(
-        'ORDER_ADVANCED_TO_FULFILLMENT',
-        {
-          orderId,
-          notifications: [
-            {
-              userId: so.billerId,
-              type: 'ORDER_ADVANCED_TO_FULFILLMENT',
-              message: `Order ${orderId} advanced to fulfillment phase.`,
-            },
-          ],
-        },
-        { aggregateType: 'SaleOrder', aggregateId: orderId },
-      );
+      // Outbox will handle notification via NotificationService
     }
   }
 

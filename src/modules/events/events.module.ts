@@ -4,8 +4,11 @@ import { OutboxDispatcherService } from './services/outbox-dispatcher.service';
 import { NotificationOutboxHandler } from './handlers/notification-outbox.handler';
 
 @Module({
-  providers: [DomainEventsService, OutboxDispatcherService, NotificationOutboxHandler],
+  providers: [
+    DomainEventsService,
+    OutboxDispatcherService,
+    NotificationOutboxHandler,
+  ],
   exports: [DomainEventsService],
 })
 export class EventsModule {}
-

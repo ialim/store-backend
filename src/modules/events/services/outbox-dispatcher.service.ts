@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { NotificationOutboxHandler } from '../handlers/notification-outbox.handler';
 
@@ -15,12 +20,35 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    // Simple polling loop; replace with scheduler/queue as needed
-    this.timer = setInterval(() => this.tick().catch(() => {}), this.intervalMs);
+    this.start();
   }
 
   onModuleDestroy() {
-    if (this.timer) clearInterval(this.timer);
+    this.stop();
+  }
+
+  start() {
+    if (this.timer) return; // already running
+    // Simple polling loop; replace with scheduler/queue as needed
+    this.timer = setInterval(
+      () => this.tick().catch(() => {}),
+      this.intervalMs,
+    );
+    this.logger.log(`Outbox dispatcher started (every ${this.intervalMs}ms)`);
+  }
+
+  stop() {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = undefined;
+      this.logger.log('Outbox dispatcher stopped');
+    }
+  }
+
+  restart() {
+    this.stop();
+    this.start();
+    this.logger.log('Outbox dispatcher restarted');
   }
 
   private async tick() {
@@ -55,7 +83,9 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
           data: { status: 'PUBLISHED' as any, lastError: null },
         });
       } catch (err: any) {
-        this.logger.error(`Outbox event ${evt.id} failed: ${err?.message || err}`);
+        this.logger.error(
+          `Outbox event ${evt.id} failed: ${err?.message || err}`,
+        );
         await this.prisma.outboxEvent.update({
           where: { id: evt.id },
           data: {
@@ -63,11 +93,12 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
             retryCount: { increment: 1 } as any,
             lastError: String(err?.message || err),
             // backoff: 1m per retry up to 10m
-            deliverAfter: new Date(Date.now() + Math.min((evt.retryCount + 1) * 60_000, 600_000)),
+            deliverAfter: new Date(
+              Date.now() + Math.min((evt.retryCount + 1) * 60_000, 600_000),
+            ),
           },
         });
       }
     }
   }
 }
-

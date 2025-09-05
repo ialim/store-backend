@@ -34,9 +34,10 @@ export class DomainEventsService {
         return await (options as any).tx.outboxEvent.create({ data });
       }
     } catch (e) {
-      this.logger.warn('Falling back to default prisma client for outbox insert');
+      this.logger.warn(
+        'Falling back to default prisma client for outbox insert',
+      );
     }
     return this.prisma.outboxEvent.create({ data });
   }
 }
-
