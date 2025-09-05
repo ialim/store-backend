@@ -14,6 +14,8 @@ model Supplier {
   purchaseOrders  PurchaseOrder[]
   payments        SupplierPayment[]
   returns         PurchaseReturn[]
+  catalogs        SupplierCatalog[]
+  quotes          SupplierQuote[]
 }
 
 model PurchaseOrder {
@@ -21,6 +23,7 @@ model PurchaseOrder {
   supplierId      String
   invoiceNumber   String
   status          PurchaseOrderStatus
+  phase           PurchasePhase @default(ORDERED)
   dueDate         DateTime
   totalAmount     Float
   createdAt       DateTime @default(now())
@@ -62,4 +65,101 @@ enum PurchaseOrderStatus {
   PARTIALLY_PAID
   PAID
   CANCELLED
+}
+
+// High-level purchase phases across procurement lifecycle
+enum PurchasePhase {
+  REQUISITION
+  RFQ
+  NEGOTIATION
+  APPROVAL
+  ORDERED
+  RECEIVING
+  INVOICING
+  COMPLETED
+}
+
+// Requisition (pre-PO)
+model PurchaseRequisition {
+  id             String   @id @default(uuid())
+  storeId        String
+  requestedById  String
+  status         PurchaseRequisitionStatus @default(DRAFT)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  store          Store    @relation(fields: [storeId], references: [id])
+  requestedBy    User     @relation(fields: [requestedById], references: [id])
+  items          PurchaseRequisitionItem[]
+  quotes         SupplierQuote[]
+}
+
+model PurchaseRequisitionItem {
+  id                 String   @id @default(uuid())
+  requisitionId      String
+  productVariantId   String
+  requestedQty       Int
+  notes              String?
+
+  requisition        PurchaseRequisition @relation(fields: [requisitionId], references: [id])
+  productVariant     ProductVariant      @relation(fields: [productVariantId], references: [id])
+}
+
+enum PurchaseRequisitionStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+}
+
+// Supplier catalog: what supplier can provide by variant
+model SupplierCatalog {
+  id               String   @id @default(uuid())
+  supplierId       String
+  productVariantId String
+  defaultCost      Float
+  leadTimeDays     Int?
+  isPreferred      Boolean  @default(false)
+
+  supplier         Supplier       @relation(fields: [supplierId], references: [id])
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  @@unique([supplierId, productVariantId])
+}
+
+// Supplier quotes against a requisition (one per supplier)
+model SupplierQuote {
+  id             String   @id @default(uuid())
+  requisitionId  String
+  supplierId     String
+  status         SupplierQuoteStatus @default(DRAFT)
+  validUntil     DateTime?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  requisition    PurchaseRequisition @relation(fields: [requisitionId], references: [id])
+  supplier       Supplier            @relation(fields: [supplierId], references: [id])
+  items          SupplierQuoteItem[]
+
+  @@unique([requisitionId, supplierId])
+}
+
+model SupplierQuoteItem {
+  id               String   @id @default(uuid())
+  quoteId          String
+  productVariantId String
+  unitCost         Float
+  minQty           Int?
+  leadTimeDays     Int?
+
+  quote            SupplierQuote   @relation(fields: [quoteId], references: [id])
+  productVariant   ProductVariant  @relation(fields: [productVariantId], references: [id])
+}
+
+enum SupplierQuoteStatus {
+  DRAFT
+  SUBMITTED
+  SELECTED
+  REJECTED
 }

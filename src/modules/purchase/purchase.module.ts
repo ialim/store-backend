@@ -6,10 +6,6 @@ import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [NotificationModule],
-  providers: [
-    PurchaseService,
-    PurchaseResolver,
-    PrismaService,
-  ],
+  providers: [PurchaseService, PurchaseResolver, PrismaService],
 })
 export class PurchaseModule {}

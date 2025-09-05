@@ -12,6 +12,10 @@ import { UpdateSupplierInput } from './dto/update-supplier.input';
 import { CreatePurchaseOrderInput } from './dto/create-purchase-order.input';
 import { UpdatePurchaseOrderStatusInput } from './dto/update-purchase-order-status.input';
 import { CreateSupplierPaymentInput } from './dto/create-supplier-payment.input';
+import { CreatePurchaseRequisitionInput } from './dto/create-purchase-requisition.input';
+import { IdInput, RejectRequisitionInput } from './dto/submit-purchase-requisition.input';
+import { IssueRfqInput } from './dto/issue-rfq.input';
+import { SubmitSupplierQuoteInput } from './dto/submit-supplier-quote.input';
 
 @Resolver()
 export class PurchaseResolver {
@@ -82,5 +86,52 @@ export class PurchaseResolver {
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   createSupplierPayment(@Args('input') input: CreateSupplierPaymentInput) {
     return this.purchaseService.createSupplierPayment(input);
+  }
+
+  // Requisition & RFQ (scaffolded)
+  @Mutation(() => String)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  createPurchaseRequisition(
+    @Args('input') input: CreatePurchaseRequisitionInput,
+  ) {
+    return this.purchaseService.createPurchaseRequisition(input);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  submitPurchaseRequisition(@Args('input') input: IdInput) {
+    return this.purchaseService.submitPurchaseRequisition(input);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  approvePurchaseRequisition(@Args('input') input: IdInput) {
+    return this.purchaseService.approvePurchaseRequisition(input);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  rejectPurchaseRequisition(
+    @Args('input') input: RejectRequisitionInput,
+  ) {
+    return this.purchaseService.rejectPurchaseRequisition(input);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  issueRFQ(@Args('input') input: IssueRfqInput) {
+    return this.purchaseService.issueRFQ(input);
+  }
+
+  @Mutation(() => String)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  submitSupplierQuote(@Args('input') input: SubmitSupplierQuoteInput) {
+    return this.purchaseService.submitSupplierQuote(input);
   }
 }
