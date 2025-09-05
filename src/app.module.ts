@@ -14,6 +14,8 @@ import { StoreModule } from './modules/store/store.module';
 import { PurchaseModule } from './modules/purchase/purchase.module';
 import { StockModule } from './modules/stock/stock.module';
 import { SaleModule } from './modules/sale/sale.module';
+import { OrderModule } from './modules/order/order.module';
+import { EventsModule } from './modules/events/events.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { SaleModule } from './modules/sale/sale.module';
     StaffModule,
     StockModule,
     SaleModule,
+    OrderModule,
+    EventsModule,
     StoreModule,
     UsersModule,
     VerificationModule,

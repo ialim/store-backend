@@ -6,9 +6,8 @@ export class NotificationService {
   constructor(private prisma: PrismaService) {}
 
   async createNotification(userId: string, type: string, message: string) {
-    return this.prisma.notification.create({
-      data: { userId, type, message },
-    });
+    // Direct write used by legacy flows and outbox handler
+    return this.prisma.notification.create({ data: { userId, type, message } });
   }
 
   async getNotifications(userId: string) {

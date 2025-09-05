@@ -1,0 +1,22 @@
+// events.prisma
+
+enum OutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+model OutboxEvent {
+  id             String       @id @default(uuid())
+  type           String
+  aggregateType  String?
+  aggregateId    String?
+  payload        Json
+  status         OutboxStatus @default(PENDING)
+  retryCount     Int          @default(0)
+  deliverAfter   DateTime?
+  lastError      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+

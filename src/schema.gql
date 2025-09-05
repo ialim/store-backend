@@ -523,6 +523,7 @@ type SaleOrder {
   billerId: String!
   type: SaleType!
   status: SaleStatus!
+  phase: OrderPhase!
   totalAmount: Float!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -534,6 +535,12 @@ type SaleOrder {
   ConsumerPayment: [ConsumerPayment!]
   ResellerPayment: [ResellerPayment!]
   _count: SaleOrderCount!
+}
+
+enum OrderPhase {
+  QUOTATION
+  SALE
+  FULFILLMENT
 }
 
 type ConsumerPayment {
@@ -1775,6 +1782,8 @@ type Query {
   supplierPayments: [SupplierPayment!]!
   stock(input: QueryStockInput): [Stock!]!
   stockMovements(storeId: String!): [StockMovement!]!
+  ordersQuery: [SaleOrder!]!
+  order(id: String!): SaleOrder!
   findFirstStore(where: StoreWhereInput, orderBy: [StoreOrderByWithRelationInput!], cursor: StoreWhereUniqueInput, take: Int, skip: Int, distinct: [StoreScalarFieldEnum!]): Store!
   findUniqueStore(where: StoreWhereUniqueInput!): Store!
   listStores(where: StoreWhereInput, orderBy: [StoreOrderByWithRelationInput!], cursor: StoreWhereUniqueInput, take: Int, skip: Int, distinct: [StoreScalarFieldEnum!]): [Store!]!
@@ -2645,6 +2654,7 @@ input SaleOrderWhereInput {
   billerId: StringFilter
   type: EnumSaleTypeFilter
   status: EnumSaleStatusFilter
+  phase: EnumOrderPhaseFilter
   totalAmount: FloatFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
@@ -2655,6 +2665,20 @@ input SaleOrderWhereInput {
   quotation: QuotationNullableScalarRelationFilter
   ConsumerPayment: ConsumerPaymentListRelationFilter
   ResellerPayment: ResellerPaymentListRelationFilter
+}
+
+input EnumOrderPhaseFilter {
+  equals: OrderPhase
+  in: [OrderPhase!]
+  notIn: [OrderPhase!]
+  not: NestedEnumOrderPhaseFilter
+}
+
+input NestedEnumOrderPhaseFilter {
+  equals: OrderPhase
+  in: [OrderPhase!]
+  notIn: [OrderPhase!]
+  not: NestedEnumOrderPhaseFilter
 }
 
 input ConsumerSaleNullableScalarRelationFilter {
@@ -4687,6 +4711,8 @@ type Mutation {
   registerResellerPayment(input: CreateResellerPaymentInput!): ResellerPayment!
   confirmResellerPayment(paymentId: String!): ResellerPayment!
   createFulfillment(input: CreateFulfillmentInput!): Fulfillment!
+  adminRevertOrderToQuotation(saleOrderId: String!): SaleOrder!
+  adminRevertToQuotation(saleOrderId: String!): SaleOrder!
   createStore(data: StoreCreateInput!): Store
   createManyStore(data: [StoreCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
   updateStore(data: StoreUpdateInput!, where: StoreWhereUniqueInput!): Store
@@ -5307,6 +5333,7 @@ input SaleOrderCreateWithoutResellerPaymentInput {
   billerId: String!
   type: SaleType!
   status: SaleStatus
+  phase: OrderPhase
   totalAmount: Float!
   createdAt: DateTime
   updatedAt: DateTime
@@ -6807,6 +6834,7 @@ input SaleOrderCreateWithoutConsumerPaymentInput {
   billerId: String!
   type: SaleType!
   status: SaleStatus
+  phase: OrderPhase
   totalAmount: Float!
   createdAt: DateTime
   updatedAt: DateTime
@@ -8373,6 +8401,7 @@ input SaleOrderCreateWithoutFulfillmentInput {
   billerId: String!
   type: SaleType!
   status: SaleStatus
+  phase: OrderPhase
   totalAmount: Float!
   createdAt: DateTime
   updatedAt: DateTime
@@ -8981,6 +9010,7 @@ input SaleOrderCreateWithoutResellerSaleInput {
   billerId: String!
   type: SaleType!
   status: SaleStatus
+  phase: OrderPhase
   totalAmount: Float!
   createdAt: DateTime
   updatedAt: DateTime
@@ -9096,6 +9126,7 @@ input SaleOrderCreateWithoutQuotationInput {
   billerId: String!
   type: SaleType!
   status: SaleStatus
+  phase: OrderPhase
   totalAmount: Float!
   createdAt: DateTime
   updatedAt: DateTime
@@ -9294,6 +9325,7 @@ input SaleOrderCreateWithoutConsumerSaleInput {
   billerId: String!
   type: SaleType!
   status: SaleStatus
+  phase: OrderPhase
   totalAmount: Float!
   createdAt: DateTime
   updatedAt: DateTime
@@ -9435,6 +9467,7 @@ input SaleOrderWhereUniqueInput {
   billerId: StringFilter
   type: EnumSaleTypeFilter
   status: EnumSaleStatusFilter
+  phase: EnumOrderPhaseFilter
   totalAmount: FloatFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
@@ -12528,6 +12561,7 @@ input SaleOrderUpdateWithoutResellerPaymentInput {
   billerId: StringFieldUpdateOperationsInput
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
+  phase: EnumOrderPhaseFieldUpdateOperationsInput
   totalAmount: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
@@ -12545,6 +12579,10 @@ input EnumSaleTypeFieldUpdateOperationsInput {
 
 input EnumSaleStatusFieldUpdateOperationsInput {
   set: SaleStatus
+}
+
+input EnumOrderPhaseFieldUpdateOperationsInput {
+  set: OrderPhase
 }
 
 input ConsumerSaleUpdateOneWithoutSaleOrderNestedInput {
@@ -14641,6 +14679,7 @@ input SaleOrderUpdateWithoutConsumerPaymentInput {
   billerId: StringFieldUpdateOperationsInput
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
+  phase: EnumOrderPhaseFieldUpdateOperationsInput
   totalAmount: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
@@ -16738,6 +16777,7 @@ input SaleOrderUpdateWithoutFulfillmentInput {
   billerId: StringFieldUpdateOperationsInput
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
+  phase: EnumOrderPhaseFieldUpdateOperationsInput
   totalAmount: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
@@ -17557,6 +17597,7 @@ input SaleOrderUpdateWithoutResellerSaleInput {
   billerId: StringFieldUpdateOperationsInput
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
+  phase: EnumOrderPhaseFieldUpdateOperationsInput
   totalAmount: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
@@ -17715,6 +17756,7 @@ input SaleOrderUpdateWithoutQuotationInput {
   billerId: StringFieldUpdateOperationsInput
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
+  phase: EnumOrderPhaseFieldUpdateOperationsInput
   totalAmount: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
@@ -18012,6 +18054,7 @@ input SaleOrderUpdateWithoutConsumerSaleInput {
   billerId: StringFieldUpdateOperationsInput
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
+  phase: EnumOrderPhaseFieldUpdateOperationsInput
   totalAmount: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput

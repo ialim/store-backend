@@ -26,20 +26,27 @@ import { CheckoutConsumerQuotationInput } from './dto/checkout-consumer-quotatio
 import { ConfirmResellerQuotationInput } from './dto/confirm-reseller-quotation.input';
 import { BillerConvertQuotationInput } from './dto/biller-convert-quotation.input';
 import { FulfillConsumerSaleInput } from './dto/fulfill-consumer-sale.input';
+import { SaleOrder } from '../../shared/prismagraphql/sale-order/sale-order.model';
 
 @Resolver()
 export class SalesResolver {
   constructor(private readonly salesService: SalesService) {}
 
   // Quotation flow
-  @Mutation(() => Quotation)
+  // NOTE: Quotation/order mutations are now available under OrderResolver as well.
+  // Keeping existing endpoints for compatibility during migration.
+  @Mutation(() => Quotation, {
+    description: 'Deprecated: use order.createQuotationDraft',
+  })
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('RESELLER', 'BILLER', 'CONSUMER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   createQuotationDraft(@Args('input') input: CreateQuotationDraftInput) {
     return this.salesService.createQuotationDraft(input);
   }
 
-  @Mutation(() => Quotation)
+  @Mutation(() => Quotation, {
+    description: 'Deprecated: use order.updateQuotationStatus',
+  })
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('RESELLER', 'BILLER', 'CONSUMER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   updateQuotationStatus(@Args('input') input: UpdateQuotationStatusInput) {
@@ -134,5 +141,12 @@ export class SalesResolver {
   @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   createFulfillment(@Args('input') input: CreateFulfillmentInput) {
     return this.salesService.createFulfillment(input);
+  }
+
+  @Mutation(() => SaleOrder)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN')
+  adminRevertOrderToQuotation(@Args('saleOrderId') saleOrderId: string) {
+    return this.salesService.adminRevertOrderToQuotation(saleOrderId);
   }
 }

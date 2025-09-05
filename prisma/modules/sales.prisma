@@ -30,6 +30,7 @@ model SaleOrder {
   billerId     String
   type         SaleType
   status       SaleStatus  @default(PENDING)
+  phase        OrderPhase  @default(QUOTATION)
   totalAmount  Float
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -254,4 +255,10 @@ enum SaleStatus {
   FULFILLED
   CANCELLED
   PAID
+}
+
+enum OrderPhase {
+  QUOTATION
+  SALE
+  FULFILLMENT
 }
