@@ -45,4 +45,10 @@ model ProductVariant {
   PurchaseOrderItem PurchaseOrderItem[]
 
   StockMovementItem StockMovementItem[]
+
+  PurchaseRequisitionItem PurchaseRequisitionItem[]
+
+  SupplierCatalog SupplierCatalog[]
+
+  SupplierQuoteItem SupplierQuoteItem[]
 }

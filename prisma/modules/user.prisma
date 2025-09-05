@@ -49,6 +49,8 @@ model User {
   BillerQuotation Quotation[] @relation("BillerQuotation")
 
   ResellerQuotation Quotation[] @relation("ResellerQuotation")
+
+  PurchaseRequisition PurchaseRequisition[]
 }
 
 model CustomerProfile {

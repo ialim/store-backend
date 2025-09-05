@@ -12,10 +12,12 @@ import { UpdateSupplierInput } from './dto/update-supplier.input';
 import { CreatePurchaseOrderInput } from './dto/create-purchase-order.input';
 import { UpdatePurchaseOrderStatusInput } from './dto/update-purchase-order-status.input';
 import { CreateSupplierPaymentInput } from './dto/create-supplier-payment.input';
+import { CreatePOsFromSelectionInput } from './dto/create-pos-from-selection.input';
 import { CreatePurchaseRequisitionInput } from './dto/create-purchase-requisition.input';
 import { IdInput, RejectRequisitionInput } from './dto/submit-purchase-requisition.input';
 import { IssueRfqInput } from './dto/issue-rfq.input';
 import { SubmitSupplierQuoteInput } from './dto/submit-supplier-quote.input';
+import { MarkPurchaseOrderReceivedInput, UpdatePurchaseOrderPhaseInput } from './dto/update-po-phase.input';
 
 @Resolver()
 export class PurchaseResolver {
@@ -133,5 +135,30 @@ export class PurchaseResolver {
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   submitSupplierQuote(@Args('input') input: SubmitSupplierQuoteInput) {
     return this.purchaseService.submitSupplierQuote(input);
+  }
+
+  @Mutation(() => [String])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  createPOsFromSelection(@Args('input') input: CreatePOsFromSelectionInput) {
+    return this.purchaseService.createPOsFromSelection(input);
+  }
+
+  @Mutation(() => PurchaseOrder)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  updatePurchaseOrderPhase(
+    @Args('input') input: UpdatePurchaseOrderPhaseInput,
+  ) {
+    return this.purchaseService.updatePurchaseOrderPhase(input);
+  }
+
+  @Mutation(() => PurchaseOrder)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  markPurchaseOrderReceived(
+    @Args('input') input: MarkPurchaseOrderReceivedInput,
+  ) {
+    return this.purchaseService.markPurchaseOrderReceived(input);
   }
 }

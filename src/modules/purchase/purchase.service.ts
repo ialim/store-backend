@@ -6,6 +6,8 @@ import { CreatePurchaseOrderInput } from './dto/create-purchase-order.input';
 import { UpdatePurchaseOrderStatusInput } from './dto/update-purchase-order-status.input';
 import { CreateSupplierPaymentInput } from './dto/create-supplier-payment.input';
 import { CreateSupplierInput } from './dto/create-supplier.input';
+import { CreatePOsFromSelectionInput } from './dto/create-pos-from-selection.input';
+import { MarkPurchaseOrderReceivedInput, UpdatePurchaseOrderPhaseInput } from './dto/update-po-phase.input';
 import { CreatePurchaseRequisitionInput } from './dto/create-purchase-requisition.input';
 import { IdInput, RejectRequisitionInput } from './dto/submit-purchase-requisition.input';
 import { IssueRfqInput } from './dto/issue-rfq.input';
@@ -247,11 +249,182 @@ export class PurchaseService {
 
   async createSupplierPayment(data: CreateSupplierPaymentInput) {
     const payment = await this.prisma.supplierPayment.create({ data });
+    // Reduce supplier current balance
+    await this.prisma.supplier.update({
+      where: { id: payment.supplierId },
+      data: { currentBalance: { decrement: payment.amount } as any },
+    });
+    // If applied to a PO, update its payment status
+    if (payment.purchaseOrderId) {
+      const po = await this.prisma.purchaseOrder.findUnique({ where: { id: payment.purchaseOrderId } });
+      if (po) {
+        const paidAgg = await this.prisma.supplierPayment.aggregate({
+          _sum: { amount: true },
+          where: { purchaseOrderId: po.id },
+        });
+        const paid = paidAgg._sum.amount || 0;
+        const newStatus = paid >= po.totalAmount ? 'PAID' : 'PARTIALLY_PAID';
+        await this.prisma.purchaseOrder.update({ where: { id: po.id }, data: { status: newStatus as any, phase: (newStatus === 'PAID' ? 'INVOICING' : po.phase) as any } });
+        await this.maybeFinalizePurchaseOrder(po.id);
+      }
+    }
     await this.notificationService.createNotification(
       payment.supplierId,
       'SUPPLIER_PAYMENT',
       `Payment of ${payment.amount} recorded for supplier`,
     );
     return payment;
+  }
+
+  // Create PO(s) from selected supplier quotes per line with credit check
+  async createPOsFromSelection(input: CreatePOsFromSelectionInput) {
+    const req = await this.prisma.purchaseRequisition.findUnique({
+      where: { id: input.requisitionId },
+      include: { items: true },
+    });
+    if (!req) throw new NotFoundException('Requisition not found');
+    if (!input.items?.length) throw new BadRequestException('No selections provided');
+
+    const reqItemMap = new Map(req.items.map((i) => [i.productVariantId, i]));
+    const defaultDueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    // Group selections by supplier
+    const bySupplier = new Map<string, Array<{
+      productVariantId: string; quantity: number; unitCost: number;
+    }>>();
+
+    for (const sel of input.items) {
+      const reqItem = reqItemMap.get(sel.productVariantId);
+      if (!reqItem) {
+        throw new BadRequestException(`Variant ${sel.productVariantId} not in requisition`);
+      }
+      const quantity = sel.quantity ?? reqItem.requestedQty;
+      if (quantity <= 0) throw new BadRequestException('Quantity must be > 0');
+
+      let unitCost = sel.unitCost;
+      if (unitCost == null) {
+        // Try quote first
+        const quote = await this.prisma.supplierQuote.findUnique({
+          where: { requisitionId_supplierId: { requisitionId: req.id, supplierId: sel.supplierId } },
+        });
+        if (quote) {
+          const qi = await this.prisma.supplierQuoteItem.findFirst({
+            where: { quoteId: quote.id, productVariantId: sel.productVariantId },
+          });
+          if (qi?.unitCost != null) unitCost = qi.unitCost;
+        }
+      }
+      if (unitCost == null) {
+        // Fallback to supplier catalog
+        const cat = await this.prisma.supplierCatalog.findUnique({
+          where: { supplierId_productVariantId: { supplierId: sel.supplierId, productVariantId: sel.productVariantId } },
+        });
+        if (cat?.defaultCost != null) unitCost = cat.defaultCost;
+      }
+      if (unitCost == null) throw new BadRequestException(`Missing unitCost for variant ${sel.productVariantId} from supplier ${sel.supplierId}`);
+
+      const arr = bySupplier.get(sel.supplierId) ?? [];
+      arr.push({ productVariantId: sel.productVariantId, quantity, unitCost });
+      bySupplier.set(sel.supplierId, arr);
+    }
+
+    const createdPOs: string[] = [];
+    for (const [supplierId, lines] of bySupplier.entries()) {
+      const total = lines.reduce((s, l) => s + l.quantity * l.unitCost, 0);
+      const supplier = await this.prisma.supplier.findUnique({ where: { id: supplierId } });
+      if (!supplier) throw new NotFoundException('Supplier not found');
+      const projected = supplier.currentBalance + total;
+      if (projected > supplier.creditLimit) {
+        throw new BadRequestException(
+          `Credit limit exceeded for supplier ${supplier.name}. Required: ${projected.toFixed(2)} > limit ${supplier.creditLimit.toFixed(2)}`,
+        );
+      }
+
+      const po = await this.prisma.purchaseOrder.create({
+        data: {
+          supplierId,
+          invoiceNumber: `PO-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          status: 'PENDING',
+          phase: 'ORDERED' as any,
+          dueDate: input.dueDate ?? defaultDueDate,
+          totalAmount: total,
+          items: {
+            create: lines.map((l) => ({
+              productVariantId: l.productVariantId,
+              quantity: l.quantity,
+              unitCost: l.unitCost,
+            })),
+          },
+        },
+        include: { items: true },
+      });
+      createdPOs.push(po.id);
+      // Update supplier balance
+      await this.prisma.supplier.update({
+        where: { id: supplierId },
+        data: { currentBalance: { increment: total } as any },
+      });
+      // Mark quote as selected if exists
+      await this.prisma.supplierQuote.updateMany({
+        where: { requisitionId: req.id, supplierId },
+        data: { status: 'SELECTED' },
+      });
+      // Notify store manager
+      const store = await this.prisma.store.findUnique({ where: { id: req.storeId } });
+      if (store) {
+        await this.notificationService.createNotification(
+          store.managerId,
+          'PURCHASE_ORDER_CREATED',
+          `PO ${po.invoiceNumber} created for supplier ${supplier.name}.`,
+        );
+      }
+    }
+
+    // Move requisition along
+    await this.prisma.purchaseRequisition.update({
+      where: { id: req.id },
+      data: { status: 'APPROVED' },
+    });
+
+    return createdPOs;
+  }
+
+  // Update PO phase manually (admin control)
+  async updatePurchaseOrderPhase(input: UpdatePurchaseOrderPhaseInput) {
+    const po = await this.prisma.purchaseOrder.update({
+      where: { id: input.id },
+      data: { phase: input.phase as any },
+    });
+    return po;
+  }
+
+  // Mark PO as received (business action)
+  async markPurchaseOrderReceived({ id }: MarkPurchaseOrderReceivedInput) {
+    const po = await this.prisma.purchaseOrder.update({ where: { id }, data: { status: 'RECEIVED' as any, phase: 'RECEIVING' as any } });
+    await this.notificationService.createNotification(
+      po.supplierId,
+      'PURCHASE_ORDER_RECEIVED',
+      `PO ${po.invoiceNumber} marked as received.`,
+    );
+    await this.maybeFinalizePurchaseOrder(id);
+    return po;
+  }
+
+  // Finalize PO when paid and received
+  private async maybeFinalizePurchaseOrder(poId: string) {
+    const po = await this.prisma.purchaseOrder.findUnique({ where: { id: poId } });
+    if (!po) return;
+    const paidAgg = await this.prisma.supplierPayment.aggregate({ _sum: { amount: true }, where: { purchaseOrderId: po.id } });
+    const paid = paidAgg._sum.amount || 0;
+    const isPaid = paid >= po.totalAmount;
+    const isReceived = po.status === ('RECEIVED' as any);
+    if (isPaid && isReceived) {
+      await this.prisma.purchaseOrder.update({ where: { id: po.id }, data: { phase: 'COMPLETED' as any } });
+      await this.notificationService.createNotification(
+        po.supplierId,
+        'PURCHASE_COMPLETED',
+        `PO ${po.invoiceNumber} completed.`,
+      );
+    }
   }
 }
