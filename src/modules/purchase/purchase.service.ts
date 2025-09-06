@@ -24,6 +24,7 @@ import { IssueRfqInput } from './dto/issue-rfq.input';
 import { SubmitSupplierQuoteInput } from './dto/submit-supplier-quote.input';
 import { DomainEventsService } from '../events/services/domain-events.service';
 import { LinkSupplierUserInput } from './dto/link-supplier-user.input';
+import { UpsertSupplierCatalogBulkInput, UpsertSupplierCatalogInput } from './dto/upsert-supplier-catalog.input';
 
 @Injectable()
 export class PurchaseService {
@@ -149,6 +150,104 @@ export class PurchaseService {
       where: { requisitionId },
       select: { id: true, requisitionId: true, supplierId: true, status: true, validUntil: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // Supplier catalog upserts and queries
+  async upsertSupplierCatalog(input: UpsertSupplierCatalogInput) {
+    const entry = await this.prisma.supplierCatalog.upsert({
+      where: {
+        supplierId_productVariantId: {
+          supplierId: input.supplierId,
+          productVariantId: input.productVariantId,
+        },
+      },
+      update: {
+        defaultCost: input.defaultCost,
+        leadTimeDays: input.leadTimeDays ?? null,
+        isPreferred: input.isPreferred ?? undefined,
+      },
+      create: {
+        supplierId: input.supplierId,
+        productVariantId: input.productVariantId,
+        defaultCost: input.defaultCost,
+        leadTimeDays: input.leadTimeDays ?? null,
+        isPreferred: input.isPreferred ?? false,
+      },
+      select: {
+        supplierId: true,
+        productVariantId: true,
+        defaultCost: true,
+        leadTimeDays: true,
+        isPreferred: true,
+      },
+    });
+    await this.domainEvents.publish(
+      'SUPPLIER_CATALOG_UPSERTED',
+      { ...entry },
+      { aggregateType: 'SupplierCatalog', aggregateId: `${entry.supplierId}:${entry.productVariantId}` },
+    );
+    return entry;
+  }
+
+  async upsertSupplierCatalogBulk(input: UpsertSupplierCatalogBulkInput) {
+    const results = [] as Array<{ supplierId: string; productVariantId: string }>;
+    for (const it of input.items) {
+      const r = await this.upsertSupplierCatalog(it);
+      results.push({ supplierId: r.supplierId, productVariantId: r.productVariantId });
+    }
+    return results;
+  }
+
+  async supplierCatalogBySupplier(supplierId: string) {
+    return this.prisma.supplierCatalog.findMany({
+      where: { supplierId },
+      select: {
+        supplierId: true,
+        productVariantId: true,
+        defaultCost: true,
+        leadTimeDays: true,
+        isPreferred: true,
+      },
+      orderBy: { productVariantId: 'asc' },
+    });
+  }
+
+  async supplierCatalogByVariant(productVariantId: string) {
+    return this.prisma.supplierCatalog.findMany({
+      where: { productVariantId },
+      select: {
+        supplierId: true,
+        productVariantId: true,
+        defaultCost: true,
+        leadTimeDays: true,
+        isPreferred: true,
+      },
+      orderBy: { defaultCost: 'asc' },
+    });
+  }
+
+  // RFQ gaps
+  async requisitionsWithNoSubmittedQuotes() {
+    // Requisitions that have at least one SupplierQuote, but none SUBMITTED
+    const reqs = await this.prisma.purchaseRequisition.findMany({
+      where: {
+        quotes: { some: {} },
+      },
+      select: { id: true, storeId: true, requestedById: true, status: true, createdAt: true },
+    });
+    const results: typeof reqs = [];
+    for (const r of reqs) {
+      const submitted = await this.prisma.supplierQuote.count({ where: { requisitionId: r.id, status: 'SUBMITTED' as any } });
+      if (submitted === 0) results.push(r);
+    }
+    return results;
+  }
+
+  async rfqPendingSuppliers(requisitionId: string) {
+    return this.prisma.supplierQuote.findMany({
+      where: { requisitionId, NOT: { status: 'SUBMITTED' as any } },
+      select: { id: true, requisitionId: true, supplierId: true, status: true, validUntil: true, createdAt: true },
     });
   }
 

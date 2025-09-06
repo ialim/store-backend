@@ -21,6 +21,8 @@ import { SubmitSupplierQuoteInput } from './dto/submit-supplier-quote.input';
 import { MarkPurchaseOrderReceivedInput, UpdatePurchaseOrderPhaseInput } from './dto/update-po-phase.input';
 import { RequisitionSummary } from './types/requisition-summary.type';
 import { SupplierQuoteSummary } from './types/supplier-quote-summary.type';
+import { SupplierCatalogEntry } from './types/supplier-catalog-entry.type';
+import { UpsertSupplierCatalogBulkInput, UpsertSupplierCatalogInput } from './dto/upsert-supplier-catalog.input';
 
 @Resolver()
 export class PurchaseResolver {
@@ -116,6 +118,48 @@ export class PurchaseResolver {
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   supplierQuotesByRequisition(@Args('requisitionId') requisitionId: string) {
     return this.purchaseService.supplierQuotesByRequisition(requisitionId);
+  }
+
+  // Supplier Catalog
+  @Mutation(() => SupplierCatalogEntry)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  upsertSupplierCatalog(@Args('input') input: UpsertSupplierCatalogInput) {
+    return this.purchaseService.upsertSupplierCatalog(input);
+  }
+
+  @Mutation(() => [String])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  upsertSupplierCatalogBulk(@Args('input') input: UpsertSupplierCatalogBulkInput) {
+    return this.purchaseService.upsertSupplierCatalogBulk(input);
+  }
+
+  @Query(() => [SupplierCatalogEntry])
+  @UseGuards(GqlAuthGuard)
+  supplierCatalogBySupplier(@Args('supplierId') supplierId: string) {
+    return this.purchaseService.supplierCatalogBySupplier(supplierId);
+  }
+
+  @Query(() => [SupplierCatalogEntry])
+  @UseGuards(GqlAuthGuard)
+  supplierCatalogByVariant(@Args('productVariantId') productVariantId: string) {
+    return this.purchaseService.supplierCatalogByVariant(productVariantId);
+  }
+
+  // RFQ gaps
+  @Query(() => [RequisitionSummary])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  requisitionsWithNoSubmittedQuotes() {
+    return this.purchaseService.requisitionsWithNoSubmittedQuotes();
+  }
+
+  @Query(() => [SupplierQuoteSummary])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  rfqPendingSuppliers(@Args('requisitionId') requisitionId: string) {
+    return this.purchaseService.rfqPendingSuppliers(requisitionId);
   }
 
   @Mutation(() => Supplier)
