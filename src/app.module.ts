@@ -16,6 +16,7 @@ import { StockModule } from './modules/stock/stock.module';
 import { SaleModule } from './modules/sale/sale.module';
 import { OrderModule } from './modules/order/order.module';
 import { EventsModule } from './modules/events/events.module';
+import { PaymentModule } from './modules/payment/payment.module';
 import { ReturnsModule } from './modules/returns/returns.module';
 
 @Module({
@@ -36,6 +37,7 @@ import { ReturnsModule } from './modules/returns/returns.module';
     SaleModule,
     OrderModule,
     EventsModule,
+    PaymentModule,
     ReturnsModule,
     StoreModule,
     UsersModule,

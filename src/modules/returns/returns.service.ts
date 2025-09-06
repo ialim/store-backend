@@ -12,6 +12,7 @@ import { CreatePurchaseReturnInput } from './dto/create-purchase-return.input';
 import { FulfillPurchaseReturnInput } from './dto/fulfill-purchase-return.input';
 import { MovementDirection } from '../../shared/prismagraphql/prisma/movement-direction.enum';
 import { CreateOrderReturnInput } from './dto/create-order-return.input';
+import { PaymentService } from '../payment/payment.service';
 
 @Injectable()
 export class ReturnsService {
@@ -19,6 +20,7 @@ export class ReturnsService {
     private prisma: PrismaService,
     private notifications: NotificationService,
     private domainEvents: DomainEventsService,
+    private payments: PaymentService,
   ) {}
 
   // Helper: notify admins/managers
@@ -258,16 +260,11 @@ export class ReturnsService {
             if (si) refund += rit.quantity * (si.unitPrice || 0);
           }
           if (refund > 0) {
-            // Negative consumer payment to reflect refund (confirmed immediately)
-            await this.prisma.consumerPayment.create({
-              data: {
-                saleOrderId: cSale.saleOrderId,
-                consumerSaleId: cSale.id,
-                amount: -refund,
-                method: 'TRANSFER' as any,
-                status: 'CONFIRMED' as any,
-                reference: `REFUND-${sr.id}`,
-              },
+            await this.payments.recordConsumerRefund({
+              saleOrderId: cSale.saleOrderId,
+              consumerSaleId: cSale.id,
+              amount: refund,
+              reference: `REFUND-${sr.id}`,
             });
             await this.domainEvents.publish(
               'CONSUMER_RETURN_ACCEPTED',
@@ -450,17 +447,11 @@ export class ReturnsService {
           where: { id: pr.supplierId },
           data: { currentBalance: newBal } as any,
         });
-        // Record credit note as inbound supplier payment for audit trail
-        await this.prisma.payment.create({
-          data: {
-            type: 'SUPPLIER' as any,
-            sourceId: pr.supplierId,
-            referenceEntity: 'PurchaseReturn',
-            referenceId: pr.id,
-            amount: creditBack,
-            method: 'BANK' as any,
-            receivedById: pr.approvedById,
-          },
+        await this.payments.recordSupplierCreditNote({
+          supplierId: pr.supplierId,
+          purchaseReturnId: pr.id,
+          amount: creditBack,
+          receivedById: pr.approvedById,
         });
         await this.domainEvents.publish(
           'PURCHASE_RETURN_CREDITED',
