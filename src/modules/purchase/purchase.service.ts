@@ -23,6 +23,7 @@ import {
 import { IssueRfqInput } from './dto/issue-rfq.input';
 import { SubmitSupplierQuoteInput } from './dto/submit-supplier-quote.input';
 import { DomainEventsService } from '../events/services/domain-events.service';
+import { LinkSupplierUserInput } from './dto/link-supplier-user.input';
 
 @Injectable()
 export class PurchaseService {
@@ -76,6 +77,31 @@ export class PurchaseService {
     return sup;
   }
 
+  async linkSupplierUser(input: LinkSupplierUserInput) {
+    // validate user exists when linking
+    if (input.userId) {
+      const user = await this.prisma.user.findUnique({ where: { id: input.userId } });
+      if (!user) throw new NotFoundException('User not found');
+    }
+    const sup = await this.prisma.supplier.update({
+      where: { id: input.supplierId },
+      data: { userId: input.userId ?? null },
+    });
+    if (input.userId) {
+      await this.notificationService.createNotification(
+        input.userId,
+        'SUPPLIER_LINKED',
+        `Your account is now linked to supplier ${sup.name}.`,
+      );
+    }
+    await this.domainEvents.publish(
+      'SUPPLIER_USER_LINK_UPDATED',
+      { supplierId: sup.id, userId: input.userId ?? null },
+      { aggregateType: 'Supplier', aggregateId: sup.id },
+    );
+    return sup;
+  }
+
   // Purchase Orders
   async purchaseOrders() {
     return this.prisma.purchaseOrder.findMany({ include: { items: true } });
@@ -94,6 +120,18 @@ export class PurchaseService {
       where: { phase: phase as any },
       include: { items: true },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async purchaseOrdersOverdue() {
+    const now = new Date();
+    return this.prisma.purchaseOrder.findMany({
+      where: {
+        dueDate: { lt: now },
+        status: { in: ['PENDING', 'PARTIALLY_PAID'] as any },
+      },
+      include: { items: true },
+      orderBy: { dueDate: 'asc' },
     });
   }
 

@@ -12,6 +12,7 @@ import { UpdateSupplierInput } from './dto/update-supplier.input';
 import { CreatePurchaseOrderInput } from './dto/create-purchase-order.input';
 import { UpdatePurchaseOrderStatusInput } from './dto/update-purchase-order-status.input';
 import { CreateSupplierPaymentInput } from './dto/create-supplier-payment.input';
+import { LinkSupplierUserInput } from './dto/link-supplier-user.input';
 import { CreatePOsFromSelectionInput } from './dto/create-pos-from-selection.input';
 import { CreatePurchaseRequisitionInput } from './dto/create-purchase-requisition.input';
 import { IdInput, RejectRequisitionInput } from './dto/submit-purchase-requisition.input';
@@ -93,6 +94,19 @@ export class PurchaseResolver {
   @UseGuards(GqlAuthGuard)
   purchaseOrdersByPhase(@Args('phase') phase: string) {
     return this.purchaseService.purchaseOrdersByPhase(phase);
+  }
+
+  @Query(() => [PurchaseOrder])
+  @UseGuards(GqlAuthGuard)
+  purchaseOrdersOverdue() {
+    return this.purchaseService.purchaseOrdersOverdue();
+  }
+
+  @Mutation(() => Supplier)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  linkSupplierUser(@Args('input') input: LinkSupplierUserInput) {
+    return this.purchaseService.linkSupplierUser(input);
   }
 
   @Mutation(() => SupplierPayment)
