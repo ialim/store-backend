@@ -535,7 +535,7 @@ export class SalesService {
             { productVariantId: item.productVariantId },
           ],
         },
-        update: { quantity: { decrement: item.quantity } },
+        update: { quantity: { decrement: item.quantity }, reserved: { decrement: item.quantity } },
         create: {
           storeId: sale.storeId,
           productVariantId: item.productVariantId,
@@ -825,5 +825,29 @@ export class SalesService {
       `Fulfillment for order ${data.saleOrderId} created.`,
     );
     return f;
+  }
+
+
+  private async reserveStockForOrder(orderId: string) {
+    const cSale = await this.prisma.consumerSale.findFirst({ where: { saleOrderId: orderId }, include: { items: true } });
+    if (cSale) {
+      for (const item of cSale.items) {
+        await this.prisma.stock.upsert({
+          where: { id: undefined, AND: [ { storeId: cSale.storeId }, { productVariantId: item.productVariantId } ] },
+          update: { reserved: { increment: item.quantity } },
+          create: { storeId: cSale.storeId, productVariantId: item.productVariantId, quantity: 0, reserved: item.quantity },
+        });
+      }
+    }
+    const rSale = await this.prisma.resellerSale.findFirst({ where: { SaleOrderid: orderId }, include: { items: true } });
+    if (rSale) {
+      for (const item of rSale.items) {
+        await this.prisma.stock.upsert({
+          where: { id: undefined, AND: [ { storeId: rSale.storeId }, { productVariantId: item.productVariantId } ] },
+          update: { reserved: { increment: item.quantity } },
+          create: { storeId: rSale.storeId, productVariantId: item.productVariantId, quantity: 0, reserved: item.quantity },
+        });
+      }
+    }
   }
 }

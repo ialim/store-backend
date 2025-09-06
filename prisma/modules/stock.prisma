@@ -31,6 +31,8 @@ model Stock {
   productVariantId String
   quantity         Int
   reserved         Int      @default(0)
+  reorderPoint     Int?
+  reorderQty       Int?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

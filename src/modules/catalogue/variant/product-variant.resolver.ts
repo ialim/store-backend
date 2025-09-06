@@ -17,6 +17,8 @@ import {
 import { AffectedRows } from '../../../shared/prismagraphql/prisma';
 import { Resolver, Query, Args, Mutation } from '@nestjs/graphql';
 import { ProductVariantService } from './product-variant.service';
+import { UseGuards } from '@nestjs/common';
+import { GqlAuthGuard } from '../../auth/guards/gql-auth.guard';
 @Resolver(() => ProductVariant)
 export class ProductVariantsResolver {
   constructor(private readonly ProductVariantService: ProductVariantService) {}
@@ -74,5 +76,21 @@ export class ProductVariantsResolver {
   @Mutation(() => AffectedRows, { nullable: true })
   deleteManyProductVariant(@Args() args: DeleteManyProductVariantArgs) {
     return this.ProductVariantService.deleteMany(args);
+  }
+
+  // Custom catalogue queries
+  @Query(() => [ProductVariant])
+  @UseGuards(GqlAuthGuard)
+  variantsByStore(
+    @Args('storeId') storeId: string,
+    @Args('search', { nullable: true }) search?: string,
+  ) {
+    return this.ProductVariantService.variantsByStore(storeId, search);
+  }
+
+  @Query(() => [ProductVariant])
+  @UseGuards(GqlAuthGuard)
+  lowStockByStore(@Args('storeId') storeId: string) {
+    return this.ProductVariantService.lowStockByStore(storeId);
   }
 }

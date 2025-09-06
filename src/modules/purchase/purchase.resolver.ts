@@ -28,6 +28,7 @@ import { RfqDashboard } from './types/rfq-dashboard.type';
 import { AdminProcurementDashboard } from './types/admin-procurement-dashboard.type';
 import { UpsertSupplierCatalogBulkInput, UpsertSupplierCatalogInput } from './dto/upsert-supplier-catalog.input';
 import { CloseRfqInput } from './dto/close-rfq.input';
+import { CreateRequisitionFromLowStockInput } from './dto/create-requisition-from-low-stock.input';
 import { PurchaseOrderStatus } from '../../shared/prismagraphql/prisma/purchase-order-status.enum';
 import { PurchasePhase } from '../../shared/prismagraphql/prisma/purchase-phase.enum';
 
@@ -332,6 +333,15 @@ export class PurchaseResolver {
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   adminProcurementDashboard() {
     return this.purchaseService.adminProcurementDashboard();
+  }
+
+  @Mutation(() => String, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  createRequisitionFromLowStock(
+    @Args('input') input: CreateRequisitionFromLowStockInput,
+  ) {
+    return this.purchaseService.createRequisitionFromLowStock(input);
   }
 
 }

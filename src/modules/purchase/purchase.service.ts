@@ -33,6 +33,7 @@ import {
   SelectSupplierQuoteInput,
 } from './dto/select-reject-supplier-quote.input';
 import { CloseRfqInput } from './dto/close-rfq.input';
+import { CreateRequisitionFromLowStockInput } from './dto/create-requisition-from-low-stock.input';
 
 @Injectable()
 export class PurchaseService {
@@ -444,6 +445,40 @@ export class PurchaseService {
       partialSubmissionRequisitions: partialSubs,
       creditBlockedSuppliers,
     } as any;
+  }
+
+  // Auto-draft requisition for low-stock items at a store based on reorderPoint
+  async createRequisitionFromLowStock(input: CreateRequisitionFromLowStockInput) {
+    const stocks = await this.prisma.stock.findMany({
+      where: { storeId: input.storeId, reorderPoint: { not: null } },
+      select: { productVariantId: true, quantity: true, reserved: true, reorderPoint: true, reorderQty: true },
+    });
+    const items: { productVariantId: string; requestedQty: number }[] = [];
+    for (const s of stocks) {
+      const available = (s.quantity || 0) - (s.reserved || 0);
+      const rp = s.reorderPoint ?? 0;
+      if (rp > 0 && available < rp) {
+        const rq = s.reorderQty ?? (rp - available);
+        if (rq > 0)
+          items.push({ productVariantId: s.productVariantId, requestedQty: rq });
+      }
+    }
+    if (!items.length) return null;
+    const req = await this.prisma.purchaseRequisition.create({
+      data: {
+        storeId: input.storeId,
+        requestedById: input.requestedById,
+        status: 'DRAFT',
+        items: { create: items.map((i) => ({ productVariantId: i.productVariantId, requestedQty: i.requestedQty })) },
+      },
+    });
+    await this.domainEvents.publish('PURCHASE_REQUISITION_CREATED', { requisitionId: req.id, storeId: req.storeId, requestedById: req.requestedById, source: 'LOW_STOCK' }, { aggregateType: 'PurchaseRequisition', aggregateId: req.id });
+    // Notify store manager
+    const store = await this.prisma.store.findUnique({ where: { id: input.storeId } });
+    if (store) {
+      await this.notificationService.createNotification(store.managerId, 'LOW_STOCK_REQUISITION_CREATED', `Low-stock requisition ${req.id} created.`);
+    }
+    return req.id;
   }
 
   async rfqDashboardAll() {

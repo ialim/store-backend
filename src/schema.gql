@@ -1514,6 +1514,20 @@ type RfqDashboard {
   pendingQuotes: [SupplierQuoteSummary!]!
 }
 
+type SupplierCreditStatus {
+  supplierId: String!
+  name: String!
+  creditLimit: Float!
+  currentBalance: Float!
+}
+
+type AdminProcurementDashboard {
+  overduePOs: [PurchaseOrder!]!
+  noSubmissionRequisitions: [RequisitionSummary!]!
+  partialSubmissionRequisitions: [RequisitionSummary!]!
+  creditBlockedSuppliers: [SupplierCreditStatus!]!
+}
+
 type StockCountAggregate {
   id: Int!
   storeId: Int!
@@ -1960,6 +1974,7 @@ type Query {
   rfqCountsAll: RfqStatusCounts!
   rfqDashboard(requisitionId: String!): RfqDashboard!
   rfqDashboardAll: RfqDashboard!
+  adminProcurementDashboard: AdminProcurementDashboard!
   stock(input: QueryStockInput): [Stock!]!
   stockMovements(storeId: String!): [StockMovement!]!
   ordersQuery: [SaleOrder!]!
