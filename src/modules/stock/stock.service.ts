@@ -1,17 +1,19 @@
 // src/stock/stock.service.ts
 
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ReceiveStockBatchInput } from './dto/receive-stock-batch.input';
 import { TransferStockInput } from './dto/transfer-stock.input';
 import { MovementDirection } from '../../shared/prismagraphql/prisma/movement-direction.enum';
 import { NotificationService } from '../notification/notification.service';
+import { DomainEventsService } from '../events/services/domain-events.service';
 
 @Injectable()
 export class StockService {
   constructor(
     private prisma: PrismaService,
     private notificationService: NotificationService,
+    private domainEvents: DomainEventsService,
   ) {}
 
   // Query current stock levels
@@ -89,6 +91,32 @@ export class StockService {
   // Receive a batch (Purchase IN)
   async receiveStockBatch(input: ReceiveStockBatchInput) {
     return this.prisma.$transaction(async (tx) => {
+      // Validate over-receipt against PO lines
+      const po = await tx.purchaseOrder.findUnique({ where: { id: input.purchaseOrderId }, include: { items: true } });
+      if (po) {
+        // Aggregate incoming quantities by variant
+        const incoming = new Map<string, number>();
+        for (const it of input.items) {
+          incoming.set(it.productVariantId, (incoming.get(it.productVariantId) || 0) + it.quantity);
+        }
+        // Sum already received across previous batches
+        const priorBatches = await tx.stockReceiptBatch.findMany({ where: { purchaseOrderId: input.purchaseOrderId }, select: { id: true } });
+        const priorIds = priorBatches.map((b) => b.id);
+        const priorItems = priorIds.length
+          ? await tx.stockReceiptBatchItem.findMany({ where: { stockReceiptBatchId: { in: priorIds } }, select: { productVariantId: true, quantity: true } })
+          : [];
+        const receivedSoFar = new Map<string, number>();
+        for (const it of priorItems) {
+          receivedSoFar.set(it.productVariantId, (receivedSoFar.get(it.productVariantId) || 0) + it.quantity);
+        }
+        for (const line of po.items) {
+          const got = receivedSoFar.get(line.productVariantId) || 0;
+          const inc = incoming.get(line.productVariantId) || 0;
+          if (got + inc > line.quantity) {
+            throw new BadRequestException(`Over-receipt for variant ${line.productVariantId}: ${got}+${inc} > ordered ${line.quantity}`);
+          }
+        }
+      }
       const batch = await tx.stockReceiptBatch.create({
         data: {
           purchaseOrderId: input.purchaseOrderId,
@@ -178,6 +206,7 @@ export class StockService {
               where: { id: po.id },
               data: { status: 'RECEIVED' as any },
             });
+            await this.domainEvents.publish('PURCHASE_ORDER_RECEIVED', { purchaseOrderId: po.id }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
 
             // If paid as well, mark completed
             const paidAgg = await tx.supplierPayment.aggregate({
@@ -190,6 +219,7 @@ export class StockService {
                 where: { id: po.id },
                 data: { phase: 'COMPLETED' as any },
               });
+              await this.domainEvents.publish('PURCHASE_COMPLETED', { purchaseOrderId: po.id }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
               await this.notificationService.createNotification(
                 po.supplierId,
                 'PURCHASE_COMPLETED',

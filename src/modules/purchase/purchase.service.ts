@@ -12,12 +12,14 @@ import { CreatePurchaseRequisitionInput } from './dto/create-purchase-requisitio
 import { IdInput, RejectRequisitionInput } from './dto/submit-purchase-requisition.input';
 import { IssueRfqInput } from './dto/issue-rfq.input';
 import { SubmitSupplierQuoteInput } from './dto/submit-supplier-quote.input';
+import { DomainEventsService } from '../events/services/domain-events.service';
 
 @Injectable()
 export class PurchaseService {
   constructor(
     private prisma: PrismaService,
     private notificationService: NotificationService,
+    private domainEvents: DomainEventsService,
   ) {}
 
   // Suppliers
@@ -77,6 +79,8 @@ export class PurchaseService {
       },
       include: { items: true },
     });
+    // Domain event + notify store manager
+    await this.domainEvents.publish('PURCHASE_REQUISITION_CREATED', { requisitionId: req.id, storeId: req.storeId, requestedById: req.requestedById }, { aggregateType: 'PurchaseRequisition', aggregateId: req.id });
     // Notify store manager
     const store = await this.prisma.store.findUnique({ where: { id: req.storeId } });
     if (store) {
@@ -94,6 +98,7 @@ export class PurchaseService {
       where: { id },
       data: { status: 'SENT' },
     });
+    await this.domainEvents.publish('PURCHASE_REQUISITION_SUBMITTED', { requisitionId: req.id, storeId: req.storeId }, { aggregateType: 'PurchaseRequisition', aggregateId: req.id });
     const store = await this.prisma.store.findUnique({ where: { id: req.storeId } });
     if (store) {
       await this.notificationService.createNotification(
@@ -106,12 +111,14 @@ export class PurchaseService {
   }
 
   async approvePurchaseRequisition({ id }: IdInput) {
-    await this.prisma.purchaseRequisition.update({ where: { id }, data: { status: 'APPROVED' } });
+    const req = await this.prisma.purchaseRequisition.update({ where: { id }, data: { status: 'APPROVED' } });
+    await this.domainEvents.publish('PURCHASE_REQUISITION_APPROVED', { requisitionId: req.id, storeId: req.storeId }, { aggregateType: 'PurchaseRequisition', aggregateId: req.id });
     return true;
   }
 
   async rejectPurchaseRequisition(input: RejectRequisitionInput) {
-    await this.prisma.purchaseRequisition.update({ where: { id: input.id }, data: { status: 'REJECTED' } });
+    const req = await this.prisma.purchaseRequisition.update({ where: { id: input.id }, data: { status: 'REJECTED' } });
+    await this.domainEvents.publish('PURCHASE_REQUISITION_REJECTED', { requisitionId: req.id, reason: input.reason }, { aggregateType: 'PurchaseRequisition', aggregateId: req.id });
     return true;
   }
 
@@ -144,6 +151,7 @@ export class PurchaseService {
         },
       });
     }
+    await this.domainEvents.publish('RFQ_ISSUED', { requisitionId: req.id, supplierIds }, { aggregateType: 'PurchaseRequisition', aggregateId: req.id });
     // Notify store manager
     const store = await this.prisma.store.findUnique({ where: { id: req.storeId } });
     if (store) {
@@ -191,6 +199,7 @@ export class PurchaseService {
         })),
       });
     }
+    await this.domainEvents.publish('SUPPLIER_QUOTE_SUBMITTED', { quoteId: quote.id, supplierId: input.supplierId, requisitionId: input.requisitionId }, { aggregateType: 'SupplierQuote', aggregateId: quote.id });
     return quote.id;
   }
 
@@ -226,6 +235,7 @@ export class PurchaseService {
       'PURCHASE_ORDER_CREATED',
       `Purchase Order ${po.invoiceNumber} created`,
     );
+    await this.domainEvents.publish('PURCHASE_ORDER_CREATED', { purchaseOrderId: po.id, supplierId: po.supplierId, totalAmount: po.totalAmount }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
     return po;
   }
 
@@ -234,6 +244,7 @@ export class PurchaseService {
       where: { id: data.id },
       data: { status: data.status },
     });
+    await this.domainEvents.publish('PURCHASE_ORDER_STATUS_UPDATED', { purchaseOrderId: po.id, status: data.status }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
     await this.notificationService.createNotification(
       po.id,
       'PURCHASE_ORDER_UPDATED',
@@ -265,6 +276,7 @@ export class PurchaseService {
         const paid = paidAgg._sum.amount || 0;
         const newStatus = paid >= po.totalAmount ? 'PAID' : 'PARTIALLY_PAID';
         await this.prisma.purchaseOrder.update({ where: { id: po.id }, data: { status: newStatus as any, phase: (newStatus === 'PAID' ? 'INVOICING' : po.phase) as any } });
+        await this.domainEvents.publish('PURCHASE_ORDER_STATUS_UPDATED', { purchaseOrderId: po.id, status: newStatus }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
         await this.maybeFinalizePurchaseOrder(po.id);
       }
     }
@@ -391,6 +403,7 @@ export class PurchaseService {
         include: { items: true },
       });
       createdPOs.push(po.id);
+      await this.domainEvents.publish('PURCHASE_ORDER_CREATED', { purchaseOrderId: po.id, supplierId, totalAmount: total }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
       // Update supplier balance
       await this.prisma.supplier.update({
         where: { id: supplierId },
@@ -417,6 +430,7 @@ export class PurchaseService {
       where: { id: req.id },
       data: { status: 'APPROVED' },
     });
+    await this.domainEvents.publish('PURCHASE_REQUISITION_APPROVED', { requisitionId: req.id }, { aggregateType: 'PurchaseRequisition', aggregateId: req.id });
 
     return createdPOs;
   }
@@ -427,12 +441,14 @@ export class PurchaseService {
       where: { id: input.id },
       data: { phase: input.phase as any },
     });
+    await this.domainEvents.publish('PURCHASE_ORDER_PHASE_UPDATED', { purchaseOrderId: po.id, phase: input.phase }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
     return po;
   }
 
   // Mark PO as received (business action)
   async markPurchaseOrderReceived({ id }: MarkPurchaseOrderReceivedInput) {
     const po = await this.prisma.purchaseOrder.update({ where: { id }, data: { status: 'RECEIVED' as any, phase: 'RECEIVING' as any } });
+    await this.domainEvents.publish('PURCHASE_ORDER_RECEIVED', { purchaseOrderId: po.id }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
     await this.notificationService.createNotification(
       po.supplierId,
       'PURCHASE_ORDER_RECEIVED',
@@ -452,8 +468,10 @@ export class PurchaseService {
     const isReceived = po.status === ('RECEIVED' as any);
     if (isPaid && isReceived) {
       await this.prisma.purchaseOrder.update({ where: { id: po.id }, data: { phase: 'COMPLETED' as any } });
+      await this.domainEvents.publish('PURCHASE_COMPLETED', { purchaseOrderId: po.id }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
       await this.notificationService.createNotification(
         po.supplierId,
+    await this.domainEvents.publish('SUPPLIER_PAYMENT_RECORDED', { paymentId: payment.id, supplierId: payment.supplierId, purchaseOrderId: payment.purchaseOrderId, amount: payment.amount }, { aggregateType: 'SupplierPayment', aggregateId: payment.id });
         'PURCHASE_COMPLETED',
         `PO ${po.invoiceNumber} completed.`,
       );
