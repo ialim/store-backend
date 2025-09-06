@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { DomainEventsService } from '../events/services/domain-events.service';
@@ -24,19 +28,27 @@ export class ReturnsService {
       select: { id: true },
     });
     await Promise.all(
-      recipients.map((u) => this.notifications.createNotification(u.id, type, message)),
+      recipients.map((u) =>
+        this.notifications.createNotification(u.id, type, message),
+      ),
     );
   }
 
   // SALES RETURN
   async createSalesReturnForOrder(input: CreateOrderReturnInput) {
-    const order = await this.prisma.saleOrder.findUnique({ where: { id: input.orderId } });
+    const order = await this.prisma.saleOrder.findUnique({
+      where: { id: input.orderId },
+    });
     if (!order) throw new NotFoundException('Order not found');
 
     // Try to find the associated sale
-    const consumerSale = await this.prisma.consumerSale.findUnique({ where: { saleOrderId: input.orderId } });
+    const consumerSale = await this.prisma.consumerSale.findUnique({
+      where: { saleOrderId: input.orderId },
+    });
     const resellerSale = !consumerSale
-      ? await this.prisma.resellerSale.findUnique({ where: { SaleOrderid: input.orderId } })
+      ? await this.prisma.resellerSale.findUnique({
+          where: { SaleOrderid: input.orderId },
+        })
       : null;
     if (!consumerSale && !resellerSale) {
       throw new NotFoundException('No sale found for order');
@@ -55,41 +67,52 @@ export class ReturnsService {
 
   async createSalesReturn(input: CreateSalesReturnInput) {
     if (input.type === ('CONSUMER' as any) && !input.consumerSaleId) {
-      throw new BadRequestException('consumerSaleId is required for CONSUMER returns');
+      throw new BadRequestException(
+        'consumerSaleId is required for CONSUMER returns',
+      );
     }
     if (input.type === ('RESELLER' as any) && !input.resellerSaleId) {
-      throw new BadRequestException('resellerSaleId is required for RESELLER returns');
+      throw new BadRequestException(
+        'resellerSaleId is required for RESELLER returns',
+      );
     }
 
     // Load the sale and items
-    const sale = input.type === ('CONSUMER' as any)
-      ? await this.prisma.consumerSale.findUnique({
-          where: { id: input.consumerSaleId! },
-          include: { items: true },
-        })
-      : await this.prisma.resellerSale.findUnique({
-          where: { id: input.resellerSaleId! },
-          include: { items: true },
-        });
+    const sale =
+      input.type === ('CONSUMER' as any)
+        ? await this.prisma.consumerSale.findUnique({
+            where: { id: input.consumerSaleId! },
+            include: { items: true },
+          })
+        : await this.prisma.resellerSale.findUnique({
+            where: { id: input.resellerSaleId! },
+            include: { items: true },
+          });
     if (!sale) throw new NotFoundException('Sale not found');
 
     // Validate quantities: cannot exceed sold minus already returned
     for (const it of input.items) {
-      const soldQty = (sale.items.find((i: any) => i.productVariantId === it.productVariantId)?.quantity) || 0;
+      const soldQty =
+        sale.items.find((i: any) => i.productVariantId === it.productVariantId)
+          ?.quantity || 0;
       // Sum previous returns for this sale and variant
       const prevReturns = await this.prisma.salesReturnItem.aggregate({
         _sum: { quantity: true },
         where: {
           productVariantId: it.productVariantId,
-          return: input.type === ('CONSUMER' as any)
-            ? { consumerSaleId: input.consumerSaleId! }
-            : { resellerSaleId: input.resellerSaleId! },
+          return:
+            input.type === ('CONSUMER' as any)
+              ? { consumerSaleId: input.consumerSaleId! }
+              : { resellerSaleId: input.resellerSaleId! },
         } as any,
       });
       const alreadyReturned = prevReturns._sum.quantity || 0;
-      if (it.quantity <= 0) throw new BadRequestException('Return quantity must be > 0');
+      if (it.quantity <= 0)
+        throw new BadRequestException('Return quantity must be > 0');
       if (it.quantity + alreadyReturned > soldQty) {
-        throw new BadRequestException('Return quantity exceeds sold quantity for a line');
+        throw new BadRequestException(
+          'Return quantity exceeds sold quantity for a line',
+        );
       }
     }
 
@@ -119,7 +142,10 @@ export class ReturnsService {
       { salesReturnId: sr.id, type: input.type },
       { aggregateType: 'SalesReturn', aggregateId: sr.id },
     );
-    await this.notifyAdminsManagers('SALES_RETURN_CREATED', `Sales return ${sr.id} created`);
+    await this.notifyAdminsManagers(
+      'SALES_RETURN_CREATED',
+      `Sales return ${sr.id} created`,
+    );
     return sr.id;
   }
 
@@ -141,7 +167,10 @@ export class ReturnsService {
           referenceEntity: 'SalesReturn',
           referenceId: sr.id,
           items: {
-            create: sr.items.map((i) => ({ productVariantId: i.productVariantId, quantity: i.quantity })),
+            create: sr.items.map((i) => ({
+              productVariantId: i.productVariantId,
+              quantity: i.quantity,
+            })),
           },
         },
         include: { items: true },
@@ -151,10 +180,18 @@ export class ReturnsService {
         await this.prisma.stock.upsert({
           where: {
             id: undefined,
-            AND: [{ storeId: sr.storeId }, { productVariantId: mi.productVariantId }],
+            AND: [
+              { storeId: sr.storeId },
+              { productVariantId: mi.productVariantId },
+            ],
           },
           update: { quantity: { increment: mi.quantity } },
-          create: { storeId: sr.storeId, productVariantId: mi.productVariantId, quantity: mi.quantity, reserved: 0 },
+          create: {
+            storeId: sr.storeId,
+            productVariantId: mi.productVariantId,
+            quantity: mi.quantity,
+            reserved: 0,
+          },
         });
       }
 
@@ -167,21 +204,36 @@ export class ReturnsService {
         if (rSale) {
           let credit = 0;
           for (const rit of sr.items) {
-            const si = rSale.items.find((i) => i.productVariantId === rit.productVariantId);
+            const si = rSale.items.find(
+              (i) => i.productVariantId === rit.productVariantId,
+            );
             if (si) credit += rit.quantity * (si.unitPrice || 0);
           }
           if (credit > 0) {
-            const profile = await this.prisma.resellerProfile.findUnique({ where: { userId: rSale.resellerId } });
+            const profile = await this.prisma.resellerProfile.findUnique({
+              where: { userId: rSale.resellerId },
+            });
             if (profile) {
-              const newBal = Math.max(0, (profile.outstandingBalance || 0) - credit);
+              const newBal = Math.max(
+                0,
+                (profile.outstandingBalance || 0) - credit,
+              );
               await this.prisma.resellerProfile.update({
                 where: { userId: rSale.resellerId },
                 data: { outstandingBalance: newBal },
               });
               await this.domainEvents.publish(
                 'RESELLER_CREDIT_ADJUSTED',
-                { resellerId: rSale.resellerId, salesReturnId: sr.id, amount: credit, newOutstandingBalance: newBal },
-                { aggregateType: 'ResellerProfile', aggregateId: rSale.resellerId },
+                {
+                  resellerId: rSale.resellerId,
+                  salesReturnId: sr.id,
+                  amount: credit,
+                  newOutstandingBalance: newBal,
+                },
+                {
+                  aggregateType: 'ResellerProfile',
+                  aggregateId: rSale.resellerId,
+                },
               );
               await this.notifications.createNotification(
                 rSale.resellerId,
@@ -200,13 +252,19 @@ export class ReturnsService {
         if (cSale) {
           let refund = 0;
           for (const rit of sr.items) {
-            const si = cSale.items.find((i) => i.productVariantId === rit.productVariantId);
+            const si = cSale.items.find(
+              (i) => i.productVariantId === rit.productVariantId,
+            );
             if (si) refund += rit.quantity * (si.unitPrice || 0);
           }
           if (refund > 0) {
             await this.domainEvents.publish(
               'CONSUMER_RETURN_ACCEPTED',
-              { consumerSaleId: cSale.id, salesReturnId: sr.id, refundAmount: refund },
+              {
+                consumerSaleId: cSale.id,
+                salesReturnId: sr.id,
+                refundAmount: refund,
+              },
               { aggregateType: 'ConsumerSale', aggregateId: cSale.id },
             );
             await this.notifications.createNotification(
@@ -221,7 +279,10 @@ export class ReturnsService {
 
     const updated = await this.prisma.salesReturn.update({
       where: { id: sr.id },
-      data: { status: input.status as any, approvedById: input.approvedById ?? undefined },
+      data: {
+        status: input.status as any,
+        approvedById: input.approvedById ?? undefined,
+      },
     });
     await this.domainEvents.publish(
       'SALES_RETURN_STATUS_UPDATED',
@@ -233,13 +294,17 @@ export class ReturnsService {
 
   // PURCHASE RETURN
   async createPurchaseReturn(input: CreatePurchaseReturnInput) {
-    if (!input.items?.length) throw new BadRequestException('Return requires items');
+    if (!input.items?.length)
+      throw new BadRequestException('Return requires items');
 
     // Validate per-batch available quantities
     for (const it of input.items) {
       const batchItemAgg = await this.prisma.stockReceiptBatchItem.aggregate({
         _sum: { quantity: true },
-        where: { stockReceiptBatchId: it.batchId, productVariantId: it.productVariantId },
+        where: {
+          stockReceiptBatchId: it.batchId,
+          productVariantId: it.productVariantId,
+        },
       });
       const receivedQty = batchItemAgg._sum.quantity || 0;
       const prevReturnsAgg = await this.prisma.purchaseReturnItem.aggregate({
@@ -247,9 +312,12 @@ export class ReturnsService {
         where: { batchId: it.batchId, productVariantId: it.productVariantId },
       });
       const alreadyReturned = prevReturnsAgg._sum.quantity || 0;
-      if (it.quantity <= 0) throw new BadRequestException('Return quantity must be > 0');
+      if (it.quantity <= 0)
+        throw new BadRequestException('Return quantity must be > 0');
       if (it.quantity + alreadyReturned > receivedQty) {
-        throw new BadRequestException('Return quantity exceeds received quantity for a batch line');
+        throw new BadRequestException(
+          'Return quantity exceeds received quantity for a batch line',
+        );
       }
     }
 
@@ -275,7 +343,10 @@ export class ReturnsService {
       { purchaseReturnId: pr.id },
       { aggregateType: 'PurchaseReturn', aggregateId: pr.id },
     );
-    await this.notifyAdminsManagers('PURCHASE_RETURN_CREATED', `Purchase return ${pr.id} created`);
+    await this.notifyAdminsManagers(
+      'PURCHASE_RETURN_CREATED',
+      `Purchase return ${pr.id} created`,
+    );
     return pr.id;
   }
 
@@ -292,15 +363,26 @@ export class ReturnsService {
       where: { id: { in: batchIds } },
       select: { id: true, storeId: true },
     });
-    const storeByBatch = new Map(batches.map((b) => [b.id, b.storeId] as const));
+    const storeByBatch = new Map(
+      batches.map((b) => [b.id, b.storeId] as const),
+    );
 
     // Create stock movement OUT per store
-    const byStore: Record<string, { productVariantId: string; quantity: number }[]> = {};
+    const byStore: Record<
+      string,
+      { productVariantId: string; quantity: number }[]
+    > = {};
     for (const it of pr.items) {
       const storeId = storeByBatch.get(it.batchId);
-      if (!storeId) throw new BadRequestException('Invalid batch or missing store for return');
+      if (!storeId)
+        throw new BadRequestException(
+          'Invalid batch or missing store for return',
+        );
       byStore[storeId] = byStore[storeId] || [];
-      byStore[storeId].push({ productVariantId: it.productVariantId, quantity: it.quantity });
+      byStore[storeId].push({
+        productVariantId: it.productVariantId,
+        quantity: it.quantity,
+      });
     }
 
     for (const [storeId, items] of Object.entries(byStore)) {
@@ -317,9 +399,17 @@ export class ReturnsService {
       });
       for (const mi of movement.items) {
         await this.prisma.stock.upsert({
-          where: { id: undefined, AND: [{ storeId }, { productVariantId: mi.productVariantId }] },
+          where: {
+            id: undefined,
+            AND: [{ storeId }, { productVariantId: mi.productVariantId }],
+          },
           update: { quantity: { decrement: mi.quantity } },
-          create: { storeId, productVariantId: mi.productVariantId, quantity: -mi.quantity, reserved: 0 },
+          create: {
+            storeId,
+            productVariantId: mi.productVariantId,
+            quantity: -mi.quantity,
+            reserved: 0,
+          },
         });
       }
     }
@@ -327,21 +417,36 @@ export class ReturnsService {
     // Financial: adjust supplier balance by return amount
     let creditBack = 0;
     for (const it of pr.items) {
-      const batch = await this.prisma.stockReceiptBatch.findUnique({ where: { id: it.batchId } });
+      const batch = await this.prisma.stockReceiptBatch.findUnique({
+        where: { id: it.batchId },
+      });
       if (!batch) continue;
       const poItem = await this.prisma.purchaseOrderItem.findFirst({
-        where: { purchaseOrderId: batch.purchaseOrderId, productVariantId: it.productVariantId },
+        where: {
+          purchaseOrderId: batch.purchaseOrderId,
+          productVariantId: it.productVariantId,
+        },
       });
       if (poItem) creditBack += it.quantity * (poItem.unitCost || 0);
     }
     if (creditBack > 0) {
-      const supplier = await this.prisma.supplier.findUnique({ where: { id: pr.supplierId } });
+      const supplier = await this.prisma.supplier.findUnique({
+        where: { id: pr.supplierId },
+      });
       if (supplier) {
         const newBal = Math.max(0, (supplier.currentBalance || 0) - creditBack);
-        await this.prisma.supplier.update({ where: { id: pr.supplierId }, data: { currentBalance: newBal } as any });
+        await this.prisma.supplier.update({
+          where: { id: pr.supplierId },
+          data: { currentBalance: newBal } as any,
+        });
         await this.domainEvents.publish(
           'PURCHASE_RETURN_CREDITED',
-          { purchaseReturnId: pr.id, supplierId: pr.supplierId, amount: creditBack, newBalance: newBal },
+          {
+            purchaseReturnId: pr.id,
+            supplierId: pr.supplierId,
+            amount: creditBack,
+            newBalance: newBal,
+          },
           { aggregateType: 'Supplier', aggregateId: pr.supplierId },
         );
       }
