@@ -24,7 +24,14 @@ import { IssueRfqInput } from './dto/issue-rfq.input';
 import { SubmitSupplierQuoteInput } from './dto/submit-supplier-quote.input';
 import { DomainEventsService } from '../events/services/domain-events.service';
 import { LinkSupplierUserInput } from './dto/link-supplier-user.input';
-import { UpsertSupplierCatalogBulkInput, UpsertSupplierCatalogInput } from './dto/upsert-supplier-catalog.input';
+import {
+  UpsertSupplierCatalogBulkInput,
+  UpsertSupplierCatalogInput,
+} from './dto/upsert-supplier-catalog.input';
+import {
+  RejectSupplierQuoteInput,
+  SelectSupplierQuoteInput,
+} from './dto/select-reject-supplier-quote.input';
 
 @Injectable()
 export class PurchaseService {
@@ -81,7 +88,9 @@ export class PurchaseService {
   async linkSupplierUser(input: LinkSupplierUserInput) {
     // validate user exists when linking
     if (input.userId) {
-      const user = await this.prisma.user.findUnique({ where: { id: input.userId } });
+      const user = await this.prisma.user.findUnique({
+        where: { id: input.userId },
+      });
       if (!user) throw new NotFoundException('User not found');
     }
     const sup = await this.prisma.supplier.update({
@@ -140,7 +149,13 @@ export class PurchaseService {
   async requisitionsByStatus(status: string) {
     return this.prisma.purchaseRequisition.findMany({
       where: { status: status as any },
-      select: { id: true, storeId: true, requestedById: true, status: true, createdAt: true },
+      select: {
+        id: true,
+        storeId: true,
+        requestedById: true,
+        status: true,
+        createdAt: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -148,9 +163,85 @@ export class PurchaseService {
   async supplierQuotesByRequisition(requisitionId: string) {
     return this.prisma.supplierQuote.findMany({
       where: { requisitionId },
-      select: { id: true, requisitionId: true, supplierId: true, status: true, validUntil: true, createdAt: true },
+      select: {
+        id: true,
+        requisitionId: true,
+        supplierId: true,
+        status: true,
+        validUntil: true,
+        createdAt: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async selectSupplierQuote(input: SelectSupplierQuoteInput) {
+    const quote = await this.prisma.supplierQuote.findUnique({
+      where: { id: input.quoteId },
+    });
+    if (!quote) throw new NotFoundException('Supplier quote not found');
+    const updated = await this.prisma.supplierQuote.update({
+      where: { id: quote.id },
+      data: { status: 'SELECTED' as any },
+    });
+    if (input.exclusive ?? true) {
+      await this.prisma.supplierQuote.updateMany({
+        where: {
+          requisitionId: updated.requisitionId,
+          id: { not: updated.id },
+        },
+        data: { status: 'REJECTED' as any },
+      });
+    }
+    await this.domainEvents.publish(
+      'SUPPLIER_QUOTE_SELECTED',
+      {
+        quoteId: updated.id,
+        requisitionId: updated.requisitionId,
+        supplierId: updated.supplierId,
+        exclusive: input.exclusive ?? true,
+      },
+      { aggregateType: 'SupplierQuote', aggregateId: updated.id },
+    );
+    // Notify store manager
+    const req = await this.prisma.purchaseRequisition.findUnique({
+      where: { id: updated.requisitionId },
+    });
+    if (req) {
+      const store = await this.prisma.store.findUnique({
+        where: { id: req.storeId },
+      });
+      if (store) {
+        await this.notificationService.createNotification(
+          store.managerId,
+          'SUPPLIER_QUOTE_SELECTED',
+          `Supplier quote selected for requisition ${req.id}.`,
+        );
+      }
+    }
+    return true;
+  }
+
+  async rejectSupplierQuote(input: RejectSupplierQuoteInput) {
+    const quote = await this.prisma.supplierQuote.findUnique({
+      where: { id: input.quoteId },
+    });
+    if (!quote) throw new NotFoundException('Supplier quote not found');
+    await this.prisma.supplierQuote.update({
+      where: { id: quote.id },
+      data: { status: 'REJECTED' as any },
+    });
+    await this.domainEvents.publish(
+      'SUPPLIER_QUOTE_REJECTED',
+      {
+        quoteId: quote.id,
+        requisitionId: quote.requisitionId,
+        supplierId: quote.supplierId,
+        reason: input.reason,
+      },
+      { aggregateType: 'SupplierQuote', aggregateId: quote.id },
+    );
+    return true;
   }
 
   // Supplier catalog upserts and queries
@@ -185,16 +276,25 @@ export class PurchaseService {
     await this.domainEvents.publish(
       'SUPPLIER_CATALOG_UPSERTED',
       { ...entry },
-      { aggregateType: 'SupplierCatalog', aggregateId: `${entry.supplierId}:${entry.productVariantId}` },
+      {
+        aggregateType: 'SupplierCatalog',
+        aggregateId: `${entry.supplierId}:${entry.productVariantId}`,
+      },
     );
     return entry;
   }
 
   async upsertSupplierCatalogBulk(input: UpsertSupplierCatalogBulkInput) {
-    const results = [] as Array<{ supplierId: string; productVariantId: string }>;
+    const results = [] as Array<{
+      supplierId: string;
+      productVariantId: string;
+    }>;
     for (const it of input.items) {
       const r = await this.upsertSupplierCatalog(it);
-      results.push({ supplierId: r.supplierId, productVariantId: r.productVariantId });
+      results.push({
+        supplierId: r.supplierId,
+        productVariantId: r.productVariantId,
+      });
     }
     return results;
   }
@@ -234,11 +334,19 @@ export class PurchaseService {
       where: {
         quotes: { some: {} },
       },
-      select: { id: true, storeId: true, requestedById: true, status: true, createdAt: true },
+      select: {
+        id: true,
+        storeId: true,
+        requestedById: true,
+        status: true,
+        createdAt: true,
+      },
     });
     const results: typeof reqs = [];
     for (const r of reqs) {
-      const submitted = await this.prisma.supplierQuote.count({ where: { requisitionId: r.id, status: 'SUBMITTED' as any } });
+      const submitted = await this.prisma.supplierQuote.count({
+        where: { requisitionId: r.id, status: 'SUBMITTED' as any },
+      });
       if (submitted === 0) results.push(r);
     }
     return results;
@@ -247,7 +355,34 @@ export class PurchaseService {
   async rfqPendingSuppliers(requisitionId: string) {
     return this.prisma.supplierQuote.findMany({
       where: { requisitionId, NOT: { status: 'SUBMITTED' as any } },
-      select: { id: true, requisitionId: true, supplierId: true, status: true, validUntil: true, createdAt: true },
+      select: {
+        id: true,
+        requisitionId: true,
+        supplierId: true,
+        status: true,
+        validUntil: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async requisitionsWithPartialSubmissions() {
+    // Requisitions with at least one SUBMITTED and at least one non-SUBMITTED quote
+    return this.prisma.purchaseRequisition.findMany({
+      where: {
+        AND: [
+          { quotes: { some: { status: 'SUBMITTED' as any } } },
+          { quotes: { some: { NOT: { status: 'SUBMITTED' as any } } } },
+        ],
+      },
+      select: {
+        id: true,
+        storeId: true,
+        requestedById: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -755,7 +890,10 @@ export class PurchaseService {
         );
       }
       // Notify supplier user if mapped
-      const supUser = await this.prisma.supplier.findUnique({ where: { id: supplierId }, select: { userId: true } });
+      const supUser = await this.prisma.supplier.findUnique({
+        where: { id: supplierId },
+        select: { userId: true },
+      });
       if (supUser?.userId) {
         await this.notificationService.createNotification(
           supUser.userId,
@@ -781,7 +919,9 @@ export class PurchaseService {
 
   // Update PO phase manually (admin control)
   async updatePurchaseOrderPhase(input: UpdatePurchaseOrderPhaseInput) {
-    const poCur = await this.prisma.purchaseOrder.findUnique({ where: { id: input.id } });
+    const poCur = await this.prisma.purchaseOrder.findUnique({
+      where: { id: input.id },
+    });
     if (!poCur) throw new NotFoundException('Purchase order not found');
     const cur = (poCur as any).phase as string;
     const next = input.phase as string;
@@ -792,10 +932,15 @@ export class PurchaseService {
     };
     if (cur in allowed) {
       if (!allowed[cur].includes(next)) {
-        throw new BadRequestException(`Invalid phase transition ${cur} -> ${next}`);
+        throw new BadRequestException(
+          `Invalid phase transition ${cur} -> ${next}`,
+        );
       }
     }
-    const po = await this.prisma.purchaseOrder.update({ where: { id: input.id }, data: { phase: next as any } });
+    const po = await this.prisma.purchaseOrder.update({
+      where: { id: input.id },
+      data: { phase: next as any },
+    });
     await this.domainEvents.publish(
       'PURCHASE_ORDER_PHASE_UPDATED',
       { purchaseOrderId: po.id, phase: input.phase },

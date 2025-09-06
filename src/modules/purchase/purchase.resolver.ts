@@ -18,6 +18,7 @@ import { CreatePurchaseRequisitionInput } from './dto/create-purchase-requisitio
 import { IdInput, RejectRequisitionInput } from './dto/submit-purchase-requisition.input';
 import { IssueRfqInput } from './dto/issue-rfq.input';
 import { SubmitSupplierQuoteInput } from './dto/submit-supplier-quote.input';
+import { SelectSupplierQuoteInput, RejectSupplierQuoteInput } from './dto/select-reject-supplier-quote.input';
 import { MarkPurchaseOrderReceivedInput, UpdatePurchaseOrderPhaseInput } from './dto/update-po-phase.input';
 import { RequisitionSummary } from './types/requisition-summary.type';
 import { SupplierQuoteSummary } from './types/supplier-quote-summary.type';
@@ -160,6 +161,27 @@ export class PurchaseResolver {
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   rfqPendingSuppliers(@Args('requisitionId') requisitionId: string) {
     return this.purchaseService.rfqPendingSuppliers(requisitionId);
+  }
+
+  @Query(() => [RequisitionSummary])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  requisitionsWithPartialSubmissions() {
+    return this.purchaseService.requisitionsWithPartialSubmissions();
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  selectSupplierQuote(@Args('input') input: SelectSupplierQuoteInput) {
+    return this.purchaseService.selectSupplierQuote(input);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  rejectSupplierQuote(@Args('input') input: RejectSupplierQuoteInput) {
+    return this.purchaseService.rejectSupplierQuote(input);
   }
 
   @Mutation(() => Supplier)

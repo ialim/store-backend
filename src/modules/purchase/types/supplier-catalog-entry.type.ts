@@ -17,4 +17,3 @@ export class SupplierCatalogEntry {
   @Field({ nullable: true })
   isPreferred?: boolean | null;
 }
-
