@@ -144,4 +144,82 @@ export class AnalyticsReadService {
     const totalReturned = returns.reduce((sum, r) => sum + r.items.reduce((s, i) => s + i.quantity, 0), 0);
     return { month, totalSold, totalReturned };
   }
+
+  private monthWindow(month: string) {
+    const [year, mm] = month.split('-').map((x) => Number(x));
+    const start = new Date(Date.UTC(year, mm - 1, 1, 0, 0, 0));
+    const end = new Date(Date.UTC(year, mm, 1, 0, 0, 0));
+    return { start, end };
+  }
+
+  async topSellingVariantsDetailed({ month, limit }: TopSellingParams): Promise<VariantQty[]> {
+    const basic = await this.topSellingVariants({ month, limit });
+    return basic;
+  }
+
+  async topSellingVariantsByStore(params: { storeId: string; month: string; limit: number }): Promise<VariantQty[]> {
+    const { storeId, month, limit } = params;
+    const { start, end } = this.monthWindow(month);
+    const map = new Map<string, number>();
+    // Consumer sales
+    const cSales = await this.prisma.consumerSale.findMany({
+      where: { storeId, createdAt: { gte: start, lt: end } },
+      select: { items: { select: { productVariantId: true, quantity: true } } },
+    });
+    for (const s of cSales) {
+      for (const it of s.items) {
+        map.set(it.productVariantId, (map.get(it.productVariantId) || 0) + it.quantity);
+      }
+    }
+    // Reseller sales
+    const rSales = await this.prisma.resellerSale.findMany({
+      where: { storeId, createdAt: { gte: start, lt: end } },
+      select: { items: { select: { productVariantId: true, quantity: true } } },
+    });
+    for (const s of rSales) {
+      for (const it of s.items) {
+        map.set(it.productVariantId, (map.get(it.productVariantId) || 0) + it.quantity);
+      }
+    }
+    const arr: VariantQty[] = Array.from(map.entries()).map(([productVariantId, quantity]) => ({ productVariantId, quantity }));
+    arr.sort((a, b) => b.quantity - a.quantity);
+    return arr.slice(0, limit);
+  }
+
+  async monthlySalesSummaryByStore(params: { storeId: string; month: string }): Promise<{ month: string; totalSold: number; totalReturned: number }> {
+    const { storeId, month } = params;
+    const { start, end } = this.monthWindow(month);
+    // Sold
+    let totalSold = 0;
+    const cSales = await this.prisma.consumerSale.findMany({ where: { storeId, createdAt: { gte: start, lt: end } }, select: { items: { select: { quantity: true } } } });
+    for (const s of cSales) totalSold += s.items.reduce((sum, it) => sum + it.quantity, 0);
+    const rSales = await this.prisma.resellerSale.findMany({ where: { storeId, createdAt: { gte: start, lt: end } }, select: { items: { select: { quantity: true } } } });
+    for (const s of rSales) totalSold += s.items.reduce((sum, it) => sum + it.quantity, 0);
+    // Returned
+    const returns = await this.prisma.salesReturn.findMany({ where: { storeId, status: 'ACCEPTED' as any, createdAt: { gte: start, lt: end } }, select: { items: { select: { quantity: true } } } });
+    const totalReturned = returns.reduce((sum, r) => sum + r.items.reduce((s, it) => s + it.quantity, 0), 0);
+    return { month, totalSold, totalReturned };
+  }
+
+  async enrichVariantDetails(list: VariantQty[]): Promise<Array<VariantQty & { productId?: string | null; productName?: string | null; size?: string | null; concentration?: string | null; packaging?: string | null; barcode?: string | null }>> {
+    const ids = list.map((v) => v.productVariantId);
+    if (!ids.length) return [] as any;
+    const variants = await this.prisma.productVariant.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, size: true, concentration: true, packaging: true, barcode: true, product: { select: { id: true, name: true } } },
+    });
+    const map = new Map(variants.map((v) => [v.id, v] as const));
+    return list.map((e) => {
+      const v = map.get(e.productVariantId);
+      return {
+        ...e,
+        productId: v?.product?.id ?? null,
+        productName: v?.product?.name ?? null,
+        size: v?.size ?? null,
+        concentration: v?.concentration ?? null,
+        packaging: v?.packaging ?? null,
+        barcode: v?.barcode ?? null,
+      } as any;
+    });
+  }
 }

@@ -6,6 +6,7 @@ import { VariantMonthlySales } from './types/variant-monthly-sales.type';
 import { CustomerAffinityEntry } from './types/customer-affinity-entry.type';
 import { MonthlySalesSummary } from './types/monthly-sales-summary.type';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { VariantSalesWithDetails } from './types/variant-sales-with-details.type';
 
 function currentMonth(): string {
   const now = new Date();
@@ -47,5 +48,40 @@ export class AnalyticsResolver {
     const m = month || currentMonth();
     return this.read.monthlySalesSummary({ month: m });
   }
-}
 
+  // Detailed variants (with product info)
+  @Query(() => [VariantSalesWithDetails])
+  @UseGuards(GqlAuthGuard)
+  async topSellingVariantsDetailed(
+    @Args('month', { nullable: true }) month?: string,
+    @Args('limit', { type: () => Number, nullable: true }) limit?: number,
+  ) {
+    const m = month || currentMonth();
+    const lim = limit ?? 10;
+    const basic = await this.read.topSellingVariantsDetailed({ month: m, limit: lim });
+    return this.read.enrichVariantDetails(basic) as any;
+  }
+
+  @Query(() => [VariantSalesWithDetails])
+  @UseGuards(GqlAuthGuard)
+  async topSellingVariantsByStore(
+    @Args('storeId') storeId: string,
+    @Args('month', { nullable: true }) month?: string,
+    @Args('limit', { type: () => Number, nullable: true }) limit?: number,
+  ) {
+    const m = month || currentMonth();
+    const lim = limit ?? 10;
+    const basic = await this.read.topSellingVariantsByStore({ storeId, month: m, limit: lim });
+    return this.read.enrichVariantDetails(basic) as any;
+  }
+
+  @Query(() => MonthlySalesSummary)
+  @UseGuards(GqlAuthGuard)
+  monthlySalesSummaryByStore(
+    @Args('storeId') storeId: string,
+    @Args('month', { nullable: true }) month?: string,
+  ) {
+    const m = month || currentMonth();
+    return this.read.monthlySalesSummaryByStore({ storeId, month: m });
+  }
+}
