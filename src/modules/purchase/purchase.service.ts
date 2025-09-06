@@ -153,7 +153,10 @@ export class PurchaseService {
       where: {
         dueDate: { lt: now },
         status: { in: ['PENDING', 'PARTIALLY_PAID'] as any },
-        receipts: { some: { storeId } },
+        OR: [
+          { storeId },
+          { receipts: { some: { storeId } } }, // fallback for historical POs
+        ],
       },
       include: { items: true },
       orderBy: { dueDate: 'asc' },
@@ -1218,6 +1221,7 @@ export class PurchaseService {
       const po = await this.prisma.purchaseOrder.create({
         data: {
           supplierId,
+          storeId: req.storeId,
           invoiceNumber: `PO-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           status: 'PENDING',
           phase: 'ORDERED' as any,

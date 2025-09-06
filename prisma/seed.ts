@@ -199,6 +199,39 @@ async function main() {
     },
   });
 
+  // Seed tier prices for the variant for testing
+  await prisma.productVariantTierPrice.upsert({
+    where: {
+      productVariantId_tier: { productVariantId: variant.id, tier: UserTier.BRONZE },
+    },
+    update: { price: 17500 },
+    create: { productVariantId: variant.id, tier: UserTier.BRONZE, price: 17500 },
+  });
+  await prisma.productVariantTierPrice.upsert({
+    where: {
+      productVariantId_tier: { productVariantId: variant.id, tier: UserTier.SILVER },
+    },
+    update: { price: 17000 },
+    create: { productVariantId: variant.id, tier: UserTier.SILVER, price: 17000 },
+  });
+  await prisma.productVariantTierPrice.upsert({
+    where: {
+      productVariantId_tier: { productVariantId: variant.id, tier: UserTier.GOLD },
+    },
+    update: { price: 16500 },
+    create: { productVariantId: variant.id, tier: UserTier.GOLD, price: 16500 },
+  });
+  await prisma.productVariantTierPrice.upsert({
+    where: {
+      productVariantId_tier: {
+        productVariantId: variant.id,
+        tier: UserTier.PLATINUM,
+      },
+    },
+    update: { price: 16000 },
+    create: { productVariantId: variant.id, tier: UserTier.PLATINUM, price: 16000 },
+  });
+
   await prisma.stock.upsert({
     where: { id: `${mainStore.id}-${variant.id}` },
     update: {},

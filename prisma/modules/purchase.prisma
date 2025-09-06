@@ -25,6 +25,7 @@ model Supplier {
 model PurchaseOrder {
   id              String   @id @default(uuid())
   supplierId      String
+  storeId         String?
   invoiceNumber   String
   status          PurchaseOrderStatus
   phase           PurchasePhase @default(ORDERED)
@@ -34,6 +35,7 @@ model PurchaseOrder {
   updatedAt       DateTime @updatedAt
 
   supplier        Supplier @relation(fields: [supplierId], references: [id])
+  store           Store?   @relation(fields: [storeId], references: [id])
   items           PurchaseOrderItem[]
   receipts        StockReceiptBatch[]
   payments        SupplierPayment[]
