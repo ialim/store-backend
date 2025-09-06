@@ -157,6 +157,66 @@ export class ReturnsService {
           create: { storeId: sr.storeId, productVariantId: mi.productVariantId, quantity: mi.quantity, reserved: 0 },
         });
       }
+
+      // Financial: adjust reseller credit or notify refund for consumer
+      if (sr.resellerSaleId) {
+        const rSale = await this.prisma.resellerSale.findUnique({
+          where: { id: sr.resellerSaleId },
+          include: { items: true },
+        });
+        if (rSale) {
+          let credit = 0;
+          for (const rit of sr.items) {
+            const si = rSale.items.find((i) => i.productVariantId === rit.productVariantId);
+            if (si) credit += rit.quantity * (si.unitPrice || 0);
+          }
+          if (credit > 0) {
+            const profile = await this.prisma.resellerProfile.findUnique({ where: { userId: rSale.resellerId } });
+            if (profile) {
+              const newBal = Math.max(0, (profile.outstandingBalance || 0) - credit);
+              await this.prisma.resellerProfile.update({
+                where: { userId: rSale.resellerId },
+                data: { outstandingBalance: newBal },
+              });
+              await this.domainEvents.publish(
+                'RESELLER_CREDIT_ADJUSTED',
+                { resellerId: rSale.resellerId, salesReturnId: sr.id, amount: credit, newOutstandingBalance: newBal },
+                { aggregateType: 'ResellerProfile', aggregateId: rSale.resellerId },
+              );
+              await this.notifications.createNotification(
+                rSale.resellerId,
+                'RETURN_ACCEPTED_CREDITED',
+                `Your credit was adjusted by ${credit.toFixed(2)} due to return ${sr.id}.`,
+              );
+            }
+          }
+        }
+      } else if (sr.consumerSaleId) {
+        // For consumer sales, publish an event for refund handling by payments module
+        const cSale = await this.prisma.consumerSale.findUnique({
+          where: { id: sr.consumerSaleId },
+          include: { items: true },
+        });
+        if (cSale) {
+          let refund = 0;
+          for (const rit of sr.items) {
+            const si = cSale.items.find((i) => i.productVariantId === rit.productVariantId);
+            if (si) refund += rit.quantity * (si.unitPrice || 0);
+          }
+          if (refund > 0) {
+            await this.domainEvents.publish(
+              'CONSUMER_RETURN_ACCEPTED',
+              { consumerSaleId: cSale.id, salesReturnId: sr.id, refundAmount: refund },
+              { aggregateType: 'ConsumerSale', aggregateId: cSale.id },
+            );
+            await this.notifications.createNotification(
+              cSale.billerId,
+              'CONSUMER_RETURN_ACCEPTED',
+              `Return ${sr.id} accepted. Refund amount suggested: ${refund.toFixed(2)}.`,
+            );
+          }
+        }
+      }
     }
 
     const updated = await this.prisma.salesReturn.update({
@@ -261,6 +321,29 @@ export class ReturnsService {
           update: { quantity: { decrement: mi.quantity } },
           create: { storeId, productVariantId: mi.productVariantId, quantity: -mi.quantity, reserved: 0 },
         });
+      }
+    }
+
+    // Financial: adjust supplier balance by return amount
+    let creditBack = 0;
+    for (const it of pr.items) {
+      const batch = await this.prisma.stockReceiptBatch.findUnique({ where: { id: it.batchId } });
+      if (!batch) continue;
+      const poItem = await this.prisma.purchaseOrderItem.findFirst({
+        where: { purchaseOrderId: batch.purchaseOrderId, productVariantId: it.productVariantId },
+      });
+      if (poItem) creditBack += it.quantity * (poItem.unitCost || 0);
+    }
+    if (creditBack > 0) {
+      const supplier = await this.prisma.supplier.findUnique({ where: { id: pr.supplierId } });
+      if (supplier) {
+        const newBal = Math.max(0, (supplier.currentBalance || 0) - creditBack);
+        await this.prisma.supplier.update({ where: { id: pr.supplierId }, data: { currentBalance: newBal } as any });
+        await this.domainEvents.publish(
+          'PURCHASE_RETURN_CREDITED',
+          { purchaseReturnId: pr.id, supplierId: pr.supplierId, amount: creditBack, newBalance: newBal },
+          { aggregateType: 'Supplier', aggregateId: pr.supplierId },
+        );
       }
     }
 
