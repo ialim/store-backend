@@ -345,4 +345,32 @@ export class StockService {
       return transfer;
     });
   }
+
+
+  // Set or clear reorder settings for a store's variant
+  async setReorderSettings(input: SetReorderSettingsInput) {
+    const existing = await this.prisma.stock.findFirst({
+      where: { storeId: input.storeId, productVariantId: input.productVariantId },
+    });
+    if (existing) {
+      return this.prisma.stock.update({
+        where: { id: existing.id },
+        data: {
+          reorderPoint: input.reorderPoint ?? null,
+          reorderQty: input.reorderQty ?? null,
+        },
+      });
+    }
+    // Create entry with zero quantity but reorder settings
+    return this.prisma.stock.create({
+      data: {
+        storeId: input.storeId,
+        productVariantId: input.productVariantId,
+        quantity: 0,
+        reserved: 0,
+        reorderPoint: input.reorderPoint ?? null,
+        reorderQty: input.reorderQty ?? null,
+      },
+    });
+  }
 }

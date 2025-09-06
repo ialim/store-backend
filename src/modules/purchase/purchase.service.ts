@@ -677,6 +677,20 @@ export class PurchaseService {
     return true;
   }
 
+  // Convenience: issue RFQ using preferred suppliers from SupplierCatalog
+  async issueRFQPreferred(requisitionId: string) {
+    const req = await this.prisma.purchaseRequisition.findUnique({ where: { id: requisitionId }, include: { items: true } });
+    if (!req) throw new NotFoundException('Requisition not found');
+    const variantIds = req.items.map((i) => i.productVariantId);
+    const preferred = await this.prisma.supplierCatalog.findMany({ where: { productVariantId: { in: variantIds }, isPreferred: true }, select: { supplierId: true }, distinct: ['supplierId'] });
+    const supplierIds = preferred.map((p) => p.supplierId);
+    if (!supplierIds.length) {
+      throw new BadRequestException('No preferred suppliers found for requisition items');
+    }
+    await this.issueRFQ({ requisitionId, supplierIds });
+    return true;
+  }
+
   async submitSupplierQuote(input: SubmitSupplierQuoteInput) {
     // Create/update quote and items
     const quote = await this.prisma.supplierQuote.upsert({

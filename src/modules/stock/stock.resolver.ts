@@ -11,6 +11,7 @@ import { ReceiveStockBatchInput } from './dto/receive-stock-batch.input';
 import { TransferStockInput } from './dto/transfer-stock.input';
 import { StockReceiptBatch } from '../../shared/prismagraphql/stock-receipt-batch';
 import { StockTransfer } from '../../shared/prismagraphql/stock-transfer';
+import { SetReorderSettingsInput } from './dto/set-reorder-settings.input';
 
 @Resolver()
 export class StockResolver {
@@ -43,5 +44,12 @@ export class StockResolver {
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   async transferStock(@Args('input') input: TransferStockInput) {
     return this.stockService.transferStock(input);
+  }
+
+  @Mutation(() => Stock)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  async setReorderSettings(@Args('input') input: SetReorderSettingsInput) {
+    return this.stockService.setReorderSettings(input);
   }
 }
