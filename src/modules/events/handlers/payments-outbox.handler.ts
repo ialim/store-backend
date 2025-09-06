@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { NotificationService } from '../../notification/notification.service';
 import { DomainEventsService } from '../services/domain-events.service';
 
 @Injectable()
@@ -8,7 +7,6 @@ export class PaymentsOutboxHandler {
   private readonly logger = new Logger(PaymentsOutboxHandler.name);
   constructor(
     private prisma: PrismaService,
-    private notifications: NotificationService,
     private domainEvents: DomainEventsService,
   ) {}
 
@@ -63,16 +61,32 @@ export class PaymentsOutboxHandler {
       if (so) {
         const store = await this.prisma.store.findUnique({ where: { id: so.storeId } });
         if (store) {
-          await this.notifications.createNotification(
-            store.managerId,
-            'FULFILLMENT_REQUESTED',
-            `Order ${orderId} ready for fulfillment at store ${store.name}.`,
+          await this.domainEvents.publish(
+            'NOTIFICATION',
+            {
+              notifications: [
+                {
+                  userId: store.managerId,
+                  type: 'FULFILLMENT_REQUESTED',
+                  message: `Order ${orderId} ready for fulfillment at store ${store.name}.`,
+                },
+              ],
+            },
+            { aggregateType: 'Notification' },
           );
         }
-        await this.notifications.createNotification(
-          so.billerId,
-          'ORDER_ADVANCED_TO_FULFILLMENT',
-          `Order ${orderId} advanced to fulfillment phase.`,
+        await this.domainEvents.publish(
+          'NOTIFICATION',
+          {
+            notifications: [
+              {
+                userId: so.billerId,
+                type: 'ORDER_ADVANCED_TO_FULFILLMENT',
+                message: `Order ${orderId} advanced to fulfillment phase.`,
+              },
+            ],
+          },
+          { aggregateType: 'Notification' },
         );
       }
       return true;
@@ -82,4 +96,3 @@ export class PaymentsOutboxHandler {
     }
   }
 }
-

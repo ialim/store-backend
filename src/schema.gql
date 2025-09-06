@@ -1145,6 +1145,26 @@ type AuthResponse {
   user: User!
 }
 
+type OutboxStatusCounts {
+  pending: Int!
+  failed: Int!
+  published: Int!
+}
+
+type OutboxTypeCount {
+  type: String!
+  pending: Int!
+  failed: Int!
+  published: Int!
+}
+
+type OutboxDayStatus {
+  date: String!
+  pending: Int!
+  failed: Int!
+  published: Int!
+}
+
 type ProductCountAggregate {
   id: Int!
   name: Int!
@@ -2078,6 +2098,9 @@ type Query {
   suppliersForVariant(productVariantId: String!): [SupplierCatalogEntry!]!
   tierPricesForVariant(productVariantId: String!): [VariantTierPrice!]!
   notifications: [Notification!]!
+  outboxStatus: OutboxStatusCounts!
+  outboxStatusByType(types: [String!]): [OutboxTypeCount!]!
+  outboxStatusSeries(start: DateTime!, end: DateTime!, type: String): [OutboxDayStatus!]!
   suppliers: [Supplier!]!
   supplier(id: String!): Supplier!
   purchaseOrders: [PurchaseOrder!]!
@@ -5287,6 +5310,8 @@ type Mutation {
   upsertVariantSupplierCatalog(input: UpsertVariantSupplierCatalogInput!): SupplierCatalogEntry!
   upsertVariantTierPrice(input: UpsertVariantTierPriceInput!): String!
   markAsRead(id: String!): Notification!
+  processOutbox(limit: Float, type: String, status: String): Float!
+  retryOutboxFailed(limit: Float, type: String): Float!
   signupCustomer(input: CreateUserInput!): AuthResponse!
   completeCustomerProfile(input: UpdateCustomerProfileInput!): CustomerProfile!
   applyReseller(input: ApplyResellerInput!): ResellerProfile!

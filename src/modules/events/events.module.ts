@@ -4,6 +4,7 @@ import { OutboxDispatcherService } from './services/outbox-dispatcher.service';
 import { NotificationOutboxHandler } from './handlers/notification-outbox.handler';
 import { PurchaseOutboxHandler } from './handlers/purchase-outbox.handler';
 import { PaymentsOutboxHandler } from './handlers/payments-outbox.handler';
+import { EventsResolver } from './events.resolver';
 
 @Module({
   providers: [
@@ -12,6 +13,7 @@ import { PaymentsOutboxHandler } from './handlers/payments-outbox.handler';
     NotificationOutboxHandler,
     PurchaseOutboxHandler,
     PaymentsOutboxHandler,
+    EventsResolver,
   ],
   exports: [DomainEventsService],
 })
