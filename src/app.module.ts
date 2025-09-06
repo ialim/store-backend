@@ -16,6 +16,7 @@ import { StockModule } from './modules/stock/stock.module';
 import { SaleModule } from './modules/sale/sale.module';
 import { OrderModule } from './modules/order/order.module';
 import { EventsModule } from './modules/events/events.module';
+import { ReturnsModule } from './modules/returns/returns.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { EventsModule } from './modules/events/events.module';
     SaleModule,
     OrderModule,
     EventsModule,
+    ReturnsModule,
     StoreModule,
     UsersModule,
     VerificationModule,
