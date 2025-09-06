@@ -25,6 +25,7 @@ import { SupplierQuoteSummary } from './types/supplier-quote-summary.type';
 import { SupplierCatalogEntry } from './types/supplier-catalog-entry.type';
 import { RfqStatusCounts } from './types/rfq-status-counts.type';
 import { RfqDashboard } from './types/rfq-dashboard.type';
+import { AdminProcurementDashboard } from './types/admin-procurement-dashboard.type';
 import { UpsertSupplierCatalogBulkInput, UpsertSupplierCatalogInput } from './dto/upsert-supplier-catalog.input';
 import { CloseRfqInput } from './dto/close-rfq.input';
 import { PurchaseOrderStatus } from '../../shared/prismagraphql/prisma/purchase-order-status.enum';
@@ -326,4 +327,11 @@ export class PurchaseResolver {
   ) {
     return this.purchaseService.markPurchaseOrderReceived(input);
   }
+  @Query(() => AdminProcurementDashboard)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  adminProcurementDashboard() {
+    return this.purchaseService.adminProcurementDashboard();
+  }
+
 }

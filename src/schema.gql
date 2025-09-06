@@ -1504,6 +1504,16 @@ type RfqStatusCounts {
   total: Float!
 }
 
+type RfqDashboard {
+  requisitionId: ID
+  draft: Float!
+  submitted: Float!
+  selected: Float!
+  rejected: Float!
+  total: Float!
+  pendingQuotes: [SupplierQuoteSummary!]!
+}
+
 type StockCountAggregate {
   id: Int!
   storeId: Int!
@@ -1948,6 +1958,8 @@ type Query {
   requisitionsWithPartialSubmissions: [RequisitionSummary!]!
   rfqStatusCounts(requisitionId: String!): RfqStatusCounts!
   rfqCountsAll: RfqStatusCounts!
+  rfqDashboard(requisitionId: String!): RfqDashboard!
+  rfqDashboardAll: RfqDashboard!
   stock(input: QueryStockInput): [Stock!]!
   stockMovements(storeId: String!): [StockMovement!]!
   ordersQuery: [SaleOrder!]!

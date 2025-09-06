@@ -421,6 +421,31 @@ export class PurchaseService {
     return { ...counts, pendingQuotes } as any;
   }
 
+  async adminProcurementDashboard() {
+    const [overduePOs, noSubs, partialSubs] = await Promise.all([
+      this.purchaseOrdersOverdue(),
+      this.requisitionsWithNoSubmittedQuotes(),
+      this.requisitionsWithPartialSubmissions(),
+    ]);
+    const suppliers = await this.prisma.supplier.findMany({
+      select: { id: true, name: true, creditLimit: true, currentBalance: true },
+    });
+    const creditBlockedSuppliers = suppliers
+      .filter((s) => (s.currentBalance ?? 0) >= (s.creditLimit ?? 0))
+      .map((s) => ({
+        supplierId: s.id,
+        name: s.name,
+        creditLimit: s.creditLimit,
+        currentBalance: s.currentBalance,
+      }));
+    return {
+      overduePOs,
+      noSubmissionRequisitions: noSubs,
+      partialSubmissionRequisitions: partialSubs,
+      creditBlockedSuppliers,
+    } as any;
+  }
+
   async rfqDashboardAll() {
     const counts = await this.rfqCountsAll();
     const pendingQuotes = await this.prisma.supplierQuote.findMany({
