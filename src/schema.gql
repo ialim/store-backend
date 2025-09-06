@@ -1893,6 +1893,8 @@ type Query {
   purchaseOrders: [PurchaseOrder!]!
   purchaseOrder(id: String!): PurchaseOrder!
   supplierPayments: [SupplierPayment!]!
+  purchaseOrdersByStatus(status: String!): [PurchaseOrder!]!
+  purchaseOrdersByPhase(phase: String!): [PurchaseOrder!]!
   stock(input: QueryStockInput): [Stock!]!
   stockMovements(storeId: String!): [StockMovement!]!
   ordersQuery: [SaleOrder!]!
