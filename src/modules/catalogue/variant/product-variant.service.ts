@@ -127,4 +127,22 @@ export class ProductVariantService extends BaseCrudService<
       orderBy: { defaultCost: 'asc' },
     });
   }
+
+
+  async upsertVariantTierPrice(input: { productVariantId: string; tier: any; price: number }) {
+    return (this.prisma as any).productVariantTierPrice.upsert({
+      where: { productVariantId_tier: { productVariantId: input.productVariantId, tier: input.tier } },
+      update: { price: input.price },
+      create: { productVariantId: input.productVariantId, tier: input.tier, price: input.price },
+      select: { productVariantId: true, tier: true, price: true },
+    });
+  }
+
+  async tierPricesForVariant(productVariantId: string) {
+    return (this.prisma as any).productVariantTierPrice.findMany({
+      where: { productVariantId },
+      select: { productVariantId: true, tier: true, price: true },
+      orderBy: { tier: 'asc' },
+    });
+  }
 }

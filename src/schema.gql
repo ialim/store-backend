@@ -1287,6 +1287,14 @@ type ProductVariantGroupBy {
   _max: ProductVariantMaxAggregate
 }
 
+type SupplierCatalogEntry {
+  supplierId: String!
+  productVariantId: String!
+  defaultCost: Float!
+  leadTimeDays: Int
+  isPreferred: Boolean
+}
+
 type StoreCountAggregate {
   id: Int!
   name: Int!
@@ -1487,14 +1495,6 @@ type SupplierQuoteSummary {
   status: String!
   validUntil: DateTime
   createdAt: DateTime!
-}
-
-type SupplierCatalogEntry {
-  supplierId: String!
-  productVariantId: String!
-  defaultCost: Float!
-  leadTimeDays: Int
-  isPreferred: Boolean
 }
 
 type RfqStatusCounts {
@@ -1966,6 +1966,7 @@ type Query {
   aggregateProductVariant(where: ProductVariantWhereInput, orderBy: [ProductVariantOrderByWithRelationInput!], cursor: ProductVariantWhereUniqueInput, take: Int, skip: Int, _count: ProductVariantCountAggregateInput, _avg: ProductVariantAvgAggregateInput, _sum: ProductVariantSumAggregateInput, _min: ProductVariantMinAggregateInput, _max: ProductVariantMaxAggregateInput): AggregateProductVariant!
   variantsByStore(storeId: String!, search: String): [ProductVariant!]!
   lowStockByStore(storeId: String!): [ProductVariant!]!
+  suppliersForVariant(productVariantId: String!): [SupplierCatalogEntry!]!
   notifications: [Notification!]!
   suppliers: [Supplier!]!
   supplier(id: String!): Supplier!
@@ -5109,6 +5110,7 @@ type Mutation {
   updateManyProductVariant(data: ProductVariantUpdateManyMutationInput!, where: ProductVariantWhereInput, limit: Int): AffectedRows
   deleteProductVariant(where: ProductVariantWhereUniqueInput!): ProductVariant
   deleteManyProductVariant(where: ProductVariantWhereInput, limit: Int): AffectedRows
+  upsertVariantSupplierCatalog(input: UpsertVariantSupplierCatalogInput!): SupplierCatalogEntry!
   markAsRead(id: String!): Notification!
   signupCustomer(input: CreateUserInput!): AuthResponse!
   completeCustomerProfile(input: UpdateCustomerProfileInput!): CustomerProfile!
@@ -22713,6 +22715,14 @@ input ProductVariantUpdateInput {
   PurchaseRequisitionItem: PurchaseRequisitionItemUpdateManyWithoutProductVariantNestedInput
   SupplierCatalog: SupplierCatalogUpdateManyWithoutProductVariantNestedInput
   SupplierQuoteItem: SupplierQuoteItemUpdateManyWithoutProductVariantNestedInput
+}
+
+input UpsertVariantSupplierCatalogInput {
+  productVariantId: String!
+  supplierId: String!
+  defaultCost: Float!
+  leadTimeDays: Float
+  isPreferred: Boolean
 }
 
 input CreateUserInput {

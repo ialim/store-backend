@@ -21,8 +21,7 @@ import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../../auth/guards/gql-auth.guard';
 import { UpsertVariantSupplierCatalogInput } from '../dto/upsert-variant-supplier-catalog.input';
 import { SupplierCatalogEntry } from '../../purchase/types/supplier-catalog-entry.type';
-import { UseGuards } from '@nestjs/common';
-import { GqlAuthGuard } from '../../auth/guards/gql-auth.guard';
+import { UpsertVariantTierPriceInput } from '../dto/upsert-variant-tier-price.input';
 @Resolver(() => ProductVariant)
 export class ProductVariantsResolver {
   constructor(private readonly ProductVariantService: ProductVariantService) {}
@@ -113,19 +112,21 @@ export class ProductVariantsResolver {
     return this.ProductVariantService.suppliersForVariant(productVariantId);
   }
 
-  // Custom catalogue queries
-  @Query(() => [ProductVariant])
+  @Mutation(() => String)
   @UseGuards(GqlAuthGuard)
-  variantsByStore(
-    @Args('storeId') storeId: string,
-    @Args('search', { nullable: true }) search?: string,
-  ) {
-    return this.ProductVariantService.variantsByStore(storeId, search);
+  upsertVariantTierPrice(@Args('input') input: UpsertVariantTierPriceInput) {
+    return this.ProductVariantService.upsertVariantTierPrice({
+      productVariantId: input.productVariantId,
+      tier: input.tier,
+      price: input.price,
+    }).then(() => 'OK');
   }
 
-  @Query(() => [ProductVariant])
+  @Query(() => [SupplierCatalogEntry])
   @UseGuards(GqlAuthGuard)
-  lowStockByStore(@Args('storeId') storeId: string) {
-    return this.ProductVariantService.lowStockByStore(storeId);
+  tierPricesForVariant(@Args('productVariantId') productVariantId: string) {
+    // Return as SupplierCatalogEntry-like objects for quick display
+    return this.ProductVariantService.tierPricesForVariant(productVariantId);
   }
+
 }

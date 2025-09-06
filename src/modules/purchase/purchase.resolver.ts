@@ -15,18 +15,30 @@ import { CreateSupplierPaymentInput } from './dto/create-supplier-payment.input'
 import { LinkSupplierUserInput } from './dto/link-supplier-user.input';
 import { CreatePOsFromSelectionInput } from './dto/create-pos-from-selection.input';
 import { CreatePurchaseRequisitionInput } from './dto/create-purchase-requisition.input';
-import { IdInput, RejectRequisitionInput } from './dto/submit-purchase-requisition.input';
+import {
+  IdInput,
+  RejectRequisitionInput,
+} from './dto/submit-purchase-requisition.input';
 import { IssueRfqInput } from './dto/issue-rfq.input';
 import { SubmitSupplierQuoteInput } from './dto/submit-supplier-quote.input';
-import { SelectSupplierQuoteInput, RejectSupplierQuoteInput } from './dto/select-reject-supplier-quote.input';
-import { MarkPurchaseOrderReceivedInput, UpdatePurchaseOrderPhaseInput } from './dto/update-po-phase.input';
+import {
+  SelectSupplierQuoteInput,
+  RejectSupplierQuoteInput,
+} from './dto/select-reject-supplier-quote.input';
+import {
+  MarkPurchaseOrderReceivedInput,
+  UpdatePurchaseOrderPhaseInput,
+} from './dto/update-po-phase.input';
 import { RequisitionSummary } from './types/requisition-summary.type';
 import { SupplierQuoteSummary } from './types/supplier-quote-summary.type';
 import { SupplierCatalogEntry } from './types/supplier-catalog-entry.type';
 import { RfqStatusCounts } from './types/rfq-status-counts.type';
 import { RfqDashboard } from './types/rfq-dashboard.type';
 import { AdminProcurementDashboard } from './types/admin-procurement-dashboard.type';
-import { UpsertSupplierCatalogBulkInput, UpsertSupplierCatalogInput } from './dto/upsert-supplier-catalog.input';
+import {
+  UpsertSupplierCatalogBulkInput,
+  UpsertSupplierCatalogInput,
+} from './dto/upsert-supplier-catalog.input';
 import { CloseRfqInput } from './dto/close-rfq.input';
 import { CreateRequisitionFromLowStockInput } from './dto/create-requisition-from-low-stock.input';
 import { PurchaseOrderStatus } from '../../shared/prismagraphql/prisma/purchase-order-status.enum';
@@ -108,7 +120,9 @@ export class PurchaseResolver {
     @Args('status', { type: () => PurchaseOrderStatus })
     status: PurchaseOrderStatus,
   ) {
-    return this.purchaseService.purchaseOrdersByStatus(status as unknown as string);
+    return this.purchaseService.purchaseOrdersByStatus(
+      status as unknown as string,
+    );
   }
 
   @Query(() => [PurchaseOrder])
@@ -122,7 +136,9 @@ export class PurchaseResolver {
   purchaseOrdersByPhaseEnum(
     @Args('phase', { type: () => PurchasePhase }) phase: PurchasePhase,
   ) {
-    return this.purchaseService.purchaseOrdersByPhase(phase as unknown as string);
+    return this.purchaseService.purchaseOrdersByPhase(
+      phase as unknown as string,
+    );
   }
 
   @Query(() => [PurchaseOrder])
@@ -156,7 +172,9 @@ export class PurchaseResolver {
   @Mutation(() => [String])
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
-  upsertSupplierCatalogBulk(@Args('input') input: UpsertSupplierCatalogBulkInput) {
+  upsertSupplierCatalogBulk(
+    @Args('input') input: UpsertSupplierCatalogBulkInput,
+  ) {
     return this.purchaseService.upsertSupplierCatalogBulk(input);
   }
 
@@ -284,9 +302,7 @@ export class PurchaseResolver {
   @Mutation(() => Boolean)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
-  rejectPurchaseRequisition(
-    @Args('input') input: RejectRequisitionInput,
-  ) {
+  rejectPurchaseRequisition(@Args('input') input: RejectRequisitionInput) {
     return this.purchaseService.rejectPurchaseRequisition(input);
   }
 
@@ -335,6 +351,50 @@ export class PurchaseResolver {
     return this.purchaseService.adminProcurementDashboard();
   }
 
+  // Store-scoped dashboards
+  @Query(() => [PurchaseOrder])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  purchaseOrdersOverdueByStore(@Args('storeId') storeId: string) {
+    return this.purchaseService.purchaseOrdersOverdueByStore(storeId);
+  }
+
+  @Query(() => [RequisitionSummary])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  requisitionsWithNoSubmittedQuotesByStore(@Args('storeId') storeId: string) {
+    return this.purchaseService.requisitionsWithNoSubmittedQuotesByStore(storeId);
+  }
+
+  @Query(() => [RequisitionSummary])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  requisitionsWithPartialSubmissionsByStore(@Args('storeId') storeId: string) {
+    return this.purchaseService.requisitionsWithPartialSubmissionsByStore(storeId);
+  }
+
+  @Query(() => RfqStatusCounts)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  rfqStatusCountsByStore(@Args('storeId') storeId: string) {
+    return this.purchaseService.rfqStatusCountsByStore(storeId);
+  }
+
+  @Query(() => RfqDashboard)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  rfqDashboardByStore(@Args('storeId') storeId: string) {
+    return this.purchaseService.rfqDashboardByStore(storeId);
+  }
+
+  @Query(() => AdminProcurementDashboard)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  adminProcurementDashboardByStore(@Args('storeId') storeId: string) {
+    return this.purchaseService.adminProcurementDashboardByStore(storeId);
+  }
+
+
   @Mutation(() => String, { nullable: true })
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
@@ -343,5 +403,4 @@ export class PurchaseResolver {
   ) {
     return this.purchaseService.createRequisitionFromLowStock(input);
   }
-
 }

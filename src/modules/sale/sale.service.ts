@@ -64,10 +64,23 @@ export class SalesService {
         'resellerId is required for RESELLER quotations',
       );
     }
-    const total = input.items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
-      0,
-    );
+    const derivedItems = [] as Array<{ productVariantId: string; quantity: number; unitPrice: number }>;
+    for (const item of input.items) {
+      const unitPrice =
+        item.unitPrice != null
+          ? item.unitPrice
+          : await this.getEffectiveUnitPrice(
+              item.productVariantId,
+              input.type,
+              input.resellerId || undefined,
+            );
+      derivedItems.push({
+        productVariantId: item.productVariantId,
+        quantity: item.quantity,
+        unitPrice,
+      });
+    }
+    const total = derivedItems.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
     // Create a SaleOrder up-front so order lifecycle starts in QUOTATION phase
     const order = await this.prisma.saleOrder.create({
       data: {
@@ -92,7 +105,7 @@ export class SalesService {
         totalAmount: total,
         saleOrderId: order.id,
         items: {
-          create: input.items.map((i) => ({
+          create: derivedItems.map((i) => ({
             productVariantId: i.productVariantId,
             quantity: i.quantity,
             unitPrice: i.unitPrice,

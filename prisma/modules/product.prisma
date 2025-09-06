@@ -52,3 +52,15 @@ model ProductVariant {
 
   SupplierQuoteItem SupplierQuoteItem[]
 }
+
+
+model ProductVariantTierPrice {
+  id               String   @id @default(uuid())
+  productVariantId String
+  tier             UserTier
+  price            Float
+
+  variant          ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  @@unique([productVariantId, tier])
+}

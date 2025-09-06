@@ -147,6 +147,19 @@ export class PurchaseService {
     });
   }
 
+  async purchaseOrdersOverdueByStore(storeId: string) {
+    const now = new Date();
+    return this.prisma.purchaseOrder.findMany({
+      where: {
+        dueDate: { lt: now },
+        status: { in: ['PENDING', 'PARTIALLY_PAID'] as any },
+        receipts: { some: { storeId } },
+      },
+      include: { items: true },
+      orderBy: { dueDate: 'asc' },
+    });
+  }
+
   // Requisition and quotes listings for dashboards
   async requisitionsByStatus(status: string) {
     return this.prisma.purchaseRequisition.findMany({
@@ -489,6 +502,25 @@ export class PurchaseService {
     if (!reqId) return null;
     await this.issueRFQPreferred(reqId);
     return reqId;
+  }
+
+  async rfqStatusCountsByStore(storeId: string) {
+    const statuses = ['DRAFT', 'SUBMITTED', 'SELECTED', 'REJECTED'];
+    const counts: any = { draft: 0, submitted: 0, selected: 0, rejected: 0 };
+    for (const st of statuses) {
+      const c = await this.prisma.supplierQuote.count({ where: { status: st as any, requisition: { storeId } } });
+      if (st === 'DRAFT') counts.draft = c;
+      if (st === 'SUBMITTED') counts.submitted = c;
+      if (st === 'SELECTED') counts.selected = c;
+      if (st === 'REJECTED') counts.rejected = c;
+    }
+    return { requisitionId: null, draft: counts.draft, submitted: counts.submitted, selected: counts.selected, rejected: counts.rejected, total: counts.draft + counts.submitted + counts.selected + counts.rejected } as any;
+  }
+
+  async rfqDashboardByStore(storeId: string) {
+    const counts = await this.rfqStatusCountsByStore(storeId);
+    const pendingQuotes = await this.prisma.supplierQuote.findMany({ where: { requisition: { storeId }, NOT: { status: 'SUBMITTED' as any } }, select: { id: true, requisitionId: true, supplierId: true, status: true, validUntil: true, createdAt: true }, orderBy: { createdAt: 'desc' } });
+    return { ...counts, pendingQuotes } as any;
   }
 
   async rfqDashboardAll() {
@@ -1222,5 +1254,17 @@ export class PurchaseService {
         `PO ${po.invoiceNumber} completed.`,
       );
     }
+  }
+
+
+  async adminProcurementDashboardByStore(storeId: string) {
+    const [overduePOs, noSubs, partialSubs] = await Promise.all([
+      this.purchaseOrdersOverdueByStore(storeId),
+      this.requisitionsWithNoSubmittedQuotesByStore(storeId),
+      this.requisitionsWithPartialSubmissionsByStore(storeId),
+    ]);
+    const suppliers = await this.prisma.supplier.findMany({ select: { id: true, name: true, creditLimit: true, currentBalance: true } });
+    const creditBlockedSuppliers = suppliers.filter((s) => (s.currentBalance ?? 0) >= (s.creditLimit ?? 0)).map((s) => ({ supplierId: s.id, name: s.name, creditLimit: s.creditLimit, currentBalance: s.currentBalance }));
+    return { overduePOs, noSubmissionRequisitions: noSubs, partialSubmissionRequisitions: partialSubs, creditBlockedSuppliers } as any;
   }
 }

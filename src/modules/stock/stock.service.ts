@@ -347,11 +347,13 @@ export class StockService {
     });
   }
 
-
   // Set or clear reorder settings for a store's variant
   async setReorderSettings(input: SetReorderSettingsInput) {
     const existing = await this.prisma.stock.findFirst({
-      where: { storeId: input.storeId, productVariantId: input.productVariantId },
+      where: {
+        storeId: input.storeId,
+        productVariantId: input.productVariantId,
+      },
     });
     if (existing) {
       return this.prisma.stock.update({
