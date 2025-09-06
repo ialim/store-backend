@@ -1,4 +1,4 @@
-import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { ObjectType, Field, ID, GraphQLISODateTime } from '@nestjs/graphql';
 
 @ObjectType()
 export class SupplierQuoteSummary {
@@ -14,10 +14,9 @@ export class SupplierQuoteSummary {
   @Field()
   status!: string;
 
-  @Field({ nullable: true })
+  @Field(() => GraphQLISODateTime, { nullable: true })
   validUntil?: Date | null;
 
-  @Field()
+  @Field(() => GraphQLISODateTime)
   createdAt!: Date;
 }
-

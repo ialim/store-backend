@@ -1,4 +1,4 @@
-import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { ObjectType, Field, ID, GraphQLISODateTime } from '@nestjs/graphql';
 
 @ObjectType()
 export class RequisitionSummary {
@@ -14,7 +14,6 @@ export class RequisitionSummary {
   @Field()
   status!: string;
 
-  @Field()
+  @Field(() => GraphQLISODateTime)
   createdAt!: Date;
 }
-
