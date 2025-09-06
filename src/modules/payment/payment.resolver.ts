@@ -169,8 +169,14 @@ export class PaymentResolver {
     @Args('storeId', { nullable: true }) storeId?: string,
     @Args('month', { nullable: true }) month?: string,
   ) {
-    const whereConsumer: any = { status: 'CONFIRMED' as any, saleOrder: { billerId } };
-    const whereReseller: any = { status: 'CONFIRMED' as any, saleOrder: { billerId } };
+    const whereConsumer: any = {
+      status: 'CONFIRMED' as any,
+      saleOrder: { billerId },
+    };
+    const whereReseller: any = {
+      status: 'CONFIRMED' as any,
+      saleOrder: { billerId },
+    };
     if (storeId) {
       whereConsumer.saleOrder.storeId = storeId;
       whereReseller.saleOrder.storeId = storeId;
@@ -181,8 +187,16 @@ export class PaymentResolver {
       whereReseller.receivedAt = { gte: start, lt: end } as any;
     }
     const [cAgg, rAgg] = await Promise.all([
-      this.prisma.consumerPayment.aggregate({ _sum: { amount: true }, _count: { _all: true }, where: whereConsumer }),
-      this.prisma.resellerPayment.aggregate({ _sum: { amount: true }, _count: { _all: true }, where: whereReseller }),
+      this.prisma.consumerPayment.aggregate({
+        _sum: { amount: true },
+        _count: { _all: true },
+        where: whereConsumer,
+      }),
+      this.prisma.resellerPayment.aggregate({
+        _sum: { amount: true },
+        _count: { _all: true },
+        where: whereReseller,
+      }),
     ]);
     const consumerPaid = cAgg._sum.amount || 0;
     const resellerPaid = rAgg._sum.amount || 0;
@@ -208,19 +222,37 @@ export class PaymentResolver {
   ) {
     const m = month || currentMonth();
     const { start, end } = monthWindow(m);
-    const whereConsumer: any = { status: 'CONFIRMED' as any, receivedAt: { gte: start, lt: end } };
-    const whereReseller: any = { status: 'CONFIRMED' as any, receivedAt: { gte: start, lt: end } };
+    const whereConsumer: any = {
+      status: 'CONFIRMED' as any,
+      receivedAt: { gte: start, lt: end },
+    };
+    const whereReseller: any = {
+      status: 'CONFIRMED' as any,
+      receivedAt: { gte: start, lt: end },
+    };
     if (storeId) {
       whereConsumer.saleOrder = { ...(whereConsumer.saleOrder || {}), storeId };
       whereReseller.saleOrder = { ...(whereReseller.saleOrder || {}), storeId };
     }
     if (billerId) {
-      whereConsumer.saleOrder = { ...(whereConsumer.saleOrder || {}), billerId };
-      whereReseller.saleOrder = { ...(whereReseller.saleOrder || {}), billerId };
+      whereConsumer.saleOrder = {
+        ...(whereConsumer.saleOrder || {}),
+        billerId,
+      };
+      whereReseller.saleOrder = {
+        ...(whereReseller.saleOrder || {}),
+        billerId,
+      };
     }
     const [consumerPayments, resellerPayments] = await Promise.all([
-      this.prisma.consumerPayment.findMany({ where: whereConsumer, select: { amount: true, receivedAt: true } }),
-      this.prisma.resellerPayment.findMany({ where: whereReseller, select: { amount: true, receivedAt: true } }),
+      this.prisma.consumerPayment.findMany({
+        where: whereConsumer,
+        select: { amount: true, receivedAt: true },
+      }),
+      this.prisma.resellerPayment.findMany({
+        where: whereReseller,
+        select: { amount: true, receivedAt: true },
+      }),
     ]);
     const map = new Map<string, { consumer: number; reseller: number }>();
     for (const p of consumerPayments) {
@@ -238,7 +270,12 @@ export class PaymentResolver {
       map.set(key, entry);
     }
     const keys = Array.from(map.keys()).sort();
-    return keys.map((k) => ({ date: k, consumerPaid: map.get(k)!.consumer, resellerPaid: map.get(k)!.reseller, totalPaid: map.get(k)!.consumer + map.get(k)!.reseller }));
+    return keys.map((k) => ({
+      date: k,
+      consumerPaid: map.get(k)!.consumer,
+      resellerPaid: map.get(k)!.reseller,
+      totalPaid: map.get(k)!.consumer + map.get(k)!.reseller,
+    }));
   }
 
   @Query(() => [BillerPaymentsSummary])
@@ -252,39 +289,63 @@ export class PaymentResolver {
     // Fetch payments scoped by store & month
     const [cList, rList] = await Promise.all([
       this.prisma.consumerPayment.findMany({
-        where: { status: 'CONFIRMED' as any, saleOrder: { storeId }, receivedAt: { gte: start, lt: end } as any },
+        where: {
+          status: 'CONFIRMED' as any,
+          saleOrder: { storeId },
+          receivedAt: { gte: start, lt: end } as any,
+        },
         select: { amount: true, saleOrder: { select: { billerId: true } } },
       }),
       this.prisma.resellerPayment.findMany({
-        where: { status: 'CONFIRMED' as any, saleOrder: { storeId }, receivedAt: { gte: start, lt: end } as any },
+        where: {
+          status: 'CONFIRMED' as any,
+          saleOrder: { storeId },
+          receivedAt: { gte: start, lt: end } as any,
+        },
         select: { amount: true, saleOrder: { select: { billerId: true } } },
       }),
     ]);
-    const byBiller = new Map<string, { consumer: number; reseller: number; cCount: number; rCount: number }>();
+    const byBiller = new Map<
+      string,
+      { consumer: number; reseller: number; cCount: number; rCount: number }
+    >();
     for (const p of cList) {
       const b = p.saleOrder.billerId;
-      const entry = byBiller.get(b) || { consumer: 0, reseller: 0, cCount: 0, rCount: 0 };
+      const entry = byBiller.get(b) || {
+        consumer: 0,
+        reseller: 0,
+        cCount: 0,
+        rCount: 0,
+      };
       entry.consumer += p.amount || 0;
       entry.cCount += 1;
       byBiller.set(b, entry);
     }
     for (const p of rList) {
       const b = p.saleOrder.billerId;
-      const entry = byBiller.get(b) || { consumer: 0, reseller: 0, cCount: 0, rCount: 0 };
+      const entry = byBiller.get(b) || {
+        consumer: 0,
+        reseller: 0,
+        cCount: 0,
+        rCount: 0,
+      };
       entry.reseller += p.amount || 0;
       entry.rCount += 1;
       byBiller.set(b, entry);
     }
-    return Array.from(byBiller.entries()).map(([billerId, v]) => ({
-      billerId,
-      storeId,
-      month: m,
-      consumerPaid: v.consumer,
-      resellerPaid: v.reseller,
-      totalPaid: v.consumer + v.reseller,
-      consumerCount: v.cCount,
-      resellerCount: v.rCount,
-    } as BillerPaymentsSummary));
+    return Array.from(byBiller.entries()).map(
+      ([billerId, v]) =>
+        ({
+          billerId,
+          storeId,
+          month: m,
+          consumerPaid: v.consumer,
+          resellerPaid: v.reseller,
+          totalPaid: v.consumer + v.reseller,
+          consumerCount: v.cCount,
+          resellerCount: v.rCount,
+        }) as BillerPaymentsSummary,
+    );
   }
 
   @Query(() => [PaymentMethodBreakdownEntry])
@@ -296,21 +357,42 @@ export class PaymentResolver {
   ) {
     const m = month || currentMonth();
     const { start, end } = monthWindow(m);
-    const whereConsumer: any = { status: 'CONFIRMED' as any, receivedAt: { gte: start, lt: end } };
-    const whereReseller: any = { status: 'CONFIRMED' as any, receivedAt: { gte: start, lt: end } };
+    const whereConsumer: any = {
+      status: 'CONFIRMED' as any,
+      receivedAt: { gte: start, lt: end },
+    };
+    const whereReseller: any = {
+      status: 'CONFIRMED' as any,
+      receivedAt: { gte: start, lt: end },
+    };
     if (storeId) {
       whereConsumer.saleOrder = { ...(whereConsumer.saleOrder || {}), storeId };
       whereReseller.saleOrder = { ...(whereReseller.saleOrder || {}), storeId };
     }
     if (billerId) {
-      whereConsumer.saleOrder = { ...(whereConsumer.saleOrder || {}), billerId };
-      whereReseller.saleOrder = { ...(whereReseller.saleOrder || {}), billerId };
+      whereConsumer.saleOrder = {
+        ...(whereConsumer.saleOrder || {}),
+        billerId,
+      };
+      whereReseller.saleOrder = {
+        ...(whereReseller.saleOrder || {}),
+        billerId,
+      };
     }
     const [cList, rList] = await Promise.all([
-      this.prisma.consumerPayment.findMany({ where: whereConsumer, select: { amount: true, method: true } }),
-      this.prisma.resellerPayment.findMany({ where: whereReseller, select: { amount: true, method: true } }),
+      this.prisma.consumerPayment.findMany({
+        where: whereConsumer,
+        select: { amount: true, method: true },
+      }),
+      this.prisma.resellerPayment.findMany({
+        where: whereReseller,
+        select: { amount: true, method: true },
+      }),
     ]);
-    const map = new Map<string, { cAmt: number; rAmt: number; cCnt: number; rCnt: number }>();
+    const map = new Map<
+      string,
+      { cAmt: number; rAmt: number; cCnt: number; rCnt: number }
+    >();
     for (const p of cList) {
       const key = String(p.method);
       const entry = map.get(key) || { cAmt: 0, rAmt: 0, cCnt: 0, rCnt: 0 };
@@ -325,13 +407,16 @@ export class PaymentResolver {
       entry.rCnt += 1;
       map.set(key, entry);
     }
-    return Array.from(map.entries()).map(([method, v]) => ({
-      method: method as any,
-      consumerPaid: v.cAmt,
-      resellerPaid: v.rAmt,
-      totalPaid: v.cAmt + v.rAmt,
-      consumerCount: v.cCnt,
-      resellerCount: v.rCnt,
-    } as PaymentMethodBreakdownEntry));
+    return Array.from(map.entries()).map(
+      ([method, v]) =>
+        ({
+          method: method as any,
+          consumerPaid: v.cAmt,
+          resellerPaid: v.rAmt,
+          totalPaid: v.cAmt + v.rAmt,
+          consumerCount: v.cCnt,
+          resellerCount: v.rCnt,
+        }) as PaymentMethodBreakdownEntry,
+    );
   }
 }

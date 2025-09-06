@@ -1553,6 +1553,59 @@ type AdminProcurementDashboard {
   creditBlockedSuppliers: [SupplierCreditStatus!]!
 }
 
+type PaymentOrderSummary {
+  saleOrderId: String!
+  orderTotal: Float!
+  consumerPaid: Float!
+  resellerPaid: Float!
+  totalPaid: Float!
+  outstanding: Float!
+  fullyPaid: Boolean!
+}
+
+type StorePaymentsSummary {
+  storeId: String!
+  month: String!
+  consumerPaid: Float!
+  resellerPaid: Float!
+  totalPaid: Float!
+}
+
+type SupplierPaymentsSummary {
+  supplierId: String!
+  month: String
+  totalPaid: Float!
+  count: Float!
+  lastPaymentDate: DateTime
+}
+
+type BillerPaymentsSummary {
+  billerId: String!
+  storeId: String
+  month: String
+  consumerPaid: Float!
+  resellerPaid: Float!
+  totalPaid: Float!
+  consumerCount: Int!
+  resellerCount: Int!
+}
+
+type PaymentDaySeries {
+  date: String!
+  consumerPaid: Float!
+  resellerPaid: Float!
+  totalPaid: Float!
+}
+
+type PaymentMethodBreakdownEntry {
+  method: PaymentMethod!
+  consumerPaid: Float!
+  resellerPaid: Float!
+  totalPaid: Float!
+  consumerCount: Int!
+  resellerCount: Int!
+}
+
 type StockCountAggregate {
   id: Int!
   storeId: Int!
@@ -1987,6 +2040,17 @@ type MonthlySalesSummary {
   totalReturned: Int!
 }
 
+type VariantSalesWithDetails {
+  productVariantId: String!
+  quantity: Int!
+  productId: String
+  productName: String
+  size: String
+  concentration: String
+  packaging: String
+  barcode: String
+}
+
 type Query {
   findFirstProduct(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, distinct: [ProductScalarFieldEnum!]): Product!
   findUniqueProduct(where: ProductWhereUniqueInput!): Product!
@@ -2036,11 +2100,24 @@ type Query {
   rfqStatusCountsByStore(storeId: String!): RfqStatusCounts!
   rfqDashboardByStore(storeId: String!): RfqDashboard!
   adminProcurementDashboardByStore(storeId: String!): AdminProcurementDashboard!
+  consumerPaymentsByOrder(saleOrderId: String!): [ConsumerPayment!]!
+  resellerPaymentsByOrder(saleOrderId: String!): [ResellerPayment!]!
+  supplierPaymentsByPO(purchaseOrderId: String!): [SupplierPayment!]!
+  orderPaymentSummary(saleOrderId: String!): PaymentOrderSummary!
+  storePaymentsSummary(storeId: String!, month: String): StorePaymentsSummary!
+  supplierPaymentsSummary(supplierId: String!, month: String): SupplierPaymentsSummary!
+  billerPaymentsSummary(billerId: String!, storeId: String, month: String): BillerPaymentsSummary!
+  dailyPaymentsSeries(month: String, storeId: String, billerId: String): [PaymentDaySeries!]!
+  billerPaymentsSummaryByStore(storeId: String!, month: String): [BillerPaymentsSummary!]!
+  paymentMethodBreakdown(month: String, storeId: String, billerId: String): [PaymentMethodBreakdownEntry!]!
   stock(input: QueryStockInput): [Stock!]!
   stockMovements(storeId: String!): [StockMovement!]!
   topSellingVariants(month: String, limit: Float): [VariantMonthlySales!]!
   customerAffinity(customerId: String!, limit: Float): [CustomerAffinityEntry!]!
   monthlySalesSummary(month: String): MonthlySalesSummary!
+  topSellingVariantsDetailed(month: String, limit: Float): [VariantSalesWithDetails!]!
+  topSellingVariantsByStore(storeId: String!, month: String, limit: Float): [VariantSalesWithDetails!]!
+  monthlySalesSummaryByStore(storeId: String!, month: String): MonthlySalesSummary!
   ordersQuery: [SaleOrder!]!
   order(id: String!): SaleOrder!
   salesReturnsByStore(storeId: String!): [SalesReturn!]!
