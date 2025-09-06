@@ -20,6 +20,7 @@ import { MovementDirection } from 'src/shared/prismagraphql/prisma/movement-dire
 import { MovementType } from 'src/shared/prismagraphql/prisma/movement-type.enum';
 import { CreateFulfillmentInput } from './dto/create-fulfillment.input';
 import { CreateResellerPaymentInput } from './dto/create-reseller-payment.input';
+import { PaymentService } from '../payment/payment.service';
 import { SaleChannel } from 'src/shared/prismagraphql/prisma/sale-channel.enum';
 import { QuotationStatus } from 'src/shared/prismagraphql/prisma/quotation-status.enum';
 import { CreateQuotationDraftInput } from './dto/create-quotation-draft.input';
@@ -28,6 +29,7 @@ import { ConfirmResellerQuotationInput } from './dto/confirm-reseller-quotation.
 import { BillerConvertQuotationInput } from './dto/biller-convert-quotation.input';
 import { FulfillConsumerSaleInput } from './dto/fulfill-consumer-sale.input';
 import { DomainEventsService } from '../events/services/domain-events.service';
+import { AnalyticsService } from '../analytics/analytics.service';
 
 @Injectable()
 export class SalesService {
@@ -35,7 +37,8 @@ export class SalesService {
     private prisma: PrismaService,
     private notificationService: NotificationService,
     private domainEvents: DomainEventsService,
-    private payments: import('../payment/payment.service').PaymentService,
+    private payments: PaymentService,
+    private analytics: AnalyticsService,
   ) {}
 
   // Quotation flows
@@ -545,6 +548,8 @@ export class SalesService {
       where: { id: sale.id },
       data: { status: SaleStatus.FULFILLED },
     });
+    // Analytics: record fulfilled sale for stats and preferences
+    await this.analytics.recordConsumerSaleFulfilled({ id: updated.id, customerId: updated.customerId, items: sale.items.map(i => ({ productVariantId: i.productVariantId, quantity: i.quantity })) });
     await this.prisma.saleOrder.update({
       where: { id: sale.saleOrderId },
       data: { status: SaleStatus.FULFILLED, phase: 'FULFILLMENT' },

@@ -13,6 +13,7 @@ import { FulfillPurchaseReturnInput } from './dto/fulfill-purchase-return.input'
 import { MovementDirection } from '../../shared/prismagraphql/prisma/movement-direction.enum';
 import { CreateOrderReturnInput } from './dto/create-order-return.input';
 import { PaymentService } from '../payment/payment.service';
+import { AnalyticsService } from '../analytics/analytics.service';
 
 @Injectable()
 export class ReturnsService {
@@ -21,6 +22,7 @@ export class ReturnsService {
     private notifications: NotificationService,
     private domainEvents: DomainEventsService,
     private payments: PaymentService,
+    private analytics: AnalyticsService,
   ) {}
 
   // Helper: notify admins/managers
@@ -297,6 +299,9 @@ export class ReturnsService {
       { salesReturnId: updated.id, status: input.status },
       { aggregateType: 'SalesReturn', aggregateId: updated.id },
     );
+    if (input.status === ('ACCEPTED' as any)) {
+      await this.analytics.recordSalesReturnAccepted({ items: sr.items.map(i => ({ productVariantId: i.productVariantId, quantity: i.quantity })) });
+    }
     return true;
   }
 
