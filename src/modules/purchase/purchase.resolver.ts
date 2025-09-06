@@ -19,6 +19,8 @@ import { IdInput, RejectRequisitionInput } from './dto/submit-purchase-requisiti
 import { IssueRfqInput } from './dto/issue-rfq.input';
 import { SubmitSupplierQuoteInput } from './dto/submit-supplier-quote.input';
 import { MarkPurchaseOrderReceivedInput, UpdatePurchaseOrderPhaseInput } from './dto/update-po-phase.input';
+import { RequisitionSummary } from './types/requisition-summary.type';
+import { SupplierQuoteSummary } from './types/supplier-quote-summary.type';
 
 @Resolver()
 export class PurchaseResolver {
@@ -100,6 +102,20 @@ export class PurchaseResolver {
   @UseGuards(GqlAuthGuard)
   purchaseOrdersOverdue() {
     return this.purchaseService.purchaseOrdersOverdue();
+  }
+
+  @Query(() => [RequisitionSummary])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  requisitionsByStatus(@Args('status') status: string) {
+    return this.purchaseService.requisitionsByStatus(status);
+  }
+
+  @Query(() => [SupplierQuoteSummary])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  supplierQuotesByRequisition(@Args('requisitionId') requisitionId: string) {
+    return this.purchaseService.supplierQuotesByRequisition(requisitionId);
   }
 
   @Mutation(() => Supplier)

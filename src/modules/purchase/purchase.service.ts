@@ -135,6 +135,23 @@ export class PurchaseService {
     });
   }
 
+  // Requisition and quotes listings for dashboards
+  async requisitionsByStatus(status: string) {
+    return this.prisma.purchaseRequisition.findMany({
+      where: { status: status as any },
+      select: { id: true, storeId: true, requestedById: true, status: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async supplierQuotesByRequisition(requisitionId: string) {
+    return this.prisma.supplierQuote.findMany({
+      where: { requisitionId },
+      select: { id: true, requisitionId: true, supplierId: true, status: true, validUntil: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   // Requisition + RFQ
   async createPurchaseRequisition(input: CreatePurchaseRequisitionInput) {
     if (!input.items?.length)

@@ -167,3 +167,13 @@ enum SupplierQuoteStatus {
   SELECTED
   REJECTED
 }
+
+// Lightweight audit trail for procurement domain events
+model ProcurementEvent {
+  id            String   @id @default(uuid())
+  type          String
+  aggregateType String?
+  aggregateId   String?
+  payload       Json
+  createdAt     DateTime @default(now())
+}

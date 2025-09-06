@@ -97,6 +97,7 @@ type UserCount {
   BillerQuotation: Int!
   ResellerQuotation: Int!
   PurchaseRequisition: Int!
+  Supplier: Int!
 }
 
 type UserGroupBy {
@@ -363,11 +364,13 @@ type Supplier {
   notes: String
   createdAt: DateTime!
   updatedAt: DateTime!
+  userId: String
   purchaseOrders: [PurchaseOrder!]
   payments: [SupplierPayment!]
   returns: [PurchaseReturn!]
   catalogs: [SupplierCatalog!]
   quotes: [SupplierQuote!]
+  user: User
   _count: SupplierCount!
 }
 
@@ -1113,6 +1116,7 @@ type User {
   BillerQuotation: [Quotation!]
   ResellerQuotation: [Quotation!]
   PurchaseRequisition: [PurchaseRequisition!]
+  Supplier: [Supplier!]
   _count: UserCount!
 }
 
@@ -1342,6 +1346,7 @@ type SupplierCountAggregate {
   notes: Int!
   createdAt: Int!
   updatedAt: Int!
+  userId: Int!
   _all: Int!
 }
 
@@ -1365,6 +1370,7 @@ type SupplierMinAggregate {
   notes: String
   createdAt: DateTime
   updatedAt: DateTime
+  userId: String
 }
 
 type SupplierMaxAggregate {
@@ -1377,6 +1383,7 @@ type SupplierMaxAggregate {
   notes: String
   createdAt: DateTime
   updatedAt: DateTime
+  userId: String
 }
 
 type PurchaseOrderCountAggregate {
@@ -1895,6 +1902,7 @@ type Query {
   supplierPayments: [SupplierPayment!]!
   purchaseOrdersByStatus(status: String!): [PurchaseOrder!]!
   purchaseOrdersByPhase(phase: String!): [PurchaseOrder!]!
+  purchaseOrdersOverdue: [PurchaseOrder!]!
   stock(input: QueryStockInput): [Stock!]!
   stockMovements(storeId: String!): [StockMovement!]!
   ordersQuery: [SaleOrder!]!
@@ -2232,6 +2240,7 @@ input UserWhereInput {
   BillerQuotation: QuotationListRelationFilter
   ResellerQuotation: QuotationListRelationFilter
   PurchaseRequisition: PurchaseRequisitionListRelationFilter
+  Supplier: SupplierListRelationFilter
 }
 
 input EnumUserTierNullableFilter {
@@ -3203,11 +3212,13 @@ input SupplierWhereInput {
   notes: StringNullableFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
+  userId: StringNullableFilter
   purchaseOrders: PurchaseOrderListRelationFilter
   payments: SupplierPaymentListRelationFilter
   returns: PurchaseReturnListRelationFilter
   catalogs: SupplierCatalogListRelationFilter
   quotes: SupplierQuoteListRelationFilter
+  user: UserNullableScalarRelationFilter
 }
 
 input PurchaseOrderListRelationFilter {
@@ -3647,6 +3658,12 @@ input PurchaseRequisitionListRelationFilter {
   every: PurchaseRequisitionWhereInput
   some: PurchaseRequisitionWhereInput
   none: PurchaseRequisitionWhereInput
+}
+
+input SupplierListRelationFilter {
+  every: SupplierWhereInput
+  some: SupplierWhereInput
+  none: SupplierWhereInput
 }
 
 input StockMovementListRelationFilter {
@@ -4429,6 +4446,7 @@ input UserOrderByWithRelationInput {
   BillerQuotation: QuotationOrderByRelationAggregateInput
   ResellerQuotation: QuotationOrderByRelationAggregateInput
   PurchaseRequisition: PurchaseRequisitionOrderByRelationAggregateInput
+  Supplier: SupplierOrderByRelationAggregateInput
 }
 
 input RoleOrderByWithRelationInput {
@@ -4588,6 +4606,10 @@ input FulfillmentOrderByRelationAggregateInput {
 }
 
 input PurchaseRequisitionOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input SupplierOrderByRelationAggregateInput {
   _count: SortOrder
 }
 
@@ -4786,6 +4808,7 @@ input UserWhereUniqueInput {
   BillerQuotation: QuotationListRelationFilter
   ResellerQuotation: QuotationListRelationFilter
   PurchaseRequisition: PurchaseRequisitionListRelationFilter
+  Supplier: SupplierListRelationFilter
 }
 
 enum UserScalarFieldEnum {
@@ -5007,6 +5030,7 @@ type Mutation {
   updateSupplier(input: UpdateSupplierInput!): Supplier!
   createPurchaseOrder(input: CreatePurchaseOrderInput!): PurchaseOrder!
   updatePurchaseOrderStatus(input: UpdatePurchaseOrderStatusInput!): PurchaseOrder!
+  linkSupplierUser(input: LinkSupplierUserInput!): Supplier!
   createSupplierPayment(input: CreateSupplierPaymentInput!): SupplierPayment!
   createPurchaseRequisition(input: CreatePurchaseRequisitionInput!): String!
   submitPurchaseRequisition(input: IdInput!): Boolean!
@@ -5213,6 +5237,7 @@ input UserCreateWithoutStoreInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input RoleCreateNestedOneWithoutUsersInput {
@@ -5345,6 +5370,7 @@ input UserCreateWithoutResellerProfileInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input CustomerProfileCreateNestedOneWithoutUserInput {
@@ -5638,6 +5664,7 @@ input UserCreateWithoutStockReceiptBatchReceivedBysInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input ResellerPaymentCreateNestedManyWithoutResellerInput {
@@ -5872,6 +5899,7 @@ input UserCreateWithoutConsumerSaleInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input ResellerPaymentCreateNestedManyWithoutReceivedByInput {
@@ -5942,6 +5970,7 @@ input UserCreateWithoutResellerPaymentsMadeInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input AdminActionLogCreateNestedManyWithoutAdminInput {
@@ -6191,6 +6220,7 @@ input UserCreateWithoutConsumerSaleAdjustedBysInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input StockReceiptBatchCreateNestedManyWithoutReceivedByInput {
@@ -6261,6 +6291,7 @@ input UserCreateWithoutStockReceiptBatchConfirmedBysInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input ConsumerSaleCreateNestedManyWithoutAdjustedByInput {
@@ -6413,6 +6444,7 @@ input UserCreateWithoutResellerSalesInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input StockReceiptBatchCreateNestedManyWithoutConfirmedByInput {
@@ -6565,6 +6597,7 @@ input UserCreateWithoutBillerQuotationInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input StockTransferCreateNestedManyWithoutRequestedByInput {
@@ -6633,6 +6666,7 @@ input UserCreateWithoutStockTransferApprovalsInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input StoreCreateNestedManyWithoutManagerInput {
@@ -6811,6 +6845,7 @@ input UserCreateWithoutBillerResellerSaleInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input StockTransferCreateNestedManyWithoutApprovedByInput {
@@ -6879,6 +6914,7 @@ input UserCreateWithoutStockTransferRequestsInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input ConsumerReceiptCreateNestedManyWithoutIssuedByInput {
@@ -7075,6 +7111,7 @@ input UserCreateWithoutResellerSaleInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input ResellerSaleCreateNestedManyWithoutResellerInput {
@@ -7365,6 +7402,7 @@ input UserCreateWithoutCustomerProfileInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input ResellerSaleCreateNestedManyWithoutBillerInput {
@@ -7539,6 +7577,7 @@ input UserCreateWithoutConsumerReceiptInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input ResellerSaleCreateNestedManyWithoutApprovedByInput {
@@ -7633,6 +7672,7 @@ input UserCreateWithoutResellerPaymentsReceivedInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input SalesReturnCreateNestedManyWithoutReceivedByInput {
@@ -7707,6 +7747,7 @@ input UserCreateWithoutSalesReturnRequestersInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input SalesReturnCreateNestedManyWithoutApprovedByInput {
@@ -7781,6 +7822,7 @@ input UserCreateWithoutSalesReturnReceiversInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input SalesReturnCreateNestedManyWithoutReturnedByInput {
@@ -7855,6 +7897,7 @@ input UserCreateWithoutSalesReturnInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input PurchaseReturnCreateNestedManyWithoutInitiatedByInput {
@@ -7896,6 +7939,7 @@ input SupplierCreateWithoutReturnsInput {
   payments: SupplierPaymentCreateNestedManyWithoutSupplierInput
   catalogs: SupplierCatalogCreateNestedManyWithoutSupplierInput
   quotes: SupplierQuoteCreateNestedManyWithoutSupplierInput
+  user: UserCreateNestedOneWithoutSupplierInput
 }
 
 input PurchaseOrderCreateNestedManyWithoutSupplierInput {
@@ -8045,6 +8089,7 @@ input UserCreateWithoutPurchaseReturnInitiatorsInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input PurchaseReturnCreateNestedManyWithoutApprovedByInput {
@@ -8278,6 +8323,7 @@ input SupplierCreateWithoutPurchaseOrdersInput {
   returns: PurchaseReturnCreateNestedManyWithoutSupplierInput
   catalogs: SupplierCatalogCreateNestedManyWithoutSupplierInput
   quotes: SupplierQuoteCreateNestedManyWithoutSupplierInput
+  user: UserCreateNestedOneWithoutSupplierInput
 }
 
 input SupplierPaymentCreateNestedManyWithoutSupplierInput {
@@ -8528,6 +8574,7 @@ input UserCreateWithoutPurchaseReturnApproversInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input PaymentCreateNestedManyWithoutReceivedByInput {
@@ -8649,6 +8696,7 @@ input UserCreateWithoutResellerTierHistoryChangedBysInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input ResellerProfileCreateNestedManyWithoutBillerInput {
@@ -8874,6 +8922,7 @@ input UserCreateWithoutResellerQuotationInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input ResellerTierHistoryCreateNestedManyWithoutAdminInput {
@@ -8940,6 +8989,7 @@ input UserCreateWithoutResellerTierHistoryInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input QuotationCreateNestedManyWithoutBillerInput {
@@ -9422,6 +9472,7 @@ input UserCreateWithoutPurchaseRequisitionInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input QuotationCreateNestedManyWithoutResellerInput {
@@ -9539,6 +9590,7 @@ input UserCreateWithoutFulfillmentInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input PurchaseRequisitionCreateNestedManyWithoutRequestedByInput {
@@ -9640,6 +9692,7 @@ input SupplierCreateWithoutCatalogsInput {
   payments: SupplierPaymentCreateNestedManyWithoutSupplierInput
   returns: PurchaseReturnCreateNestedManyWithoutSupplierInput
   quotes: SupplierQuoteCreateNestedManyWithoutSupplierInput
+  user: UserCreateNestedOneWithoutSupplierInput
 }
 
 input SupplierQuoteCreateNestedManyWithoutSupplierInput {
@@ -9824,6 +9877,63 @@ input SupplierQuoteCreateManySupplierInput {
   updatedAt: DateTime
 }
 
+input UserCreateNestedOneWithoutSupplierInput {
+  create: UserCreateWithoutSupplierInput
+  connectOrCreate: UserCreateOrConnectWithoutSupplierInput
+  connect: UserWhereUniqueInput
+}
+
+input UserCreateWithoutSupplierInput {
+  id: String
+  email: String!
+  passwordHash: String!
+  tier: UserTier
+  referralCode: String
+  referredBy: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  isEmailVerified: Boolean
+  emailVerificationToken: String
+  emailVerificationTokenExpiry: DateTime
+  role: RoleCreateNestedOneWithoutUsersInput!
+  resellerProfile: ResellerProfileCreateNestedOneWithoutUserInput
+  customerProfile: CustomerProfileCreateNestedOneWithoutUserInput
+  resellerPaymentsMade: ResellerPaymentCreateNestedManyWithoutResellerInput
+  resellerPaymentsReceived: ResellerPaymentCreateNestedManyWithoutReceivedByInput
+  adminLogs: AdminActionLogCreateNestedManyWithoutAdminInput
+  supportMessages: SupportMessageCreateNestedManyWithoutUserInput
+  ConsumerSale: ConsumerSaleCreateNestedManyWithoutBillerInput
+  ConsumerSaleAdjustedBys: ConsumerSaleCreateNestedManyWithoutAdjustedByInput
+  StockReceiptBatchReceivedBys: StockReceiptBatchCreateNestedManyWithoutReceivedByInput
+  StockReceiptBatchConfirmedBys: StockReceiptBatchCreateNestedManyWithoutConfirmedByInput
+  StockTransferRequests: StockTransferCreateNestedManyWithoutRequestedByInput
+  StockTransferApprovals: StockTransferCreateNestedManyWithoutApprovedByInput
+  Store: StoreCreateNestedManyWithoutManagerInput
+  ConsumerReceipt: ConsumerReceiptCreateNestedManyWithoutIssuedByInput
+  ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
+  BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
+  ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
+  SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
+  SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
+  PurchaseReturnInitiators: PurchaseReturnCreateNestedManyWithoutInitiatedByInput
+  PurchaseReturnApprovers: PurchaseReturnCreateNestedManyWithoutApprovedByInput
+  Payment: PaymentCreateNestedManyWithoutReceivedByInput
+  ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
+  ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
+  ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  Notification: NotificationCreateNestedManyWithoutUserInput
+  Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
+  ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
+  PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+}
+
+input UserCreateOrConnectWithoutSupplierInput {
+  where: UserWhereUniqueInput!
+  create: UserCreateWithoutSupplierInput!
+}
+
 input SupplierCreateOrConnectWithoutCatalogsInput {
   where: SupplierWhereUniqueInput!
   create: SupplierCreateWithoutCatalogsInput!
@@ -9843,11 +9953,13 @@ input SupplierWhereUniqueInput {
   notes: StringNullableFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
+  userId: StringNullableFilter
   purchaseOrders: PurchaseOrderListRelationFilter
   payments: SupplierPaymentListRelationFilter
   returns: PurchaseReturnListRelationFilter
   catalogs: SupplierCatalogListRelationFilter
   quotes: SupplierQuoteListRelationFilter
+  user: UserNullableScalarRelationFilter
 }
 
 input SupplierCatalogCreateOrConnectWithoutProductVariantInput {
@@ -9941,6 +10053,7 @@ input SupplierCreateWithoutQuotesInput {
   payments: SupplierPaymentCreateNestedManyWithoutSupplierInput
   returns: PurchaseReturnCreateNestedManyWithoutSupplierInput
   catalogs: SupplierCatalogCreateNestedManyWithoutSupplierInput
+  user: UserCreateNestedOneWithoutSupplierInput
 }
 
 input SupplierCatalogCreateNestedManyWithoutSupplierInput {
@@ -10128,6 +10241,54 @@ input PurchaseRequisitionCreateManyRequestedByInput {
   id: String
   storeId: String!
   status: PurchaseRequisitionStatus
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input SupplierCreateNestedManyWithoutUserInput {
+  create: [SupplierCreateWithoutUserInput!]
+  connectOrCreate: [SupplierCreateOrConnectWithoutUserInput!]
+  createMany: SupplierCreateManyUserInputEnvelope
+  connect: [SupplierWhereUniqueInput!]
+}
+
+input SupplierCreateWithoutUserInput {
+  id: String
+  name: String!
+  contactInfo: JSON
+  isFrequent: Boolean
+  creditLimit: Float!
+  currentBalance: Float
+  paymentTerms: String
+  notes: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  purchaseOrders: PurchaseOrderCreateNestedManyWithoutSupplierInput
+  payments: SupplierPaymentCreateNestedManyWithoutSupplierInput
+  returns: PurchaseReturnCreateNestedManyWithoutSupplierInput
+  catalogs: SupplierCatalogCreateNestedManyWithoutSupplierInput
+  quotes: SupplierQuoteCreateNestedManyWithoutSupplierInput
+}
+
+input SupplierCreateOrConnectWithoutUserInput {
+  where: SupplierWhereUniqueInput!
+  create: SupplierCreateWithoutUserInput!
+}
+
+input SupplierCreateManyUserInputEnvelope {
+  data: [SupplierCreateManyUserInput!]!
+  skipDuplicates: Boolean
+}
+
+input SupplierCreateManyUserInput {
+  id: String
+  name: String!
+  contactInfo: JSON
+  isFrequent: Boolean
+  creditLimit: Float!
+  currentBalance: Float
+  paymentTerms: String
+  notes: String
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -11341,6 +11502,7 @@ input SupplierCreateWithoutPaymentsInput {
   returns: PurchaseReturnCreateNestedManyWithoutSupplierInput
   catalogs: SupplierCatalogCreateNestedManyWithoutSupplierInput
   quotes: SupplierQuoteCreateNestedManyWithoutSupplierInput
+  user: UserCreateNestedOneWithoutSupplierInput
 }
 
 input SupplierCreateOrConnectWithoutPaymentsInput {
@@ -13064,6 +13226,7 @@ input UserUpdateWithoutStoreInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input NullableEnumUserTierFieldUpdateOperationsInput {
@@ -13249,6 +13412,7 @@ input UserUpdateWithoutResellerProfileInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input CustomerProfileUpdateOneWithoutUserNestedInput {
@@ -13666,6 +13830,7 @@ input UserUpdateWithoutStockReceiptBatchReceivedBysInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input ResellerPaymentUpdateManyWithoutResellerNestedInput {
@@ -14021,6 +14186,7 @@ input UserUpdateWithoutConsumerSaleInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input ResellerPaymentUpdateManyWithoutReceivedByNestedInput {
@@ -14112,6 +14278,7 @@ input UserUpdateWithoutResellerPaymentsMadeInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input AdminActionLogUpdateManyWithoutAdminNestedInput {
@@ -14447,6 +14614,7 @@ input UserUpdateWithoutConsumerSaleAdjustedBysInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input StockReceiptBatchUpdateManyWithoutReceivedByNestedInput {
@@ -14538,6 +14706,7 @@ input UserUpdateWithoutStockReceiptBatchConfirmedBysInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input ConsumerSaleUpdateManyWithoutAdjustedByNestedInput {
@@ -14746,6 +14915,7 @@ input UserUpdateWithoutResellerSalesInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input StockReceiptBatchUpdateManyWithoutConfirmedByNestedInput {
@@ -14963,6 +15133,7 @@ input UserUpdateWithoutBillerQuotationInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input StockTransferUpdateManyWithoutRequestedByNestedInput {
@@ -15052,6 +15223,7 @@ input UserUpdateWithoutStockTransferApprovalsInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input StoreUpdateManyWithoutManagerNestedInput {
@@ -15314,6 +15486,7 @@ input UserUpdateWithoutBillerResellerSaleInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input StockTransferUpdateManyWithoutApprovedByNestedInput {
@@ -15403,6 +15576,7 @@ input UserUpdateWithoutStockTransferRequestsInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input ConsumerReceiptUpdateManyWithoutIssuedByNestedInput {
@@ -15682,6 +15856,7 @@ input UserUpdateWithoutResellerSaleInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input ResellerSaleUpdateManyWithoutResellerNestedInput {
@@ -16104,6 +16279,7 @@ input UserUpdateWithoutCustomerProfileInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input ResellerSaleUpdateManyWithoutBillerNestedInput {
@@ -16351,6 +16527,7 @@ input UserUpdateWithoutConsumerReceiptInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input ResellerSaleUpdateManyWithoutApprovedByNestedInput {
@@ -16479,6 +16656,7 @@ input UserUpdateWithoutResellerPaymentsReceivedInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input SalesReturnUpdateManyWithoutReceivedByNestedInput {
@@ -16574,6 +16752,7 @@ input UserUpdateWithoutSalesReturnRequestersInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input SalesReturnUpdateManyWithoutApprovedByNestedInput {
@@ -16669,6 +16848,7 @@ input UserUpdateWithoutSalesReturnReceiversInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input SalesReturnUpdateManyWithoutReturnedByNestedInput {
@@ -16766,6 +16946,7 @@ input UserUpdateWithoutSalesReturnInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input PurchaseReturnUpdateManyWithoutInitiatedByNestedInput {
@@ -16828,6 +17009,7 @@ input SupplierUpdateWithoutReturnsInput {
   payments: SupplierPaymentUpdateManyWithoutSupplierNestedInput
   catalogs: SupplierCatalogUpdateManyWithoutSupplierNestedInput
   quotes: SupplierQuoteUpdateManyWithoutSupplierNestedInput
+  user: UserUpdateOneWithoutSupplierNestedInput
 }
 
 input PurchaseOrderUpdateManyWithoutSupplierNestedInput {
@@ -17048,6 +17230,7 @@ input UserUpdateWithoutPurchaseReturnInitiatorsInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input PurchaseReturnUpdateManyWithoutApprovedByNestedInput {
@@ -17341,6 +17524,7 @@ input SupplierUpdateWithoutPurchaseOrdersInput {
   returns: PurchaseReturnUpdateManyWithoutSupplierNestedInput
   catalogs: SupplierCatalogUpdateManyWithoutSupplierNestedInput
   quotes: SupplierQuoteUpdateManyWithoutSupplierNestedInput
+  user: UserUpdateOneWithoutSupplierNestedInput
 }
 
 input SupplierPaymentUpdateManyWithoutSupplierNestedInput {
@@ -17640,6 +17824,7 @@ input UserUpdateWithoutPurchaseReturnApproversInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input PaymentUpdateManyWithoutReceivedByNestedInput {
@@ -17798,6 +17983,7 @@ input UserUpdateWithoutResellerTierHistoryChangedBysInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input ResellerProfileUpdateManyWithoutBillerNestedInput {
@@ -18102,6 +18288,7 @@ input UserUpdateWithoutResellerQuotationInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input ResellerTierHistoryUpdateManyWithoutAdminNestedInput {
@@ -18189,6 +18376,7 @@ input UserUpdateWithoutResellerTierHistoryInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input QuotationUpdateManyWithoutBillerNestedInput {
@@ -18889,6 +19077,7 @@ input UserUpdateWithoutPurchaseRequisitionInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input QuotationUpdateManyWithoutResellerNestedInput {
@@ -19049,6 +19238,7 @@ input UserUpdateWithoutFulfillmentInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput {
@@ -19213,6 +19403,7 @@ input SupplierUpdateWithoutCatalogsInput {
   payments: SupplierPaymentUpdateManyWithoutSupplierNestedInput
   returns: PurchaseReturnUpdateManyWithoutSupplierNestedInput
   quotes: SupplierQuoteUpdateManyWithoutSupplierNestedInput
+  user: UserUpdateOneWithoutSupplierNestedInput
 }
 
 input SupplierQuoteUpdateManyWithoutSupplierNestedInput {
@@ -19414,6 +19605,73 @@ input SupplierQuoteUpdateManyMutationInput {
   updatedAt: DateTimeFieldUpdateOperationsInput
 }
 
+input UserUpdateOneWithoutSupplierNestedInput {
+  create: UserCreateWithoutSupplierInput
+  connectOrCreate: UserCreateOrConnectWithoutSupplierInput
+  upsert: UserUpsertWithoutSupplierInput
+  disconnect: UserWhereInput
+  delete: UserWhereInput
+  connect: UserWhereUniqueInput
+  update: UserUpdateToOneWithWhereWithoutSupplierInput
+}
+
+input UserUpsertWithoutSupplierInput {
+  update: UserUpdateWithoutSupplierInput!
+  create: UserCreateWithoutSupplierInput!
+  where: UserWhereInput
+}
+
+input UserUpdateWithoutSupplierInput {
+  id: StringFieldUpdateOperationsInput
+  email: StringFieldUpdateOperationsInput
+  passwordHash: StringFieldUpdateOperationsInput
+  tier: NullableEnumUserTierFieldUpdateOperationsInput
+  referralCode: NullableStringFieldUpdateOperationsInput
+  referredBy: NullableStringFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  isEmailVerified: BoolFieldUpdateOperationsInput
+  emailVerificationToken: NullableStringFieldUpdateOperationsInput
+  emailVerificationTokenExpiry: NullableDateTimeFieldUpdateOperationsInput
+  role: RoleUpdateOneRequiredWithoutUsersNestedInput
+  resellerProfile: ResellerProfileUpdateOneWithoutUserNestedInput
+  customerProfile: CustomerProfileUpdateOneWithoutUserNestedInput
+  resellerPaymentsMade: ResellerPaymentUpdateManyWithoutResellerNestedInput
+  resellerPaymentsReceived: ResellerPaymentUpdateManyWithoutReceivedByNestedInput
+  adminLogs: AdminActionLogUpdateManyWithoutAdminNestedInput
+  supportMessages: SupportMessageUpdateManyWithoutUserNestedInput
+  ConsumerSale: ConsumerSaleUpdateManyWithoutBillerNestedInput
+  ConsumerSaleAdjustedBys: ConsumerSaleUpdateManyWithoutAdjustedByNestedInput
+  StockReceiptBatchReceivedBys: StockReceiptBatchUpdateManyWithoutReceivedByNestedInput
+  StockReceiptBatchConfirmedBys: StockReceiptBatchUpdateManyWithoutConfirmedByNestedInput
+  StockTransferRequests: StockTransferUpdateManyWithoutRequestedByNestedInput
+  StockTransferApprovals: StockTransferUpdateManyWithoutApprovedByNestedInput
+  Store: StoreUpdateManyWithoutManagerNestedInput
+  ConsumerReceipt: ConsumerReceiptUpdateManyWithoutIssuedByNestedInput
+  ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
+  BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
+  ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
+  SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
+  SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
+  PurchaseReturnInitiators: PurchaseReturnUpdateManyWithoutInitiatedByNestedInput
+  PurchaseReturnApprovers: PurchaseReturnUpdateManyWithoutApprovedByNestedInput
+  Payment: PaymentUpdateManyWithoutReceivedByNestedInput
+  ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
+  ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
+  ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  Notification: NotificationUpdateManyWithoutUserNestedInput
+  Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
+  ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
+  PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+}
+
+input UserUpdateToOneWithWhereWithoutSupplierInput {
+  where: UserWhereInput
+  data: UserUpdateWithoutSupplierInput!
+}
+
 input SupplierUpdateToOneWithWhereWithoutCatalogsInput {
   where: SupplierWhereInput
   data: SupplierUpdateWithoutCatalogsInput!
@@ -19530,6 +19788,7 @@ input SupplierUpdateWithoutQuotesInput {
   payments: SupplierPaymentUpdateManyWithoutSupplierNestedInput
   returns: PurchaseReturnUpdateManyWithoutSupplierNestedInput
   catalogs: SupplierCatalogUpdateManyWithoutSupplierNestedInput
+  user: UserUpdateOneWithoutSupplierNestedInput
 }
 
 input SupplierCatalogUpdateManyWithoutSupplierNestedInput {
@@ -19733,6 +19992,84 @@ input PurchaseRequisitionScalarWhereInput {
 input PurchaseRequisitionUpdateManyMutationInput {
   id: StringFieldUpdateOperationsInput
   status: EnumPurchaseRequisitionStatusFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+}
+
+input SupplierUpdateManyWithoutUserNestedInput {
+  create: [SupplierCreateWithoutUserInput!]
+  connectOrCreate: [SupplierCreateOrConnectWithoutUserInput!]
+  upsert: [SupplierUpsertWithWhereUniqueWithoutUserInput!]
+  createMany: SupplierCreateManyUserInputEnvelope
+  set: [SupplierWhereUniqueInput!]
+  disconnect: [SupplierWhereUniqueInput!]
+  delete: [SupplierWhereUniqueInput!]
+  connect: [SupplierWhereUniqueInput!]
+  update: [SupplierUpdateWithWhereUniqueWithoutUserInput!]
+  updateMany: [SupplierUpdateManyWithWhereWithoutUserInput!]
+  deleteMany: [SupplierScalarWhereInput!]
+}
+
+input SupplierUpsertWithWhereUniqueWithoutUserInput {
+  where: SupplierWhereUniqueInput!
+  update: SupplierUpdateWithoutUserInput!
+  create: SupplierCreateWithoutUserInput!
+}
+
+input SupplierUpdateWithoutUserInput {
+  id: StringFieldUpdateOperationsInput
+  name: StringFieldUpdateOperationsInput
+  contactInfo: JSON
+  isFrequent: BoolFieldUpdateOperationsInput
+  creditLimit: FloatFieldUpdateOperationsInput
+  currentBalance: FloatFieldUpdateOperationsInput
+  paymentTerms: NullableStringFieldUpdateOperationsInput
+  notes: NullableStringFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  purchaseOrders: PurchaseOrderUpdateManyWithoutSupplierNestedInput
+  payments: SupplierPaymentUpdateManyWithoutSupplierNestedInput
+  returns: PurchaseReturnUpdateManyWithoutSupplierNestedInput
+  catalogs: SupplierCatalogUpdateManyWithoutSupplierNestedInput
+  quotes: SupplierQuoteUpdateManyWithoutSupplierNestedInput
+}
+
+input SupplierUpdateWithWhereUniqueWithoutUserInput {
+  where: SupplierWhereUniqueInput!
+  data: SupplierUpdateWithoutUserInput!
+}
+
+input SupplierUpdateManyWithWhereWithoutUserInput {
+  where: SupplierScalarWhereInput!
+  data: SupplierUpdateManyMutationInput!
+}
+
+input SupplierScalarWhereInput {
+  AND: [SupplierScalarWhereInput!]
+  OR: [SupplierScalarWhereInput!]
+  NOT: [SupplierScalarWhereInput!]
+  id: StringFilter
+  name: StringFilter
+  contactInfo: JsonNullableFilter
+  isFrequent: BoolFilter
+  creditLimit: FloatFilter
+  currentBalance: FloatFilter
+  paymentTerms: StringNullableFilter
+  notes: StringNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  userId: StringNullableFilter
+}
+
+input SupplierUpdateManyMutationInput {
+  id: StringFieldUpdateOperationsInput
+  name: StringFieldUpdateOperationsInput
+  contactInfo: JSON
+  isFrequent: BoolFieldUpdateOperationsInput
+  creditLimit: FloatFieldUpdateOperationsInput
+  currentBalance: FloatFieldUpdateOperationsInput
+  paymentTerms: NullableStringFieldUpdateOperationsInput
+  notes: NullableStringFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
 }
@@ -20851,6 +21188,7 @@ input SupplierUpdateWithoutPaymentsInput {
   returns: PurchaseReturnUpdateManyWithoutSupplierNestedInput
   catalogs: SupplierCatalogUpdateManyWithoutSupplierNestedInput
   quotes: SupplierQuoteUpdateManyWithoutSupplierNestedInput
+  user: UserUpdateOneWithoutSupplierNestedInput
 }
 
 input SupplierUpdateToOneWithWhereWithoutPaymentsInput {
@@ -22331,6 +22669,11 @@ input UpdatePurchaseOrderStatusInput {
   status: PurchaseOrderStatus!
 }
 
+input LinkSupplierUserInput {
+  supplierId: ID!
+  userId: ID
+}
+
 input CreateSupplierPaymentInput {
   supplierId: ID!
   purchaseOrderId: ID
@@ -22653,6 +22996,7 @@ input UserCreateInput {
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
 input UserCreateManyInput {
@@ -22714,6 +23058,7 @@ input UserUpdateInput {
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
 }
 
 input UserUpdateManyMutationInput {
