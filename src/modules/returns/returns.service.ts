@@ -244,7 +244,7 @@ export class ReturnsService {
           }
         }
       } else if (sr.consumerSaleId) {
-        // For consumer sales, publish an event for refund handling by payments module
+        // For consumer sales, record a refund payment and publish event
         const cSale = await this.prisma.consumerSale.findUnique({
           where: { id: sr.consumerSaleId },
           include: { items: true },
@@ -258,6 +258,17 @@ export class ReturnsService {
             if (si) refund += rit.quantity * (si.unitPrice || 0);
           }
           if (refund > 0) {
+            // Negative consumer payment to reflect refund (confirmed immediately)
+            await this.prisma.consumerPayment.create({
+              data: {
+                saleOrderId: cSale.saleOrderId,
+                consumerSaleId: cSale.id,
+                amount: -refund,
+                method: 'TRANSFER' as any,
+                status: 'CONFIRMED' as any,
+                reference: `REFUND-${sr.id}`,
+              },
+            });
             await this.domainEvents.publish(
               'CONSUMER_RETURN_ACCEPTED',
               {
@@ -270,7 +281,7 @@ export class ReturnsService {
             await this.notifications.createNotification(
               cSale.billerId,
               'CONSUMER_RETURN_ACCEPTED',
-              `Return ${sr.id} accepted. Refund amount suggested: ${refund.toFixed(2)}.`,
+              `Return ${sr.id} accepted. Refund recorded: ${refund.toFixed(2)}.`,
             );
           }
         }
@@ -438,6 +449,18 @@ export class ReturnsService {
         await this.prisma.supplier.update({
           where: { id: pr.supplierId },
           data: { currentBalance: newBal } as any,
+        });
+        // Record credit note as inbound supplier payment for audit trail
+        await this.prisma.payment.create({
+          data: {
+            type: 'SUPPLIER' as any,
+            sourceId: pr.supplierId,
+            referenceEntity: 'PurchaseReturn',
+            referenceId: pr.id,
+            amount: creditBack,
+            method: 'BANK' as any,
+            receivedById: pr.approvedById,
+          },
         });
         await this.domainEvents.publish(
           'PURCHASE_RETURN_CREDITED',
