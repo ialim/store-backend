@@ -21,6 +21,7 @@ import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../../auth/guards/gql-auth.guard';
 import { UpsertVariantSupplierCatalogInput } from '../dto/upsert-variant-supplier-catalog.input';
 import { SupplierCatalogEntry } from '../../purchase/types/supplier-catalog-entry.type';
+import { VariantTierPrice } from '../types/variant-tier-price.type';
 import { UpsertVariantTierPriceInput } from '../dto/upsert-variant-tier-price.input';
 @Resolver(() => ProductVariant)
 export class ProductVariantsResolver {
@@ -122,10 +123,9 @@ export class ProductVariantsResolver {
     }).then(() => 'OK');
   }
 
-  @Query(() => [SupplierCatalogEntry])
+  @Query(() => [VariantTierPrice])
   @UseGuards(GqlAuthGuard)
   tierPricesForVariant(@Args('productVariantId') productVariantId: string) {
-    // Return as SupplierCatalogEntry-like objects for quick display
     return this.ProductVariantService.tierPricesForVariant(productVariantId);
   }
 

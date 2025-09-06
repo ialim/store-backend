@@ -21,7 +21,8 @@
     "prisma:generate": "CI=1 npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:studio": "npx prisma studio",
-    "prisma:seed": "npx ts-node prisma/seed.ts"
+    "prisma:seed": "npx ts-node prisma/seed.ts",
+    "prisma:backfillPoStoreId": "npx ts-node prisma/scripts/backfill-po-store-id.ts"
   },
   "prisma": {
     "schema": "./prisma"

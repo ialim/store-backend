@@ -23,6 +23,7 @@ model Store {
   Quotation Quotation[]
 
   PurchaseRequisition PurchaseRequisition[]
+  purchaseOrders      PurchaseOrder[]
 }
 
 model Stock {
