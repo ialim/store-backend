@@ -7,6 +7,7 @@ import { StorePaymentsSummary } from './types/store-payments-summary.type';
 import { SupplierPaymentsSummary } from './types/supplier-payments-summary.type';
 import { BillerPaymentsSummary } from './types/biller-payments-summary.type';
 import { PaymentDaySeries } from './types/payment-day-series.type';
+import { PaymentMethodBreakdownEntry } from './types/payment-method-breakdown-entry.type';
 import { ConsumerPayment } from '../../shared/prismagraphql/consumer-payment/consumer-payment.model';
 import { ResellerPayment } from '../../shared/prismagraphql/reseller-payment/reseller-payment.model';
 import { SupplierPayment } from '../../shared/prismagraphql/supplier-payment/supplier-payment.model';
@@ -238,5 +239,99 @@ export class PaymentResolver {
     }
     const keys = Array.from(map.keys()).sort();
     return keys.map((k) => ({ date: k, consumerPaid: map.get(k)!.consumer, resellerPaid: map.get(k)!.reseller, totalPaid: map.get(k)!.consumer + map.get(k)!.reseller }));
+  }
+
+  @Query(() => [BillerPaymentsSummary])
+  @UseGuards(GqlAuthGuard)
+  async billerPaymentsSummaryByStore(
+    @Args('storeId') storeId: string,
+    @Args('month', { nullable: true }) month?: string,
+  ) {
+    const m = month || currentMonth();
+    const { start, end } = monthWindow(m);
+    // Fetch payments scoped by store & month
+    const [cList, rList] = await Promise.all([
+      this.prisma.consumerPayment.findMany({
+        where: { status: 'CONFIRMED' as any, saleOrder: { storeId }, receivedAt: { gte: start, lt: end } as any },
+        select: { amount: true, saleOrder: { select: { billerId: true } } },
+      }),
+      this.prisma.resellerPayment.findMany({
+        where: { status: 'CONFIRMED' as any, saleOrder: { storeId }, receivedAt: { gte: start, lt: end } as any },
+        select: { amount: true, saleOrder: { select: { billerId: true } } },
+      }),
+    ]);
+    const byBiller = new Map<string, { consumer: number; reseller: number; cCount: number; rCount: number }>();
+    for (const p of cList) {
+      const b = p.saleOrder.billerId;
+      const entry = byBiller.get(b) || { consumer: 0, reseller: 0, cCount: 0, rCount: 0 };
+      entry.consumer += p.amount || 0;
+      entry.cCount += 1;
+      byBiller.set(b, entry);
+    }
+    for (const p of rList) {
+      const b = p.saleOrder.billerId;
+      const entry = byBiller.get(b) || { consumer: 0, reseller: 0, cCount: 0, rCount: 0 };
+      entry.reseller += p.amount || 0;
+      entry.rCount += 1;
+      byBiller.set(b, entry);
+    }
+    return Array.from(byBiller.entries()).map(([billerId, v]) => ({
+      billerId,
+      storeId,
+      month: m,
+      consumerPaid: v.consumer,
+      resellerPaid: v.reseller,
+      totalPaid: v.consumer + v.reseller,
+      consumerCount: v.cCount,
+      resellerCount: v.rCount,
+    } as BillerPaymentsSummary));
+  }
+
+  @Query(() => [PaymentMethodBreakdownEntry])
+  @UseGuards(GqlAuthGuard)
+  async paymentMethodBreakdown(
+    @Args('month', { nullable: true }) month?: string,
+    @Args('storeId', { nullable: true }) storeId?: string,
+    @Args('billerId', { nullable: true }) billerId?: string,
+  ) {
+    const m = month || currentMonth();
+    const { start, end } = monthWindow(m);
+    const whereConsumer: any = { status: 'CONFIRMED' as any, receivedAt: { gte: start, lt: end } };
+    const whereReseller: any = { status: 'CONFIRMED' as any, receivedAt: { gte: start, lt: end } };
+    if (storeId) {
+      whereConsumer.saleOrder = { ...(whereConsumer.saleOrder || {}), storeId };
+      whereReseller.saleOrder = { ...(whereReseller.saleOrder || {}), storeId };
+    }
+    if (billerId) {
+      whereConsumer.saleOrder = { ...(whereConsumer.saleOrder || {}), billerId };
+      whereReseller.saleOrder = { ...(whereReseller.saleOrder || {}), billerId };
+    }
+    const [cList, rList] = await Promise.all([
+      this.prisma.consumerPayment.findMany({ where: whereConsumer, select: { amount: true, method: true } }),
+      this.prisma.resellerPayment.findMany({ where: whereReseller, select: { amount: true, method: true } }),
+    ]);
+    const map = new Map<string, { cAmt: number; rAmt: number; cCnt: number; rCnt: number }>();
+    for (const p of cList) {
+      const key = String(p.method);
+      const entry = map.get(key) || { cAmt: 0, rAmt: 0, cCnt: 0, rCnt: 0 };
+      entry.cAmt += p.amount || 0;
+      entry.cCnt += 1;
+      map.set(key, entry);
+    }
+    for (const p of rList) {
+      const key = String(p.method);
+      const entry = map.get(key) || { cAmt: 0, rAmt: 0, cCnt: 0, rCnt: 0 };
+      entry.rAmt += p.amount || 0;
+      entry.rCnt += 1;
+      map.set(key, entry);
+    }
+    return Array.from(map.entries()).map(([method, v]) => ({
+      method: method as any,
+      consumerPaid: v.cAmt,
+      resellerPaid: v.rAmt,
+      totalPaid: v.cAmt + v.rAmt,
+      consumerCount: v.cCnt,
+      resellerCount: v.rCnt,
+    } as PaymentMethodBreakdownEntry));
   }
 }

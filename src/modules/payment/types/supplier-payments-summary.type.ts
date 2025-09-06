@@ -1,4 +1,4 @@
-import { ObjectType, Field, Float } from '@nestjs/graphql';
+import { ObjectType, Field, Float, GraphQLISODateTime } from '@nestjs/graphql';
 
 @ObjectType()
 export class SupplierPaymentsSummary {
@@ -14,7 +14,6 @@ export class SupplierPaymentsSummary {
   @Field(() => Float)
   count!: number;
 
-  @Field({ nullable: true })
+  @Field(() => GraphQLISODateTime, { nullable: true })
   lastPaymentDate?: Date | null;
 }
-
