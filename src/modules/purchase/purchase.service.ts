@@ -414,6 +414,30 @@ export class PurchaseService {
     };
   }
 
+  async rfqDashboard(requisitionId: string) {
+    const counts = await this.rfqStatusCounts(requisitionId);
+    const pending = await this.supplierQuotesByRequisition(requisitionId);
+    const pendingQuotes = pending.filter((q: any) => q.status !== 'SUBMITTED');
+    return { ...counts, pendingQuotes } as any;
+  }
+
+  async rfqDashboardAll() {
+    const counts = await this.rfqCountsAll();
+    const pendingQuotes = await this.prisma.supplierQuote.findMany({
+      where: { NOT: { status: 'SUBMITTED' as any } },
+      select: {
+        id: true,
+        requisitionId: true,
+        supplierId: true,
+        status: true,
+        validUntil: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return { ...counts, pendingQuotes } as any;
+  }
+
   async requisitionsWithPartialSubmissions() {
     // Requisitions with at least one SUBMITTED and at least one non-SUBMITTED quote
     return this.prisma.purchaseRequisition.findMany({
@@ -733,7 +757,11 @@ export class PurchaseService {
     if (!current) throw new NotFoundException('Purchase order not found');
     const next = data.status as string;
     const cur = (current as any).status as string;
+    const curPhase = (current as any).phase as string;
     // Guards to prevent regression or invalid manual changes
+    if (curPhase === 'COMPLETED') {
+      throw new BadRequestException('Cannot update status of a COMPLETED purchase order');
+    }
     if (cur === 'CANCELLED') {
       throw new BadRequestException('Cannot update a CANCELLED purchase order');
     }
@@ -1034,6 +1062,9 @@ export class PurchaseService {
     if (!poCur) throw new NotFoundException('Purchase order not found');
     const cur = (poCur as any).phase as string;
     const next = input.phase as string;
+    if (cur === 'COMPLETED' && next !== 'COMPLETED') {
+      throw new BadRequestException('Cannot change phase of a COMPLETED purchase order');
+    }
     const allowed: Record<string, string[]> = {
       ORDERED: ['RECEIVING', 'INVOICING'],
       RECEIVING: ['INVOICING', 'COMPLETED'],
