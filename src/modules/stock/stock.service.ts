@@ -6,6 +6,7 @@ import { ReceiveStockBatchInput } from './dto/receive-stock-batch.input';
 import { TransferStockInput } from './dto/transfer-stock.input';
 import { MovementDirection } from '../../shared/prismagraphql/prisma/movement-direction.enum';
 import { NotificationService } from '../notification/notification.service';
+import { SetReorderSettingsInput } from './dto/set-reorder-settings.input';
 import { DomainEventsService } from '../events/services/domain-events.service';
 
 @Injectable()

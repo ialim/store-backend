@@ -481,6 +481,16 @@ export class PurchaseService {
     return req.id;
   }
 
+
+  async createLowStockRequisitionAndIssuePreferred(
+    input: CreateRequisitionFromLowStockInput,
+  ) {
+    const reqId = await this.createRequisitionFromLowStock(input);
+    if (!reqId) return null;
+    await this.issueRFQPreferred(reqId);
+    return reqId;
+  }
+
   async rfqDashboardAll() {
     const counts = await this.rfqCountsAll();
     const pendingQuotes = await this.prisma.supplierQuote.findMany({

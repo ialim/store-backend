@@ -76,4 +76,55 @@ export class ProductVariantService extends BaseCrudService<
       include: { product: true, stockItems: { where: { storeId } } },
     });
   }
+
+
+  async upsertVariantSupplierCatalog(input: {
+    productVariantId: string;
+    supplierId: string;
+    defaultCost: number;
+    leadTimeDays?: number;
+    isPreferred?: boolean;
+  }) {
+    return (this.prisma as any).supplierCatalog.upsert({
+      where: {
+        supplierId_productVariantId: {
+          supplierId: input.supplierId,
+          productVariantId: input.productVariantId,
+        },
+      },
+      update: {
+        defaultCost: input.defaultCost,
+        leadTimeDays: input.leadTimeDays ?? null,
+        isPreferred: input.isPreferred ?? undefined,
+      },
+      create: {
+        supplierId: input.supplierId,
+        productVariantId: input.productVariantId,
+        defaultCost: input.defaultCost,
+        leadTimeDays: input.leadTimeDays ?? null,
+        isPreferred: input.isPreferred ?? false,
+      },
+      select: {
+        supplierId: true,
+        productVariantId: true,
+        defaultCost: true,
+        leadTimeDays: true,
+        isPreferred: true,
+      },
+    });
+  }
+
+  async suppliersForVariant(productVariantId: string) {
+    return (this.prisma as any).supplierCatalog.findMany({
+      where: { productVariantId },
+      select: {
+        supplierId: true,
+        productVariantId: true,
+        defaultCost: true,
+        leadTimeDays: true,
+        isPreferred: true,
+      },
+      orderBy: { defaultCost: 'asc' },
+    });
+  }
 }

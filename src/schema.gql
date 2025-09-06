@@ -935,6 +935,8 @@ type Stock {
   productVariantId: String!
   quantity: Int!
   reserved: Int!
+  reorderPoint: Int
+  reorderQty: Int
   createdAt: DateTime!
   updatedAt: DateTime!
   store: Store!
@@ -1534,6 +1536,8 @@ type StockCountAggregate {
   productVariantId: Int!
   quantity: Int!
   reserved: Int!
+  reorderPoint: Int!
+  reorderQty: Int!
   createdAt: Int!
   updatedAt: Int!
   _all: Int!
@@ -1542,11 +1546,15 @@ type StockCountAggregate {
 type StockAvgAggregate {
   quantity: Float
   reserved: Float
+  reorderPoint: Float
+  reorderQty: Float
 }
 
 type StockSumAggregate {
   quantity: Int
   reserved: Int
+  reorderPoint: Int
+  reorderQty: Int
 }
 
 type StockMinAggregate {
@@ -1555,6 +1563,8 @@ type StockMinAggregate {
   productVariantId: String
   quantity: Int
   reserved: Int
+  reorderPoint: Int
+  reorderQty: Int
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -1565,6 +1575,8 @@ type StockMaxAggregate {
   productVariantId: String
   quantity: Int
   reserved: Int
+  reorderPoint: Int
+  reorderQty: Int
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -1952,6 +1964,8 @@ type Query {
   listProductVariants(where: ProductVariantWhereInput, orderBy: [ProductVariantOrderByWithRelationInput!], cursor: ProductVariantWhereUniqueInput, take: Int, skip: Int, distinct: [ProductVariantScalarFieldEnum!]): [ProductVariant!]!
   groupByProductVariant(where: ProductVariantWhereInput, orderBy: [ProductVariantOrderByWithAggregationInput!], by: [ProductVariantScalarFieldEnum!]!, having: ProductVariantScalarWhereWithAggregatesInput, take: Int, skip: Int, _count: ProductVariantCountAggregateInput, _avg: ProductVariantAvgAggregateInput, _sum: ProductVariantSumAggregateInput, _min: ProductVariantMinAggregateInput, _max: ProductVariantMaxAggregateInput): [ProductVariantGroupBy!]!
   aggregateProductVariant(where: ProductVariantWhereInput, orderBy: [ProductVariantOrderByWithRelationInput!], cursor: ProductVariantWhereUniqueInput, take: Int, skip: Int, _count: ProductVariantCountAggregateInput, _avg: ProductVariantAvgAggregateInput, _sum: ProductVariantSumAggregateInput, _min: ProductVariantMinAggregateInput, _max: ProductVariantMaxAggregateInput): AggregateProductVariant!
+  variantsByStore(storeId: String!, search: String): [ProductVariant!]!
+  lowStockByStore(storeId: String!): [ProductVariant!]!
   notifications: [Notification!]!
   suppliers: [Supplier!]!
   supplier(id: String!): Supplier!
@@ -2190,6 +2204,8 @@ input StockWhereInput {
   productVariantId: StringFilter
   quantity: IntFilter
   reserved: IntFilter
+  reorderPoint: IntNullableFilter
+  reorderQty: IntNullableFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
   store: StoreScalarRelationFilter
@@ -2216,6 +2232,28 @@ input NestedIntFilter {
   gt: Int
   gte: Int
   not: NestedIntFilter
+}
+
+input IntNullableFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: NestedIntNullableFilter
+}
+
+input NestedIntNullableFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: NestedIntNullableFilter
 }
 
 input StoreScalarRelationFilter {
@@ -3420,28 +3458,6 @@ input SupplierCatalogWhereInput {
   isPreferred: BoolFilter
   supplier: SupplierScalarRelationFilter
   productVariant: ProductVariantScalarRelationFilter
-}
-
-input IntNullableFilter {
-  equals: Int
-  in: [Int!]
-  notIn: [Int!]
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  not: NestedIntNullableFilter
-}
-
-input NestedIntNullableFilter {
-  equals: Int
-  in: [Int!]
-  notIn: [Int!]
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  not: NestedIntNullableFilter
 }
 
 input SupplierQuoteListRelationFilter {
@@ -5118,11 +5134,13 @@ type Mutation {
   createPOsFromSelection(input: CreatePOsFromSelectionInput!): [String!]!
   updatePurchaseOrderPhase(input: UpdatePurchaseOrderPhaseInput!): PurchaseOrder!
   markPurchaseOrderReceived(input: MarkPurchaseOrderReceivedInput!): PurchaseOrder!
+  createRequisitionFromLowStock(input: CreateRequisitionFromLowStockInput!): String
   createStaff(input: CreateStaffInput!): User!
   assignStoreManager(input: AssignStoreManagerInput!): Store!
   assignBiller(input: AssignBillerInput!): ResellerProfile!
   receiveStockBatch(input: ReceiveStockBatchInput!): StockReceiptBatch!
   transferStock(input: TransferStockInput!): StockTransfer!
+  setReorderSettings(input: SetReorderSettingsInput!): Stock!
   createQuotationDraft(input: CreateQuotationDraftInput!): Quotation!
   updateQuotationStatus(input: UpdateQuotationStatusInput!): Quotation!
   checkoutConsumerQuotation(input: CheckoutConsumerQuotationInput!): ConsumerSale!
@@ -5233,6 +5251,8 @@ input StockCreateWithoutProductVariantInput {
   id: String
   quantity: Int!
   reserved: Int
+  reorderPoint: Int
+  reorderQty: Int
   createdAt: DateTime
   updatedAt: DateTime
   store: StoreCreateNestedOneWithoutStocksInput!
@@ -5513,6 +5533,8 @@ input StockCreateWithoutStoreInput {
   id: String
   quantity: Int!
   reserved: Int
+  reorderPoint: Int
+  reorderQty: Int
   createdAt: DateTime
   updatedAt: DateTime
   productVariant: ProductVariantCreateNestedOneWithoutStockItemsInput!
@@ -12968,6 +12990,8 @@ input StockWhereUniqueInput {
   productVariantId: StringFilter
   quantity: IntFilter
   reserved: IntFilter
+  reorderPoint: IntNullableFilter
+  reorderQty: IntNullableFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
   store: StoreScalarRelationFilter
@@ -12984,6 +13008,8 @@ input StockCreateManyStoreInput {
   productVariantId: String!
   quantity: Int!
   reserved: Int
+  reorderPoint: Int
+  reorderQty: Int
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -13033,6 +13059,8 @@ input StockCreateManyProductVariantInput {
   storeId: String!
   quantity: Int!
   reserved: Int
+  reorderPoint: Int
+  reorderQty: Int
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -13194,12 +13222,22 @@ input StockUpdateWithoutProductVariantInput {
   id: StringFieldUpdateOperationsInput
   quantity: IntFieldUpdateOperationsInput
   reserved: IntFieldUpdateOperationsInput
+  reorderPoint: NullableIntFieldUpdateOperationsInput
+  reorderQty: NullableIntFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
   store: StoreUpdateOneRequiredWithoutStocksNestedInput
 }
 
 input IntFieldUpdateOperationsInput {
+  set: Int
+  increment: Int
+  decrement: Int
+  multiply: Int
+  divide: Int
+}
+
+input NullableIntFieldUpdateOperationsInput {
   set: Int
   increment: Int
   decrement: Int
@@ -13588,6 +13626,8 @@ input StockUpdateWithoutStoreInput {
   id: StringFieldUpdateOperationsInput
   quantity: IntFieldUpdateOperationsInput
   reserved: IntFieldUpdateOperationsInput
+  reorderPoint: NullableIntFieldUpdateOperationsInput
+  reorderQty: NullableIntFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
   productVariant: ProductVariantUpdateOneRequiredWithoutStockItemsNestedInput
@@ -19443,14 +19483,6 @@ input SupplierCatalogUpdateWithoutProductVariantInput {
   supplier: SupplierUpdateOneRequiredWithoutCatalogsNestedInput
 }
 
-input NullableIntFieldUpdateOperationsInput {
-  set: Int
-  increment: Int
-  decrement: Int
-  multiply: Int
-  divide: Int
-}
-
 input SupplierUpdateOneRequiredWithoutCatalogsNestedInput {
   create: SupplierCreateWithoutCatalogsInput
   connectOrCreate: SupplierCreateOrConnectWithoutCatalogsInput
@@ -22402,6 +22434,8 @@ input StockScalarWhereInput {
   productVariantId: StringFilter
   quantity: IntFilter
   reserved: IntFilter
+  reorderPoint: IntNullableFilter
+  reorderQty: IntNullableFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
 }
@@ -22410,6 +22444,8 @@ input StockUpdateManyMutationInput {
   id: StringFieldUpdateOperationsInput
   quantity: IntFieldUpdateOperationsInput
   reserved: IntFieldUpdateOperationsInput
+  reorderPoint: NullableIntFieldUpdateOperationsInput
+  reorderQty: NullableIntFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
 }
@@ -22851,6 +22887,11 @@ input MarkPurchaseOrderReceivedInput {
   id: String!
 }
 
+input CreateRequisitionFromLowStockInput {
+  storeId: String!
+  requestedById: String!
+}
+
 input CreateStaffInput {
   email: String!
   password: String!
@@ -22898,6 +22939,13 @@ input TransferStockInput {
 input TransferStockItemInput {
   productVariantId: ID!
   quantity: Int!
+}
+
+input SetReorderSettingsInput {
+  storeId: String!
+  productVariantId: String!
+  reorderPoint: Int
+  reorderQty: Int
 }
 
 input CreateQuotationDraftInput {
