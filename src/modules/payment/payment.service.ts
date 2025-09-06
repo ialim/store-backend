@@ -42,7 +42,11 @@ export class PaymentService {
     });
     await this.domainEvents.publish(
       'PAYMENT_CONFIRMED',
-      { paymentId: payment.id, saleOrderId: payment.saleOrderId, channel: 'CONSUMER' },
+      {
+        paymentId: payment.id,
+        saleOrderId: payment.saleOrderId,
+        channel: 'CONSUMER',
+      },
       { aggregateType: 'Payment', aggregateId: payment.id },
     );
     return payment;
@@ -77,7 +81,11 @@ export class PaymentService {
     });
     await this.domainEvents.publish(
       'PAYMENT_CONFIRMED',
-      { paymentId: payment.id, saleOrderId: payment.saleOrderId, channel: 'RESELLER' },
+      {
+        paymentId: payment.id,
+        saleOrderId: payment.saleOrderId,
+        channel: 'RESELLER',
+      },
       { aggregateType: 'Payment', aggregateId: payment.id },
     );
     return payment;
@@ -93,7 +101,9 @@ export class PaymentService {
     });
     // If applied to a PO, update its payment status
     if (payment.purchaseOrderId) {
-      const po = await this.prisma.purchaseOrder.findUnique({ where: { id: payment.purchaseOrderId } });
+      const po = await this.prisma.purchaseOrder.findUnique({
+        where: { id: payment.purchaseOrderId },
+      });
       if (po) {
         const paidAgg = await this.prisma.supplierPayment.aggregate({
           _sum: { amount: true },
@@ -103,7 +113,10 @@ export class PaymentService {
         const newStatus = paid >= po.totalAmount ? 'PAID' : 'PARTIALLY_PAID';
         await this.prisma.purchaseOrder.update({
           where: { id: po.id },
-          data: { status: newStatus as any, phase: (newStatus === 'PAID' ? 'INVOICING' : po.phase) as any },
+          data: {
+            status: newStatus as any,
+            phase: (newStatus === 'PAID' ? 'INVOICING' : po.phase) as any,
+          },
         });
         await this.domainEvents.publish(
           'PURCHASE_ORDER_STATUS_UPDATED',
@@ -111,14 +124,22 @@ export class PaymentService {
           { aggregateType: 'PurchaseOrder', aggregateId: po.id },
         );
         // Maybe finalize
-        const fresh = await this.prisma.purchaseOrder.findUnique({ where: { id: po.id } });
+        const fresh = await this.prisma.purchaseOrder.findUnique({
+          where: { id: po.id },
+        });
         if (fresh) {
-          const paidAgg2 = await this.prisma.supplierPayment.aggregate({ _sum: { amount: true }, where: { purchaseOrderId: fresh.id } });
+          const paidAgg2 = await this.prisma.supplierPayment.aggregate({
+            _sum: { amount: true },
+            where: { purchaseOrderId: fresh.id },
+          });
           const paid2 = paidAgg2._sum.amount || 0;
           const isPaid = paid2 >= fresh.totalAmount;
           const isReceived = fresh.status === ('RECEIVED' as any);
           if (isPaid && isReceived) {
-            await this.prisma.purchaseOrder.update({ where: { id: fresh.id }, data: { phase: 'COMPLETED' as any } });
+            await this.prisma.purchaseOrder.update({
+              where: { id: fresh.id },
+              data: { phase: 'COMPLETED' as any },
+            });
             await this.domainEvents.publish(
               'PURCHASE_COMPLETED',
               { purchaseOrderId: fresh.id },
@@ -142,7 +163,12 @@ export class PaymentService {
   }
 
   // Refund/credit helpers
-  async recordConsumerRefund(params: { saleOrderId: string; consumerSaleId: string; amount: number; reference?: string }) {
+  async recordConsumerRefund(params: {
+    saleOrderId: string;
+    consumerSaleId: string;
+    amount: number;
+    reference?: string;
+  }) {
     return this.prisma.consumerPayment.create({
       data: {
         saleOrderId: params.saleOrderId,
@@ -155,7 +181,12 @@ export class PaymentService {
     });
   }
 
-  async recordSupplierCreditNote(params: { supplierId: string; purchaseReturnId: string; amount: number; receivedById: string }) {
+  async recordSupplierCreditNote(params: {
+    supplierId: string;
+    purchaseReturnId: string;
+    amount: number;
+    receivedById: string;
+  }) {
     return this.prisma.payment.create({
       data: {
         type: 'SUPPLIER' as any,
@@ -169,4 +200,3 @@ export class PaymentService {
     });
   }
 }
-

@@ -1,0 +1,85 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../../../common/prisma/prisma.service';
+import { NotificationService } from '../../notification/notification.service';
+import { DomainEventsService } from '../services/domain-events.service';
+
+@Injectable()
+export class PaymentsOutboxHandler {
+  private readonly logger = new Logger(PaymentsOutboxHandler.name);
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationService,
+    private domainEvents: DomainEventsService,
+  ) {}
+
+  async tryHandle(event: { id: string; type: string; payload: any }): Promise<boolean> {
+    if (event.type !== 'PAYMENT_CONFIRMED') return false;
+    const orderId = event.payload?.saleOrderId as string | undefined;
+    if (!orderId) return true; // malformed but considered handled
+    try {
+      const order = await this.prisma.saleOrder.findUnique({ where: { id: orderId } });
+      if (!order) return true;
+      if ((order as any).phase !== 'SALE') return true; // Only advance from SALE phase
+
+      // Sum confirmed payments
+      const [consumerPaidAgg, resellerPaidAgg] = await Promise.all([
+        this.prisma.consumerPayment.aggregate({ _sum: { amount: true }, where: { saleOrderId: orderId, status: 'CONFIRMED' as any } }),
+        this.prisma.resellerPayment.aggregate({ _sum: { amount: true }, where: { saleOrderId: orderId, status: 'CONFIRMED' as any } }),
+      ]);
+      const paid = (consumerPaidAgg._sum.amount || 0) + (resellerPaidAgg._sum.amount || 0);
+
+      let canAdvance = paid >= (order.totalAmount || 0);
+
+      if (!canAdvance && (order as any).type === ('RESELLER' as any)) {
+        const rSale = await this.prisma.resellerSale.findFirst({ where: { SaleOrderid: orderId } });
+        if (rSale) {
+          const profile = await this.prisma.resellerProfile.findUnique({ where: { userId: rSale.resellerId } });
+          if (profile) {
+            const unpaidPortion = Math.max((order.totalAmount || 0) - paid, 0);
+            const projected = (profile.outstandingBalance || 0) + unpaidPortion;
+            if (projected <= (profile.creditLimit || 0)) {
+              canAdvance = true;
+              await this.prisma.resellerProfile.update({ where: { userId: rSale.resellerId }, data: { outstandingBalance: projected } });
+            }
+          }
+        }
+      }
+
+      if (!canAdvance) return true;
+
+      // Mark paid if fully paid
+      if (paid >= (order.totalAmount || 0)) {
+        await this.prisma.saleOrder.update({ where: { id: orderId }, data: { status: 'PAID' as any } });
+      }
+      // Move to fulfillment and create record if missing
+      await this.prisma.saleOrder.update({ where: { id: orderId }, data: { phase: 'FULFILLMENT' as any } });
+      const existing = await this.prisma.fulfillment.findUnique({ where: { saleOrderId: orderId } });
+      if (!existing) {
+        await this.prisma.fulfillment.create({ data: { saleOrderId: orderId, type: 'PICKUP' as any, status: 'PENDING' as any } });
+      }
+
+      // Notify store manager and biller
+      const so = await this.prisma.saleOrder.findUnique({ where: { id: orderId } });
+      if (so) {
+        const store = await this.prisma.store.findUnique({ where: { id: so.storeId } });
+        if (store) {
+          await this.notifications.createNotification(
+            store.managerId,
+            'FULFILLMENT_REQUESTED',
+            `Order ${orderId} ready for fulfillment at store ${store.name}.`,
+          );
+        }
+        await this.notifications.createNotification(
+          so.billerId,
+          'ORDER_ADVANCED_TO_FULFILLMENT',
+          `Order ${orderId} advanced to fulfillment phase.`,
+        );
+      }
+      return true;
+    } catch (e) {
+      this.logger.error(`Failed to handle payment confirmed for order ${event.payload?.saleOrderId}: ${e}`);
+      return false;
+    }
+  }
+}
+

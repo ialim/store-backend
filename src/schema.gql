@@ -1606,6 +1606,12 @@ type PaymentMethodBreakdownEntry {
   resellerCount: Int!
 }
 
+type SupplierPaymentMethodBreakdownEntry {
+  method: String!
+  totalPaid: Float!
+  count: Int!
+}
+
 type StockCountAggregate {
   id: Int!
   storeId: Int!
@@ -2110,6 +2116,11 @@ type Query {
   dailyPaymentsSeries(month: String, storeId: String, billerId: String): [PaymentDaySeries!]!
   billerPaymentsSummaryByStore(storeId: String!, month: String): [BillerPaymentsSummary!]!
   paymentMethodBreakdown(month: String, storeId: String, billerId: String): [PaymentMethodBreakdownEntry!]!
+  supplierPaymentMethodBreakdown(month: String, supplierId: String): [SupplierPaymentMethodBreakdownEntry!]!
+  storePaymentsSummaryRange(storeId: String!, start: DateTime!, end: DateTime!): StorePaymentsSummary!
+  billerPaymentsSummaryRange(billerId: String!, start: DateTime!, end: DateTime!, storeId: String): BillerPaymentsSummary!
+  paymentMethodBreakdownRange(start: DateTime!, end: DateTime!, storeId: String, billerId: String): [PaymentMethodBreakdownEntry!]!
+  dailyPaymentsSeriesRange(start: DateTime!, end: DateTime!, storeId: String, billerId: String): [PaymentDaySeries!]!
   stock(input: QueryStockInput): [Stock!]!
   stockMovements(storeId: String!): [StockMovement!]!
   topSellingVariants(month: String, limit: Float): [VariantMonthlySales!]!

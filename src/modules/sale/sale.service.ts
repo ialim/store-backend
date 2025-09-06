@@ -485,9 +485,8 @@ export class SalesService {
   }
 
   async confirmConsumerPayment(input: ConfirmConsumerPaymentInput) {
-    const payment = await this.payments.confirmConsumerPayment(input);
-    await this.maybeAdvanceOrderToFulfillment(payment.saleOrderId);
-    return payment;
+    // Payment confirmation publishes event; order advancement handled by PaymentsOutboxHandler
+    return this.payments.confirmConsumerPayment(input);
   }
 
   async createConsumerReceipt(data: CreateConsumerReceiptInput) {
@@ -622,9 +621,8 @@ export class SalesService {
   }
 
   async confirmResellerPayment(paymentId: string) {
-    const payment = await this.payments.confirmResellerPayment(paymentId);
-    await this.maybeAdvanceOrderToFulfillment(payment.saleOrderId);
-    return payment;
+    // Payment confirmation publishes event; order advancement handled by PaymentsOutboxHandler
+    return this.payments.confirmResellerPayment(paymentId);
   }
 
   // Utility: evaluate payments/credit and advance to fulfillment if eligible

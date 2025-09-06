@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { NotificationOutboxHandler } from '../handlers/notification-outbox.handler';
 import { PurchaseOutboxHandler } from '../handlers/purchase-outbox.handler';
+import { PaymentsOutboxHandler } from '../handlers/payments-outbox.handler';
 
 @Injectable()
 export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
@@ -19,6 +20,7 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
     private prisma: PrismaService,
     private notificationHandler: NotificationOutboxHandler,
     private purchaseHandler: PurchaseOutboxHandler,
+    private paymentsHandler: PaymentsOutboxHandler,
   ) {}
 
   onModuleInit() {
@@ -72,6 +74,8 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
         handled = (await this.notificationHandler.tryHandle(evt)) || handled;
         // Purchase handler: log & future analytics
         handled = (await this.purchaseHandler.tryHandle(evt)) || handled;
+        // Payments handler: advance orders on payment confirmed
+        handled = (await this.paymentsHandler.tryHandle(evt)) || handled;
 
         if (!handled) {
           // Nothing to do for this event; mark as published to avoid reprocessing
