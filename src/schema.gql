@@ -2158,6 +2158,9 @@ type Query {
   salesReturnsByConsumerSale(consumerSaleId: String!): [SalesReturn!]!
   salesReturnsByResellerSale(resellerSaleId: String!): [SalesReturn!]!
   purchaseReturnsBySupplier(supplierId: String!): [PurchaseReturn!]!
+  mySupportMessages: [SupportMessage!]!
+  supportConversation(userId: String!): [SupportMessage!]!
+  recentSupportThreads(limit: Float): [SupportMessage!]!
   findFirstStore(where: StoreWhereInput, orderBy: [StoreOrderByWithRelationInput!], cursor: StoreWhereUniqueInput, take: Int, skip: Int, distinct: [StoreScalarFieldEnum!]): Store!
   findUniqueStore(where: StoreWhereUniqueInput!): Store!
   listStores(where: StoreWhereInput, orderBy: [StoreOrderByWithRelationInput!], cursor: StoreWhereUniqueInput, take: Int, skip: Int, distinct: [StoreScalarFieldEnum!]): [Store!]!
@@ -5364,6 +5367,8 @@ type Mutation {
   createSalesReturnForOrder(input: CreateOrderReturnInput!): String!
   createPurchaseReturn(input: CreatePurchaseReturnInput!): String!
   fulfillPurchaseReturn(input: FulfillPurchaseReturnInput!): Boolean!
+  sendSupportMessage(input: SendSupportMessageInput!): SupportMessage!
+  adminSendSupportMessage(input: AdminSendSupportMessageInput!): SupportMessage!
   createStore(data: StoreCreateInput!): Store
   createManyStore(data: [StoreCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
   updateStore(data: StoreUpdateInput!, where: StoreWhereUniqueInput!): Store
@@ -23649,6 +23654,15 @@ input CreatePurchaseReturnItemInput {
 
 input FulfillPurchaseReturnInput {
   id: String!
+}
+
+input SendSupportMessageInput {
+  message: String!
+}
+
+input AdminSendSupportMessageInput {
+  userId: String!
+  message: String!
 }
 
 input StoreCreateInput {
