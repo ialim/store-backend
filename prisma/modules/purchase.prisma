@@ -16,6 +16,10 @@ model Supplier {
   returns         PurchaseReturn[]
   catalogs        SupplierCatalog[]
   quotes          SupplierQuote[]
+
+  // Optional link to a User account representing the supplier (for notifications)
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id])
 }
 
 model PurchaseOrder {

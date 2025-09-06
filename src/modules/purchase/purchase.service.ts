@@ -239,6 +239,20 @@ export class PurchaseService {
         `RFQ issued for requisition ${req.id} to ${supplierIds.length} suppliers.`,
       );
     }
+    // Notify supplier users if mapped
+    const suppliers = await this.prisma.supplier.findMany({
+      where: { id: { in: supplierIds } },
+      select: { id: true, userId: true, name: true },
+    });
+    for (const s of suppliers) {
+      if (s.userId) {
+        await this.notificationService.createNotification(
+          s.userId,
+          'RFQ_INVITATION',
+          `You have been invited to quote for requisition ${req.id}.`,
+        );
+      }
+    }
     return true;
   }
 
@@ -331,6 +345,18 @@ export class PurchaseService {
       },
       { aggregateType: 'PurchaseOrder', aggregateId: po.id },
     );
+    // Notify supplier user if mapped
+    const sup = await this.prisma.supplier.findUnique({
+      where: { id: po.supplierId },
+      select: { userId: true, name: true },
+    });
+    if (sup?.userId) {
+      await this.notificationService.createNotification(
+        sup.userId,
+        'PURCHASE_ORDER_CREATED',
+        `PO ${po.invoiceNumber} created for your account.`,
+      );
+    }
     return po;
   }
 
@@ -574,6 +600,15 @@ export class PurchaseService {
           `PO ${po.invoiceNumber} created for supplier ${supplier.name}.`,
         );
       }
+      // Notify supplier user if mapped
+      const supUser = await this.prisma.supplier.findUnique({ where: { id: supplierId }, select: { userId: true } });
+      if (supUser?.userId) {
+        await this.notificationService.createNotification(
+          supUser.userId,
+          'PURCHASE_ORDER_CREATED',
+          `PO ${po.invoiceNumber} created for your account.`,
+        );
+      }
     }
 
     // Move requisition along
@@ -592,10 +627,21 @@ export class PurchaseService {
 
   // Update PO phase manually (admin control)
   async updatePurchaseOrderPhase(input: UpdatePurchaseOrderPhaseInput) {
-    const po = await this.prisma.purchaseOrder.update({
-      where: { id: input.id },
-      data: { phase: input.phase as any },
-    });
+    const poCur = await this.prisma.purchaseOrder.findUnique({ where: { id: input.id } });
+    if (!poCur) throw new NotFoundException('Purchase order not found');
+    const cur = (poCur as any).phase as string;
+    const next = input.phase as string;
+    const allowed: Record<string, string[]> = {
+      ORDERED: ['RECEIVING', 'INVOICING'],
+      RECEIVING: ['INVOICING', 'COMPLETED'],
+      INVOICING: ['COMPLETED'],
+    };
+    if (cur in allowed) {
+      if (!allowed[cur].includes(next)) {
+        throw new BadRequestException(`Invalid phase transition ${cur} -> ${next}`);
+      }
+    }
+    const po = await this.prisma.purchaseOrder.update({ where: { id: input.id }, data: { phase: next as any } });
     await this.domainEvents.publish(
       'PURCHASE_ORDER_PHASE_UPDATED',
       { purchaseOrderId: po.id, phase: input.phase },

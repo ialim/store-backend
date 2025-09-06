@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { NotificationOutboxHandler } from '../handlers/notification-outbox.handler';
+import { PurchaseOutboxHandler } from '../handlers/purchase-outbox.handler';
 
 @Injectable()
 export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
@@ -17,6 +18,7 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private prisma: PrismaService,
     private notificationHandler: NotificationOutboxHandler,
+    private purchaseHandler: PurchaseOutboxHandler,
   ) {}
 
   onModuleInit() {
@@ -68,6 +70,8 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
         let handled = false;
         // Notification handler: create Notification records for payload.notifications
         handled = (await this.notificationHandler.tryHandle(evt)) || handled;
+        // Purchase handler: log & future analytics
+        handled = (await this.purchaseHandler.tryHandle(evt)) || handled;
 
         if (!handled) {
           // Nothing to do for this event; mark as published to avoid reprocessing
