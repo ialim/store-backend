@@ -9,6 +9,7 @@ import { OutboxStatusCounts } from './types/outbox-status-counts.type';
 import { OutboxTypeCount } from './types/outbox-type-count.type';
 import { OutboxDayStatus } from './types/outbox-day-status.type';
 import { GraphQLISODateTime } from '@nestjs/graphql';
+import { OutboxEvent } from '../../shared/prismagraphql/outbox-event/outbox-event.model';
 
 @Resolver()
 export class EventsResolver {
@@ -93,6 +94,18 @@ export class EventsResolver {
     return Array.from(map.entries())
       .sort((a, b) => (a[0] < b[0] ? -1 : 1))
       .map(([date, v]) => ({ date, ...v }));
+  }
+
+  @Query(() => [OutboxEvent])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  lastFailedOutboxEvents(
+    @Args('limit', { type: () => Number, nullable: true }) limit?: number,
+    @Args('type', { nullable: true }) type?: string,
+  ) {
+    const where: any = { status: 'FAILED' as any };
+    if (type) where.type = type;
+    return this.prisma.outboxEvent.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit ?? 20 });
   }
 
   @Mutation(() => Number)

@@ -1,5 +1,6 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { GraphQLModule } from '@nestjs/graphql';
 import { join } from 'path';
 import { PrismaModule } from './common/prisma/prisma.module';
@@ -22,6 +23,7 @@ import { SupportModule } from './modules/support/support.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),

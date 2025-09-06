@@ -1165,6 +1165,26 @@ type OutboxDayStatus {
   published: Int!
 }
 
+type OutboxEvent {
+  id: ID!
+  type: String!
+  aggregateType: String
+  aggregateId: String
+  payload: JSON!
+  status: OutboxStatus!
+  retryCount: Int!
+  deliverAfter: DateTime
+  lastError: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum OutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
 type ProductCountAggregate {
   id: Int!
   name: Int!
@@ -2101,6 +2121,7 @@ type Query {
   outboxStatus: OutboxStatusCounts!
   outboxStatusByType(types: [String!]): [OutboxTypeCount!]!
   outboxStatusSeries(start: DateTime!, end: DateTime!, type: String): [OutboxDayStatus!]!
+  lastFailedOutboxEvents(limit: Float, type: String): [OutboxEvent!]!
   suppliers: [Supplier!]!
   supplier(id: String!): Supplier!
   purchaseOrders: [PurchaseOrder!]!

@@ -24,7 +24,9 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    this.start();
+    if (process.env.OUTBOX_POLLING === 'true') {
+      this.start();
+    }
   }
 
   onModuleDestroy() {
