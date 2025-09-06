@@ -83,6 +83,18 @@ export class PurchaseResolver {
     return this.purchaseService.supplierPayments();
   }
 
+  @Query(() => [PurchaseOrder])
+  @UseGuards(GqlAuthGuard)
+  purchaseOrdersByStatus(@Args('status') status: string) {
+    return this.purchaseService.purchaseOrdersByStatus(status);
+  }
+
+  @Query(() => [PurchaseOrder])
+  @UseGuards(GqlAuthGuard)
+  purchaseOrdersByPhase(@Args('phase') phase: string) {
+    return this.purchaseService.purchaseOrdersByPhase(phase);
+  }
+
   @Mutation(() => SupplierPayment)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')

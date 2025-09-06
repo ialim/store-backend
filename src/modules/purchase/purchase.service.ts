@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { UpdateSupplierInput } from './dto/update-supplier.input';
@@ -7,9 +11,15 @@ import { UpdatePurchaseOrderStatusInput } from './dto/update-purchase-order-stat
 import { CreateSupplierPaymentInput } from './dto/create-supplier-payment.input';
 import { CreateSupplierInput } from './dto/create-supplier.input';
 import { CreatePOsFromSelectionInput } from './dto/create-pos-from-selection.input';
-import { MarkPurchaseOrderReceivedInput, UpdatePurchaseOrderPhaseInput } from './dto/update-po-phase.input';
+import {
+  MarkPurchaseOrderReceivedInput,
+  UpdatePurchaseOrderPhaseInput,
+} from './dto/update-po-phase.input';
 import { CreatePurchaseRequisitionInput } from './dto/create-purchase-requisition.input';
-import { IdInput, RejectRequisitionInput } from './dto/submit-purchase-requisition.input';
+import {
+  IdInput,
+  RejectRequisitionInput,
+} from './dto/submit-purchase-requisition.input';
 import { IssueRfqInput } from './dto/issue-rfq.input';
 import { SubmitSupplierQuoteInput } from './dto/submit-supplier-quote.input';
 import { DomainEventsService } from '../events/services/domain-events.service';
@@ -21,6 +31,18 @@ export class PurchaseService {
     private notificationService: NotificationService,
     private domainEvents: DomainEventsService,
   ) {}
+
+  private async notifyAdminsManagersAccountants(type: string, message: string) {
+    const recipients = await this.prisma.user.findMany({
+      where: { role: { name: { in: ['ADMIN', 'MANAGER', 'ACCOUNTANT'] } } },
+      select: { id: true },
+    });
+    await Promise.all(
+      recipients.map((u) =>
+        this.notificationService.createNotification(u.id, type, message),
+      ),
+    );
+  }
 
   // Suppliers
   async suppliers() {
@@ -35,8 +57,7 @@ export class PurchaseService {
 
   async createSupplier(data: CreateSupplierInput) {
     const sup = await this.prisma.supplier.create({ data });
-    await this.notificationService.createNotification(
-      sup.id,
+    await this.notifyAdminsManagersAccountants(
       'SUPPLIER_CREATED',
       `Supplier ${sup.name} created`,
     );
@@ -48,8 +69,7 @@ export class PurchaseService {
       where: { id: data.id },
       data,
     });
-    await this.notificationService.createNotification(
-      sup.id,
+    await this.notifyAdminsManagersAccountants(
       'SUPPLIER_UPDATED',
       `Supplier ${sup.name} updated`,
     );
@@ -61,9 +81,26 @@ export class PurchaseService {
     return this.prisma.purchaseOrder.findMany({ include: { items: true } });
   }
 
+  async purchaseOrdersByStatus(status: string) {
+    return this.prisma.purchaseOrder.findMany({
+      where: { status: status as any },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async purchaseOrdersByPhase(phase: string) {
+    return this.prisma.purchaseOrder.findMany({
+      where: { phase: phase as any },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   // Requisition + RFQ
   async createPurchaseRequisition(input: CreatePurchaseRequisitionInput) {
-    if (!input.items?.length) throw new BadRequestException('Requisition requires items');
+    if (!input.items?.length)
+      throw new BadRequestException('Requisition requires items');
     const req = await this.prisma.purchaseRequisition.create({
       data: {
         storeId: input.storeId,
@@ -80,9 +117,19 @@ export class PurchaseService {
       include: { items: true },
     });
     // Domain event + notify store manager
-    await this.domainEvents.publish('PURCHASE_REQUISITION_CREATED', { requisitionId: req.id, storeId: req.storeId, requestedById: req.requestedById }, { aggregateType: 'PurchaseRequisition', aggregateId: req.id });
+    await this.domainEvents.publish(
+      'PURCHASE_REQUISITION_CREATED',
+      {
+        requisitionId: req.id,
+        storeId: req.storeId,
+        requestedById: req.requestedById,
+      },
+      { aggregateType: 'PurchaseRequisition', aggregateId: req.id },
+    );
     // Notify store manager
-    const store = await this.prisma.store.findUnique({ where: { id: req.storeId } });
+    const store = await this.prisma.store.findUnique({
+      where: { id: req.storeId },
+    });
     if (store) {
       await this.notificationService.createNotification(
         store.managerId,
@@ -98,8 +145,14 @@ export class PurchaseService {
       where: { id },
       data: { status: 'SENT' },
     });
-    await this.domainEvents.publish('PURCHASE_REQUISITION_SUBMITTED', { requisitionId: req.id, storeId: req.storeId }, { aggregateType: 'PurchaseRequisition', aggregateId: req.id });
-    const store = await this.prisma.store.findUnique({ where: { id: req.storeId } });
+    await this.domainEvents.publish(
+      'PURCHASE_REQUISITION_SUBMITTED',
+      { requisitionId: req.id, storeId: req.storeId },
+      { aggregateType: 'PurchaseRequisition', aggregateId: req.id },
+    );
+    const store = await this.prisma.store.findUnique({
+      where: { id: req.storeId },
+    });
     if (store) {
       await this.notificationService.createNotification(
         store.managerId,
@@ -111,14 +164,28 @@ export class PurchaseService {
   }
 
   async approvePurchaseRequisition({ id }: IdInput) {
-    const req = await this.prisma.purchaseRequisition.update({ where: { id }, data: { status: 'APPROVED' } });
-    await this.domainEvents.publish('PURCHASE_REQUISITION_APPROVED', { requisitionId: req.id, storeId: req.storeId }, { aggregateType: 'PurchaseRequisition', aggregateId: req.id });
+    const req = await this.prisma.purchaseRequisition.update({
+      where: { id },
+      data: { status: 'APPROVED' },
+    });
+    await this.domainEvents.publish(
+      'PURCHASE_REQUISITION_APPROVED',
+      { requisitionId: req.id, storeId: req.storeId },
+      { aggregateType: 'PurchaseRequisition', aggregateId: req.id },
+    );
     return true;
   }
 
   async rejectPurchaseRequisition(input: RejectRequisitionInput) {
-    const req = await this.prisma.purchaseRequisition.update({ where: { id: input.id }, data: { status: 'REJECTED' } });
-    await this.domainEvents.publish('PURCHASE_REQUISITION_REJECTED', { requisitionId: req.id, reason: input.reason }, { aggregateType: 'PurchaseRequisition', aggregateId: req.id });
+    const req = await this.prisma.purchaseRequisition.update({
+      where: { id: input.id },
+      data: { status: 'REJECTED' },
+    });
+    await this.domainEvents.publish(
+      'PURCHASE_REQUISITION_REJECTED',
+      { requisitionId: req.id, reason: input.reason },
+      { aggregateType: 'PurchaseRequisition', aggregateId: req.id },
+    );
     return true;
   }
 
@@ -132,17 +199,22 @@ export class PurchaseService {
     let supplierIds = input.supplierIds;
     if (!supplierIds || supplierIds.length === 0) {
       const catalogSuppliers = await this.prisma.supplierCatalog.findMany({
-        where: { productVariantId: { in: req.items.map((i) => i.productVariantId) } },
+        where: {
+          productVariantId: { in: req.items.map((i) => i.productVariantId) },
+        },
         select: { supplierId: true },
         distinct: ['supplierId'],
       });
       supplierIds = catalogSuppliers.map((c) => c.supplierId);
     }
-    if (!supplierIds.length) throw new BadRequestException('No candidate suppliers for RFQ');
+    if (!supplierIds.length)
+      throw new BadRequestException('No candidate suppliers for RFQ');
     // Create SupplierQuote placeholders (one per supplier)
     for (const supplierId of supplierIds) {
       await this.prisma.supplierQuote.upsert({
-        where: { requisitionId_supplierId: { requisitionId: req.id, supplierId } },
+        where: {
+          requisitionId_supplierId: { requisitionId: req.id, supplierId },
+        },
         update: {},
         create: {
           requisitionId: req.id,
@@ -151,9 +223,15 @@ export class PurchaseService {
         },
       });
     }
-    await this.domainEvents.publish('RFQ_ISSUED', { requisitionId: req.id, supplierIds }, { aggregateType: 'PurchaseRequisition', aggregateId: req.id });
+    await this.domainEvents.publish(
+      'RFQ_ISSUED',
+      { requisitionId: req.id, supplierIds },
+      { aggregateType: 'PurchaseRequisition', aggregateId: req.id },
+    );
     // Notify store manager
-    const store = await this.prisma.store.findUnique({ where: { id: req.storeId } });
+    const store = await this.prisma.store.findUnique({
+      where: { id: req.storeId },
+    });
     if (store) {
       await this.notificationService.createNotification(
         store.managerId,
@@ -187,7 +265,9 @@ export class PurchaseService {
       },
     });
     // Replace items
-    await this.prisma.supplierQuoteItem.deleteMany({ where: { quoteId: quote.id } });
+    await this.prisma.supplierQuoteItem.deleteMany({
+      where: { quoteId: quote.id },
+    });
     if (input.items?.length) {
       await this.prisma.supplierQuoteItem.createMany({
         data: input.items.map((i) => ({
@@ -199,7 +279,15 @@ export class PurchaseService {
         })),
       });
     }
-    await this.domainEvents.publish('SUPPLIER_QUOTE_SUBMITTED', { quoteId: quote.id, supplierId: input.supplierId, requisitionId: input.requisitionId }, { aggregateType: 'SupplierQuote', aggregateId: quote.id });
+    await this.domainEvents.publish(
+      'SUPPLIER_QUOTE_SUBMITTED',
+      {
+        quoteId: quote.id,
+        supplierId: input.supplierId,
+        requisitionId: input.requisitionId,
+      },
+      { aggregateType: 'SupplierQuote', aggregateId: quote.id },
+    );
     return quote.id;
   }
 
@@ -230,12 +318,19 @@ export class PurchaseService {
       },
       include: { items: true },
     });
-    await this.notificationService.createNotification(
-      po.id,
+    await this.notifyAdminsManagersAccountants(
       'PURCHASE_ORDER_CREATED',
       `Purchase Order ${po.invoiceNumber} created`,
     );
-    await this.domainEvents.publish('PURCHASE_ORDER_CREATED', { purchaseOrderId: po.id, supplierId: po.supplierId, totalAmount: po.totalAmount }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
+    await this.domainEvents.publish(
+      'PURCHASE_ORDER_CREATED',
+      {
+        purchaseOrderId: po.id,
+        supplierId: po.supplierId,
+        totalAmount: po.totalAmount,
+      },
+      { aggregateType: 'PurchaseOrder', aggregateId: po.id },
+    );
     return po;
   }
 
@@ -244,9 +339,12 @@ export class PurchaseService {
       where: { id: data.id },
       data: { status: data.status },
     });
-    await this.domainEvents.publish('PURCHASE_ORDER_STATUS_UPDATED', { purchaseOrderId: po.id, status: data.status }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
-    await this.notificationService.createNotification(
-      po.id,
+    await this.domainEvents.publish(
+      'PURCHASE_ORDER_STATUS_UPDATED',
+      { purchaseOrderId: po.id, status: data.status },
+      { aggregateType: 'PurchaseOrder', aggregateId: po.id },
+    );
+    await this.notifyAdminsManagersAccountants(
       'PURCHASE_ORDER_UPDATED',
       `Purchase Order ${po.invoiceNumber} status updated to ${data.status}`,
     );
@@ -267,7 +365,9 @@ export class PurchaseService {
     });
     // If applied to a PO, update its payment status
     if (payment.purchaseOrderId) {
-      const po = await this.prisma.purchaseOrder.findUnique({ where: { id: payment.purchaseOrderId } });
+      const po = await this.prisma.purchaseOrder.findUnique({
+        where: { id: payment.purchaseOrderId },
+      });
       if (po) {
         const paidAgg = await this.prisma.supplierPayment.aggregate({
           _sum: { amount: true },
@@ -275,13 +375,22 @@ export class PurchaseService {
         });
         const paid = paidAgg._sum.amount || 0;
         const newStatus = paid >= po.totalAmount ? 'PAID' : 'PARTIALLY_PAID';
-        await this.prisma.purchaseOrder.update({ where: { id: po.id }, data: { status: newStatus as any, phase: (newStatus === 'PAID' ? 'INVOICING' : po.phase) as any } });
-        await this.domainEvents.publish('PURCHASE_ORDER_STATUS_UPDATED', { purchaseOrderId: po.id, status: newStatus }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
+        await this.prisma.purchaseOrder.update({
+          where: { id: po.id },
+          data: {
+            status: newStatus as any,
+            phase: (newStatus === 'PAID' ? 'INVOICING' : po.phase) as any,
+          },
+        });
+        await this.domainEvents.publish(
+          'PURCHASE_ORDER_STATUS_UPDATED',
+          { purchaseOrderId: po.id, status: newStatus },
+          { aggregateType: 'PurchaseOrder', aggregateId: po.id },
+        );
         await this.maybeFinalizePurchaseOrder(po.id);
       }
     }
-    await this.notificationService.createNotification(
-      payment.supplierId,
+    await this.notifyAdminsManagersAccountants(
       'SUPPLIER_PAYMENT',
       `Payment of ${payment.amount} recorded for supplier`,
     );
@@ -295,21 +404,32 @@ export class PurchaseService {
       include: { items: true },
     });
     if (!req) throw new NotFoundException('Requisition not found');
-    if (!input.items?.length) throw new BadRequestException('No selections provided');
+    if (!input.items?.length)
+      throw new BadRequestException('No selections provided');
 
     const reqItemMap = new Map(req.items.map((i) => [i.productVariantId, i]));
     const defaultDueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
     // Validate split selections: if multiple selections exist for same variant,
     // explicit quantities are required and must sum to <= requestedQty
-    const byVariant: Record<string, { count: number; qtySum: number; requested: number; needsQty: boolean }>= {};
+    const byVariant: Record<
+      string,
+      { count: number; qtySum: number; requested: number; needsQty: boolean }
+    > = {};
     for (const sel of input.items) {
       const reqItem = reqItemMap.get(sel.productVariantId);
       if (!reqItem) {
-        throw new BadRequestException(`Variant ${sel.productVariantId} not in requisition`);
+        throw new BadRequestException(
+          `Variant ${sel.productVariantId} not in requisition`,
+        );
       }
       const key = sel.productVariantId;
-      byVariant[key] = byVariant[key] || { count: 0, qtySum: 0, requested: reqItem.requestedQty, needsQty: false };
+      byVariant[key] = byVariant[key] || {
+        count: 0,
+        qtySum: 0,
+        requested: reqItem.requestedQty,
+        needsQty: false,
+      };
       byVariant[key].count += 1;
       if (sel.quantity != null) byVariant[key].qtySum += sel.quantity;
     }
@@ -333,14 +453,21 @@ export class PurchaseService {
     }
 
     // Group selections by supplier
-    const bySupplier = new Map<string, Array<{
-      productVariantId: string; quantity: number; unitCost: number;
-    }>>();
+    const bySupplier = new Map<
+      string,
+      Array<{
+        productVariantId: string;
+        quantity: number;
+        unitCost: number;
+      }>
+    >();
 
     for (const sel of input.items) {
       const reqItem = reqItemMap.get(sel.productVariantId);
       if (!reqItem) {
-        throw new BadRequestException(`Variant ${sel.productVariantId} not in requisition`);
+        throw new BadRequestException(
+          `Variant ${sel.productVariantId} not in requisition`,
+        );
       }
       const quantity = sel.quantity ?? reqItem.requestedQty;
       if (quantity <= 0) throw new BadRequestException('Quantity must be > 0');
@@ -349,11 +476,19 @@ export class PurchaseService {
       if (unitCost == null) {
         // Try quote first
         const quote = await this.prisma.supplierQuote.findUnique({
-          where: { requisitionId_supplierId: { requisitionId: req.id, supplierId: sel.supplierId } },
+          where: {
+            requisitionId_supplierId: {
+              requisitionId: req.id,
+              supplierId: sel.supplierId,
+            },
+          },
         });
         if (quote) {
           const qi = await this.prisma.supplierQuoteItem.findFirst({
-            where: { quoteId: quote.id, productVariantId: sel.productVariantId },
+            where: {
+              quoteId: quote.id,
+              productVariantId: sel.productVariantId,
+            },
           });
           if (qi?.unitCost != null) unitCost = qi.unitCost;
         }
@@ -361,11 +496,19 @@ export class PurchaseService {
       if (unitCost == null) {
         // Fallback to supplier catalog
         const cat = await this.prisma.supplierCatalog.findUnique({
-          where: { supplierId_productVariantId: { supplierId: sel.supplierId, productVariantId: sel.productVariantId } },
+          where: {
+            supplierId_productVariantId: {
+              supplierId: sel.supplierId,
+              productVariantId: sel.productVariantId,
+            },
+          },
         });
         if (cat?.defaultCost != null) unitCost = cat.defaultCost;
       }
-      if (unitCost == null) throw new BadRequestException(`Missing unitCost for variant ${sel.productVariantId} from supplier ${sel.supplierId}`);
+      if (unitCost == null)
+        throw new BadRequestException(
+          `Missing unitCost for variant ${sel.productVariantId} from supplier ${sel.supplierId}`,
+        );
 
       const arr = bySupplier.get(sel.supplierId) ?? [];
       arr.push({ productVariantId: sel.productVariantId, quantity, unitCost });
@@ -375,7 +518,9 @@ export class PurchaseService {
     const createdPOs: string[] = [];
     for (const [supplierId, lines] of bySupplier.entries()) {
       const total = lines.reduce((s, l) => s + l.quantity * l.unitCost, 0);
-      const supplier = await this.prisma.supplier.findUnique({ where: { id: supplierId } });
+      const supplier = await this.prisma.supplier.findUnique({
+        where: { id: supplierId },
+      });
       if (!supplier) throw new NotFoundException('Supplier not found');
       const projected = supplier.currentBalance + total;
       if (projected > supplier.creditLimit) {
@@ -403,7 +548,11 @@ export class PurchaseService {
         include: { items: true },
       });
       createdPOs.push(po.id);
-      await this.domainEvents.publish('PURCHASE_ORDER_CREATED', { purchaseOrderId: po.id, supplierId, totalAmount: total }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
+      await this.domainEvents.publish(
+        'PURCHASE_ORDER_CREATED',
+        { purchaseOrderId: po.id, supplierId, totalAmount: total },
+        { aggregateType: 'PurchaseOrder', aggregateId: po.id },
+      );
       // Update supplier balance
       await this.prisma.supplier.update({
         where: { id: supplierId },
@@ -415,7 +564,9 @@ export class PurchaseService {
         data: { status: 'SELECTED' },
       });
       // Notify store manager
-      const store = await this.prisma.store.findUnique({ where: { id: req.storeId } });
+      const store = await this.prisma.store.findUnique({
+        where: { id: req.storeId },
+      });
       if (store) {
         await this.notificationService.createNotification(
           store.managerId,
@@ -430,7 +581,11 @@ export class PurchaseService {
       where: { id: req.id },
       data: { status: 'APPROVED' },
     });
-    await this.domainEvents.publish('PURCHASE_REQUISITION_APPROVED', { requisitionId: req.id }, { aggregateType: 'PurchaseRequisition', aggregateId: req.id });
+    await this.domainEvents.publish(
+      'PURCHASE_REQUISITION_APPROVED',
+      { requisitionId: req.id },
+      { aggregateType: 'PurchaseRequisition', aggregateId: req.id },
+    );
 
     return createdPOs;
   }
@@ -441,14 +596,25 @@ export class PurchaseService {
       where: { id: input.id },
       data: { phase: input.phase as any },
     });
-    await this.domainEvents.publish('PURCHASE_ORDER_PHASE_UPDATED', { purchaseOrderId: po.id, phase: input.phase }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
+    await this.domainEvents.publish(
+      'PURCHASE_ORDER_PHASE_UPDATED',
+      { purchaseOrderId: po.id, phase: input.phase },
+      { aggregateType: 'PurchaseOrder', aggregateId: po.id },
+    );
     return po;
   }
 
   // Mark PO as received (business action)
   async markPurchaseOrderReceived({ id }: MarkPurchaseOrderReceivedInput) {
-    const po = await this.prisma.purchaseOrder.update({ where: { id }, data: { status: 'RECEIVED' as any, phase: 'RECEIVING' as any } });
-    await this.domainEvents.publish('PURCHASE_ORDER_RECEIVED', { purchaseOrderId: po.id }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
+    const po = await this.prisma.purchaseOrder.update({
+      where: { id },
+      data: { status: 'RECEIVED' as any, phase: 'RECEIVING' as any },
+    });
+    await this.domainEvents.publish(
+      'PURCHASE_ORDER_RECEIVED',
+      { purchaseOrderId: po.id },
+      { aggregateType: 'PurchaseOrder', aggregateId: po.id },
+    );
     await this.notificationService.createNotification(
       po.supplierId,
       'PURCHASE_ORDER_RECEIVED',
@@ -460,18 +626,29 @@ export class PurchaseService {
 
   // Finalize PO when paid and received
   private async maybeFinalizePurchaseOrder(poId: string) {
-    const po = await this.prisma.purchaseOrder.findUnique({ where: { id: poId } });
+    const po = await this.prisma.purchaseOrder.findUnique({
+      where: { id: poId },
+    });
     if (!po) return;
-    const paidAgg = await this.prisma.supplierPayment.aggregate({ _sum: { amount: true }, where: { purchaseOrderId: po.id } });
+    const paidAgg = await this.prisma.supplierPayment.aggregate({
+      _sum: { amount: true },
+      where: { purchaseOrderId: po.id },
+    });
     const paid = paidAgg._sum.amount || 0;
     const isPaid = paid >= po.totalAmount;
     const isReceived = po.status === ('RECEIVED' as any);
     if (isPaid && isReceived) {
-      await this.prisma.purchaseOrder.update({ where: { id: po.id }, data: { phase: 'COMPLETED' as any } });
-      await this.domainEvents.publish('PURCHASE_COMPLETED', { purchaseOrderId: po.id }, { aggregateType: 'PurchaseOrder', aggregateId: po.id });
+      await this.prisma.purchaseOrder.update({
+        where: { id: po.id },
+        data: { phase: 'COMPLETED' as any },
+      });
+      await this.domainEvents.publish(
+        'PURCHASE_COMPLETED',
+        { purchaseOrderId: po.id },
+        { aggregateType: 'PurchaseOrder', aggregateId: po.id },
+      );
       await this.notificationService.createNotification(
         po.supplierId,
-    await this.domainEvents.publish('SUPPLIER_PAYMENT_RECORDED', { paymentId: payment.id, supplierId: payment.supplierId, purchaseOrderId: payment.purchaseOrderId, amount: payment.amount }, { aggregateType: 'SupplierPayment', aggregateId: payment.id });
         'PURCHASE_COMPLETED',
         `PO ${po.invoiceNumber} completed.`,
       );
