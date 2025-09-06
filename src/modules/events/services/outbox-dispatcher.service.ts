@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { NotificationOutboxHandler } from '../handlers/notification-outbox.handler';
 import { PurchaseOutboxHandler } from '../handlers/purchase-outbox.handler';
+import { PaymentsOutboxHandler } from '../handlers/payments-outbox.handler';
 
 @Injectable()
 export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
@@ -19,10 +20,13 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
     private prisma: PrismaService,
     private notificationHandler: NotificationOutboxHandler,
     private purchaseHandler: PurchaseOutboxHandler,
+    private paymentsHandler: PaymentsOutboxHandler,
   ) {}
 
   onModuleInit() {
-    this.start();
+    if (process.env.OUTBOX_POLLING === 'true') {
+      this.start();
+    }
   }
 
   onModuleDestroy() {
@@ -54,38 +58,51 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async tick() {
-    const now = new Date();
-    const events = await this.prisma.outboxEvent.findMany({
-      where: {
-        status: 'PENDING' as any,
-        OR: [{ deliverAfter: null }, { deliverAfter: { lte: now } }],
-      },
-      orderBy: { createdAt: 'asc' },
-      take: this.batchSize,
-    });
-    if (!events.length) return;
+    await this.runOnce({ limit: this.batchSize });
+  }
 
+  // Public, on-demand processing (for admin/Linux cron, testing, or replays)
+  async runOnce(options?: {
+    limit?: number;
+    type?: string;
+    status?: 'PENDING' | 'FAILED';
+  }) {
+    const now = new Date();
+    const where: any = {
+      OR: [{ deliverAfter: null }, { deliverAfter: { lte: now } }],
+    };
+    if (options?.type) where.type = options.type;
+    if (options?.status) where.status = options.status as any;
+    else where.status = 'PENDING' as any;
+
+    const events = await this.prisma.outboxEvent.findMany({
+      where,
+      orderBy: { createdAt: 'asc' },
+      take: options?.limit ?? this.batchSize,
+    });
+    if (!events.length) return 0;
+
+    let processed = 0;
     for (const evt of events) {
       try {
         let handled = false;
-        // Notification handler: create Notification records for payload.notifications
         handled = (await this.notificationHandler.tryHandle(evt)) || handled;
-        // Purchase handler: log & future analytics
         handled = (await this.purchaseHandler.tryHandle(evt)) || handled;
+        handled = (await this.paymentsHandler.tryHandle(evt)) || handled;
 
         if (!handled) {
-          // Nothing to do for this event; mark as published to avoid reprocessing
           await this.prisma.outboxEvent.update({
             where: { id: evt.id },
             data: { status: 'PUBLISHED' as any },
           });
+          processed += 1;
           continue;
         }
-
         await this.prisma.outboxEvent.update({
           where: { id: evt.id },
           data: { status: 'PUBLISHED' as any, lastError: null },
         });
+        processed += 1;
       } catch (err: any) {
         this.logger.error(
           `Outbox event ${evt.id} failed: ${err?.message || err}`,
@@ -96,7 +113,6 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
             status: 'FAILED' as any,
             retryCount: { increment: 1 } as any,
             lastError: String(err?.message || err),
-            // backoff: 1m per retry up to 10m
             deliverAfter: new Date(
               Date.now() + Math.min((evt.retryCount + 1) * 60_000, 600_000),
             ),
@@ -104,5 +120,6 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
         });
       }
     }
+    return processed;
   }
 }

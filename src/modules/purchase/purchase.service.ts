@@ -9,6 +9,7 @@ import { UpdateSupplierInput } from './dto/update-supplier.input';
 import { CreatePurchaseOrderInput } from './dto/create-purchase-order.input';
 import { UpdatePurchaseOrderStatusInput } from './dto/update-purchase-order-status.input';
 import { CreateSupplierPaymentInput } from './dto/create-supplier-payment.input';
+import { PaymentService } from '../payment/payment.service';
 import { CreateSupplierInput } from './dto/create-supplier.input';
 import { CreatePOsFromSelectionInput } from './dto/create-pos-from-selection.input';
 import {
@@ -41,6 +42,7 @@ export class PurchaseService {
     private prisma: PrismaService,
     private notificationService: NotificationService,
     private domainEvents: DomainEventsService,
+    private payments: PaymentService,
   ) {}
 
   private async notifyAdminsManagersAccountants(type: string, message: string) {
@@ -1046,44 +1048,7 @@ export class PurchaseService {
   }
 
   async createSupplierPayment(data: CreateSupplierPaymentInput) {
-    const payment = await this.prisma.supplierPayment.create({ data });
-    // Reduce supplier current balance
-    await this.prisma.supplier.update({
-      where: { id: payment.supplierId },
-      data: { currentBalance: { decrement: payment.amount } as any },
-    });
-    // If applied to a PO, update its payment status
-    if (payment.purchaseOrderId) {
-      const po = await this.prisma.purchaseOrder.findUnique({
-        where: { id: payment.purchaseOrderId },
-      });
-      if (po) {
-        const paidAgg = await this.prisma.supplierPayment.aggregate({
-          _sum: { amount: true },
-          where: { purchaseOrderId: po.id },
-        });
-        const paid = paidAgg._sum.amount || 0;
-        const newStatus = paid >= po.totalAmount ? 'PAID' : 'PARTIALLY_PAID';
-        await this.prisma.purchaseOrder.update({
-          where: { id: po.id },
-          data: {
-            status: newStatus as any,
-            phase: (newStatus === 'PAID' ? 'INVOICING' : po.phase) as any,
-          },
-        });
-        await this.domainEvents.publish(
-          'PURCHASE_ORDER_STATUS_UPDATED',
-          { purchaseOrderId: po.id, status: newStatus },
-          { aggregateType: 'PurchaseOrder', aggregateId: po.id },
-        );
-        await this.maybeFinalizePurchaseOrder(po.id);
-      }
-    }
-    await this.notifyAdminsManagersAccountants(
-      'SUPPLIER_PAYMENT',
-      `Payment of ${payment.amount} recorded for supplier`,
-    );
-    return payment;
+    return this.payments.createSupplierPayment(data);
   }
 
   // Create PO(s) from selected supplier quotes per line with credit check

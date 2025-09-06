@@ -20,6 +20,7 @@ import { MovementDirection } from 'src/shared/prismagraphql/prisma/movement-dire
 import { MovementType } from 'src/shared/prismagraphql/prisma/movement-type.enum';
 import { CreateFulfillmentInput } from './dto/create-fulfillment.input';
 import { CreateResellerPaymentInput } from './dto/create-reseller-payment.input';
+import { PaymentService } from '../payment/payment.service';
 import { SaleChannel } from 'src/shared/prismagraphql/prisma/sale-channel.enum';
 import { QuotationStatus } from 'src/shared/prismagraphql/prisma/quotation-status.enum';
 import { CreateQuotationDraftInput } from './dto/create-quotation-draft.input';
@@ -28,6 +29,7 @@ import { ConfirmResellerQuotationInput } from './dto/confirm-reseller-quotation.
 import { BillerConvertQuotationInput } from './dto/biller-convert-quotation.input';
 import { FulfillConsumerSaleInput } from './dto/fulfill-consumer-sale.input';
 import { DomainEventsService } from '../events/services/domain-events.service';
+import { AnalyticsService } from '../analytics/analytics.service';
 
 @Injectable()
 export class SalesService {
@@ -35,6 +37,8 @@ export class SalesService {
     private prisma: PrismaService,
     private notificationService: NotificationService,
     private domainEvents: DomainEventsService,
+    private payments: PaymentService,
+    private analytics: AnalyticsService,
   ) {}
 
   // Quotation flows
@@ -477,40 +481,12 @@ export class SalesService {
   }
 
   async registerConsumerPayment(data: CreateConsumerPaymentInput) {
-    const payment = await this.prisma.consumerPayment.create({
-      data: {
-        saleOrderId: data.saleOrderId,
-        consumerSaleId: data.consumerSaleId,
-        amount: data.amount,
-        method: data.method,
-        status: PaymentStatus.PENDING,
-        reference: data.reference || undefined,
-      },
-    });
-    await this.notificationService.createNotification(
-      payment.saleOrderId,
-      'CONSUMER_PAYMENT_REGISTERED',
-      `Payment ${payment.id} registered.`,
-    );
-    return payment;
+    return this.payments.registerConsumerPayment(data);
   }
 
   async confirmConsumerPayment(input: ConfirmConsumerPaymentInput) {
-    const payment = await this.prisma.consumerPayment.update({
-      where: { id: input.paymentId },
-      data: { status: PaymentStatus.CONFIRMED },
-    });
-    await this.domainEvents.publish(
-      'PAYMENT_CONFIRMED',
-      {
-        paymentId: payment.id,
-        saleOrderId: payment.saleOrderId,
-        channel: 'CONSUMER',
-      },
-      { aggregateType: 'Payment', aggregateId: payment.id },
-    );
-    await this.maybeAdvanceOrderToFulfillment(payment.saleOrderId);
-    return payment;
+    // Payment confirmation publishes event; order advancement handled by PaymentsOutboxHandler
+    return this.payments.confirmConsumerPayment(input);
   }
 
   async createConsumerReceipt(data: CreateConsumerReceiptInput) {
@@ -571,6 +547,8 @@ export class SalesService {
       where: { id: sale.id },
       data: { status: SaleStatus.FULFILLED },
     });
+    // Analytics: record fulfilled sale for stats and preferences
+    await this.analytics.recordConsumerSaleFulfilled({ id: updated.id, customerId: updated.customerId, items: sale.items.map(i => ({ productVariantId: i.productVariantId, quantity: i.quantity })) });
     await this.prisma.saleOrder.update({
       where: { id: sale.saleOrderId },
       data: { status: SaleStatus.FULFILLED, phase: 'FULFILLMENT' },
@@ -639,42 +617,12 @@ export class SalesService {
   }
 
   async registerResellerPayment(data: CreateResellerPaymentInput) {
-    const payment = await this.prisma.resellerPayment.create({
-      data: {
-        saleOrderId: data.saleOrderId,
-        resellerId: data.resellerId,
-        resellerSaleId: data.resellerSaleId,
-        amount: data.amount,
-        method: data.method,
-        status: PaymentStatus.PENDING,
-        reference: data.reference || undefined,
-        receivedById: data.receivedById,
-      },
-    });
-    await this.notificationService.createNotification(
-      data.receivedById,
-      'RESELLER_PAYMENT_REGISTERED',
-      `Payment ${payment.id} registered.`,
-    );
-    return payment;
+    return this.payments.registerResellerPayment(data);
   }
 
   async confirmResellerPayment(paymentId: string) {
-    const payment = await this.prisma.resellerPayment.update({
-      where: { id: paymentId },
-      data: { status: PaymentStatus.CONFIRMED },
-    });
-    await this.domainEvents.publish(
-      'PAYMENT_CONFIRMED',
-      {
-        paymentId: payment.id,
-        saleOrderId: payment.saleOrderId,
-        channel: 'RESELLER',
-      },
-      { aggregateType: 'Payment', aggregateId: payment.id },
-    );
-    await this.maybeAdvanceOrderToFulfillment(payment.saleOrderId);
-    return payment;
+    // Payment confirmation publishes event; order advancement handled by PaymentsOutboxHandler
+    return this.payments.confirmResellerPayment(paymentId);
   }
 
   // Utility: evaluate payments/credit and advance to fulfillment if eligible

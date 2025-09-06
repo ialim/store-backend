@@ -1145,6 +1145,46 @@ type AuthResponse {
   user: User!
 }
 
+type OutboxStatusCounts {
+  pending: Int!
+  failed: Int!
+  published: Int!
+}
+
+type OutboxTypeCount {
+  type: String!
+  pending: Int!
+  failed: Int!
+  published: Int!
+}
+
+type OutboxDayStatus {
+  date: String!
+  pending: Int!
+  failed: Int!
+  published: Int!
+}
+
+type OutboxEvent {
+  id: ID!
+  type: String!
+  aggregateType: String
+  aggregateId: String
+  payload: JSON!
+  status: OutboxStatus!
+  retryCount: Int!
+  deliverAfter: DateTime
+  lastError: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum OutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
 type ProductCountAggregate {
   id: Int!
   name: Int!
@@ -1551,6 +1591,65 @@ type AdminProcurementDashboard {
   noSubmissionRequisitions: [RequisitionSummary!]!
   partialSubmissionRequisitions: [RequisitionSummary!]!
   creditBlockedSuppliers: [SupplierCreditStatus!]!
+}
+
+type PaymentOrderSummary {
+  saleOrderId: String!
+  orderTotal: Float!
+  consumerPaid: Float!
+  resellerPaid: Float!
+  totalPaid: Float!
+  outstanding: Float!
+  fullyPaid: Boolean!
+}
+
+type StorePaymentsSummary {
+  storeId: String!
+  month: String!
+  consumerPaid: Float!
+  resellerPaid: Float!
+  totalPaid: Float!
+}
+
+type SupplierPaymentsSummary {
+  supplierId: String!
+  month: String
+  totalPaid: Float!
+  count: Float!
+  lastPaymentDate: DateTime
+}
+
+type BillerPaymentsSummary {
+  billerId: String!
+  storeId: String
+  month: String
+  consumerPaid: Float!
+  resellerPaid: Float!
+  totalPaid: Float!
+  consumerCount: Int!
+  resellerCount: Int!
+}
+
+type PaymentDaySeries {
+  date: String!
+  consumerPaid: Float!
+  resellerPaid: Float!
+  totalPaid: Float!
+}
+
+type PaymentMethodBreakdownEntry {
+  method: PaymentMethod!
+  consumerPaid: Float!
+  resellerPaid: Float!
+  totalPaid: Float!
+  consumerCount: Int!
+  resellerCount: Int!
+}
+
+type SupplierPaymentMethodBreakdownEntry {
+  method: String!
+  totalPaid: Float!
+  count: Int!
 }
 
 type StockCountAggregate {
@@ -1971,6 +2070,33 @@ type FulfillmentMaxAggregate {
   updatedAt: DateTime
 }
 
+type VariantMonthlySales {
+  productVariantId: String!
+  quantity: Int!
+}
+
+type CustomerAffinityEntry {
+  productVariantId: String!
+  count: Int!
+}
+
+type MonthlySalesSummary {
+  month: String!
+  totalSold: Int!
+  totalReturned: Int!
+}
+
+type VariantSalesWithDetails {
+  productVariantId: String!
+  quantity: Int!
+  productId: String
+  productName: String
+  size: String
+  concentration: String
+  packaging: String
+  barcode: String
+}
+
 type Query {
   findFirstProduct(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, distinct: [ProductScalarFieldEnum!]): Product!
   findUniqueProduct(where: ProductWhereUniqueInput!): Product!
@@ -1992,6 +2118,10 @@ type Query {
   suppliersForVariant(productVariantId: String!): [SupplierCatalogEntry!]!
   tierPricesForVariant(productVariantId: String!): [VariantTierPrice!]!
   notifications: [Notification!]!
+  outboxStatus: OutboxStatusCounts!
+  outboxStatusByType(types: [String!]): [OutboxTypeCount!]!
+  outboxStatusSeries(start: DateTime!, end: DateTime!, type: String): [OutboxDayStatus!]!
+  lastFailedOutboxEvents(limit: Float, type: String): [OutboxEvent!]!
   suppliers: [Supplier!]!
   supplier(id: String!): Supplier!
   purchaseOrders: [PurchaseOrder!]!
@@ -2020,10 +2150,38 @@ type Query {
   rfqStatusCountsByStore(storeId: String!): RfqStatusCounts!
   rfqDashboardByStore(storeId: String!): RfqDashboard!
   adminProcurementDashboardByStore(storeId: String!): AdminProcurementDashboard!
+  consumerPaymentsByOrder(saleOrderId: String!): [ConsumerPayment!]!
+  resellerPaymentsByOrder(saleOrderId: String!): [ResellerPayment!]!
+  supplierPaymentsByPO(purchaseOrderId: String!): [SupplierPayment!]!
+  orderPaymentSummary(saleOrderId: String!): PaymentOrderSummary!
+  storePaymentsSummary(storeId: String!, month: String): StorePaymentsSummary!
+  supplierPaymentsSummary(supplierId: String!, month: String): SupplierPaymentsSummary!
+  billerPaymentsSummary(billerId: String!, storeId: String, month: String): BillerPaymentsSummary!
+  dailyPaymentsSeries(month: String, storeId: String, billerId: String): [PaymentDaySeries!]!
+  billerPaymentsSummaryByStore(storeId: String!, month: String): [BillerPaymentsSummary!]!
+  paymentMethodBreakdown(month: String, storeId: String, billerId: String): [PaymentMethodBreakdownEntry!]!
+  supplierPaymentMethodBreakdown(month: String, supplierId: String): [SupplierPaymentMethodBreakdownEntry!]!
+  storePaymentsSummaryRange(storeId: String!, start: DateTime!, end: DateTime!): StorePaymentsSummary!
+  billerPaymentsSummaryRange(billerId: String!, start: DateTime!, end: DateTime!, storeId: String): BillerPaymentsSummary!
+  paymentMethodBreakdownRange(start: DateTime!, end: DateTime!, storeId: String, billerId: String): [PaymentMethodBreakdownEntry!]!
+  dailyPaymentsSeriesRange(start: DateTime!, end: DateTime!, storeId: String, billerId: String): [PaymentDaySeries!]!
   stock(input: QueryStockInput): [Stock!]!
   stockMovements(storeId: String!): [StockMovement!]!
+  topSellingVariants(month: String, limit: Float): [VariantMonthlySales!]!
+  customerAffinity(customerId: String!, limit: Float): [CustomerAffinityEntry!]!
+  monthlySalesSummary(month: String): MonthlySalesSummary!
+  topSellingVariantsDetailed(month: String, limit: Float): [VariantSalesWithDetails!]!
+  topSellingVariantsByStore(storeId: String!, month: String, limit: Float): [VariantSalesWithDetails!]!
+  monthlySalesSummaryByStore(storeId: String!, month: String): MonthlySalesSummary!
   ordersQuery: [SaleOrder!]!
   order(id: String!): SaleOrder!
+  salesReturnsByStore(storeId: String!): [SalesReturn!]!
+  salesReturnsByConsumerSale(consumerSaleId: String!): [SalesReturn!]!
+  salesReturnsByResellerSale(resellerSaleId: String!): [SalesReturn!]!
+  purchaseReturnsBySupplier(supplierId: String!): [PurchaseReturn!]!
+  mySupportMessages: [SupportMessage!]!
+  supportConversation(userId: String!): [SupportMessage!]!
+  recentSupportThreads(limit: Float): [SupportMessage!]!
   findFirstStore(where: StoreWhereInput, orderBy: [StoreOrderByWithRelationInput!], cursor: StoreWhereUniqueInput, take: Int, skip: Int, distinct: [StoreScalarFieldEnum!]): Store!
   findUniqueStore(where: StoreWhereUniqueInput!): Store!
   listStores(where: StoreWhereInput, orderBy: [StoreOrderByWithRelationInput!], cursor: StoreWhereUniqueInput, take: Int, skip: Int, distinct: [StoreScalarFieldEnum!]): [Store!]!
@@ -5176,6 +5334,8 @@ type Mutation {
   upsertVariantSupplierCatalog(input: UpsertVariantSupplierCatalogInput!): SupplierCatalogEntry!
   upsertVariantTierPrice(input: UpsertVariantTierPriceInput!): String!
   markAsRead(id: String!): Notification!
+  processOutbox(limit: Float, type: String, status: String): Float!
+  retryOutboxFailed(limit: Float, type: String): Float!
   signupCustomer(input: CreateUserInput!): AuthResponse!
   completeCustomerProfile(input: UpdateCustomerProfileInput!): CustomerProfile!
   applyReseller(input: ApplyResellerInput!): ResellerProfile!
@@ -5223,6 +5383,13 @@ type Mutation {
   createFulfillment(input: CreateFulfillmentInput!): Fulfillment!
   adminRevertOrderToQuotation(saleOrderId: String!): SaleOrder!
   adminRevertToQuotation(saleOrderId: String!): SaleOrder!
+  createSalesReturn(input: CreateSalesReturnInput!): String!
+  updateSalesReturnStatus(input: UpdateSalesReturnStatusInput!): Boolean!
+  createSalesReturnForOrder(input: CreateOrderReturnInput!): String!
+  createPurchaseReturn(input: CreatePurchaseReturnInput!): String!
+  fulfillPurchaseReturn(input: FulfillPurchaseReturnInput!): Boolean!
+  sendSupportMessage(input: SendSupportMessageInput!): SupportMessage!
+  adminSendSupportMessage(input: AdminSendSupportMessageInput!): SupportMessage!
   createStore(data: StoreCreateInput!): Store
   createManyStore(data: [StoreCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
   updateStore(data: StoreUpdateInput!, where: StoreWhereUniqueInput!): Store
@@ -23460,6 +23627,63 @@ input CreateFulfillmentInput {
   deliveryPersonnelId: ID
   deliveryAddress: String
   cost: Float
+}
+
+input CreateSalesReturnInput {
+  type: SaleType!
+  consumerSaleId: String
+  resellerSaleId: String
+  returnedById: String!
+  receivedById: String!
+  returnLocation: ReturnLocation!
+  items: [CreateSalesReturnItemInput!]!
+}
+
+input CreateSalesReturnItemInput {
+  productVariantId: String!
+  quantity: Int!
+  condition: String!
+}
+
+input UpdateSalesReturnStatusInput {
+  id: String!
+  status: ReturnStatus!
+  approvedById: String
+}
+
+input CreateOrderReturnInput {
+  orderId: String!
+  returnedById: String!
+  receivedById: String!
+  returnLocation: ReturnLocation!
+  items: [CreateSalesReturnItemInput!]!
+}
+
+input CreatePurchaseReturnInput {
+  supplierId: String!
+  initiatedById: String!
+  approvedById: String!
+  reason: String
+  items: [CreatePurchaseReturnItemInput!]!
+}
+
+input CreatePurchaseReturnItemInput {
+  productVariantId: String!
+  batchId: String!
+  quantity: Int!
+}
+
+input FulfillPurchaseReturnInput {
+  id: String!
+}
+
+input SendSupportMessageInput {
+  message: String!
+}
+
+input AdminSendSupportMessageInput {
+  userId: String!
+  message: String!
 }
 
 input StoreCreateInput {

@@ -1,5 +1,6 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { GraphQLModule } from '@nestjs/graphql';
 import { join } from 'path';
 import { PrismaModule } from './common/prisma/prisma.module';
@@ -16,9 +17,13 @@ import { StockModule } from './modules/stock/stock.module';
 import { SaleModule } from './modules/sale/sale.module';
 import { OrderModule } from './modules/order/order.module';
 import { EventsModule } from './modules/events/events.module';
+import { PaymentModule } from './modules/payment/payment.module';
+import { ReturnsModule } from './modules/returns/returns.module';
+import { SupportModule } from './modules/support/support.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
@@ -35,6 +40,9 @@ import { EventsModule } from './modules/events/events.module';
     SaleModule,
     OrderModule,
     EventsModule,
+    PaymentModule,
+    ReturnsModule,
+    SupportModule,
     StoreModule,
     UsersModule,
     VerificationModule,
