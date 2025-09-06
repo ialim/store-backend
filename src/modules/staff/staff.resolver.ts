@@ -4,7 +4,7 @@ import { CreateStaffInput } from './dto/create-staff.input';
 import { AssignStoreManagerInput } from './dto/assign-store-manager.input';
 import { AssignBillerInput } from './dto/assign-biller.input';
 import { User } from '../../shared/prismagraphql/user/user.model';
-import { Store } from '../../shared/prismagraphql/store/store.model'; // adjust import to your generated Store type
+import { Store } from '../../shared/prismagraphql/store/store.model';
 import { ResellerProfile } from '../../shared/prismagraphql/reseller-profile/reseller-profile.model';
 import { UseGuards } from '@nestjs/common';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';

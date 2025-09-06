@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { StockService } from './stock.service';
 import { StockResolver } from './stock.resolver';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { NotificationService } from '../notification/notification.service';
+import { NotificationModule } from '../notification/notification.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
-  providers: [StockService, StockResolver, PrismaService, NotificationService],
+  imports: [NotificationModule, EventsModule],
+  providers: [StockService, StockResolver, PrismaService],
 })
 export class StockModule {}

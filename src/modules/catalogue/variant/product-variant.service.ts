@@ -33,4 +33,116 @@ export class ProductVariantService extends BaseCrudService<
   constructor(prisma: PrismaService) {
     super(prisma);
   }
+
+
+  async variantsByStore(storeId: string, search?: string) {
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { product: { name: { contains: search, mode: 'insensitive' } } },
+        { size: { contains: search, mode: 'insensitive' } },
+        { concentration: { contains: search, mode: 'insensitive' } },
+        { packaging: { contains: search, mode: 'insensitive' } },
+        { barcode: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    const variants = await (this.prisma as any).productVariant.findMany({
+      where,
+      include: {
+        product: true,
+        stockItems: { where: { storeId } },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 200,
+    });
+    return variants;
+  }
+
+  async lowStockByStore(storeId: string) {
+    const stocks = await (this.prisma as any).stock.findMany({
+      where: { storeId, reorderPoint: { not: null } },
+      select: { productVariantId: true, quantity: true, reserved: true, reorderPoint: true },
+    });
+    const variantIds: string[] = [];
+    for (const s of stocks) {
+      const available = (s.quantity || 0) - (s.reserved || 0);
+      if ((s.reorderPoint ?? 0) > 0 && available < (s.reorderPoint ?? 0)) {
+        variantIds.push(s.productVariantId);
+      }
+    }
+    if (!variantIds.length) return [];
+    return (this.prisma as any).productVariant.findMany({
+      where: { id: { in: variantIds } },
+      include: { product: true, stockItems: { where: { storeId } } },
+    });
+  }
+
+
+  async upsertVariantSupplierCatalog(input: {
+    productVariantId: string;
+    supplierId: string;
+    defaultCost: number;
+    leadTimeDays?: number;
+    isPreferred?: boolean;
+  }) {
+    return (this.prisma as any).supplierCatalog.upsert({
+      where: {
+        supplierId_productVariantId: {
+          supplierId: input.supplierId,
+          productVariantId: input.productVariantId,
+        },
+      },
+      update: {
+        defaultCost: input.defaultCost,
+        leadTimeDays: input.leadTimeDays ?? null,
+        isPreferred: input.isPreferred ?? undefined,
+      },
+      create: {
+        supplierId: input.supplierId,
+        productVariantId: input.productVariantId,
+        defaultCost: input.defaultCost,
+        leadTimeDays: input.leadTimeDays ?? null,
+        isPreferred: input.isPreferred ?? false,
+      },
+      select: {
+        supplierId: true,
+        productVariantId: true,
+        defaultCost: true,
+        leadTimeDays: true,
+        isPreferred: true,
+      },
+    });
+  }
+
+  async suppliersForVariant(productVariantId: string) {
+    return (this.prisma as any).supplierCatalog.findMany({
+      where: { productVariantId },
+      select: {
+        supplierId: true,
+        productVariantId: true,
+        defaultCost: true,
+        leadTimeDays: true,
+        isPreferred: true,
+      },
+      orderBy: { defaultCost: 'asc' },
+    });
+  }
+
+
+  async upsertVariantTierPrice(input: { productVariantId: string; tier: any; price: number }) {
+    return (this.prisma as any).productVariantTierPrice.upsert({
+      where: { productVariantId_tier: { productVariantId: input.productVariantId, tier: input.tier } },
+      update: { price: input.price },
+      create: { productVariantId: input.productVariantId, tier: input.tier, price: input.price },
+      select: { productVariantId: true, tier: true, price: true },
+    });
+  }
+
+  async tierPricesForVariant(productVariantId: string) {
+    return (this.prisma as any).productVariantTierPrice.findMany({
+      where: { productVariantId },
+      select: { productVariantId: true, tier: true, price: true },
+      orderBy: { tier: 'asc' },
+    });
+  }
 }

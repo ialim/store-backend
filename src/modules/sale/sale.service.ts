@@ -1,13 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { CreateConsumerSaleInput } from './dto/create-consumer-sale.input';
 import { CreateResellerSaleInput } from './dto/create-reseller-sale.input';
 import { SaleStatus } from '../../shared/prismagraphql/prisma/sale-status.enum';
 import { UpdateQuotationStatusInput } from './dto/update-quotation-status.input';
-import { CreateQuotationInput } from './dto/create-quotation.input';
-import { QuotationCreateInput } from '../../shared/prismagraphql/quotation';
+// import { QuotationCreateInput } from '../../shared/prismagraphql/quotation';
 import { SaleType } from 'src/shared/prismagraphql/prisma/sale-type.enum';
+// After prisma generate, prefer importing OrderPhase enum
 import { CreateConsumerPaymentInput } from './dto/create-consumer-payment.input';
 import { PaymentStatus } from '../../shared/prismagraphql/prisma/payment-status.enum';
 import { ConfirmConsumerPaymentInput } from './dto/confirm-consumer-payment.input';
@@ -16,12 +20,21 @@ import { MovementDirection } from 'src/shared/prismagraphql/prisma/movement-dire
 import { MovementType } from 'src/shared/prismagraphql/prisma/movement-type.enum';
 import { CreateFulfillmentInput } from './dto/create-fulfillment.input';
 import { CreateResellerPaymentInput } from './dto/create-reseller-payment.input';
+import { SaleChannel } from 'src/shared/prismagraphql/prisma/sale-channel.enum';
+import { QuotationStatus } from 'src/shared/prismagraphql/prisma/quotation-status.enum';
+import { CreateQuotationDraftInput } from './dto/create-quotation-draft.input';
+import { CheckoutConsumerQuotationInput } from './dto/checkout-consumer-quotation.input';
+import { ConfirmResellerQuotationInput } from './dto/confirm-reseller-quotation.input';
+import { BillerConvertQuotationInput } from './dto/biller-convert-quotation.input';
+import { FulfillConsumerSaleInput } from './dto/fulfill-consumer-sale.input';
+import { DomainEventsService } from '../events/services/domain-events.service';
 
 @Injectable()
 export class SalesService {
   constructor(
     private prisma: PrismaService,
     private notificationService: NotificationService,
+    private domainEvents: DomainEventsService,
   ) {}
 
   // Quotation flows
@@ -40,31 +53,365 @@ export class SalesService {
     return q;
   }
 
-  async createQuotation(data: QuotationCreateInput) {
+  async createQuotationDraft(input: CreateQuotationDraftInput) {
+    if (input.type === SaleType.CONSUMER && !input.consumerId) {
+      throw new BadRequestException(
+        'consumerId is required for CONSUMER quotations',
+      );
+    }
+    if (input.type === SaleType.RESELLER && !input.resellerId) {
+      throw new BadRequestException(
+        'resellerId is required for RESELLER quotations',
+      );
+    }
+    const derivedItems = [] as Array<{ productVariantId: string; quantity: number; unitPrice: number }>;
+    for (const item of input.items) {
+      const unitPrice =
+        item.unitPrice != null
+          ? item.unitPrice
+          : await this.getEffectiveUnitPrice(
+              item.productVariantId,
+              input.type,
+              input.resellerId || undefined,
+            );
+      derivedItems.push({
+        productVariantId: item.productVariantId,
+        quantity: item.quantity,
+        unitPrice,
+      });
+    }
+    const total = derivedItems.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+    // Create a SaleOrder up-front so order lifecycle starts in QUOTATION phase
+    const order = await this.prisma.saleOrder.create({
+      data: {
+        storeId: input.storeId,
+        billerId: input.billerId || input.resellerId || input.consumerId || '',
+        type: input.type,
+        status: SaleStatus.PENDING,
+        phase: 'QUOTATION',
+        totalAmount: total,
+      },
+    });
+
     const q = await this.prisma.quotation.create({
-      data,
+      data: {
+        type: input.type,
+        channel: input.channel,
+        storeId: input.storeId,
+        consumerId: input.consumerId || null,
+        resellerId: input.resellerId || null,
+        billerId: input.billerId || null,
+        status: QuotationStatus.DRAFT,
+        totalAmount: total,
+        saleOrderId: order.id,
+        items: {
+          create: derivedItems.map((i) => ({
+            productVariantId: i.productVariantId,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+          })),
+        },
+      },
       include: { items: true },
     });
-    await this.notificationService.createNotification(
-      q.billerId,
-      'QUOTATION',
-      `New quotation from ${q.resellerId}`,
-    );
+    if (q.billerId) {
+      await this.notificationService.createNotification(
+        q.billerId,
+        'QUOTATION_DRAFT_CREATED',
+        `Quotation ${q.id} created (draft).`,
+      );
+      // Outbox will handle notification via NotificationService
+    }
     return q;
   }
 
   async updateQuotationStatus(input: UpdateQuotationStatusInput) {
+    const current = await this.prisma.quotation.findUnique({
+      where: { id: input.id },
+      include: { items: true, SaleOrder: true },
+    });
+    if (!current) throw new NotFoundException('Quotation not found');
+
+    if (
+      input.status === QuotationStatus.APPROVED &&
+      current.status !== QuotationStatus.CONFIRMED
+    ) {
+      throw new BadRequestException(
+        'Quotation must be CONFIRMED before it can be APPROVED',
+      );
+    }
+
     const q = await this.prisma.quotation.update({
       where: { id: input.id },
       data: { status: input.status },
+      include: { items: true, SaleOrder: true },
+    });
+
+    // On CONFIRMED notify stakeholders
+    if (q.status === QuotationStatus.CONFIRMED) {
+      const notify = q.resellerId || q.consumerId || q.billerId;
+      if (notify) {
+        await this.notificationService.createNotification(
+          notify,
+          'QUOTATION_CONFIRMED',
+          `Quotation ${q.id} confirmed.`,
+        );
+        // Outbox will handle notification via NotificationService
+      }
+    }
+
+    // On APPROVED: transition order to SALE and create sale record
+    if (q.status === QuotationStatus.APPROVED) {
+      let orderId = q.saleOrderId;
+      if (!orderId) {
+        const total = q.items.reduce(
+          (sum, i) => sum + i.quantity * i.unitPrice,
+          0,
+        );
+        const createdOrder = await this.prisma.saleOrder.create({
+          data: {
+            storeId: q.storeId,
+            billerId: q.billerId || '',
+            type: q.type,
+            status: SaleStatus.PENDING,
+            phase: 'SALE',
+            totalAmount: total,
+          },
+        });
+        orderId = createdOrder.id;
+        await this.prisma.quotation.update({
+          where: { id: q.id },
+          data: { saleOrderId: orderId },
+        });
+      } else {
+        await this.prisma.saleOrder.update({
+          where: { id: orderId },
+          data: { phase: 'SALE' },
+        });
+      }
+
+      if (q.type === SaleType.CONSUMER) {
+        const exists = await this.prisma.consumerSale.findFirst({
+          where: { saleOrderId: orderId },
+        });
+        if (!exists) {
+          await this.prisma.consumerSale.create({
+            data: {
+              saleOrderId: orderId,
+              customerId: q.consumerId!,
+              storeId: q.storeId,
+              billerId: q.billerId!,
+              channel: q.channel as SaleChannel,
+              status: SaleStatus.PENDING,
+              totalAmount: q.totalAmount,
+              quotationId: q.id,
+              items: {
+                create: q.items.map((i) => ({
+                  productVariantId: i.productVariantId,
+                  quantity: i.quantity,
+                  unitPrice: i.unitPrice,
+                })),
+              },
+            },
+          });
+        }
+      } else if (q.type === (SaleType.RESELLER as typeof q.type)) {
+        const exists = await this.prisma.resellerSale.findFirst({
+          where: { SaleOrderid: orderId },
+        });
+        if (!exists) {
+          await this.prisma.resellerSale.create({
+            data: {
+              SaleOrderid: orderId,
+              resellerId: q.resellerId!,
+              billerId: q.billerId!,
+              storeId: q.storeId,
+              status: SaleStatus.PENDING,
+              totalAmount: q.totalAmount,
+              quotationId: q.id,
+              items: {
+                create: q.items.map((i) => ({
+                  productVariantId: i.productVariantId,
+                  quantity: i.quantity,
+                  unitPrice: i.unitPrice,
+                })),
+              },
+            },
+          });
+        }
+      }
+
+      // Notify accounting/store manager
+      if (q.billerId) {
+        await this.notificationService.createNotification(
+          q.billerId,
+          'ORDER_ENTERED_SALE_PHASE',
+          `Order ${q.saleOrderId} approved; awaiting payment/credit check.`,
+        );
+        // Outbox will handle notification via NotificationService
+      }
+      const store = await this.prisma.store.findUnique({
+        where: { id: q.storeId },
+      });
+      if (store) {
+        await this.notificationService.createNotification(
+          store.managerId,
+          'SALE_PHASE_NOTIFICATION',
+          `Order ${q.saleOrderId} is in sale phase for store ${store.name}.`,
+        );
+        // Outbox will handle notification via NotificationService
+      }
+    }
+
+    const notifyUserId = q.resellerId || q.consumerId || q.billerId;
+    if (notifyUserId) {
+      await this.notificationService.createNotification(
+        notifyUserId,
+        'QUOTATION_UPDATED',
+        `Quotation ${q.id} ${q.status}`,
+      );
+    }
+    return q;
+  }
+
+  async checkoutConsumerQuotation(input: CheckoutConsumerQuotationInput) {
+    const q = await this.prisma.quotation.findUnique({
+      where: { id: input.quotationId },
       include: { items: true },
     });
+    if (!q) throw new NotFoundException('Quotation not found');
+    if (q.type !== SaleType.CONSUMER) {
+      throw new BadRequestException('Quotation is not a CONSUMER quotation');
+    }
+    if (!q.consumerId) {
+      throw new BadRequestException('Quotation missing consumerId');
+    }
+    const total = q.items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+    const order = await this.prisma.saleOrder.create({
+      data: {
+        storeId: q.storeId,
+        billerId: input.billerId,
+        type: SaleType.CONSUMER,
+        status: SaleStatus.PENDING,
+        totalAmount: total,
+      },
+    });
+    const sale = await this.prisma.consumerSale.create({
+      data: {
+        saleOrderId: order.id,
+        quotationId: q.id,
+        customerId: q.consumerId,
+        storeId: q.storeId,
+        billerId: input.billerId,
+        channel: q.channel as SaleChannel,
+        status: SaleStatus.PENDING,
+        totalAmount: total,
+        items: {
+          create: q.items.map((i) => ({
+            productVariantId: i.productVariantId,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+    await this.prisma.quotation.update({
+      where: { id: q.id },
+      data: { status: QuotationStatus.APPROVED, saleOrderId: order.id },
+    });
     await this.notificationService.createNotification(
-      q.resellerId,
-      'QUOTATION_UPDATED',
-      `Quotation ${q.id} ${q.status}`,
+      sale.billerId,
+      'CONSUMER_SALE_CREATED_FROM_QUOTATION',
+      `Sale ${sale.id} created from quotation ${q.id}.`,
     );
-    return q;
+    return sale;
+  }
+
+  async confirmResellerQuotation(input: ConfirmResellerQuotationInput) {
+    const q = await this.prisma.quotation.findUnique({
+      where: { id: input.quotationId },
+      include: { items: true },
+    });
+    if (!q) throw new NotFoundException('Quotation not found');
+    if (q.type !== SaleType.RESELLER) {
+      throw new BadRequestException('Quotation is not a RESELLER quotation');
+    }
+    if (!q.resellerId) {
+      throw new BadRequestException('Quotation missing resellerId');
+    }
+    const total = q.items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+    const order = await this.prisma.saleOrder.create({
+      data: {
+        storeId: q.storeId,
+        billerId: input.billerId,
+        type: SaleType.RESELLER,
+        status: SaleStatus.PENDING,
+        totalAmount: total,
+      },
+    });
+    const sale = await this.prisma.resellerSale.create({
+      data: {
+        SaleOrderid: order.id,
+        quotationId: q.id,
+        resellerId: q.resellerId,
+        billerId: input.billerId,
+        storeId: q.storeId,
+        status: SaleStatus.PENDING,
+        totalAmount: total,
+        items: {
+          create: q.items.map((i) => ({
+            productVariantId: i.productVariantId,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+    await this.prisma.quotation.update({
+      where: { id: q.id },
+      data: { status: QuotationStatus.APPROVED, saleOrderId: order.id },
+    });
+    await this.notificationService.createNotification(
+      sale.billerId,
+      'RESELLER_SALE_CREATED_FROM_QUOTATION',
+      `Reseller sale ${sale.id} created from quotation ${q.id}.`,
+    );
+    return sale;
+  }
+
+  async billerConvertConfirmedQuotation(input: BillerConvertQuotationInput) {
+    const q = await this.prisma.quotation.findUnique({
+      where: { id: input.quotationId },
+      include: { items: true },
+    });
+    if (!q) throw new NotFoundException('Quotation not found');
+    if (q.status !== QuotationStatus.CONFIRMED) {
+      throw new BadRequestException(
+        'Quotation must be CONFIRMED for biller conversion',
+      );
+    }
+    if (q.saleOrderId) {
+      throw new BadRequestException('Quotation already converted');
+    }
+    if (q.type === SaleType.CONSUMER) {
+      await this.checkoutConsumerQuotation({
+        quotationId: q.id,
+        billerId: input.billerId,
+      });
+    } else if (q.type === (SaleType.RESELLER as unknown as typeof q.type)) {
+      await this.confirmResellerQuotation({
+        quotationId: q.id,
+        billerId: input.billerId,
+      });
+    } else {
+      throw new BadRequestException('Unsupported quotation type');
+    }
+    const updated = await this.prisma.quotation.findUnique({
+      where: { id: q.id },
+    });
+    return updated!;
   }
 
   // Consumer Sales
@@ -146,19 +493,16 @@ export class SalesService {
       where: { id: input.paymentId },
       data: { status: PaymentStatus.CONFIRMED },
     });
-    await this.prisma.saleOrder.update({
-      where: { id: payment.saleOrderId },
-      data: { status: SaleStatus.PAID },
-    });
-    const sale = await this.prisma.consumerSale.update({
-      where: { id: payment.consumerSaleId },
-      data: { status: SaleStatus.PAID },
-    });
-    await this.notificationService.createNotification(
-      sale.billerId,
-      'CONSUMER_SALE_PAID',
-      `Sale ${sale.id} marked PAID.`,
+    await this.domainEvents.publish(
+      'PAYMENT_CONFIRMED',
+      {
+        paymentId: payment.id,
+        saleOrderId: payment.saleOrderId,
+        channel: 'CONSUMER',
+      },
+      { aggregateType: 'Payment', aggregateId: payment.id },
     );
+    await this.maybeAdvanceOrderToFulfillment(payment.saleOrderId);
     return payment;
   }
 
@@ -172,7 +516,7 @@ export class SalesService {
     return receipt;
   }
 
-  async fulfillConsumerSale(input: { id: string }) {
+  async fulfillConsumerSale(input: FulfillConsumerSaleInput) {
     const sale = await this.prisma.consumerSale.findUnique({
       where: { id: input.id },
       include: { items: true },
@@ -204,7 +548,7 @@ export class SalesService {
             { productVariantId: item.productVariantId },
           ],
         },
-        update: { quantity: { decrement: item.quantity } },
+        update: { quantity: { decrement: item.quantity }, reserved: { decrement: item.quantity } },
         create: {
           storeId: sale.storeId,
           productVariantId: item.productVariantId,
@@ -217,11 +561,16 @@ export class SalesService {
       where: { id: sale.id },
       data: { status: SaleStatus.FULFILLED },
     });
+    await this.prisma.saleOrder.update({
+      where: { id: sale.saleOrderId },
+      data: { status: SaleStatus.FULFILLED, phase: 'FULFILLMENT' },
+    });
     await this.notificationService.createNotification(
       updated.billerId,
       'CONSUMER_SALE_FULFILLED',
       `Sale ${updated.id} fulfilled.`,
     );
+    // Outbox will handle notification via NotificationService
     return updated;
   }
 
@@ -305,20 +654,180 @@ export class SalesService {
       where: { id: paymentId },
       data: { status: PaymentStatus.CONFIRMED },
     });
-    await this.prisma.saleOrder.update({
-      where: { id: payment.saleOrderId },
-      data: { status: SaleStatus.PAID },
-    });
-    const sale = await this.prisma.resellerSale.update({
-      where: { id: payment.resellerSaleId! },
-      data: { status: SaleStatus.PAID },
-    });
-    await this.notificationService.createNotification(
-      sale.billerId,
-      'RESELLER_SALE_PAID',
-      `Reseller sale ${sale.id} marked PAID.`,
+    await this.domainEvents.publish(
+      'PAYMENT_CONFIRMED',
+      {
+        paymentId: payment.id,
+        saleOrderId: payment.saleOrderId,
+        channel: 'RESELLER',
+      },
+      { aggregateType: 'Payment', aggregateId: payment.id },
     );
+    await this.maybeAdvanceOrderToFulfillment(payment.saleOrderId);
     return payment;
+  }
+
+  // Utility: evaluate payments/credit and advance to fulfillment if eligible
+  private async maybeAdvanceOrderToFulfillment(orderId: string) {
+    const order = await this.prisma.saleOrder.findUnique({
+      where: { id: orderId },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.phase !== 'SALE') return; // Only advance from SALE phase
+
+    // Sum confirmed payments for this order
+    const [consumerPaid, resellerPaid] = await Promise.all([
+      this.prisma.consumerPayment.aggregate({
+        _sum: { amount: true },
+        where: { saleOrderId: orderId, status: PaymentStatus.CONFIRMED },
+      }),
+      this.prisma.resellerPayment.aggregate({
+        _sum: { amount: true },
+        where: { saleOrderId: orderId, status: PaymentStatus.CONFIRMED },
+      }),
+    ]);
+    const paid =
+      (consumerPaid._sum.amount || 0) + (resellerPaid._sum.amount || 0);
+
+    let canAdvance = paid >= order.totalAmount;
+
+    if (!canAdvance && order.type === SaleType.RESELLER) {
+      // Check reseller credit availability
+      const rSale = await this.prisma.resellerSale.findFirst({
+        where: { SaleOrderid: orderId },
+      });
+      if (rSale) {
+        const profile = await this.prisma.resellerProfile.findUnique({
+          where: { userId: rSale.resellerId },
+        });
+        if (profile) {
+          const unpaidPortion = Math.max(order.totalAmount - paid, 0);
+          const projected = profile.outstandingBalance + unpaidPortion;
+          if (projected <= profile.creditLimit) {
+            canAdvance = true;
+            // Allocate credit for unpaid portion
+            await this.prisma.resellerProfile.update({
+              where: { userId: rSale.resellerId },
+              data: { outstandingBalance: projected },
+            });
+          }
+        }
+      }
+    }
+
+    if (!canAdvance) return;
+
+    // Update order status if fully paid
+    if (paid >= order.totalAmount) {
+      await this.prisma.saleOrder.update({
+        where: { id: orderId },
+        data: { status: SaleStatus.PAID },
+      });
+    }
+
+    // Enter fulfillment phase and create Fulfillment if missing
+    await this.prisma.saleOrder.update({
+      where: { id: orderId },
+      data: { phase: 'FULFILLMENT' },
+    });
+    const existing = await this.prisma.fulfillment.findUnique({
+      where: { saleOrderId: orderId },
+    });
+    if (!existing) {
+      await this.prisma.fulfillment.create({
+        data: {
+          saleOrderId: orderId,
+          type: 'PICKUP',
+          status: 'PENDING',
+        },
+      });
+    }
+
+    // Notify store manager and biller
+    const so = await this.prisma.saleOrder.findUnique({
+      where: { id: orderId },
+    });
+    if (so) {
+      const store = await this.prisma.store.findUnique({
+        where: { id: so.storeId },
+      });
+      if (store) {
+        await this.notificationService.createNotification(
+          store.managerId,
+          'FULFILLMENT_REQUESTED',
+          `Order ${orderId} ready for fulfillment at store ${store.name}.`,
+        );
+        // Outbox will handle notification via NotificationService
+      }
+      await this.notificationService.createNotification(
+        so.billerId,
+        'ORDER_ADVANCED_TO_FULFILLMENT',
+        `Order ${orderId} advanced to fulfillment phase.`,
+      );
+      // Outbox will handle notification via NotificationService
+    }
+  }
+
+  // Admin action: revert order back to QUOTATION phase for modification
+  async adminRevertOrderToQuotation(orderId: string) {
+    const order = await this.prisma.saleOrder.findUnique({
+      where: { id: orderId },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    // Remove fulfillment if exists
+    const f = await this.prisma.fulfillment.findUnique({
+      where: { saleOrderId: orderId },
+    });
+    if (f) await this.prisma.fulfillment.delete({ where: { id: f.id } });
+
+    // Delete sale records and their items
+    const cSale = await this.prisma.consumerSale.findFirst({
+      where: { saleOrderId: orderId },
+    });
+    if (cSale) {
+      await this.prisma.consumerSaleItem.deleteMany({
+        where: { consumerSaleId: cSale.id },
+      });
+      await this.prisma.consumerSale.delete({ where: { id: cSale.id } });
+    }
+    const rSale = await this.prisma.resellerSale.findFirst({
+      where: { SaleOrderid: orderId },
+    });
+    if (rSale) {
+      await this.prisma.resellerSaleItem.deleteMany({
+        where: { resellerSaleId: rSale.id },
+      });
+      await this.prisma.resellerSale.delete({ where: { id: rSale.id } });
+    }
+
+    // Reset order to quotation phase
+    const updated = await this.prisma.saleOrder.update({
+      where: { id: orderId },
+      data: { phase: 'QUOTATION', status: SaleStatus.PENDING },
+    });
+
+    // Reset quotation status to SENT if exists
+    const quotation = await this.prisma.quotation.findFirst({
+      where: { saleOrderId: orderId },
+    });
+    if (quotation) {
+      await this.prisma.quotation.update({
+        where: { id: quotation.id },
+        data: { status: QuotationStatus.SENT },
+      });
+      const notify =
+        quotation.resellerId || quotation.consumerId || quotation.billerId;
+      if (notify) {
+        await this.notificationService.createNotification(
+          notify,
+          'ORDER_REVERTED_TO_QUOTATION',
+          `Order ${orderId} reverted to quotation phase by admin.`,
+        );
+      }
+    }
+
+    return updated;
   }
 
   async createFulfillment(data: CreateFulfillmentInput) {
@@ -329,5 +838,29 @@ export class SalesService {
       `Fulfillment for order ${data.saleOrderId} created.`,
     );
     return f;
+  }
+
+
+  private async reserveStockForOrder(orderId: string) {
+    const cSale = await this.prisma.consumerSale.findFirst({ where: { saleOrderId: orderId }, include: { items: true } });
+    if (cSale) {
+      for (const item of cSale.items) {
+        await this.prisma.stock.upsert({
+          where: { id: undefined, AND: [ { storeId: cSale.storeId }, { productVariantId: item.productVariantId } ] },
+          update: { reserved: { increment: item.quantity } },
+          create: { storeId: cSale.storeId, productVariantId: item.productVariantId, quantity: 0, reserved: item.quantity },
+        });
+      }
+    }
+    const rSale = await this.prisma.resellerSale.findFirst({ where: { SaleOrderid: orderId }, include: { items: true } });
+    if (rSale) {
+      for (const item of rSale.items) {
+        await this.prisma.stock.upsert({
+          where: { id: undefined, AND: [ { storeId: rSale.storeId }, { productVariantId: item.productVariantId } ] },
+          update: { reserved: { increment: item.quantity } },
+          create: { storeId: rSale.storeId, productVariantId: item.productVariantId, quantity: 0, reserved: item.quantity },
+        });
+      }
+    }
   }
 }
