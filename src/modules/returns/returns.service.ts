@@ -275,4 +275,37 @@ export class ReturnsService {
     );
     return true;
   }
+
+  // Listings
+  async salesReturnsByStore(storeId: string) {
+    return this.prisma.salesReturn.findMany({
+      where: { storeId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async salesReturnsByConsumerSale(consumerSaleId: string) {
+    return this.prisma.salesReturn.findMany({
+      where: { consumerSaleId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async salesReturnsByResellerSale(resellerSaleId: string) {
+    return this.prisma.salesReturn.findMany({
+      where: { resellerSaleId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async purchaseReturnsBySupplier(supplierId: string) {
+    return this.prisma.purchaseReturn.findMany({
+      where: { supplierId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }

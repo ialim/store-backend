@@ -57,40 +57,24 @@ export class ReturnsResolver {
   @Query(() => [SalesReturn])
   @UseGuards(GqlAuthGuard)
   salesReturnsByStore(@Args('storeId') storeId: string) {
-    return (this.returns as any).prisma.salesReturn.findMany({
-      where: { storeId },
-      include: { items: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.returns.salesReturnsByStore(storeId);
   }
 
   @Query(() => [SalesReturn])
   @UseGuards(GqlAuthGuard)
   salesReturnsByConsumerSale(@Args('consumerSaleId') consumerSaleId: string) {
-    return (this.returns as any).prisma.salesReturn.findMany({
-      where: { consumerSaleId },
-      include: { items: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.returns.salesReturnsByConsumerSale(consumerSaleId);
   }
 
   @Query(() => [SalesReturn])
   @UseGuards(GqlAuthGuard)
   salesReturnsByResellerSale(@Args('resellerSaleId') resellerSaleId: string) {
-    return (this.returns as any).prisma.salesReturn.findMany({
-      where: { resellerSaleId },
-      include: { items: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.returns.salesReturnsByResellerSale(resellerSaleId);
   }
 
   @Query(() => [PurchaseReturn])
   @UseGuards(GqlAuthGuard)
   purchaseReturnsBySupplier(@Args('supplierId') supplierId: string) {
-    return (this.returns as any).prisma.purchaseReturn.findMany({
-      where: { supplierId },
-      include: { items: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.returns.purchaseReturnsBySupplier(supplierId);
   }
 }

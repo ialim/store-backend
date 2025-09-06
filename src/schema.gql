@@ -2024,6 +2024,10 @@ type Query {
   stockMovements(storeId: String!): [StockMovement!]!
   ordersQuery: [SaleOrder!]!
   order(id: String!): SaleOrder!
+  salesReturnsByStore(storeId: String!): [SalesReturn!]!
+  salesReturnsByConsumerSale(consumerSaleId: String!): [SalesReturn!]!
+  salesReturnsByResellerSale(resellerSaleId: String!): [SalesReturn!]!
+  purchaseReturnsBySupplier(supplierId: String!): [PurchaseReturn!]!
   findFirstStore(where: StoreWhereInput, orderBy: [StoreOrderByWithRelationInput!], cursor: StoreWhereUniqueInput, take: Int, skip: Int, distinct: [StoreScalarFieldEnum!]): Store!
   findUniqueStore(where: StoreWhereUniqueInput!): Store!
   listStores(where: StoreWhereInput, orderBy: [StoreOrderByWithRelationInput!], cursor: StoreWhereUniqueInput, take: Int, skip: Int, distinct: [StoreScalarFieldEnum!]): [Store!]!
@@ -5225,6 +5229,7 @@ type Mutation {
   adminRevertToQuotation(saleOrderId: String!): SaleOrder!
   createSalesReturn(input: CreateSalesReturnInput!): String!
   updateSalesReturnStatus(input: UpdateSalesReturnStatusInput!): Boolean!
+  createSalesReturnForOrder(input: CreateOrderReturnInput!): String!
   createPurchaseReturn(input: CreatePurchaseReturnInput!): String!
   fulfillPurchaseReturn(input: FulfillPurchaseReturnInput!): Boolean!
   createStore(data: StoreCreateInput!): Store
@@ -23486,6 +23491,14 @@ input UpdateSalesReturnStatusInput {
   id: String!
   status: ReturnStatus!
   approvedById: String
+}
+
+input CreateOrderReturnInput {
+  orderId: String!
+  returnedById: String!
+  receivedById: String!
+  returnLocation: ReturnLocation!
+  items: [CreateSalesReturnItemInput!]!
 }
 
 input CreatePurchaseReturnInput {
