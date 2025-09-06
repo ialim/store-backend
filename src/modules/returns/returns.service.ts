@@ -7,6 +7,7 @@ import { UpdateSalesReturnStatusInput } from './dto/update-sales-return-status.i
 import { CreatePurchaseReturnInput } from './dto/create-purchase-return.input';
 import { FulfillPurchaseReturnInput } from './dto/fulfill-purchase-return.input';
 import { MovementDirection } from '../../shared/prismagraphql/prisma/movement-direction.enum';
+import { CreateOrderReturnInput } from './dto/create-order-return.input';
 
 @Injectable()
 export class ReturnsService {
@@ -28,6 +29,30 @@ export class ReturnsService {
   }
 
   // SALES RETURN
+  async createSalesReturnForOrder(input: CreateOrderReturnInput) {
+    const order = await this.prisma.saleOrder.findUnique({ where: { id: input.orderId } });
+    if (!order) throw new NotFoundException('Order not found');
+
+    // Try to find the associated sale
+    const consumerSale = await this.prisma.consumerSale.findUnique({ where: { saleOrderId: input.orderId } });
+    const resellerSale = !consumerSale
+      ? await this.prisma.resellerSale.findUnique({ where: { SaleOrderid: input.orderId } })
+      : null;
+    if (!consumerSale && !resellerSale) {
+      throw new NotFoundException('No sale found for order');
+    }
+
+    return this.createSalesReturn({
+      type: (consumerSale ? 'CONSUMER' : 'RESELLER') as any,
+      consumerSaleId: consumerSale?.id,
+      resellerSaleId: resellerSale?.id ?? undefined,
+      returnedById: input.returnedById,
+      receivedById: input.receivedById,
+      returnLocation: input.returnLocation as any,
+      items: input.items,
+    });
+  }
+
   async createSalesReturn(input: CreateSalesReturnInput) {
     if (input.type === ('CONSUMER' as any) && !input.consumerSaleId) {
       throw new BadRequestException('consumerSaleId is required for CONSUMER returns');
@@ -251,4 +276,3 @@ export class ReturnsService {
     return true;
   }
 }
-

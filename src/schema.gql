@@ -5223,6 +5223,10 @@ type Mutation {
   createFulfillment(input: CreateFulfillmentInput!): Fulfillment!
   adminRevertOrderToQuotation(saleOrderId: String!): SaleOrder!
   adminRevertToQuotation(saleOrderId: String!): SaleOrder!
+  createSalesReturn(input: CreateSalesReturnInput!): String!
+  updateSalesReturnStatus(input: UpdateSalesReturnStatusInput!): Boolean!
+  createPurchaseReturn(input: CreatePurchaseReturnInput!): String!
+  fulfillPurchaseReturn(input: FulfillPurchaseReturnInput!): Boolean!
   createStore(data: StoreCreateInput!): Store
   createManyStore(data: [StoreCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
   updateStore(data: StoreUpdateInput!, where: StoreWhereUniqueInput!): Store
@@ -23460,6 +23464,46 @@ input CreateFulfillmentInput {
   deliveryPersonnelId: ID
   deliveryAddress: String
   cost: Float
+}
+
+input CreateSalesReturnInput {
+  type: SaleType!
+  consumerSaleId: String
+  resellerSaleId: String
+  returnedById: String!
+  receivedById: String!
+  returnLocation: ReturnLocation!
+  items: [CreateSalesReturnItemInput!]!
+}
+
+input CreateSalesReturnItemInput {
+  productVariantId: String!
+  quantity: Int!
+  condition: String!
+}
+
+input UpdateSalesReturnStatusInput {
+  id: String!
+  status: ReturnStatus!
+  approvedById: String
+}
+
+input CreatePurchaseReturnInput {
+  supplierId: String!
+  initiatedById: String!
+  approvedById: String!
+  reason: String
+  items: [CreatePurchaseReturnItemInput!]!
+}
+
+input CreatePurchaseReturnItemInput {
+  productVariantId: String!
+  batchId: String!
+  quantity: Int!
+}
+
+input FulfillPurchaseReturnInput {
+  id: String!
 }
 
 input StoreCreateInput {

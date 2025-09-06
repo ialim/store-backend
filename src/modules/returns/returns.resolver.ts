@@ -10,6 +10,7 @@ import { CreatePurchaseReturnInput } from './dto/create-purchase-return.input';
 import { FulfillPurchaseReturnInput } from './dto/fulfill-purchase-return.input';
 import { SalesReturn } from '../../shared/prismagraphql/sales-return/sales-return.model';
 import { PurchaseReturn } from '../../shared/prismagraphql/purchase-return/purchase-return.model';
+import { CreateOrderReturnInput } from './dto/create-order-return.input';
 
 @Resolver()
 export class ReturnsResolver {
@@ -30,6 +31,13 @@ export class ReturnsResolver {
     return this.returns.updateSalesReturnStatus(input);
   }
 
+  // Create a sales return using orderId (helper)
+  @Mutation(() => String)
+  @UseGuards(GqlAuthGuard)
+  createSalesReturnForOrder(@Args('input') input: CreateOrderReturnInput) {
+    return this.returns.createSalesReturnForOrder(input);
+  }
+
   // Create a purchase return (partial or full)
   @Mutation(() => String)
   @UseGuards(GqlAuthGuard)
@@ -44,5 +52,45 @@ export class ReturnsResolver {
   fulfillPurchaseReturn(@Args('input') input: FulfillPurchaseReturnInput) {
     return this.returns.fulfillPurchaseReturn(input);
   }
-}
 
+  // Listings
+  @Query(() => [SalesReturn])
+  @UseGuards(GqlAuthGuard)
+  salesReturnsByStore(@Args('storeId') storeId: string) {
+    return (this.returns as any).prisma.salesReturn.findMany({
+      where: { storeId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  @Query(() => [SalesReturn])
+  @UseGuards(GqlAuthGuard)
+  salesReturnsByConsumerSale(@Args('consumerSaleId') consumerSaleId: string) {
+    return (this.returns as any).prisma.salesReturn.findMany({
+      where: { consumerSaleId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  @Query(() => [SalesReturn])
+  @UseGuards(GqlAuthGuard)
+  salesReturnsByResellerSale(@Args('resellerSaleId') resellerSaleId: string) {
+    return (this.returns as any).prisma.salesReturn.findMany({
+      where: { resellerSaleId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  @Query(() => [PurchaseReturn])
+  @UseGuards(GqlAuthGuard)
+  purchaseReturnsBySupplier(@Args('supplierId') supplierId: string) {
+    return (this.returns as any).prisma.purchaseReturn.findMany({
+      where: { supplierId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+}
