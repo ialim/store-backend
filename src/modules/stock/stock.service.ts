@@ -137,6 +137,73 @@ export class StockService {
         `Received ${movement.items.reduce((sum, i) => sum + i.quantity, 0)} units via PURCHASE at store ${movement.storeId}`,
       );
 
+      // Auto-update related Purchase Order receiving progress
+      try {
+        const po = await tx.purchaseOrder.findUnique({
+          where: { id: input.purchaseOrderId },
+          include: { items: true },
+        });
+        if (po) {
+          // All batches for this PO
+          const batches = await tx.stockReceiptBatch.findMany({
+            where: { purchaseOrderId: input.purchaseOrderId },
+            select: { id: true },
+          });
+          const batchIds = batches.map((b) => b.id);
+          const receiptItems = await tx.stockReceiptBatchItem.findMany({
+            where: { stockReceiptBatchId: { in: batchIds } },
+            select: { productVariantId: true, quantity: true },
+          });
+          const receivedMap = new Map<string, number>();
+          for (const ri of receiptItems) {
+            receivedMap.set(
+              ri.productVariantId,
+              (receivedMap.get(ri.productVariantId) || 0) + ri.quantity,
+            );
+          }
+          const fullyReceived = po.items.every(
+            (it) => (receivedMap.get(it.productVariantId) || 0) >= it.quantity,
+          );
+
+          // Set phase to RECEIVING on first receipt
+          if (po.phase !== ('RECEIVING' as any)) {
+            await tx.purchaseOrder.update({
+              where: { id: po.id },
+              data: { phase: 'RECEIVING' as any },
+            });
+          }
+
+          if (fullyReceived && po.status !== ('RECEIVED' as any)) {
+            await tx.purchaseOrder.update({
+              where: { id: po.id },
+              data: { status: 'RECEIVED' as any },
+            });
+
+            // If paid as well, mark completed
+            const paidAgg = await tx.supplierPayment.aggregate({
+              _sum: { amount: true },
+              where: { purchaseOrderId: po.id },
+            });
+            const paid = paidAgg._sum.amount || 0;
+            if (paid >= po.totalAmount) {
+              await tx.purchaseOrder.update({
+                where: { id: po.id },
+                data: { phase: 'COMPLETED' as any },
+              });
+              await this.notificationService.createNotification(
+                po.supplierId,
+                'PURCHASE_COMPLETED',
+                `PO ${po.invoiceNumber} completed.`,
+              );
+            }
+          }
+        }
+      } catch (e) {
+        // Non-fatal; just log to console for now
+        // eslint-disable-next-line no-console
+        console.error('Failed to auto-update PO on receipt:', e);
+      }
+
       return batch;
     });
   }

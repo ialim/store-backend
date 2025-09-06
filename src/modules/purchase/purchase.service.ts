@@ -288,6 +288,38 @@ export class PurchaseService {
     const reqItemMap = new Map(req.items.map((i) => [i.productVariantId, i]));
     const defaultDueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
+    // Validate split selections: if multiple selections exist for same variant,
+    // explicit quantities are required and must sum to <= requestedQty
+    const byVariant: Record<string, { count: number; qtySum: number; requested: number; needsQty: boolean }>= {};
+    for (const sel of input.items) {
+      const reqItem = reqItemMap.get(sel.productVariantId);
+      if (!reqItem) {
+        throw new BadRequestException(`Variant ${sel.productVariantId} not in requisition`);
+      }
+      const key = sel.productVariantId;
+      byVariant[key] = byVariant[key] || { count: 0, qtySum: 0, requested: reqItem.requestedQty, needsQty: false };
+      byVariant[key].count += 1;
+      if (sel.quantity != null) byVariant[key].qtySum += sel.quantity;
+    }
+    for (const [variantId, rec] of Object.entries(byVariant)) {
+      if (rec.count > 1) {
+        // When split across suppliers, enforce explicit quantities and cap
+        const allHaveQty = input.items
+          .filter((i) => i.productVariantId === variantId)
+          .every((i) => i.quantity != null && i.quantity! > 0);
+        if (!allHaveQty) {
+          throw new BadRequestException(
+            `Quantity must be specified for all split selections of variant ${variantId}`,
+          );
+        }
+        if (rec.qtySum > rec.requested) {
+          throw new BadRequestException(
+            `Split quantities (${rec.qtySum}) exceed requested (${rec.requested}) for variant ${variantId}`,
+          );
+        }
+      }
+    }
+
     // Group selections by supplier
     const bySupplier = new Map<string, Array<{
       productVariantId: string; quantity: number; unitCost: number;
