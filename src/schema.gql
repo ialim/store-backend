@@ -1971,6 +1971,22 @@ type FulfillmentMaxAggregate {
   updatedAt: DateTime
 }
 
+type VariantMonthlySales {
+  productVariantId: String!
+  quantity: Int!
+}
+
+type CustomerAffinityEntry {
+  productVariantId: String!
+  count: Int!
+}
+
+type MonthlySalesSummary {
+  month: String!
+  totalSold: Int!
+  totalReturned: Int!
+}
+
 type Query {
   findFirstProduct(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, distinct: [ProductScalarFieldEnum!]): Product!
   findUniqueProduct(where: ProductWhereUniqueInput!): Product!
@@ -2022,6 +2038,9 @@ type Query {
   adminProcurementDashboardByStore(storeId: String!): AdminProcurementDashboard!
   stock(input: QueryStockInput): [Stock!]!
   stockMovements(storeId: String!): [StockMovement!]!
+  topSellingVariants(month: String, limit: Float): [VariantMonthlySales!]!
+  customerAffinity(customerId: String!, limit: Float): [CustomerAffinityEntry!]!
+  monthlySalesSummary(month: String): MonthlySalesSummary!
   ordersQuery: [SaleOrder!]!
   order(id: String!): SaleOrder!
   salesReturnsByStore(storeId: String!): [SalesReturn!]!

@@ -94,3 +94,54 @@ export class AnalyticsService {
     }
   }
 }
+
+// Read helpers
+export interface TopSellingParams { month: string; limit: number }
+export interface CustomerAffinityParams { customerId: string; limit: number }
+export interface MonthlySummaryParams { month: string }
+
+export interface VariantQty { productVariantId: string; quantity: number }
+export interface AffinityEntry { productVariantId: string; count: number }
+
+export class AnalyticsReadService {
+  constructor(private prisma: PrismaService) {}
+
+  async topSellingVariants({ month, limit }: TopSellingParams): Promise<VariantQty[]> {
+    const stats = await this.prisma.productSalesStats.findMany({ select: { productVariantId: true, monthlySales: true } });
+    const list: VariantQty[] = [];
+    for (const s of stats) {
+      const m = (s.monthlySales as any) || {};
+      const qty = Number(m[month] || 0);
+      if (qty > 0) list.push({ productVariantId: s.productVariantId, quantity: qty });
+    }
+    list.sort((a, b) => b.quantity - a.quantity);
+    return list.slice(0, limit);
+  }
+
+  async customerAffinity({ customerId, limit }: CustomerAffinityParams): Promise<AffinityEntry[]> {
+    const cpp = await this.prisma.customerPreferenceProfile.findUnique({ where: { customerId } });
+    const freq = (cpp?.frequentlyBoughtVariants as any) || {};
+    const entries = Object.entries(freq).map(([productVariantId, count]) => ({ productVariantId, count: Number(count) })) as AffinityEntry[];
+    entries.sort((a, b) => b.count - a.count);
+    return entries.slice(0, limit);
+  }
+
+  async monthlySalesSummary({ month }: MonthlySummaryParams): Promise<{ month: string; totalSold: number; totalReturned: number }> {
+    const stats = await this.prisma.productSalesStats.findMany({ select: { monthlySales: true } });
+    let totalSold = 0;
+    for (const s of stats) {
+      const m = (s.monthlySales as any) || {};
+      totalSold += Number(m[month] || 0);
+    }
+    // Returns for month = sum of SalesReturnItem quantities where parent return is ACCEPTED and createdAt in month
+    const [year, mm] = month.split('-').map((x) => Number(x));
+    const start = new Date(Date.UTC(year, mm - 1, 1, 0, 0, 0));
+    const end = new Date(Date.UTC(year, mm, 1, 0, 0, 0));
+    const returns = await this.prisma.salesReturn.findMany({
+      where: { status: 'ACCEPTED' as any, createdAt: { gte: start, lt: end } },
+      select: { items: { select: { quantity: true } } },
+    });
+    const totalReturned = returns.reduce((sum, r) => sum + r.items.reduce((s, i) => s + i.quantity, 0), 0);
+    return { month, totalSold, totalReturned };
+  }
+}
