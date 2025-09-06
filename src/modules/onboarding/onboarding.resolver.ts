@@ -22,8 +22,7 @@ export class OnboardingResolver {
   }
 
   @Mutation(() => CustomerProfile)
-  @UseGuards(GqlAuthGuard, PermissionsGuard)
-  @Permissions('COMPLETE_CUSTOMER_PROFILE')
+  @UseGuards(GqlAuthGuard)
   completeCustomerProfile(
     @Context('req') req,
     @Args('input') input: UpdateCustomerProfileInput,
@@ -36,7 +35,6 @@ export class OnboardingResolver {
     return this.onboardingService.applyReseller(input);
   }
 
-  @Mutation(() => ResellerProfile)
   @Mutation(() => ResellerProfile)
   @UseGuards(GqlAuthGuard, PermissionsGuard)
   @Permissions('APPROVE_RESELLER')

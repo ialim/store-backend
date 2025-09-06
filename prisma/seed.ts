@@ -32,6 +32,7 @@ async function main() {
   const roleDefs = [
     { name: 'SUPERADMIN', description: 'Full system access' },
     { name: 'ADMIN', description: 'Manage users and settings' },
+    { name: 'ACCOUNTANT', description: 'Manage supplier payments and invoicing' },
     { name: 'BILLER', description: 'Handle reseller accounts' },
     { name: 'MANAGER', description: 'Manage stores and inventory' },
     { name: 'RESELLER', description: 'B2B customer' },
@@ -54,7 +55,7 @@ async function main() {
   });
   // ADMIN
   const adminPerms = allPerms.filter((p) =>
-    ['MANAGE_USERS', 'VIEW_REPORTS'].includes(p.name),
+    ['MANAGE_USERS', 'VIEW_REPORTS', 'APPROVE_RESELLER'].includes(p.name),
   );
   await prisma.role.update({
     where: { name: 'ADMIN' },
@@ -70,11 +71,18 @@ async function main() {
   });
   // MANAGER
   const managerPerms = allPerms.filter((p) =>
-    ['ASSIGN_MANAGER', 'ASSIGN_BILLER'].includes(p.name),
+    ['ASSIGN_MANAGER', 'ASSIGN_BILLER', 'APPROVE_RESELLER'].includes(p.name),
   );
   await prisma.role.update({
     where: { name: 'MANAGER' },
     data: { permissions: { connect: managerPerms.map((p) => ({ id: p.id })) } },
+  });
+
+  // ACCOUNTANT
+  const accountantPerms = allPerms.filter((p) => ['VIEW_REPORTS'].includes(p.name));
+  await prisma.role.update({
+    where: { name: 'ACCOUNTANT' },
+    data: { permissions: { connect: accountantPerms.map((p) => ({ id: p.id })) } },
   });
 
   // --- Users & Profiles ---
@@ -112,6 +120,18 @@ async function main() {
       passwordHash,
       roleId:
         (await prisma.role.findUnique({ where: { name: 'BILLER' } }))?.id || '',
+    },
+  });
+
+  const accountant = await prisma.user.upsert({
+    where: { email: 'accountant@example.com' },
+    update: {},
+    create: {
+      email: 'accountant@example.com',
+      passwordHash,
+      roleId:
+        (await prisma.role.findUnique({ where: { name: 'ACCOUNTANT' } }))?.id ||
+        '',
     },
   });
 

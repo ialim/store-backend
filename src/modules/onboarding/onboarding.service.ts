@@ -89,7 +89,7 @@ export class OnboardingService {
     const user = await this.prisma.user.create({
       data: {
         email: input.email,
-        passwordHash: input.password,
+        passwordHash: bcrypt.hashSync(input.password, 10),
         roleId: resellerRole.id,
         resellerProfile: {
           create: {
