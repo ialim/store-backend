@@ -1470,6 +1470,31 @@ type SupplierPaymentMaxAggregate {
   notes: String
 }
 
+type RequisitionSummary {
+  id: ID!
+  storeId: String!
+  requestedById: String!
+  status: String!
+  createdAt: DateTime!
+}
+
+type SupplierQuoteSummary {
+  id: ID!
+  requisitionId: String!
+  supplierId: String!
+  status: String!
+  validUntil: DateTime
+  createdAt: DateTime!
+}
+
+type SupplierCatalogEntry {
+  supplierId: String!
+  productVariantId: String!
+  defaultCost: Float!
+  leadTimeDays: Int
+  isPreferred: Boolean
+}
+
 type StockCountAggregate {
   id: Int!
   storeId: Int!
@@ -1901,8 +1926,17 @@ type Query {
   purchaseOrder(id: String!): PurchaseOrder!
   supplierPayments: [SupplierPayment!]!
   purchaseOrdersByStatus(status: String!): [PurchaseOrder!]!
+  purchaseOrdersByStatusEnum(status: PurchaseOrderStatus!): [PurchaseOrder!]!
   purchaseOrdersByPhase(phase: String!): [PurchaseOrder!]!
+  purchaseOrdersByPhaseEnum(phase: PurchasePhase!): [PurchaseOrder!]!
   purchaseOrdersOverdue: [PurchaseOrder!]!
+  requisitionsByStatus(status: String!): [RequisitionSummary!]!
+  supplierQuotesByRequisition(requisitionId: String!): [SupplierQuoteSummary!]!
+  supplierCatalogBySupplier(supplierId: String!): [SupplierCatalogEntry!]!
+  supplierCatalogByVariant(productVariantId: String!): [SupplierCatalogEntry!]!
+  requisitionsWithNoSubmittedQuotes: [RequisitionSummary!]!
+  rfqPendingSuppliers(requisitionId: String!): [SupplierQuoteSummary!]!
+  requisitionsWithPartialSubmissions: [RequisitionSummary!]!
   stock(input: QueryStockInput): [Stock!]!
   stockMovements(storeId: String!): [StockMovement!]!
   ordersQuery: [SaleOrder!]!
@@ -5030,6 +5064,11 @@ type Mutation {
   updateSupplier(input: UpdateSupplierInput!): Supplier!
   createPurchaseOrder(input: CreatePurchaseOrderInput!): PurchaseOrder!
   updatePurchaseOrderStatus(input: UpdatePurchaseOrderStatusInput!): PurchaseOrder!
+  upsertSupplierCatalog(input: UpsertSupplierCatalogInput!): SupplierCatalogEntry!
+  upsertSupplierCatalogBulk(input: UpsertSupplierCatalogBulkInput!): [String!]!
+  selectSupplierQuote(input: SelectSupplierQuoteInput!): Boolean!
+  rejectSupplierQuote(input: RejectSupplierQuoteInput!): Boolean!
+  closeRFQ(input: CloseRfqInput!): Boolean!
   linkSupplierUser(input: LinkSupplierUserInput!): Supplier!
   createSupplierPayment(input: CreateSupplierPaymentInput!): SupplierPayment!
   createPurchaseRequisition(input: CreatePurchaseRequisitionInput!): String!
@@ -22667,6 +22706,34 @@ input PurchaseOrderItemInput {
 input UpdatePurchaseOrderStatusInput {
   id: String!
   status: PurchaseOrderStatus!
+}
+
+input UpsertSupplierCatalogInput {
+  supplierId: String!
+  productVariantId: String!
+  defaultCost: Float!
+  leadTimeDays: Float
+  isPreferred: Boolean
+}
+
+input UpsertSupplierCatalogBulkInput {
+  items: [UpsertSupplierCatalogInput!]!
+}
+
+input SelectSupplierQuoteInput {
+  quoteId: String!
+  exclusive: Boolean = true
+}
+
+input RejectSupplierQuoteInput {
+  quoteId: String!
+  reason: String
+}
+
+input CloseRfqInput {
+  requisitionId: String!
+  rejectDrafts: Boolean = true
+  rejectUnsubmitted: Boolean = true
 }
 
 input LinkSupplierUserInput {

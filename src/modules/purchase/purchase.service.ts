@@ -32,6 +32,7 @@ import {
   RejectSupplierQuoteInput,
   SelectSupplierQuoteInput,
 } from './dto/select-reject-supplier-quote.input';
+import { CloseRfqInput } from './dto/close-rfq.input';
 
 @Injectable()
 export class PurchaseService {
@@ -366,6 +367,53 @@ export class PurchaseService {
     });
   }
 
+  async rfqStatusCounts(requisitionId: string) {
+    const rows = await this.prisma.supplierQuote.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+      where: { requisitionId },
+    });
+    const map = new Map<string, number>();
+    for (const r of rows as any[]) {
+      map.set(r.status, r._count?._all ?? r._count);
+    }
+    const draft = map.get('DRAFT') || 0;
+    const submitted = map.get('SUBMITTED') || 0;
+    const selected = map.get('SELECTED') || 0;
+    const rejected = map.get('REJECTED') || 0;
+    return {
+      requisitionId,
+      draft,
+      submitted,
+      selected,
+      rejected,
+      total: draft + submitted + selected + rejected,
+    };
+  }
+
+  async rfqCountsAll() {
+    const rows = await this.prisma.supplierQuote.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+    });
+    const map = new Map<string, number>();
+    for (const r of rows as any[]) {
+      map.set(r.status, r._count?._all ?? r._count);
+    }
+    const draft = map.get('DRAFT') || 0;
+    const submitted = map.get('SUBMITTED') || 0;
+    const selected = map.get('SELECTED') || 0;
+    const rejected = map.get('REJECTED') || 0;
+    return {
+      requisitionId: null,
+      draft,
+      submitted,
+      selected,
+      rejected,
+      total: draft + submitted + selected + rejected,
+    };
+  }
+
   async requisitionsWithPartialSubmissions() {
     // Requisitions with at least one SUBMITTED and at least one non-SUBMITTED quote
     return this.prisma.purchaseRequisition.findMany({
@@ -603,6 +651,37 @@ export class PurchaseService {
     return po;
   }
 
+  // Close RFQ: reject selected categories of quotes and publish event
+  async closeRFQ(input: CloseRfqInput) {
+    const req = await this.prisma.purchaseRequisition.findUnique({
+      where: { id: input.requisitionId },
+    });
+    if (!req) throw new NotFoundException('Requisition not found');
+    const rejectStatuses: string[] = [];
+    if (input.rejectDrafts ?? true) rejectStatuses.push('DRAFT');
+    if (input.rejectUnsubmitted ?? true) rejectStatuses.push('SUBMITTED');
+    if (rejectStatuses.length) {
+      await this.prisma.supplierQuote.updateMany({
+        where: {
+          requisitionId: req.id,
+          status: { in: rejectStatuses as any },
+          NOT: { status: 'SELECTED' as any },
+        },
+        data: { status: 'REJECTED' as any },
+      });
+    }
+    await this.domainEvents.publish(
+      'RFQ_CLOSED',
+      {
+        requisitionId: req.id,
+        rejectDrafts: input.rejectDrafts ?? true,
+        rejectUnsubmitted: input.rejectUnsubmitted ?? true,
+      },
+      { aggregateType: 'PurchaseRequisition', aggregateId: req.id },
+    );
+    return true;
+  }
+
   async createPurchaseOrder(data: CreatePurchaseOrderInput) {
     const po = await this.prisma.purchaseOrder.create({
       data: {
@@ -650,6 +729,36 @@ export class PurchaseService {
   }
 
   async updatePurchaseOrderStatus(data: UpdatePurchaseOrderStatusInput) {
+    const current = await this.prisma.purchaseOrder.findUnique({ where: { id: data.id } });
+    if (!current) throw new NotFoundException('Purchase order not found');
+    const next = data.status as string;
+    const cur = (current as any).status as string;
+    // Guards to prevent regression or invalid manual changes
+    if (cur === 'CANCELLED') {
+      throw new BadRequestException('Cannot update a CANCELLED purchase order');
+    }
+    if (cur === 'PAID' && next !== 'PAID') {
+      throw new BadRequestException('Cannot regress from PAID status');
+    }
+    if (cur === 'RECEIVED' && next !== 'RECEIVED' && next !== 'PAID') {
+      throw new BadRequestException('Cannot regress from RECEIVED status');
+    }
+    if (next === 'PENDING' && (cur === 'PARTIALLY_PAID' || cur === 'PAID' || cur === 'RECEIVED')) {
+      throw new BadRequestException('Cannot set PENDING after payments or receipt');
+    }
+    if (next === 'PARTIALLY_PAID' && cur === 'PAID') {
+      throw new BadRequestException('Cannot regress from PAID to PARTIALLY_PAID');
+    }
+    // If cancelling, ensure no payments or receipts exist
+    if (next === 'CANCELLED') {
+      const [paymentCount, receiptCount] = await Promise.all([
+        this.prisma.supplierPayment.count({ where: { purchaseOrderId: data.id } }),
+        this.prisma.stockReceiptBatch.count({ where: { purchaseOrderId: data.id } }),
+      ]);
+      if (paymentCount > 0 || receiptCount > 0) {
+        throw new BadRequestException('Cannot cancel an order with payments or receipts');
+      }
+    }
     const po = await this.prisma.purchaseOrder.update({
       where: { id: data.id },
       data: { status: data.status },

@@ -23,7 +23,11 @@ import { MarkPurchaseOrderReceivedInput, UpdatePurchaseOrderPhaseInput } from '.
 import { RequisitionSummary } from './types/requisition-summary.type';
 import { SupplierQuoteSummary } from './types/supplier-quote-summary.type';
 import { SupplierCatalogEntry } from './types/supplier-catalog-entry.type';
+import { RfqStatusCounts } from './types/rfq-status-counts.type';
 import { UpsertSupplierCatalogBulkInput, UpsertSupplierCatalogInput } from './dto/upsert-supplier-catalog.input';
+import { CloseRfqInput } from './dto/close-rfq.input';
+import { PurchaseOrderStatus } from '../../shared/prismagraphql/prisma/purchase-order-status.enum';
+import { PurchasePhase } from '../../shared/prismagraphql/prisma/purchase-phase.enum';
 
 @Resolver()
 export class PurchaseResolver {
@@ -97,8 +101,25 @@ export class PurchaseResolver {
 
   @Query(() => [PurchaseOrder])
   @UseGuards(GqlAuthGuard)
+  purchaseOrdersByStatusEnum(
+    @Args('status', { type: () => PurchaseOrderStatus })
+    status: PurchaseOrderStatus,
+  ) {
+    return this.purchaseService.purchaseOrdersByStatus(status as unknown as string);
+  }
+
+  @Query(() => [PurchaseOrder])
+  @UseGuards(GqlAuthGuard)
   purchaseOrdersByPhase(@Args('phase') phase: string) {
     return this.purchaseService.purchaseOrdersByPhase(phase);
+  }
+
+  @Query(() => [PurchaseOrder])
+  @UseGuards(GqlAuthGuard)
+  purchaseOrdersByPhaseEnum(
+    @Args('phase', { type: () => PurchasePhase }) phase: PurchasePhase,
+  ) {
+    return this.purchaseService.purchaseOrdersByPhase(phase as unknown as string);
   }
 
   @Query(() => [PurchaseOrder])
@@ -170,6 +191,20 @@ export class PurchaseResolver {
     return this.purchaseService.requisitionsWithPartialSubmissions();
   }
 
+  @Query(() => RfqStatusCounts)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  rfqStatusCounts(@Args('requisitionId') requisitionId: string) {
+    return this.purchaseService.rfqStatusCounts(requisitionId);
+  }
+
+  @Query(() => RfqStatusCounts)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  rfqCountsAll() {
+    return this.purchaseService.rfqCountsAll();
+  }
+
   @Mutation(() => Boolean)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
@@ -182,6 +217,13 @@ export class PurchaseResolver {
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   rejectSupplierQuote(@Args('input') input: RejectSupplierQuoteInput) {
     return this.purchaseService.rejectSupplierQuote(input);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  closeRFQ(@Args('input') input: CloseRfqInput) {
+    return this.purchaseService.closeRFQ(input);
   }
 
   @Mutation(() => Supplier)

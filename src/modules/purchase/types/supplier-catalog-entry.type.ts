@@ -1,4 +1,4 @@
-import { ObjectType, Field } from '@nestjs/graphql';
+import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 
 @ObjectType()
 export class SupplierCatalogEntry {
@@ -8,12 +8,12 @@ export class SupplierCatalogEntry {
   @Field()
   productVariantId!: string;
 
-  @Field()
+  @Field(() => Float)
   defaultCost!: number;
 
-  @Field({ nullable: true })
+  @Field(() => Int, { nullable: true })
   leadTimeDays?: number | null;
 
-  @Field({ nullable: true })
+  @Field(() => Boolean, { nullable: true })
   isPreferred?: boolean | null;
 }
