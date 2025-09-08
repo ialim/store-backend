@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateStaffInput } from './dto/create-staff.input';
 import { AssignStoreManagerInput } from './dto/assign-store-manager.input';
@@ -20,7 +21,7 @@ export class StaffService {
     const user = await this.prisma.user.create({
       data: {
         email: data.email,
-        passwordHash: data.password,
+        passwordHash: bcrypt.hashSync(data.password, 10),
         roleId: role.id,
       },
     });

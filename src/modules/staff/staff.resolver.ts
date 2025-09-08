@@ -16,7 +16,6 @@ export class StaffResolver {
   constructor(private readonly staffService: StaffService) {}
 
   @Mutation(() => User)
-  @Mutation(() => User)
   @UseGuards(GqlAuthGuard, PermissionsGuard)
   @Permissions('CREATE_STAFF')
   createStaff(@Args('input') input: CreateStaffInput) {
@@ -30,7 +29,6 @@ export class StaffResolver {
     return this.staffService.assignStoreManager(input);
   }
 
-  @Mutation(() => ResellerProfile)
   @Mutation(() => ResellerProfile)
   @UseGuards(GqlAuthGuard, PermissionsGuard)
   @Permissions('ASSIGN_BILLER')

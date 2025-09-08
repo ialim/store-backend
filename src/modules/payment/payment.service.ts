@@ -145,20 +145,30 @@ export class PaymentService {
               { purchaseOrderId: fresh.id },
               { aggregateType: 'PurchaseOrder', aggregateId: fresh.id },
             );
-            await this.notifications.createNotification(
-              fresh.supplierId,
-              'PURCHASE_COMPLETED',
-              `PO ${fresh.invoiceNumber} completed.`,
-            );
+            try {
+              const supplier = await this.prisma.supplier.findUnique({ where: { id: fresh.supplierId }, select: { userId: true } });
+              if (supplier?.userId) {
+                await this.notifications.createNotification(
+                  supplier.userId,
+                  'PURCHASE_COMPLETED',
+                  `PO ${fresh.invoiceNumber} completed.`,
+                );
+              }
+            } catch {}
           }
         }
       }
     }
-    await this.notifications.createNotification(
-      payment.supplierId,
-      'SUPPLIER_PAYMENT',
-      `Payment of ${payment.amount} recorded for supplier`,
-    );
+    try {
+      const supplier = await this.prisma.supplier.findUnique({ where: { id: payment.supplierId }, select: { userId: true } });
+      if (supplier?.userId) {
+        await this.notifications.createNotification(
+          supplier.userId,
+          'SUPPLIER_PAYMENT',
+          `Payment of ${payment.amount} recorded for your account`,
+        );
+      }
+    } catch {}
     return payment;
   }
 

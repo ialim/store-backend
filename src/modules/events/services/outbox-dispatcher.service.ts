@@ -24,9 +24,8 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    if (process.env.OUTBOX_POLLING === 'true') {
-      this.start();
-    }
+    // Prefer scheduler-driven execution; internal polling disabled by default
+    if (process.env.OUTBOX_POLLING === 'true') this.start();
   }
 
   onModuleDestroy() {
@@ -68,17 +67,28 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
     status?: 'PENDING' | 'FAILED';
   }) {
     const now = new Date();
-    const where: any = {
+    const baseWhere: any = {
       OR: [{ deliverAfter: null }, { deliverAfter: { lte: now } }],
     };
-    if (options?.type) where.type = options.type;
-    if (options?.status) where.status = options.status as any;
-    else where.status = 'PENDING' as any;
+    if (options?.type) baseWhere.type = options.type;
+    const statusFilter = options?.status ?? 'PENDING';
 
-    const events = await this.prisma.outboxEvent.findMany({
-      where,
+    // Claim a batch atomically by flipping to PROCESSING
+    const candidates = await this.prisma.outboxEvent.findMany({
+      where: { ...baseWhere, status: statusFilter as any },
+      select: { id: true },
       orderBy: { createdAt: 'asc' },
       take: options?.limit ?? this.batchSize,
+    });
+    if (!candidates.length) return 0;
+    const ids = candidates.map((c) => c.id);
+    await this.prisma.outboxEvent.updateMany({
+      where: { id: { in: ids }, status: statusFilter as any },
+      data: { status: 'PROCESSING' as any },
+    });
+    const events = await this.prisma.outboxEvent.findMany({
+      where: { id: { in: ids }, status: 'PROCESSING' as any },
+      orderBy: { createdAt: 'asc' },
     });
     if (!events.length) return 0;
 
@@ -91,6 +101,8 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
         handled = (await this.paymentsHandler.tryHandle(evt)) || handled;
 
         if (!handled) {
+          // Unknown type: publish with warning to avoid infinite loop
+          this.logger.warn(`No handler for outbox type ${evt.type}; marking published.`);
           await this.prisma.outboxEvent.update({
             where: { id: evt.id },
             data: { status: 'PUBLISHED' as any },

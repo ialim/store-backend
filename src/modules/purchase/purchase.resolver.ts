@@ -43,10 +43,15 @@ import { CloseRfqInput } from './dto/close-rfq.input';
 import { CreateRequisitionFromLowStockInput } from './dto/create-requisition-from-low-stock.input';
 import { PurchaseOrderStatus } from '../../shared/prismagraphql/prisma/purchase-order-status.enum';
 import { PurchasePhase } from '../../shared/prismagraphql/prisma/purchase-phase.enum';
+import { LowStockCandidate } from './types/low-stock-candidate.type';
+import { LowStockSchedulerService } from './low-stock-scheduler.service';
 
 @Resolver()
 export class PurchaseResolver {
-  constructor(private readonly purchaseService: PurchaseService) {}
+  constructor(
+    private readonly purchaseService: PurchaseService,
+    private readonly lowStock: LowStockSchedulerService,
+  ) {}
 
   @Query(() => [Supplier])
   @UseGuards(GqlAuthGuard)
@@ -259,6 +264,32 @@ export class PurchaseResolver {
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   closeRFQ(@Args('input') input: CloseRfqInput) {
     return this.purchaseService.closeRFQ(input);
+  }
+
+  // Low-stock helpers
+  @Query(() => [LowStockCandidate])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  async lowStockCandidates(
+    @Args('storeId', { nullable: true }) storeId?: string,
+    @Args('limit', { type: () => Number, nullable: true }) limit?: number,
+  ) {
+    return this.purchaseService.getLowStockCandidates(storeId, limit ?? 500);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  async runLowStockScanNow() {
+    await this.lowStock.handleInterval();
+    return true;
+  }
+
+  @Query(() => String, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  async lastAutoRequisitionIdByStore(@Args('storeId') storeId: string) {
+    return this.purchaseService.getLastAutoRequisitionIdByStore(storeId);
   }
 
   @Mutation(() => Supplier)

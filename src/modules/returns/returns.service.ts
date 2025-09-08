@@ -183,11 +183,10 @@ export class ReturnsService {
       for (const mi of movement.items) {
         await this.prisma.stock.upsert({
           where: {
-            id: undefined,
-            AND: [
-              { storeId: sr.storeId },
-              { productVariantId: mi.productVariantId },
-            ],
+            storeId_productVariantId: {
+              storeId: sr.storeId,
+              productVariantId: mi.productVariantId,
+            },
           },
           update: { quantity: { increment: mi.quantity } },
           create: {
@@ -413,8 +412,10 @@ export class ReturnsService {
       for (const mi of movement.items) {
         await this.prisma.stock.upsert({
           where: {
-            id: undefined,
-            AND: [{ storeId }, { productVariantId: mi.productVariantId }],
+            storeId_productVariantId: {
+              storeId,
+              productVariantId: mi.productVariantId,
+            },
           },
           update: { quantity: { decrement: mi.quantity } },
           create: {

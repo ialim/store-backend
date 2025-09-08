@@ -1181,6 +1181,7 @@ type OutboxEvent {
 
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PUBLISHED
   FAILED
 }
@@ -1591,6 +1592,27 @@ type AdminProcurementDashboard {
   noSubmissionRequisitions: [RequisitionSummary!]!
   partialSubmissionRequisitions: [RequisitionSummary!]!
   creditBlockedSuppliers: [SupplierCreditStatus!]!
+}
+
+type LowStockCandidate {
+  storeId: String!
+  productVariantId: String!
+  quantity: Int
+  reorderPoint: Int
+  reorderQty: Int
+  storeName: String
+  productId: String
+  productName: String
+  size: String
+  concentration: String
+  packaging: String
+  barcode: String
+  supplierId: String
+  supplierName: String
+  supplierDefaultCost: Float
+  supplierLeadTimeDays: Int
+  supplierIsPreferred: Boolean
+  supplierCount: Int
 }
 
 type PaymentOrderSummary {
@@ -2143,6 +2165,8 @@ type Query {
   rfqCountsAll: RfqStatusCounts!
   rfqDashboard(requisitionId: String!): RfqDashboard!
   rfqDashboardAll: RfqDashboard!
+  lowStockCandidates(storeId: String, limit: Float): [LowStockCandidate!]!
+  lastAutoRequisitionIdByStore(storeId: String!): String
   adminProcurementDashboard: AdminProcurementDashboard!
   purchaseOrdersOverdueByStore(storeId: String!): [PurchaseOrder!]!
   requisitionsWithNoSubmittedQuotesByStore(storeId: String!): [RequisitionSummary!]!
@@ -5349,6 +5373,7 @@ type Mutation {
   selectSupplierQuote(input: SelectSupplierQuoteInput!): Boolean!
   rejectSupplierQuote(input: RejectSupplierQuoteInput!): Boolean!
   closeRFQ(input: CloseRfqInput!): Boolean!
+  runLowStockScanNow: Boolean!
   linkSupplierUser(input: LinkSupplierUserInput!): Supplier!
   createSupplierPayment(input: CreateSupplierPaymentInput!): SupplierPayment!
   createPurchaseRequisition(input: CreatePurchaseRequisitionInput!): String!
@@ -5380,7 +5405,15 @@ type Mutation {
   createResellerSale(input: CreateResellerSaleInput!): ResellerSale!
   registerResellerPayment(input: CreateResellerPaymentInput!): ResellerPayment!
   confirmResellerPayment(paymentId: String!): ResellerPayment!
+
+  """Assign delivery personnel to a fulfillment and set status to ASSIGNED"""
   createFulfillment(input: CreateFulfillmentInput!): Fulfillment!
+
+  """
+  Update fulfillment status (ASSIGNED, IN_TRANSIT, DELIVERED, CANCELLED). If DELIVERED and a PIN is set, confirmationPin is required.
+  """
+  assignFulfillmentPersonnel(input: AssignFulfillmentPersonnelInput!): Fulfillment!
+  updateFulfillmentStatus(input: UpdateFulfillmentStatusInput!): Fulfillment!
   adminRevertOrderToQuotation(saleOrderId: String!): SaleOrder!
   adminRevertToQuotation(saleOrderId: String!): SaleOrder!
   createSalesReturn(input: CreateSalesReturnInput!): String!
@@ -13373,6 +13406,7 @@ input StockCreateOrConnectWithoutStoreInput {
 
 input StockWhereUniqueInput {
   id: String
+  storeId_productVariantId: StockStoreIdProductVariantIdCompoundUniqueInput
   AND: [StockWhereInput!]
   OR: [StockWhereInput!]
   NOT: [StockWhereInput!]
@@ -13386,6 +13420,11 @@ input StockWhereUniqueInput {
   updatedAt: DateTimeFilter
   store: StoreScalarRelationFilter
   productVariant: ProductVariantScalarRelationFilter
+}
+
+input StockStoreIdProductVariantIdCompoundUniqueInput {
+  storeId: String!
+  productVariantId: String!
 }
 
 input StockCreateManyStoreInputEnvelope {
@@ -23627,6 +23666,17 @@ input CreateFulfillmentInput {
   deliveryPersonnelId: ID
   deliveryAddress: String
   cost: Float
+}
+
+input AssignFulfillmentPersonnelInput {
+  saleOrderId: String!
+  deliveryPersonnelId: String!
+}
+
+input UpdateFulfillmentStatusInput {
+  saleOrderId: String!
+  status: FulfillmentStatus!
+  confirmationPin: String
 }
 
 input CreateSalesReturnInput {

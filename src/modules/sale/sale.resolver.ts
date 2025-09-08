@@ -17,6 +17,8 @@ import { CreateConsumerPaymentInput } from './dto/create-consumer-payment.input'
 import { ConfirmConsumerPaymentInput } from './dto/confirm-consumer-payment.input';
 import { CreateConsumerReceiptInput } from './dto/create-consumer-receipt.input';
 import { CreateFulfillmentInput } from './dto/create-fulfillment.input';
+import { AssignFulfillmentPersonnelInput } from './dto/assign-fulfillment-personnel.input';
+import { UpdateFulfillmentStatusInput } from './dto/update-fulfillment-status.input';
 import { CreateResellerSaleInput } from './dto/create-reseller-sale.input';
 import { CreateResellerPaymentInput } from './dto/create-reseller-payment.input';
 import { Quotation } from '../../shared/prismagraphql/quotation/quotation.model';
@@ -136,11 +138,29 @@ export class SalesResolver {
     return this.salesService.confirmResellerPayment(paymentId);
   }
 
-  @Mutation(() => Fulfillment)
+  @Mutation(() => Fulfillment, { description: 'Assign delivery personnel to a fulfillment and set status to ASSIGNED' })
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   createFulfillment(@Args('input') input: CreateFulfillmentInput) {
     return this.salesService.createFulfillment(input);
+  }
+
+  @Mutation(() => Fulfillment, { description: 'Update fulfillment status (ASSIGNED, IN_TRANSIT, DELIVERED, CANCELLED). If DELIVERED and a PIN is set, confirmationPin is required.' })
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('MANAGER', 'ADMIN', 'SUPERADMIN')
+  assignFulfillmentPersonnel(
+    @Args('input') input: AssignFulfillmentPersonnelInput,
+  ) {
+    return this.salesService.assignFulfillmentPersonnel(input);
+  }
+
+  @Mutation(() => Fulfillment)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('MANAGER', 'ADMIN', 'SUPERADMIN')
+  updateFulfillmentStatus(
+    @Args('input') input: UpdateFulfillmentStatusInput,
+  ) {
+    return this.salesService.updateFulfillmentStatus(input);
   }
 
   @Mutation(() => SaleOrder)
