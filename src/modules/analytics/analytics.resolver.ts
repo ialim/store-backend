@@ -1,4 +1,4 @@
-import { Resolver, Query, Args } from '@nestjs/graphql';
+import { Resolver, Query, Args, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { AnalyticsReadService } from './analytics.service';
@@ -25,7 +25,7 @@ export class AnalyticsResolver {
   @UseGuards(GqlAuthGuard)
   topSellingVariants(
     @Args('month', { nullable: true }) month?: string,
-    @Args('limit', { type: () => Number, nullable: true }) limit?: number,
+    @Args('limit', { type: () => Int, nullable: true }) limit?: number,
   ) {
     const m = month || currentMonth();
     const lim = limit ?? 10;
@@ -36,7 +36,7 @@ export class AnalyticsResolver {
   @UseGuards(GqlAuthGuard)
   customerAffinity(
     @Args('customerId') customerId: string,
-    @Args('limit', { type: () => Number, nullable: true }) limit?: number,
+    @Args('limit', { type: () => Int, nullable: true }) limit?: number,
   ) {
     const lim = limit ?? 10;
     return this.read.customerAffinity({ customerId, limit: lim });
@@ -54,7 +54,7 @@ export class AnalyticsResolver {
   @UseGuards(GqlAuthGuard)
   async topSellingVariantsDetailed(
     @Args('month', { nullable: true }) month?: string,
-    @Args('limit', { type: () => Number, nullable: true }) limit?: number,
+    @Args('limit', { type: () => Int, nullable: true }) limit?: number,
   ) {
     const m = month || currentMonth();
     const lim = limit ?? 10;
@@ -67,7 +67,7 @@ export class AnalyticsResolver {
   async topSellingVariantsByStore(
     @Args('storeId') storeId: string,
     @Args('month', { nullable: true }) month?: string,
-    @Args('limit', { type: () => Number, nullable: true }) limit?: number,
+    @Args('limit', { type: () => Int, nullable: true }) limit?: number,
   ) {
     const m = month || currentMonth();
     const lim = limit ?? 10;

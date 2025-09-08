@@ -20,7 +20,11 @@ export class BaseCrudService<
 
   async findFirst(args: FindFirstArg): Promise<T | null> {
     try {
-      return await (this.getDelegate()).findFirst(args as any);
+      const a: any = args ?? {};
+      if (Object.prototype.hasOwnProperty.call(a, 'where') && a.where === null) {
+        delete a.where;
+      }
+      return await (this.getDelegate()).findFirst(a);
     } catch (e) {
       return null;
     }
@@ -30,15 +34,27 @@ export class BaseCrudService<
   }
 
   findMany(args: FindManyArg): Promise<T[]> {
-    return (this.getDelegate()).findMany(args as any);
+    const a: any = args ?? {};
+    if (Object.prototype.hasOwnProperty.call(a, 'where') && a.where === null) {
+      delete a.where;
+    }
+    return (this.getDelegate()).findMany(a);
   }
 
   groupBy(args: GroupByArg) {
-    return (this.getDelegate()).groupBy(args as any);
+    const a: any = args ?? {};
+    if (Object.prototype.hasOwnProperty.call(a, 'where') && a.where === null) {
+      delete a.where;
+    }
+    return (this.getDelegate()).groupBy(a);
   }
 
   aggregate(args: AggregateArg) {
-    return (this.getDelegate()).aggregate(args as any);
+    const a: any = args ?? {};
+    if (Object.prototype.hasOwnProperty.call(a, 'where') && a.where === null) {
+      delete a.where;
+    }
+    return (this.getDelegate()).aggregate(a);
   }
 
   create(args: CreateArg): Promise<T> {

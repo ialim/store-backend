@@ -6,6 +6,8 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { client } from './shared/apolloClient';
 import { AuthProvider } from './shared/AuthProvider';
+import { NotificationProvider } from './shared/NotificationProvider';
+import NetworkIndicator from './shared/NetworkIndicator';
 
 const theme = createTheme();
 
@@ -15,12 +17,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <CssBaseline />
       <ApolloProvider client={client}>
         <AuthProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
+          <NotificationProvider>
+            <NetworkIndicator />
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </NotificationProvider>
         </AuthProvider>
       </ApolloProvider>
     </ThemeProvider>
   </React.StrictMode>,
 );
-

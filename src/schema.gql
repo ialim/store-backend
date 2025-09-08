@@ -1615,6 +1615,12 @@ type LowStockCandidate {
   supplierCount: Int
 }
 
+type PurchaseOrderReceiptProgress {
+  productVariantId: String!
+  orderedQty: Int!
+  receivedQty: Int!
+}
+
 type PaymentOrderSummary {
   saleOrderId: String!
   orderTotal: Float!
@@ -2120,6 +2126,7 @@ type VariantSalesWithDetails {
 }
 
 type Query {
+  me: User!
   findFirstProduct(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, distinct: [ProductScalarFieldEnum!]): Product!
   findUniqueProduct(where: ProductWhereUniqueInput!): Product!
   listProducts(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, distinct: [ProductScalarFieldEnum!]): [Product!]!
@@ -2143,7 +2150,7 @@ type Query {
   outboxStatus: OutboxStatusCounts!
   outboxStatusByType(types: [String!]): [OutboxTypeCount!]!
   outboxStatusSeries(start: DateTime!, end: DateTime!, type: String): [OutboxDayStatus!]!
-  lastFailedOutboxEvents(limit: Float, type: String): [OutboxEvent!]!
+  lastFailedOutboxEvents(limit: Int, type: String): [OutboxEvent!]!
   suppliers: [Supplier!]!
   supplier(id: String!): Supplier!
   purchaseOrders: [PurchaseOrder!]!
@@ -2165,10 +2172,12 @@ type Query {
   rfqCountsAll: RfqStatusCounts!
   rfqDashboard(requisitionId: String!): RfqDashboard!
   rfqDashboardAll: RfqDashboard!
-  lowStockCandidates(storeId: String, limit: Float): [LowStockCandidate!]!
+  lowStockCandidates(storeId: String, limit: Int): [LowStockCandidate!]!
   lastAutoRequisitionIdByStore(storeId: String!): String
   adminProcurementDashboard: AdminProcurementDashboard!
   purchaseOrdersOverdueByStore(storeId: String!): [PurchaseOrder!]!
+  purchaseOrderReceiptProgress(purchaseOrderId: String!): [PurchaseOrderReceiptProgress!]!
+  purchaseOrdersSearch(q: String!): [PurchaseOrder!]!
   requisitionsWithNoSubmittedQuotesByStore(storeId: String!): [RequisitionSummary!]!
   requisitionsWithPartialSubmissionsByStore(storeId: String!): [RequisitionSummary!]!
   rfqStatusCountsByStore(storeId: String!): RfqStatusCounts!
@@ -2191,11 +2200,11 @@ type Query {
   dailyPaymentsSeriesRange(start: DateTime!, end: DateTime!, storeId: String, billerId: String): [PaymentDaySeries!]!
   stock(input: QueryStockInput): [Stock!]!
   stockMovements(storeId: String!): [StockMovement!]!
-  topSellingVariants(month: String, limit: Float): [VariantMonthlySales!]!
-  customerAffinity(customerId: String!, limit: Float): [CustomerAffinityEntry!]!
+  topSellingVariants(month: String, limit: Int): [VariantMonthlySales!]!
+  customerAffinity(customerId: String!, limit: Int): [CustomerAffinityEntry!]!
   monthlySalesSummary(month: String): MonthlySalesSummary!
-  topSellingVariantsDetailed(month: String, limit: Float): [VariantSalesWithDetails!]!
-  topSellingVariantsByStore(storeId: String!, month: String, limit: Float): [VariantSalesWithDetails!]!
+  topSellingVariantsDetailed(month: String, limit: Int): [VariantSalesWithDetails!]!
+  topSellingVariantsByStore(storeId: String!, month: String, limit: Int): [VariantSalesWithDetails!]!
   monthlySalesSummaryByStore(storeId: String!, month: String): MonthlySalesSummary!
   ordersQuery: [SaleOrder!]!
   order(id: String!): SaleOrder!
@@ -2205,7 +2214,7 @@ type Query {
   purchaseReturnsBySupplier(supplierId: String!): [PurchaseReturn!]!
   mySupportMessages: [SupportMessage!]!
   supportConversation(userId: String!): [SupportMessage!]!
-  recentSupportThreads(limit: Float): [SupportMessage!]!
+  recentSupportThreads(limit: Int): [SupportMessage!]!
   findFirstStore(where: StoreWhereInput, orderBy: [StoreOrderByWithRelationInput!], cursor: StoreWhereUniqueInput, take: Int, skip: Int, distinct: [StoreScalarFieldEnum!]): Store!
   findUniqueStore(where: StoreWhereUniqueInput!): Store!
   listStores(where: StoreWhereInput, orderBy: [StoreOrderByWithRelationInput!], cursor: StoreWhereUniqueInput, take: Int, skip: Int, distinct: [StoreScalarFieldEnum!]): [Store!]!
@@ -5337,6 +5346,7 @@ input UserMaxAggregateInput {
 
 type Mutation {
   login(input: LoginInput!): AuthResponse!
+  changePassword(input: ChangePasswordInput!): Boolean!
   createProduct(data: ProductCreateInput!): Product
   createManyProduct(data: [ProductCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
   updateProduct(data: ProductUpdateInput!, where: ProductWhereUniqueInput!): Product
@@ -5358,8 +5368,8 @@ type Mutation {
   upsertVariantSupplierCatalog(input: UpsertVariantSupplierCatalogInput!): SupplierCatalogEntry!
   upsertVariantTierPrice(input: UpsertVariantTierPriceInput!): String!
   markAsRead(id: String!): Notification!
-  processOutbox(limit: Float, type: String, status: String): Float!
-  retryOutboxFailed(limit: Float, type: String): Float!
+  processOutbox(limit: Int, type: String, status: String): Int!
+  retryOutboxFailed(limit: Int, type: String): Int!
   signupCustomer(input: CreateUserInput!): AuthResponse!
   completeCustomerProfile(input: UpdateCustomerProfileInput!): CustomerProfile!
   applyReseller(input: ApplyResellerInput!): ResellerProfile!
@@ -5444,6 +5454,11 @@ type Mutation {
 input LoginInput {
   email: String!
   password: String!
+}
+
+input ChangePasswordInput {
+  currentPassword: String!
+  newPassword: String!
 }
 
 input ProductCreateInput {

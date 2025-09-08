@@ -118,13 +118,19 @@ export class PurchaseService {
 
   // Purchase Orders
   async purchaseOrders() {
-    return this.prisma.purchaseOrder.findMany({ include: { items: true } });
+    return this.prisma.purchaseOrder.findMany({
+      include: {
+        items: true,
+        supplier: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async purchaseOrdersByStatus(status: string) {
     return this.prisma.purchaseOrder.findMany({
       where: { status: status as any },
-      include: { items: true },
+      include: { items: true, supplier: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -132,7 +138,7 @@ export class PurchaseService {
   async purchaseOrdersByPhase(phase: string) {
     return this.prisma.purchaseOrder.findMany({
       where: { phase: phase as any },
-      include: { items: true },
+      include: { items: true, supplier: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -891,10 +897,49 @@ export class PurchaseService {
   async purchaseOrder(id: string) {
     const po = await this.prisma.purchaseOrder.findUnique({
       where: { id },
-      include: { items: true },
+      include: {
+        items: { include: { productVariant: { select: { id: true, size: true, concentration: true, packaging: true, barcode: true, product: { select: { name: true } } } } } },
+        supplier: { select: { id: true, name: true } },
+      },
     });
     if (!po) throw new NotFoundException('Purchase order not found');
     return po;
+  }
+
+  async purchaseOrderReceiptProgress(purchaseOrderId: string) {
+    const po = await this.prisma.purchaseOrder.findUnique({ where: { id: purchaseOrderId }, include: { items: true } });
+    if (!po) throw new NotFoundException('Purchase order not found');
+    const items = po.items || [];
+    if (!items.length) return [];
+    const batchItems = await this.prisma.stockReceiptBatchItem.findMany({
+      where: { batch: { purchaseOrderId } as any },
+      select: { productVariantId: true, quantity: true },
+    });
+    const receivedMap = new Map<string, number>();
+    for (const bi of batchItems) {
+      receivedMap.set(bi.productVariantId, (receivedMap.get(bi.productVariantId) || 0) + (bi.quantity || 0));
+    }
+    return items.map((it) => ({
+      productVariantId: it.productVariantId,
+      orderedQty: it.quantity || 0,
+      receivedQty: receivedMap.get(it.productVariantId) || 0,
+    }));
+  }
+
+  async purchaseOrdersSearch(q: string) {
+    const query = q.trim();
+    if (!query) return this.prisma.purchaseOrder.findMany({ take: 50 });
+    return this.prisma.purchaseOrder.findMany({
+      where: {
+        OR: [
+          { id: { contains: query, mode: 'insensitive' } as any },
+          { supplierId: { contains: query, mode: 'insensitive' } as any },
+          { invoiceNumber: { contains: query, mode: 'insensitive' } as any },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
   }
 
   // Close RFQ: reject selected categories of quotes and publish event

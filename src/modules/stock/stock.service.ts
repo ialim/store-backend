@@ -24,6 +24,19 @@ export class StockService {
         storeId: storeId ?? undefined,
         productVariantId: productVariantId ?? undefined,
       },
+      include: {
+        store: { select: { id: true, name: true } },
+        productVariant: {
+          select: {
+            id: true,
+            size: true,
+            concentration: true,
+            packaging: true,
+            barcode: true,
+            product: { select: { name: true } },
+          },
+        },
+      },
     });
   }
 

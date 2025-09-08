@@ -1,41 +1,202 @@
-import { AppBar, Box, Button, Container, Toolbar, Typography } from '@mui/material';
-import { Link, Route, Routes, useNavigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Outbox from './pages/Outbox';
-import LowStock from './pages/LowStock';
-import Fulfillment from './pages/Fulfillment';
-import { useAuth } from './shared/AuthProvider';
+import { Box } from '@mui/material';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import React, { Suspense, lazy } from 'react';
+const Login = lazy(() => import('./pages/Login'));
+const Outbox = lazy(() => import('./pages/Outbox'));
+const LowStock = lazy(() => import('./pages/LowStock'));
+const Fulfillment = lazy(() => import('./pages/Fulfillment'));
+import ProtectedRoute from './shared/ProtectedRoute';
+import IndexRedirect from './pages/IndexRedirect';
+const Profile = lazy(() => import('./pages/Profile'));
+const Suppliers = lazy(() => import('./pages/Suppliers'));
+const PurchaseOrders = lazy(() => import('./pages/PurchaseOrders'));
+const PurchaseOrderDetail = lazy(() => import('./pages/PurchaseOrderDetail'));
+const Products = lazy(() => import('./pages/Products'));
+const Stock = lazy(() => import('./pages/Stock'));
+const Users = lazy(() => import('./pages/Users'));
+const Payments = lazy(() => import('./pages/Payments'));
+const Returns = lazy(() => import('./pages/Returns'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const Stores = lazy(() => import('./pages/Stores'));
+const Support = lazy(() => import('./pages/Support'));
+const Staff = lazy(() => import('./pages/Staff'));
+const ReceiveStock = lazy(() => import('./pages/ReceiveStock'));
+const SupplierPayments = lazy(() => import('./pages/SupplierPayments'));
+import NotFound from './pages/NotFound';
+import SidebarLayout from './shared/SidebarLayout';
+import Loading from './shared/Loading';
 
 export default function App() {
-  const { token, logout } = useAuth();
-  const navigate = useNavigate();
   return (
     <Box>
-      <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>Store Admin</Typography>
-          {token ? (
-            <>
-              <Button color="inherit" component={Link} to="/outbox">Outbox</Button>
-              <Button color="inherit" component={Link} to="/low-stock">Low Stock</Button>
-              <Button color="inherit" component={Link} to="/fulfillment">Fulfillment</Button>
-              <Button color="inherit" onClick={() => { logout(); navigate('/login'); }}>Logout</Button>
-            </>
-          ) : (
-            <Button color="inherit" component={Link} to="/login">Login</Button>
-          )}
-        </Toolbar>
-      </AppBar>
-      <Container sx={{ py: 3 }}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/outbox" element={<Outbox />} />
-          <Route path="/low-stock" element={<LowStock />} />
-          <Route path="/fulfillment" element={<Fulfillment />} />
-          <Route path="*" element={<Login />} />
-        </Routes>
-      </Container>
+      <SidebarLayout>
+        <Suspense fallback={<Loading />}>
+          <Routes>
+            <Route path="/" element={<IndexRedirect />} />
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/outbox"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT']}
+                  perms={['VIEW_REPORTS']}
+                  element={<Outbox />}
+                />
+              }
+            />
+            <Route
+              path="/low-stock"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  perms={['MANAGE_PRODUCTS', 'VIEW_REPORTS']}
+                  element={<LowStock />}
+                />
+              }
+            />
+            <Route
+              path="/fulfillment"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER']}
+                  perms={['ASSIGN_MANAGER', 'ASSIGN_BILLER']}
+                  element={<Fulfillment />}
+                />
+              }
+            />
+            <Route
+              path="/profile"
+              element={<ProtectedRoute element={<Profile />} />}
+            />
+            <Route
+              path="/suppliers"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<Suppliers />}
+                />
+              }
+            />
+            <Route
+              path="/purchase-orders"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<PurchaseOrders />}
+                />
+              }
+            />
+            <Route
+              path="/purchase-orders/:id"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<PurchaseOrderDetail />}
+                />
+              }
+            />
+            <Route
+              path="/products"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  perms={['MANAGE_PRODUCTS']}
+                  element={<Products />}
+                />
+              }
+            />
+            <Route
+              path="/stock"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<Stock />}
+                />
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN']}
+                  perms={['MANAGE_USERS']}
+                  element={<Users />}
+                />
+              }
+            />
+            <Route
+              path="/payments"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT']}
+                  element={<Payments />}
+                />
+              }
+            />
+            <Route
+              path="/returns"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<Returns />}
+                />
+              }
+            />
+            <Route path="*" element={<NotFound />} />
+            <Route
+              path="/analytics"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT']}
+                  perms={['VIEW_REPORTS']}
+                  element={<Analytics />}
+                />
+              }
+            />
+            <Route
+              path="/stores"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<Stores />}
+                />
+              }
+            />
+            <Route
+              path="/support"
+              element={<ProtectedRoute element={<Support />} />}
+            />
+            <Route
+              path="/staff"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN']}
+                  perms={['CREATE_STAFF', 'ASSIGN_MANAGER', 'ASSIGN_BILLER']}
+                  element={<Staff />}
+                />
+              }
+            />
+            <Route
+              path="/receive-stock"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<ReceiveStock />}
+                />
+              }
+            />
+            <Route
+              path="/supplier-payments"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT']}
+                  element={<SupplierPayments />}
+                />
+              }
+            />
+          </Routes>
+        </Suspense>
+      </SidebarLayout>
     </Box>
   );
 }
-

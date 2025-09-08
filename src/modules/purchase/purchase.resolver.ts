@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -45,6 +45,7 @@ import { PurchaseOrderStatus } from '../../shared/prismagraphql/prisma/purchase-
 import { PurchasePhase } from '../../shared/prismagraphql/prisma/purchase-phase.enum';
 import { LowStockCandidate } from './types/low-stock-candidate.type';
 import { LowStockSchedulerService } from './low-stock-scheduler.service';
+import { PurchaseOrderReceiptProgress } from './types/purchase-order-receipt-progress.type';
 
 @Resolver()
 export class PurchaseResolver {
@@ -272,7 +273,7 @@ export class PurchaseResolver {
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   async lowStockCandidates(
     @Args('storeId', { nullable: true }) storeId?: string,
-    @Args('limit', { type: () => Number, nullable: true }) limit?: number,
+    @Args('limit', { type: () => Int, nullable: true }) limit?: number,
   ) {
     return this.purchaseService.getLowStockCandidates(storeId, limit ?? 500);
   }
@@ -388,6 +389,18 @@ export class PurchaseResolver {
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   purchaseOrdersOverdueByStore(@Args('storeId') storeId: string) {
     return this.purchaseService.purchaseOrdersOverdueByStore(storeId);
+  }
+
+  @Query(() => [PurchaseOrderReceiptProgress])
+  @UseGuards(GqlAuthGuard)
+  purchaseOrderReceiptProgress(@Args('purchaseOrderId') purchaseOrderId: string) {
+    return this.purchaseService.purchaseOrderReceiptProgress(purchaseOrderId);
+  }
+
+  @Query(() => [PurchaseOrder])
+  @UseGuards(GqlAuthGuard)
+  purchaseOrdersSearch(@Args('q') q: string) {
+    return this.purchaseService.purchaseOrdersSearch(q);
   }
 
   @Query(() => [RequisitionSummary])

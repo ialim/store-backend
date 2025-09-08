@@ -1,0 +1,28 @@
+{
+  "folders": [
+    { "name": "backend", "path": "." },
+    { "name": "admin-ui", "path": "admin-ui" }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.next": true,
+      "**/dist": true,
+      "**/node_modules": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true
+    },
+    "typescript.tsserver.maxTsServerMemory": 4096
+  },
+  "extensions": {
+    "recommendations": [
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "Prisma.prisma",
+      "GraphQL.vscode-graphql",
+      "GraphQL.vscode-graphql-syntax"
+    ]
+  }
+}
+
