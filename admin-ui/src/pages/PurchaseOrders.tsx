@@ -1,7 +1,8 @@
 import React from 'react';
 import { gql, useLazyQuery, useMutation, useQuery } from '@apollo/client';
-import { Alert, Button, Chip, FormControl, InputLabel, MenuItem, Select, Skeleton, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Alert, Button, Chip, FormControl, InputLabel, MenuItem, Select, Skeleton, Stack, TextField, Typography } from '@mui/material';
+import { Link, useNavigate } from 'react-router-dom';
+import TableList from '../shared/TableList';
 
 const POS = gql`
   query PurchaseOrders { purchaseOrders { id status phase createdAt supplier { id name } } }
@@ -32,6 +33,7 @@ export default function PurchaseOrders() {
   const [loadByPhase, byPhase] = useLazyQuery(POS_BY_PHASE);
   const [loadSearch, bySearch] = useLazyQuery(POS_SEARCH);
   const list = (bySearch.data?.purchaseOrdersSearch ?? byStatus.data?.purchaseOrdersByStatus ?? byPhase.data?.purchaseOrdersByPhase ?? data?.purchaseOrders) ?? [];
+  const navigate = useNavigate();
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Purchase Orders</Typography>
@@ -67,63 +69,47 @@ export default function PurchaseOrders() {
           <Alert severity="error">{bySearch.error?.message || byStatus.error?.message || byPhase.error?.message}</Alert>
         )}
       </Stack>
-      {loading && !list.length ? (
-        <Skeleton variant="rectangular" height={120} />
-      ) : (
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Supplier</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Phase</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {list.map((po: any) => (
-              <TableRow key={po.id} hover>
-                <TableCell>{po.id}</TableCell>
-                <TableCell>{po.supplier?.name || po.supplier?.id || '—'}</TableCell>
-                <TableCell>
-                  <FormControl size="small" sx={{ minWidth: 140 }}>
-                    <InputLabel id={`status-${po.id}`}>Status</InputLabel>
-                    <Select
-                      labelId={`status-${po.id}`}
-                      label="Status"
-                      value={po.status}
-                      onChange={async (e) => {
-                        const status = e.target.value as string;
-                        try {
-                          await updateStatus({ variables: { input: { id: po.id, status } } });
-                          await refetch();
-                        } catch {}
-                      }}
-                    >
-                      {['DRAFT','APPROVED','SENT','RECEIVED','CANCELLED'].map((s) => (
-                        <MenuItem key={s} value={s}>{s}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </TableCell>
-                <TableCell>
-                  {po.phase ? (
-                    <Chip
-                      size="small"
-                      label={po.phase}
-                      color={po.phase === 'RECEIVED' ? 'success' : po.phase === 'RECEIVING' ? 'info' : 'default'}
-                      variant="outlined"
-                    />
-                  ) : '—'}
-                </TableCell>
-                <TableCell>
-                  <Button component={Link} to={`/purchase-orders/${po.id}`} size="small">View</Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+      <TableList
+        columns={React.useMemo(() => ([
+          { key: 'id', label: 'ID' },
+          { key: 'supplier', label: 'Supplier', render: (po: any) => po.supplier?.name || po.supplier?.id || '—', sort: true, accessor: (po: any) => po.supplier?.name || '' , filter: true },
+          { key: 'createdAt', label: 'Created', render: (po: any) => po.createdAt ? new Date(po.createdAt).toLocaleString() : '—', sort: true, accessor: (po: any) => new Date(po.createdAt || 0) },
+          { key: 'status', label: 'Status', render: (po: any) => (
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel id={`status-${po.id}`}>Status</InputLabel>
+              <Select
+                labelId={`status-${po.id}`}
+                label="Status"
+                value={po.status}
+                onChange={async (e) => {
+                  const status = e.target.value as string;
+                  try { await updateStatus({ variables: { input: { id: po.id, status } } }); await refetch(); } catch {}
+                }}
+              >
+                {['DRAFT','APPROVED','SENT','RECEIVED','CANCELLED'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+              </Select>
+            </FormControl>
+          ) },
+          { key: 'phase', label: 'Phase', render: (po: any) => po.phase ? (
+            <Chip size="small" label={po.phase} color={po.phase === 'RECEIVED' ? 'success' : po.phase === 'RECEIVING' ? 'info' : 'default'} variant="outlined" />
+          ) : '—' },
+          { key: 'actions', label: 'Actions', render: (po: any) => (
+            <Button component={Link} to={`/purchase-orders/${po.id}`} size="small">View</Button>
+          ) },
+        ] as any), [updateStatus, refetch])}
+        rows={list}
+        loading={loading}
+        emptyMessage="No purchase orders"
+        getRowKey={(po: any) => po.id}
+        onRowClick={(po: any) => navigate(`/purchase-orders/${po.id}`)}
+        defaultSortKey="createdAt"
+        showFilters
+        globalSearch
+        globalSearchPlaceholder="Search id/supplier"
+        globalSearchKeys={['id','supplier']}
+        enableUrlState
+        urlKey="pos"
+      />
     </Stack>
   );
 }

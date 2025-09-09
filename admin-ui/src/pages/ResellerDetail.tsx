@@ -1,0 +1,288 @@
+import { gql, useMutation, useQuery } from '@apollo/client';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Divider,
+  Grid,
+  MenuItem,
+  Select,
+  Skeleton,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import { notify } from '../shared/notify';
+import { useState } from 'react';
+import { useParams } from 'react-router-dom';
+
+const GET = gql`
+  query ResellerProfile($userId: String!) {
+    resellerProfile(userId: $userId) {
+      userId
+      profileStatus
+      tier
+      creditLimit
+      outstandingBalance
+      requestedAt
+      activatedAt
+      rejectedAt
+      rejectionReason
+      biller {
+        id
+        email
+      }
+      requestedBiller {
+        id
+        email
+      }
+      user {
+        id
+        email
+      }
+    }
+  }
+`;
+
+const BILLERS = gql`
+  query ListBillers {
+    listBillers {
+      id
+      email
+    }
+  }
+`;
+
+const ACTIVATE = gql`
+  mutation ActivateReseller($resellerId: String!, $billerId: String) {
+    activateReseller(resellerId: $resellerId, billerId: $billerId) {
+      userId
+      profileStatus
+      biller {
+        id
+        email
+      }
+      activatedAt
+    }
+  }
+`;
+
+const REJECT = gql`
+  mutation RejectReseller($resellerId: String!, $reason: String) {
+    rejectReseller(resellerId: $resellerId, reason: $reason) {
+      userId
+      profileStatus
+      rejectionReason
+      rejectedAt
+    }
+  }
+`;
+
+function statusColor(s?: string) {
+  switch ((s || '').toUpperCase()) {
+    case 'ACTIVE':
+      return 'success';
+    case 'PENDING':
+      return 'warning';
+    case 'REJECTED':
+      return 'error';
+    default:
+      return 'default';
+  }
+}
+
+export default function ResellerDetail() {
+  const { id } = useParams();
+  const { data, loading, error, refetch } = useQuery(GET, {
+    variables: { userId: id },
+    fetchPolicy: 'cache-and-network',
+    errorPolicy: 'all',
+  });
+  const { data: billersData } = useQuery(BILLERS, {
+    fetchPolicy: 'cache-first',
+    errorPolicy: 'all',
+  });
+  const [activate, { loading: activating }] = useMutation(ACTIVATE);
+  const [reject, { loading: rejecting }] = useMutation(REJECT);
+  const r = data?.resellerProfile;
+  const billers = billersData?.listBillers ?? [];
+  const [billerId, setBillerId] = useState<string>('');
+  const [reason, setReason] = useState<string>('');
+
+  if (loading && !r) {
+    return (
+      <Stack spacing={2}>
+        <Skeleton variant="text" width="30%" />
+        <Skeleton variant="rectangular" height={160} />
+      </Stack>
+    );
+  }
+  if (error) return <Alert severity="error">{error.message}</Alert>;
+  if (!r) return <Alert severity="info">Reseller not found.</Alert>;
+
+  return (
+    <Stack spacing={2}>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Typography variant="h5">{r.user?.email}</Typography>
+        <Chip
+          label={r.profileStatus}
+          color={statusColor(r.profileStatus) as any}
+          size="small"
+        />
+      </Stack>
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle2" color="text.secondary">
+                Profile
+              </Typography>
+              <Stack spacing={0.5} sx={{ mt: 1 }}>
+                <Typography>Tier: {r.tier}</Typography>
+                <Typography>
+                  Credit Limit: ₦{r.creditLimit?.toLocaleString?.()}
+                </Typography>
+                <Typography>
+                  Outstanding: ₦{r.outstandingBalance?.toLocaleString?.()}
+                </Typography>
+                <Typography>
+                  Requested At:{' '}
+                  {r.requestedAt
+                    ? new Date(r.requestedAt).toLocaleString()
+                    : '—'}
+                </Typography>
+                <Typography>
+                  Activated At:{' '}
+                  {r.activatedAt
+                    ? new Date(r.activatedAt).toLocaleString()
+                    : '—'}
+                </Typography>
+                {r.rejectedAt && (
+                  <Typography>
+                    Rejected At: {new Date(r.rejectedAt).toLocaleString()}
+                  </Typography>
+                )}
+                {r.rejectionReason && (
+                  <Typography>Reason: {r.rejectionReason}</Typography>
+                )}
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle2" color="text.secondary">
+                Biller
+              </Typography>
+              <Stack spacing={0.5} sx={{ mt: 1 }}>
+                <Typography>Assigned: {r.biller?.email || '—'}</Typography>
+                <Typography>
+                  Requested: {r.requestedBiller?.email || '—'}
+                </Typography>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                  sx={{ mt: 1 }}
+                >
+                  <Select
+                    size="small"
+                    value={
+                      billerId || r.biller?.id || r.requestedBiller?.id || ''
+                    }
+                    onChange={(e) => setBillerId(e.target.value)}
+                    displayEmpty
+                    sx={{ minWidth: 220 }}
+                  >
+                    <MenuItem value="">
+                      <em>No biller</em>
+                    </MenuItem>
+                    {billers.map((b: any) => (
+                      <MenuItem key={b.id} value={b.id}>
+                        {b.email}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  <Button
+                    variant="contained"
+                    disabled={activating}
+                    onClick={async () => {
+                      const ok = window.confirm(
+                        `Activate ${r.user?.email || 'this reseller'}?`,
+                      );
+                      if (!ok) return;
+                      try {
+                        await activate({
+                          variables: {
+                            resellerId: r.userId,
+                            billerId: billerId || null,
+                          },
+                        });
+                        notify(`Activated ${r.user?.email}`, 'success');
+                        await refetch();
+                      } catch (e: any) {
+                        notify(e?.message || 'Activation failed', 'error');
+                      }
+                    }}
+                  >
+                    {activating ? 'Activating…' : 'Activate'}
+                  </Button>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+      <Box>
+        <Divider />
+      </Box>
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={8}>
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle2" color="text.secondary">
+                Reject Application
+              </Typography>
+              <Stack spacing={1} sx={{ mt: 1 }}>
+                <TextField
+                  label="Reason"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Optional reason"
+                  fullWidth
+                />
+                <Button
+                  color="error"
+                  variant="contained"
+                  disabled={rejecting}
+                  onClick={async () => {
+                    const ok = window.confirm(
+                      `Reject ${r.user?.email || 'this reseller'}?`,
+                    );
+                    if (!ok) return;
+                    try {
+                      await reject({
+                        variables: { resellerId: r.userId, reason },
+                      });
+                      setReason('');
+                      notify(`Rejected ${r.user?.email}`, 'success');
+                      await refetch();
+                    } catch (e: any) {
+                      notify(e?.message || 'Rejection failed', 'error');
+                    }
+                  }}
+                >
+                  {rejecting ? 'Rejecting…' : 'Reject'}
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Stack>
+  );
+}

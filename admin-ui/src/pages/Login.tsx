@@ -13,6 +13,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/AuthProvider';
 import { notify } from '../shared/notify';
 import { decodeJwt } from '../shared/jwt';
+import { Link as RouterLink } from 'react-router-dom';
+import Link from '@mui/material/Link';
 
 const LOGIN = gql`
   mutation Login($input: LoginInput!) {
@@ -81,6 +83,14 @@ export default function Login() {
           <Button type="submit" variant="contained" disabled={loading}>
             {loading ? 'Logging in…' : 'Login'}
           </Button>
+          <Typography variant="body2">
+            New customer?{' '}
+            <Link component={RouterLink} to="/signup">Create an account</Link>
+          </Typography>
+          <Typography variant="body2">
+            Are you a reseller?{' '}
+            <Link component={RouterLink} to="/apply-reseller">Apply here</Link>
+          </Typography>
         </Stack>
       </Paper>
     </Box>

@@ -1,6 +1,7 @@
 import { gql, useLazyQuery, useMutation } from '@apollo/client';
 import { Alert, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography, Button } from '@mui/material';
 import { ConfirmButton } from '../shared/Confirm';
+import TableList from '../shared/TableList';
 import { notify } from '../shared/notify';
 import React from 'react';
 
@@ -51,19 +52,23 @@ export default function Returns() {
                     <Skeleton variant="text" width={220} />
                   </>
                 ) : (
-                  <Stack spacing={1}>
-                    {sales.map((r: any) => (
-                      <Card key={r.id}><CardContent>
-                        <Typography variant="subtitle2">{r.id}</Typography>
-                        <Typography variant="caption" color="text.secondary">{r.status} • {r.consumerSaleId || r.resellerSaleId || ''}</Typography>
-                        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                  <TableList
+                    columns={[
+                      { key: 'id', label: 'ID', sort: true },
+                      { key: 'status', label: 'Status', sort: true },
+                      { key: 'sale', label: 'Sale', render: (r: any) => r.consumerSaleId || r.resellerSaleId || '—' },
+                      { key: 'actions', label: 'Actions', render: (r: any) => (
+                        <Stack direction="row" spacing={1}>
                           <ConfirmButton variant="outlined" disabled={updatingSales} onConfirm={async () => { await updateSalesReturn({ variables: { input: { id: r.id, status: 'ACCEPTED' } } }); await loadSales({ variables: { storeId } }); notify('Sales return accepted','success'); }}>Accept</ConfirmButton>
                           <ConfirmButton color="error" variant="outlined" disabled={updatingSales} onConfirm={async () => { await updateSalesReturn({ variables: { input: { id: r.id, status: 'REJECTED' } } }); await loadSales({ variables: { storeId } }); notify('Sales return rejected','info'); }}>Reject</ConfirmButton>
                         </Stack>
-                      </CardContent></Card>
-                    ))}
-                    {!sLoading && !sales.length && <Typography color="text.secondary">No returns</Typography>}
-                  </Stack>
+                      ) },
+                    ] as any}
+                    rows={sales}
+                    loading={sLoading}
+                    emptyMessage={storeId ? 'No returns' : 'Enter Store ID'}
+                    getRowKey={(r: any) => r.id}
+                  />
                 )}
               </Stack>
             </CardContent>
@@ -85,18 +90,20 @@ export default function Returns() {
                     <Skeleton variant="text" width={220} />
                   </>
                 ) : (
-                  <Stack spacing={1}>
-                    {purchases.map((r: any) => (
-                      <Card key={r.id}><CardContent>
-                        <Typography variant="subtitle2">{r.id}</Typography>
-                        <Typography variant="caption" color="text.secondary">{r.status} • PO {r.purchaseOrderId || ''}</Typography>
-                        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                          <ConfirmButton variant="outlined" disabled={fulfilling} onConfirm={async () => { await fulfillPurchaseReturn({ variables: { input: { id: r.id } } }); await loadPurch({ variables: { supplierId } }); notify('Purchase return fulfilled','success'); }}>Fulfill</ConfirmButton>
-                        </Stack>
-                      </CardContent></Card>
-                    ))}
-                    {!pLoading && !purchases.length && <Typography color="text.secondary">No returns</Typography>}
-                  </Stack>
+                  <TableList
+                    columns={[
+                      { key: 'id', label: 'ID', sort: true },
+                      { key: 'status', label: 'Status', sort: true },
+                      { key: 'po', label: 'PO', render: (r: any) => r.purchaseOrderId || '—' },
+                      { key: 'actions', label: 'Actions', render: (r: any) => (
+                        <ConfirmButton variant="outlined" disabled={fulfilling} onConfirm={async () => { await fulfillPurchaseReturn({ variables: { input: { id: r.id } } }); await loadPurch({ variables: { supplierId } }); notify('Purchase return fulfilled','success'); }}>Fulfill</ConfirmButton>
+                      ) },
+                    ] as any}
+                    rows={purchases}
+                    loading={pLoading}
+                    emptyMessage={supplierId ? 'No returns' : 'Enter Supplier ID'}
+                    getRowKey={(r: any) => r.id}
+                  />
                 )}
               </Stack>
             </CardContent>

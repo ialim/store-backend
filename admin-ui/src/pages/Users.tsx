@@ -1,8 +1,18 @@
 import { gql, useQuery } from '@apollo/client';
-import { Alert, Skeleton, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { Alert, Stack, Typography } from '@mui/material';
+import React from 'react';
+import TableList from '../shared/TableList';
 
 const USERS = gql`
-  query Users($take: Int) { listUsers(take: $take) { id email roleId } }
+  query Users($take: Int) {
+    listUsers(take: $take) {
+      id
+      email
+      role { name }
+      customerProfile { fullName }
+      resellerProfile { tier }
+    }
+  }
 `;
 
 export default function Users() {
@@ -12,28 +22,25 @@ export default function Users() {
     <Stack spacing={2}>
       <Typography variant="h5">Users</Typography>
       {error && <Alert severity="error" onClick={() => refetch()} sx={{ cursor: 'pointer' }}>{error.message} (click to retry)</Alert>}
-      {loading && !list.length ? (
-        <Skeleton variant="rectangular" height={120} />
-      ) : (
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Email</TableCell>
-              <TableCell>Role ID</TableCell>
-              <TableCell>User ID</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {list.map((u: any) => (
-              <TableRow key={u.id} hover>
-                <TableCell>{u.email}</TableCell>
-                <TableCell>{u.roleId || '—'}</TableCell>
-                <TableCell>{u.id}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+      <TableList
+        columns={React.useMemo(() => ([
+          { key: 'name', label: 'Name', render: (u: any) => u.customerProfile?.fullName || (u.email?.split?.('@')?.[0] ?? '—'), sort: true, filter: true, accessor: (u: any) => u.customerProfile?.fullName || (u.email || '') },
+          { key: 'email', label: 'Email', sort: true, filter: true },
+          { key: 'role', label: 'Role', render: (u: any) => u.role?.name || '—', sort: true, accessor: (u: any) => u.role?.name || '' },
+          { key: 'id', label: 'User ID' },
+        ] as any), [])}
+        rows={list}
+        loading={loading}
+        emptyMessage="No users"
+        getRowKey={(u: any) => u.id}
+        defaultSortKey="name"
+        showFilters
+        globalSearch
+        globalSearchPlaceholder="Search name/email/role"
+        globalSearchKeys={['name','email','role']}
+        enableUrlState
+        urlKey="users"
+      />
     </Stack>
   );
 }

@@ -1,7 +1,8 @@
 import { gql, useMutation, useQuery } from '@apollo/client';
-import { Alert, Button, Card, CardContent, Grid, Skeleton, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from '@mui/material';
+import { Alert, Button, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography } from '@mui/material';
 import React from 'react';
 import { notify } from '../shared/notify';
+import TableList from '../shared/TableList';
 
 const BY_PO = gql`
   query SupplierPaymentsByPO($purchaseOrderId: String!) {
@@ -49,30 +50,18 @@ export default function SupplierPayments() {
                 <Button variant="contained" onClick={() => purchaseOrderId && refetch()} disabled={!purchaseOrderId}>Load</Button>
               </Stack>
               {error && <Alert severity="error">{error.message}</Alert>}
-              {loading && !list.length ? (
-                <Skeleton variant="rectangular" height={120} />
-              ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Date</TableCell>
-                      <TableCell>Method</TableCell>
-                      <TableCell>Amount</TableCell>
-                      <TableCell>Notes</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {list.map((p: any) => (
-                      <TableRow key={p.id} hover>
-                        <TableCell>{new Date(p.paymentDate).toLocaleDateString()}</TableCell>
-                        <TableCell>{p.method}</TableCell>
-                        <TableCell>{p.amount}</TableCell>
-                        <TableCell>{p.notes || ''}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+              <TableList
+                columns={[
+                  { key: 'date', label: 'Date', render: (p: any) => new Date(p.paymentDate).toLocaleDateString() },
+                  { key: 'method', label: 'Method', render: (p: any) => p.method },
+                  { key: 'amount', label: 'Amount', render: (p: any) => p.amount },
+                  { key: 'notes', label: 'Notes', render: (p: any) => p.notes || '' },
+                ] as any}
+                rows={list}
+                loading={loading}
+                emptyMessage={purchaseOrderId ? 'No payments for this PO' : 'Enter a PO ID'}
+                getRowKey={(p: any) => p.id}
+              />
               {!loading && !list.length && purchaseOrderId && (
                 <Typography color="text.secondary">No payments for this PO</Typography>
               )}

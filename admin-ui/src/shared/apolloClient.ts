@@ -6,9 +6,9 @@ import { setContext } from '@apollo/client/link/context';
 const httpLink = new HttpLink({ uri: import.meta.env.VITE_GRAPHQL_URL });
 
 const networkLink = new ApolloLink((operation, forward) => {
-  // Notify global listeners that a network request started
+  // Notify global listeners that a network request started (after current render)
   if (typeof window !== 'undefined') {
-    try { window.dispatchEvent(new CustomEvent('app:net:start')); } catch {}
+    try { setTimeout(() => window.dispatchEvent(new CustomEvent('app:net:start')), 0); } catch {}
   }
   return new Observable((observer) => {
     const sub = forward(operation).subscribe({
@@ -19,7 +19,7 @@ const networkLink = new ApolloLink((operation, forward) => {
       complete: () => observer.complete(),
     });
     return () => {
-      try { window.dispatchEvent(new CustomEvent('app:net:end')); } catch {}
+      try { setTimeout(() => window.dispatchEvent(new CustomEvent('app:net:end')), 0); } catch {}
       sub.unsubscribe();
     };
   });

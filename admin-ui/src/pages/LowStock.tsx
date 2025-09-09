@@ -1,6 +1,7 @@
 import { gql, useMutation, useQuery } from '@apollo/client';
-import { Alert, Button, Card, CardContent, CircularProgress, Skeleton, Stack, TextField, Typography, FormControlLabel, Switch } from '@mui/material';
+import { Alert, Button, CircularProgress, Stack, TextField, Typography, FormControlLabel, Switch } from '@mui/material';
 import { useEffect, useState } from 'react';
+import TableList from '../shared/TableList';
 
 const CANDIDATES = gql`
   query LowStock($storeId: String, $limit: Int) {
@@ -66,34 +67,22 @@ export default function LowStock() {
           <Button variant="text" onClick={() => refetch()}>Retry</Button>
         )}
       </Stack>
-      <Stack spacing={1}>
-        {loading && (
-          <>
-            {[...Array(4)].map((_, i) => (
-              <Card key={i}><CardContent>
-                <Skeleton variant="text" width="40%" />
-                <Skeleton variant="text" />
-                <Skeleton variant="text" width="60%" />
-              </CardContent></Card>
-            ))}
-          </>
-        )}
-        {!loading && list.map((c: any) => (
-          <Card key={`${c.storeId}:${c.productVariantId}`}>
-            <CardContent>
-              <Typography variant="subtitle1">{c.productName || c.productVariantId}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Store: {c.storeName || c.storeId} • Qty: {c.quantity} • ReorderPoint: {c.reorderPoint} • ReorderQty: {c.reorderQty}
-              </Typography>
-              {c.supplierName && (
-                <Typography variant="body2" color="text.secondary">
-                  Supplier: {c.supplierName} • Cost: {c.supplierDefaultCost} • Lead: {c.supplierLeadTimeDays}d {c.supplierIsPreferred ? '• Preferred' : ''}
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </Stack>
+      <TableList
+        columns={[
+          { key: 'product', label: 'Product', render: (c: any) => c.productName || c.productVariantId },
+          { key: 'store', label: 'Store', render: (c: any) => c.storeName || c.storeId },
+          { key: 'qty', label: 'Qty', render: (c: any) => c.quantity },
+          { key: 'reorderPoint', label: 'Reorder Point', render: (c: any) => c.reorderPoint },
+          { key: 'reorderQty', label: 'Reorder Qty', render: (c: any) => c.reorderQty },
+          { key: 'supplier', label: 'Supplier', render: (c: any) => c.supplierName || '—' },
+          { key: 'cost', label: 'Cost', render: (c: any) => c.supplierDefaultCost ?? '—' },
+          { key: 'lead', label: 'Lead (d)', render: (c: any) => c.supplierLeadTimeDays ?? '—' },
+        ] as any}
+        rows={list}
+        loading={loading}
+        emptyMessage="No low-stock candidates"
+        getRowKey={(c: any) => `${c.storeId}:${c.productVariantId}`}
+      />
     </Stack>
   );
 }

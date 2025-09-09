@@ -107,6 +107,9 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       label: 'Admin',
       items: [
         { label: 'Users', to: '/users', show: hasRole('SUPERADMIN', 'ADMIN') || hasPermission('MANAGE_USERS'), icon: <PeopleIcon /> },
+        { label: 'Customers', to: '/customers', show: hasRole('SUPERADMIN', 'ADMIN') || hasPermission('MANAGE_USERS'), icon: <PeopleIcon /> },
+        { label: 'Resellers', to: '/resellers', show: hasRole('SUPERADMIN','ADMIN','MANAGER'), icon: <PeopleIcon /> },
+        { label: 'Reseller Approvals', to: '/reseller-approvals', show: hasRole('SUPERADMIN','ADMIN','MANAGER') || hasPermission('APPROVE_RESELLER'), icon: <AssignmentIcon /> },
         { label: 'Support', to: '/support', show: true, icon: <AssignmentIcon /> },
         { label: 'Staff', to: '/staff', show: hasRole('SUPERADMIN', 'ADMIN'), icon: <PeopleIcon /> },
       ],

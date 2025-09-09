@@ -10,11 +10,10 @@ export function getDefaultRoute(roleName?: string | null): string {
     case 'BILLER':
       return '/fulfillment';
     case 'RESELLER':
+      return '/profile';
     case 'CUSTOMER':
-      // No admin pages for these yet; fallback to login
-      return '/login';
+      return '/profile';
     default:
       return '/outbox';
   }
 }
-

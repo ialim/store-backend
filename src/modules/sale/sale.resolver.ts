@@ -1,4 +1,4 @@
-import { Resolver, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Query, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -29,10 +29,11 @@ import { ConfirmResellerQuotationInput } from './dto/confirm-reseller-quotation.
 import { BillerConvertQuotationInput } from './dto/biller-convert-quotation.input';
 import { FulfillConsumerSaleInput } from './dto/fulfill-consumer-sale.input';
 import { SaleOrder } from '../../shared/prismagraphql/sale-order/sale-order.model';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 @Resolver()
 export class SalesResolver {
-  constructor(private readonly salesService: SalesService) {}
+  constructor(private readonly salesService: SalesService, private readonly prisma: PrismaService) {}
 
   // Quotation flow
   // NOTE: Quotation/order mutations are now available under OrderResolver as well.
@@ -168,5 +169,36 @@ export class SalesResolver {
   @Roles('ADMIN', 'SUPERADMIN')
   adminRevertOrderToQuotation(@Args('saleOrderId') saleOrderId: string) {
     return this.salesService.adminRevertOrderToQuotation(saleOrderId);
+  }
+
+  // Admin queries for customer history
+  @Query(() => [ConsumerSale])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN')
+  consumerSalesByCustomer(
+    @Args('customerId') customerId: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+  ) {
+    // Link ConsumerSales via CustomerProfile relation by userId
+    return this.prisma.consumerSale.findMany({
+      where: { CustomerProfile: { some: { userId: customerId } } as any },
+      orderBy: { createdAt: 'desc' },
+      take: take ?? 20,
+      include: { items: true, store: true },
+    }) as any;
+  }
+
+  @Query(() => [ConsumerReceipt])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN')
+  consumerReceiptsByCustomer(
+    @Args('customerId') customerId: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+  ) {
+    return this.prisma.consumerReceipt.findMany({
+      where: { sale: { CustomerProfile: { some: { userId: customerId } } as any } },
+      orderBy: { issuedAt: 'desc' },
+      take: take ?? 20,
+    }) as any;
   }
 }

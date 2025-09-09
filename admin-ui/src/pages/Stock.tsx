@@ -1,6 +1,7 @@
 import { gql, useQuery } from '@apollo/client';
-import { Alert, Button, Card, CardContent, Grid, Skeleton, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from '@mui/material';
+import { Alert, Button, Stack, TextField, Typography } from '@mui/material';
 import React from 'react';
+import TableList from '../shared/TableList';
 
 const STOCK = gql`
   query Stock($input: QueryStockInput) {
@@ -28,30 +29,25 @@ export default function Stock() {
         <TextField label="Variant ID" size="small" value={variantId} onChange={(e) => setVariantId(e.target.value)} />
         <Button variant="contained" onClick={() => refetch()}>Filter</Button>
       </Stack>
-      {loading && !list.length ? (
-        <Skeleton variant="rectangular" height={120} />
-      ) : (
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Store</TableCell>
-              <TableCell>Variant</TableCell>
-              <TableCell>Quantity</TableCell>
-              <TableCell>Reserved</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {list.map((s: any) => (
-              <TableRow key={`${s.storeId}:${s.productVariant?.id || ''}`} hover>
-                <TableCell>{s.store?.name || s.storeId}</TableCell>
-                <TableCell>{s.productVariant?.product?.name || s.productVariant?.barcode || s.productVariant?.id}</TableCell>
-                <TableCell>{s.quantity}</TableCell>
-                <TableCell>{s.reserved}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+      <TableList
+        columns={React.useMemo(() => ([
+          { key: 'store', label: 'Store', render: (s: any) => s.store?.name || s.storeId, sort: true, accessor: (s: any) => s.store?.name || s.storeId, filter: true },
+          { key: 'variant', label: 'Variant', render: (s: any) => s.productVariant?.product?.name || s.productVariant?.barcode || s.productVariant?.id, sort: true, accessor: (s: any) => s.productVariant?.product?.name || s.productVariant?.barcode || s.productVariant?.id, filter: true },
+          { key: 'quantity', label: 'Quantity', render: (s: any) => s.quantity, sort: true },
+          { key: 'reserved', label: 'Reserved', render: (s: any) => s.reserved, sort: true },
+        ] as any), [])}
+        rows={list}
+        loading={loading}
+        emptyMessage="No stock records"
+        getRowKey={(s: any) => `${s.storeId}:${s.productVariant?.id || ''}`}
+        defaultSortKey="store"
+        showFilters
+        globalSearch
+        globalSearchPlaceholder="Search store/variant"
+        globalSearchKeys={['store','variant']}
+        enableUrlState
+        urlKey="stock"
+      />
     </Stack>
   );
 }
