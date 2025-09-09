@@ -20,51 +20,71 @@ export class BaseCrudService<
 
   async findFirst(args: FindFirstArg): Promise<T | null> {
     try {
-      return await this.prisma[this.getModelName()].findFirst(args);
+      const a: any = args ?? {};
+      if (Object.prototype.hasOwnProperty.call(a, 'where') && a.where === null) {
+        delete a.where;
+      }
+      return await (this.getDelegate()).findFirst(a);
     } catch (e) {
       return null;
     }
   }
   findUnique(args: FindUniqueArg): Promise<T | null> {
-    return this.prisma[this.getModelName()].findUnique(args);
+    return (this.getDelegate()).findUnique(args as any);
   }
 
   findMany(args: FindManyArg): Promise<T[]> {
-    return this.prisma[this.getModelName()].findMany(args);
+    const a: any = args ?? {};
+    if (Object.prototype.hasOwnProperty.call(a, 'where') && a.where === null) {
+      delete a.where;
+    }
+    return (this.getDelegate()).findMany(a);
   }
 
   groupBy(args: GroupByArg) {
-    return this.prisma[this.getModelName()].groupBy(args);
+    const a: any = args ?? {};
+    if (Object.prototype.hasOwnProperty.call(a, 'where') && a.where === null) {
+      delete a.where;
+    }
+    return (this.getDelegate()).groupBy(a);
   }
 
   aggregate(args: AggregateArg) {
-    return this.prisma[this.getModelName()].aggregate(args);
+    const a: any = args ?? {};
+    if (Object.prototype.hasOwnProperty.call(a, 'where') && a.where === null) {
+      delete a.where;
+    }
+    return (this.getDelegate()).aggregate(a);
   }
 
   create(args: CreateArg): Promise<T> {
-    return this.prisma[this.getModelName()].create(args);
+    return (this.getDelegate()).create(args as any);
   }
 
   createMany(args: CreateManyArg) {
-    return this.prisma[this.getModelName()].createMany(args);
+    return (this.getDelegate()).createMany(args as any);
   }
 
   update(args: UpdateArg): Promise<T> {
-    return this.prisma[this.getModelName()].update(args);
+    return (this.getDelegate()).update(args as any);
   }
 
   updateMany(args: UpdatedManyArg): Promise<T[]> {
-    return this.prisma[this.getModelName()].updateMany(args);
+    return (this.getDelegate()).updateMany(args as any);
   }
 
   delete(args: DeleteArg): Promise<T> {
-    return this.prisma[this.getModelName()].delete(args);
+    return (this.getDelegate()).delete(args as any);
   }
 
   deleteMany(args: DeleteManyArg): Promise<T[]> {
-    return this.prisma[this.getModelName()].deleteMany(args);
+    return (this.getDelegate()).deleteMany(args as any);
   }
-  private getModelName(): string {
-    return this.constructor.name.replace('Service', '');
+  private getModelKey(): string {
+    const name = this.constructor.name.replace('Service', '');
+    return name.charAt(0).toLowerCase() + name.slice(1);
+  }
+  private getDelegate(): any {
+    return (this.prisma as any)[this.getModelKey()];
   }
 }

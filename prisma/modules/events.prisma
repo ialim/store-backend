@@ -2,6 +2,7 @@
 
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PUBLISHED
   FAILED
 }
@@ -19,4 +20,3 @@ model OutboxEvent {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 }
-

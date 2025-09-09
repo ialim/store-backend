@@ -24,6 +24,19 @@ export class StockService {
         storeId: storeId ?? undefined,
         productVariantId: productVariantId ?? undefined,
       },
+      include: {
+        store: { select: { id: true, name: true } },
+        productVariant: {
+          select: {
+            id: true,
+            size: true,
+            concentration: true,
+            packaging: true,
+            barcode: true,
+            product: { select: { name: true } },
+          },
+        },
+      },
     });
   }
 
@@ -45,14 +58,7 @@ export class StockService {
     for (const { productVariantId, quantity } of items) {
       await this.prisma.stock.upsert({
         where: {
-          id: undefined,
-          // composite unique constraint: (storeId, productVariantId)
-          AND: [
-            {
-              storeId,
-              productVariantId,
-            },
-          ],
+          storeId_productVariantId: { storeId, productVariantId },
         },
         update: {
           quantity:
@@ -246,11 +252,16 @@ export class StockService {
                 { purchaseOrderId: po.id },
                 { aggregateType: 'PurchaseOrder', aggregateId: po.id },
               );
-              await this.notificationService.createNotification(
-                po.supplierId,
-                'PURCHASE_COMPLETED',
-                `PO ${po.invoiceNumber} completed.`,
-              );
+              try {
+                const supplier = await tx.supplier.findUnique({ where: { id: po.supplierId }, select: { userId: true } });
+                if (supplier?.userId) {
+                  await this.notificationService.createNotification(
+                    supplier.userId,
+                    'PURCHASE_COMPLETED',
+                    `PO ${po.invoiceNumber} completed.`,
+                  );
+                }
+              } catch {}
             }
           }
         }

@@ -6,10 +6,11 @@ import { AuthModule } from '../auth/auth.module';
 import { EventsModule } from '../events/events.module';
 import { PaymentModule } from '../payment/payment.module';
 import { AnalyticsModule } from '../analytics/analytics.module';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 @Module({
   imports: [NotificationModule, AuthModule, EventsModule, PaymentModule, AnalyticsModule],
-  providers: [SalesResolver, SalesService],
+  providers: [SalesResolver, SalesService, PrismaService],
   exports: [SalesService],
 })
 export class SaleModule {}

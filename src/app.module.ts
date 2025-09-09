@@ -28,6 +28,7 @@ import { SupportModule } from './modules/support/support.module';
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
       graphiql: process.env.ENV === 'dev',
+      context: ({ req, res }) => ({ req, res }),
     }),
     AuthModule,
     CatalogueModule,

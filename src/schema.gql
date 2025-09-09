@@ -92,6 +92,7 @@ type UserCount {
   ResellerTierHistory: Int!
   ResellerTierHistoryChangedBys: Int!
   ResellerProfile: Int!
+  RequestedResellers: Int!
   Notification: Int!
   Fulfillment: Int!
   BillerQuotation: Int!
@@ -149,7 +150,8 @@ type Role {
 
 type ResellerProfile {
   userId: ID!
-  billerId: String!
+  billerId: String
+  requestedBillerId: String
   tier: UserTier!
   creditLimit: Float!
   outstandingBalance: Float!
@@ -160,7 +162,8 @@ type ResellerProfile {
   rejectedAt: DateTime
   rejectionReason: String
   user: User!
-  biller: User!
+  biller: User
+  requestedBiller: User
 }
 
 enum ProfileStatus {
@@ -1127,6 +1130,7 @@ type User {
   ResellerTierHistory: [ResellerTierHistory!]
   ResellerTierHistoryChangedBys: [ResellerTierHistory!]
   ResellerProfile: [ResellerProfile!]
+  RequestedResellers: [ResellerProfile!]
   Notification: [Notification!]
   Fulfillment: [Fulfillment!]
   BillerQuotation: [Quotation!]
@@ -1181,6 +1185,7 @@ type OutboxEvent {
 
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PUBLISHED
   FAILED
 }
@@ -1405,6 +1410,14 @@ type StoreGroupBy {
   _max: StoreMaxAggregate
 }
 
+type StoreManagerDiagnostic {
+  id: String!
+  name: String!
+  managerId: String!
+  validManager: Boolean!
+  managerEmail: String
+}
+
 type SupplierCountAggregate {
   id: Int!
   name: Int!
@@ -1591,6 +1604,33 @@ type AdminProcurementDashboard {
   noSubmissionRequisitions: [RequisitionSummary!]!
   partialSubmissionRequisitions: [RequisitionSummary!]!
   creditBlockedSuppliers: [SupplierCreditStatus!]!
+}
+
+type LowStockCandidate {
+  storeId: String!
+  productVariantId: String!
+  quantity: Int
+  reorderPoint: Int
+  reorderQty: Int
+  storeName: String
+  productId: String
+  productName: String
+  size: String
+  concentration: String
+  packaging: String
+  barcode: String
+  supplierId: String
+  supplierName: String
+  supplierDefaultCost: Float
+  supplierLeadTimeDays: Int
+  supplierIsPreferred: Boolean
+  supplierCount: Int
+}
+
+type PurchaseOrderReceiptProgress {
+  productVariantId: String!
+  orderedQty: Int!
+  receivedQty: Int!
 }
 
 type PaymentOrderSummary {
@@ -2098,6 +2138,7 @@ type VariantSalesWithDetails {
 }
 
 type Query {
+  me: User!
   findFirstProduct(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, distinct: [ProductScalarFieldEnum!]): Product!
   findUniqueProduct(where: ProductWhereUniqueInput!): Product!
   listProducts(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, distinct: [ProductScalarFieldEnum!]): [Product!]!
@@ -2121,7 +2162,11 @@ type Query {
   outboxStatus: OutboxStatusCounts!
   outboxStatusByType(types: [String!]): [OutboxTypeCount!]!
   outboxStatusSeries(start: DateTime!, end: DateTime!, type: String): [OutboxDayStatus!]!
-  lastFailedOutboxEvents(limit: Float, type: String): [OutboxEvent!]!
+  lastFailedOutboxEvents(limit: Int, type: String): [OutboxEvent!]!
+  pendingResellerApplications(take: Int, skip: Int, q: String): [ResellerProfile!]!
+  listBillers: [User!]!
+  resellers(status: String, take: Int, skip: Int, q: String): [ResellerProfile!]!
+  resellerProfile(userId: String!): ResellerProfile
   suppliers: [Supplier!]!
   supplier(id: String!): Supplier!
   purchaseOrders: [PurchaseOrder!]!
@@ -2143,8 +2188,12 @@ type Query {
   rfqCountsAll: RfqStatusCounts!
   rfqDashboard(requisitionId: String!): RfqDashboard!
   rfqDashboardAll: RfqDashboard!
+  lowStockCandidates(storeId: String, limit: Int): [LowStockCandidate!]!
+  lastAutoRequisitionIdByStore(storeId: String!): String
   adminProcurementDashboard: AdminProcurementDashboard!
   purchaseOrdersOverdueByStore(storeId: String!): [PurchaseOrder!]!
+  purchaseOrderReceiptProgress(purchaseOrderId: String!): [PurchaseOrderReceiptProgress!]!
+  purchaseOrdersSearch(q: String!): [PurchaseOrder!]!
   requisitionsWithNoSubmittedQuotesByStore(storeId: String!): [RequisitionSummary!]!
   requisitionsWithPartialSubmissionsByStore(storeId: String!): [RequisitionSummary!]!
   rfqStatusCountsByStore(storeId: String!): RfqStatusCounts!
@@ -2167,11 +2216,11 @@ type Query {
   dailyPaymentsSeriesRange(start: DateTime!, end: DateTime!, storeId: String, billerId: String): [PaymentDaySeries!]!
   stock(input: QueryStockInput): [Stock!]!
   stockMovements(storeId: String!): [StockMovement!]!
-  topSellingVariants(month: String, limit: Float): [VariantMonthlySales!]!
-  customerAffinity(customerId: String!, limit: Float): [CustomerAffinityEntry!]!
+  topSellingVariants(month: String, limit: Int): [VariantMonthlySales!]!
+  customerAffinity(customerId: String!, limit: Int): [CustomerAffinityEntry!]!
   monthlySalesSummary(month: String): MonthlySalesSummary!
-  topSellingVariantsDetailed(month: String, limit: Float): [VariantSalesWithDetails!]!
-  topSellingVariantsByStore(storeId: String!, month: String, limit: Float): [VariantSalesWithDetails!]!
+  topSellingVariantsDetailed(month: String, limit: Int): [VariantSalesWithDetails!]!
+  topSellingVariantsByStore(storeId: String!, month: String, limit: Int): [VariantSalesWithDetails!]!
   monthlySalesSummaryByStore(storeId: String!, month: String): MonthlySalesSummary!
   ordersQuery: [SaleOrder!]!
   order(id: String!): SaleOrder!
@@ -2181,17 +2230,21 @@ type Query {
   purchaseReturnsBySupplier(supplierId: String!): [PurchaseReturn!]!
   mySupportMessages: [SupportMessage!]!
   supportConversation(userId: String!): [SupportMessage!]!
-  recentSupportThreads(limit: Float): [SupportMessage!]!
+  recentSupportThreads(limit: Int): [SupportMessage!]!
   findFirstStore(where: StoreWhereInput, orderBy: [StoreOrderByWithRelationInput!], cursor: StoreWhereUniqueInput, take: Int, skip: Int, distinct: [StoreScalarFieldEnum!]): Store!
   findUniqueStore(where: StoreWhereUniqueInput!): Store!
   listStores(where: StoreWhereInput, orderBy: [StoreOrderByWithRelationInput!], cursor: StoreWhereUniqueInput, take: Int, skip: Int, distinct: [StoreScalarFieldEnum!]): [Store!]!
   groupByStore(where: StoreWhereInput, orderBy: [StoreOrderByWithAggregationInput!], by: [StoreScalarFieldEnum!]!, having: StoreScalarWhereWithAggregatesInput, take: Int, skip: Int, _count: StoreCountAggregateInput, _min: StoreMinAggregateInput, _max: StoreMaxAggregateInput): [StoreGroupBy!]!
   aggregateStore(where: StoreWhereInput, orderBy: [StoreOrderByWithRelationInput!], cursor: StoreWhereUniqueInput, take: Int, skip: Int, _count: StoreCountAggregateInput, _min: StoreMinAggregateInput, _max: StoreMaxAggregateInput): AggregateStore!
+
+  """List stores whose managerId does not resolve to a User"""
+  storesWithInvalidManagers: [StoreManagerDiagnostic!]!
   findFirstUser(where: UserWhereInput, orderBy: [UserOrderByWithRelationInput!], cursor: UserWhereUniqueInput, take: Int, skip: Int, distinct: [UserScalarFieldEnum!]): User!
   findUniqueUser(where: UserWhereUniqueInput!): User!
   listUsers(where: UserWhereInput, orderBy: [UserOrderByWithRelationInput!], cursor: UserWhereUniqueInput, take: Int, skip: Int, distinct: [UserScalarFieldEnum!]): [User!]!
   groupByUser(where: UserWhereInput, orderBy: [UserOrderByWithAggregationInput!], by: [UserScalarFieldEnum!]!, having: UserScalarWhereWithAggregatesInput, take: Int, skip: Int, _count: UserCountAggregateInput, _min: UserMinAggregateInput, _max: UserMaxAggregateInput): [UserGroupBy!]!
   aggregateUser(where: UserWhereInput, orderBy: [UserOrderByWithRelationInput!], cursor: UserWhereUniqueInput, take: Int, skip: Int, _count: UserCountAggregateInput, _min: UserMinAggregateInput, _max: UserMaxAggregateInput): AggregateUser!
+  listManagers: [User!]!
 }
 
 input ProductWhereInput {
@@ -2536,6 +2589,7 @@ input UserWhereInput {
   ResellerTierHistory: ResellerTierHistoryListRelationFilter
   ResellerTierHistoryChangedBys: ResellerTierHistoryListRelationFilter
   ResellerProfile: ResellerProfileListRelationFilter
+  RequestedResellers: ResellerProfileListRelationFilter
   Notification: NotificationListRelationFilter
   Fulfillment: FulfillmentListRelationFilter
   BillerQuotation: QuotationListRelationFilter
@@ -2637,7 +2691,8 @@ input ResellerProfileWhereInput {
   OR: [ResellerProfileWhereInput!]
   NOT: [ResellerProfileWhereInput!]
   userId: StringFilter
-  billerId: StringFilter
+  billerId: StringNullableFilter
+  requestedBillerId: StringNullableFilter
   tier: EnumUserTierFilter
   creditLimit: FloatFilter
   outstandingBalance: FloatFilter
@@ -2648,7 +2703,8 @@ input ResellerProfileWhereInput {
   rejectedAt: DateTimeNullableFilter
   rejectionReason: StringNullableFilter
   user: UserScalarRelationFilter
-  biller: UserScalarRelationFilter
+  biller: UserNullableScalarRelationFilter
+  requestedBiller: UserNullableScalarRelationFilter
 }
 
 input EnumUserTierFilter {
@@ -2677,6 +2733,11 @@ input NestedEnumProfileStatusFilter {
   in: [ProfileStatus!]
   notIn: [ProfileStatus!]
   not: NestedEnumProfileStatusFilter
+}
+
+input UserNullableScalarRelationFilter {
+  is: UserWhereInput
+  isNot: UserWhereInput
 }
 
 input CustomerProfileNullableScalarRelationFilter {
@@ -2919,11 +2980,6 @@ input NestedEnumQuotationStatusFilter {
   in: [QuotationStatus!]
   notIn: [QuotationStatus!]
   not: NestedEnumQuotationStatusFilter
-}
-
-input UserNullableScalarRelationFilter {
-  is: UserWhereInput
-  isNot: UserWhereInput
 }
 
 input QuotationItemListRelationFilter {
@@ -4746,6 +4802,7 @@ input UserOrderByWithRelationInput {
   ResellerTierHistory: ResellerTierHistoryOrderByRelationAggregateInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryOrderByRelationAggregateInput
   ResellerProfile: ResellerProfileOrderByRelationAggregateInput
+  RequestedResellers: ResellerProfileOrderByRelationAggregateInput
   Notification: NotificationOrderByRelationAggregateInput
   Fulfillment: FulfillmentOrderByRelationAggregateInput
   BillerQuotation: QuotationOrderByRelationAggregateInput
@@ -4774,7 +4831,8 @@ input UserOrderByRelationAggregateInput {
 
 input ResellerProfileOrderByWithRelationInput {
   userId: SortOrder
-  billerId: SortOrder
+  billerId: SortOrderInput
+  requestedBillerId: SortOrderInput
   tier: SortOrder
   creditLimit: SortOrder
   outstandingBalance: SortOrder
@@ -4786,6 +4844,7 @@ input ResellerProfileOrderByWithRelationInput {
   rejectionReason: SortOrderInput
   user: UserOrderByWithRelationInput
   biller: UserOrderByWithRelationInput
+  requestedBiller: UserOrderByWithRelationInput
 }
 
 input CustomerProfileOrderByWithRelationInput {
@@ -5113,6 +5172,7 @@ input UserWhereUniqueInput {
   ResellerTierHistory: ResellerTierHistoryListRelationFilter
   ResellerTierHistoryChangedBys: ResellerTierHistoryListRelationFilter
   ResellerProfile: ResellerProfileListRelationFilter
+  RequestedResellers: ResellerProfileListRelationFilter
   Notification: NotificationListRelationFilter
   Fulfillment: FulfillmentListRelationFilter
   BillerQuotation: QuotationListRelationFilter
@@ -5313,6 +5373,7 @@ input UserMaxAggregateInput {
 
 type Mutation {
   login(input: LoginInput!): AuthResponse!
+  changePassword(input: ChangePasswordInput!): Boolean!
   createProduct(data: ProductCreateInput!): Product
   createManyProduct(data: [ProductCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
   updateProduct(data: ProductUpdateInput!, where: ProductWhereUniqueInput!): Product
@@ -5334,12 +5395,14 @@ type Mutation {
   upsertVariantSupplierCatalog(input: UpsertVariantSupplierCatalogInput!): SupplierCatalogEntry!
   upsertVariantTierPrice(input: UpsertVariantTierPriceInput!): String!
   markAsRead(id: String!): Notification!
-  processOutbox(limit: Float, type: String, status: String): Float!
-  retryOutboxFailed(limit: Float, type: String): Float!
+  processOutbox(limit: Int, type: String, status: String): Int!
+  retryOutboxFailed(limit: Int, type: String): Int!
   signupCustomer(input: CreateUserInput!): AuthResponse!
   completeCustomerProfile(input: UpdateCustomerProfileInput!): CustomerProfile!
   applyReseller(input: ApplyResellerInput!): ResellerProfile!
   approveReseller(resellerId: String!, input: ApproveResellerInput!): ResellerProfile!
+  activateReseller(resellerId: String!, billerId: String): ResellerProfile!
+  rejectReseller(resellerId: String!, reason: String): ResellerProfile!
   createSupplier(input: CreateSupplierInput!): Supplier!
   updateSupplier(input: UpdateSupplierInput!): Supplier!
   createPurchaseOrder(input: CreatePurchaseOrderInput!): PurchaseOrder!
@@ -5349,6 +5412,7 @@ type Mutation {
   selectSupplierQuote(input: SelectSupplierQuoteInput!): Boolean!
   rejectSupplierQuote(input: RejectSupplierQuoteInput!): Boolean!
   closeRFQ(input: CloseRfqInput!): Boolean!
+  runLowStockScanNow: Boolean!
   linkSupplierUser(input: LinkSupplierUserInput!): Supplier!
   createSupplierPayment(input: CreateSupplierPaymentInput!): SupplierPayment!
   createPurchaseRequisition(input: CreatePurchaseRequisitionInput!): String!
@@ -5362,7 +5426,7 @@ type Mutation {
   markPurchaseOrderReceived(input: MarkPurchaseOrderReceivedInput!): PurchaseOrder!
   createRequisitionFromLowStock(input: CreateRequisitionFromLowStockInput!): String
   createStaff(input: CreateStaffInput!): User!
-  assignStoreManager(input: AssignStoreManagerInput!): Store!
+  assignStoreManager(storeId: String!, managerId: String!): Boolean!
   assignBiller(input: AssignBillerInput!): ResellerProfile!
   receiveStockBatch(input: ReceiveStockBatchInput!): StockReceiptBatch!
   transferStock(input: TransferStockInput!): StockTransfer!
@@ -5380,7 +5444,15 @@ type Mutation {
   createResellerSale(input: CreateResellerSaleInput!): ResellerSale!
   registerResellerPayment(input: CreateResellerPaymentInput!): ResellerPayment!
   confirmResellerPayment(paymentId: String!): ResellerPayment!
+
+  """Assign delivery personnel to a fulfillment and set status to ASSIGNED"""
   createFulfillment(input: CreateFulfillmentInput!): Fulfillment!
+
+  """
+  Update fulfillment status (ASSIGNED, IN_TRANSIT, DELIVERED, CANCELLED). If DELIVERED and a PIN is set, confirmationPin is required.
+  """
+  assignFulfillmentPersonnel(input: AssignFulfillmentPersonnelInput!): Fulfillment!
+  updateFulfillmentStatus(input: UpdateFulfillmentStatusInput!): Fulfillment!
   adminRevertOrderToQuotation(saleOrderId: String!): SaleOrder!
   adminRevertToQuotation(saleOrderId: String!): SaleOrder!
   createSalesReturn(input: CreateSalesReturnInput!): String!
@@ -5396,6 +5468,7 @@ type Mutation {
   updateManyStore(data: StoreUpdateManyMutationInput!, where: StoreWhereInput, limit: Int): AffectedRows
   deleteStore(where: StoreWhereUniqueInput!): Store
   deleteManyStore(where: StoreWhereInput, limit: Int): AffectedRows
+  bulkAssignStoreManager(storeIds: [String!]!, managerId: String!): Float!
   createUser(data: UserCreateInput!): User
   createManyUser(data: [UserCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
   updateUser(data: UserUpdateInput!, where: UserWhereUniqueInput!): User
@@ -5411,6 +5484,11 @@ type Mutation {
 input LoginInput {
   email: String!
   password: String!
+}
+
+input ChangePasswordInput {
+  currentPassword: String!
+  newPassword: String!
 }
 
 input ProductCreateInput {
@@ -5564,6 +5642,7 @@ input UserCreateWithoutStoreInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -5650,7 +5729,8 @@ input ResellerProfileCreateWithoutUserInput {
   activatedAt: DateTime
   rejectedAt: DateTime
   rejectionReason: String
-  biller: UserCreateNestedOneWithoutResellerProfileInput!
+  biller: UserCreateNestedOneWithoutResellerProfileInput
+  requestedBiller: UserCreateNestedOneWithoutRequestedResellersInput
 }
 
 input UserCreateNestedOneWithoutResellerProfileInput {
@@ -5697,6 +5777,7 @@ input UserCreateWithoutResellerProfileInput {
   Payment: PaymentCreateNestedManyWithoutReceivedByInput
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -5997,6 +6078,7 @@ input UserCreateWithoutStockReceiptBatchReceivedBysInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -6234,6 +6316,7 @@ input UserCreateWithoutConsumerSaleInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -6305,6 +6388,7 @@ input UserCreateWithoutResellerPaymentsMadeInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -6556,6 +6640,7 @@ input UserCreateWithoutConsumerSaleAdjustedBysInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -6627,6 +6712,7 @@ input UserCreateWithoutStockReceiptBatchConfirmedBysInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -6781,6 +6867,7 @@ input UserCreateWithoutResellerSalesInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -6936,6 +7023,7 @@ input UserCreateWithoutBillerQuotationInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
@@ -7004,6 +7092,7 @@ input UserCreateWithoutStockTransferApprovalsInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -7185,6 +7274,7 @@ input UserCreateWithoutBillerResellerSaleInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -7254,6 +7344,7 @@ input UserCreateWithoutStockTransferRequestsInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -7452,6 +7543,7 @@ input UserCreateWithoutResellerSaleInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -7744,6 +7836,7 @@ input UserCreateWithoutCustomerProfileInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -7920,6 +8013,7 @@ input UserCreateWithoutConsumerReceiptInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -8015,6 +8109,7 @@ input UserCreateWithoutResellerPaymentsReceivedInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -8090,6 +8185,7 @@ input UserCreateWithoutSalesReturnRequestersInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -8165,6 +8261,7 @@ input UserCreateWithoutSalesReturnReceiversInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -8240,6 +8337,7 @@ input UserCreateWithoutSalesReturnInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -8537,6 +8635,7 @@ input UserCreateWithoutResellerQuotationInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -8606,6 +8705,7 @@ input UserCreateWithoutPurchaseReturnInitiatorsInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -8728,6 +8828,7 @@ input UserCreateWithoutResellerTierHistoryChangedBysInput {
   Payment: PaymentCreateNestedManyWithoutReceivedByInput
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -8754,11 +8855,154 @@ input ResellerProfileCreateWithoutBillerInput {
   rejectedAt: DateTime
   rejectionReason: String
   user: UserCreateNestedOneWithoutResellerProfileInput!
+  requestedBiller: UserCreateNestedOneWithoutRequestedResellersInput
 }
 
-input ResellerProfileCreateOrConnectWithoutBillerInput {
+input UserCreateNestedOneWithoutRequestedResellersInput {
+  create: UserCreateWithoutRequestedResellersInput
+  connectOrCreate: UserCreateOrConnectWithoutRequestedResellersInput
+  connect: UserWhereUniqueInput
+}
+
+input UserCreateWithoutRequestedResellersInput {
+  id: String
+  email: String!
+  passwordHash: String!
+  tier: UserTier
+  referralCode: String
+  referredBy: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  isEmailVerified: Boolean
+  emailVerificationToken: String
+  emailVerificationTokenExpiry: DateTime
+  role: RoleCreateNestedOneWithoutUsersInput!
+  resellerProfile: ResellerProfileCreateNestedOneWithoutUserInput
+  customerProfile: CustomerProfileCreateNestedOneWithoutUserInput
+  resellerPaymentsMade: ResellerPaymentCreateNestedManyWithoutResellerInput
+  resellerPaymentsReceived: ResellerPaymentCreateNestedManyWithoutReceivedByInput
+  adminLogs: AdminActionLogCreateNestedManyWithoutAdminInput
+  supportMessages: SupportMessageCreateNestedManyWithoutUserInput
+  ConsumerSale: ConsumerSaleCreateNestedManyWithoutBillerInput
+  ConsumerSaleAdjustedBys: ConsumerSaleCreateNestedManyWithoutAdjustedByInput
+  StockReceiptBatchReceivedBys: StockReceiptBatchCreateNestedManyWithoutReceivedByInput
+  StockReceiptBatchConfirmedBys: StockReceiptBatchCreateNestedManyWithoutConfirmedByInput
+  StockTransferRequests: StockTransferCreateNestedManyWithoutRequestedByInput
+  StockTransferApprovals: StockTransferCreateNestedManyWithoutApprovedByInput
+  Store: StoreCreateNestedManyWithoutManagerInput
+  ConsumerReceipt: ConsumerReceiptCreateNestedManyWithoutIssuedByInput
+  ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
+  BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
+  ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
+  SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
+  SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
+  PurchaseReturnInitiators: PurchaseReturnCreateNestedManyWithoutInitiatedByInput
+  PurchaseReturnApprovers: PurchaseReturnCreateNestedManyWithoutApprovedByInput
+  Payment: PaymentCreateNestedManyWithoutReceivedByInput
+  ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
+  ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
+  ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  Notification: NotificationCreateNestedManyWithoutUserInput
+  Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
+  ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
+  PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
+}
+
+input ResellerTierHistoryCreateNestedManyWithoutAdminInput {
+  create: [ResellerTierHistoryCreateWithoutAdminInput!]
+  connectOrCreate: [ResellerTierHistoryCreateOrConnectWithoutAdminInput!]
+  createMany: ResellerTierHistoryCreateManyAdminInputEnvelope
+  connect: [ResellerTierHistoryWhereUniqueInput!]
+}
+
+input ResellerTierHistoryCreateWithoutAdminInput {
+  id: String
+  fromTier: UserTier!
+  toTier: UserTier!
+  changedAt: DateTime
+  user: UserCreateNestedOneWithoutResellerTierHistoryInput!
+}
+
+input UserCreateNestedOneWithoutResellerTierHistoryInput {
+  create: UserCreateWithoutResellerTierHistoryInput
+  connectOrCreate: UserCreateOrConnectWithoutResellerTierHistoryInput
+  connect: UserWhereUniqueInput
+}
+
+input UserCreateWithoutResellerTierHistoryInput {
+  id: String
+  email: String!
+  passwordHash: String!
+  tier: UserTier
+  referralCode: String
+  referredBy: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  isEmailVerified: Boolean
+  emailVerificationToken: String
+  emailVerificationTokenExpiry: DateTime
+  role: RoleCreateNestedOneWithoutUsersInput!
+  resellerProfile: ResellerProfileCreateNestedOneWithoutUserInput
+  customerProfile: CustomerProfileCreateNestedOneWithoutUserInput
+  resellerPaymentsMade: ResellerPaymentCreateNestedManyWithoutResellerInput
+  resellerPaymentsReceived: ResellerPaymentCreateNestedManyWithoutReceivedByInput
+  adminLogs: AdminActionLogCreateNestedManyWithoutAdminInput
+  supportMessages: SupportMessageCreateNestedManyWithoutUserInput
+  ConsumerSale: ConsumerSaleCreateNestedManyWithoutBillerInput
+  ConsumerSaleAdjustedBys: ConsumerSaleCreateNestedManyWithoutAdjustedByInput
+  StockReceiptBatchReceivedBys: StockReceiptBatchCreateNestedManyWithoutReceivedByInput
+  StockReceiptBatchConfirmedBys: StockReceiptBatchCreateNestedManyWithoutConfirmedByInput
+  StockTransferRequests: StockTransferCreateNestedManyWithoutRequestedByInput
+  StockTransferApprovals: StockTransferCreateNestedManyWithoutApprovedByInput
+  Store: StoreCreateNestedManyWithoutManagerInput
+  ConsumerReceipt: ConsumerReceiptCreateNestedManyWithoutIssuedByInput
+  ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
+  BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
+  ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
+  SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
+  SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
+  PurchaseReturnInitiators: PurchaseReturnCreateNestedManyWithoutInitiatedByInput
+  PurchaseReturnApprovers: PurchaseReturnCreateNestedManyWithoutApprovedByInput
+  Payment: PaymentCreateNestedManyWithoutReceivedByInput
+  ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
+  ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
+  Notification: NotificationCreateNestedManyWithoutUserInput
+  Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
+  ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
+  PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
+}
+
+input ResellerProfileCreateNestedManyWithoutRequestedBillerInput {
+  create: [ResellerProfileCreateWithoutRequestedBillerInput!]
+  connectOrCreate: [ResellerProfileCreateOrConnectWithoutRequestedBillerInput!]
+  createMany: ResellerProfileCreateManyRequestedBillerInputEnvelope
+  connect: [ResellerProfileWhereUniqueInput!]
+}
+
+input ResellerProfileCreateWithoutRequestedBillerInput {
+  tier: UserTier!
+  creditLimit: Float!
+  outstandingBalance: Float
+  isActive: Boolean
+  profileStatus: ProfileStatus
+  requestedAt: DateTime
+  activatedAt: DateTime
+  rejectedAt: DateTime
+  rejectionReason: String
+  user: UserCreateNestedOneWithoutResellerProfileInput!
+  biller: UserCreateNestedOneWithoutResellerProfileInput
+}
+
+input ResellerProfileCreateOrConnectWithoutRequestedBillerInput {
   where: ResellerProfileWhereUniqueInput!
-  create: ResellerProfileCreateWithoutBillerInput!
+  create: ResellerProfileCreateWithoutRequestedBillerInput!
 }
 
 input ResellerProfileWhereUniqueInput {
@@ -8766,7 +9010,8 @@ input ResellerProfileWhereUniqueInput {
   AND: [ResellerProfileWhereInput!]
   OR: [ResellerProfileWhereInput!]
   NOT: [ResellerProfileWhereInput!]
-  billerId: StringFilter
+  billerId: StringNullableFilter
+  requestedBillerId: StringNullableFilter
   tier: EnumUserTierFilter
   creditLimit: FloatFilter
   outstandingBalance: FloatFilter
@@ -8777,16 +9022,18 @@ input ResellerProfileWhereUniqueInput {
   rejectedAt: DateTimeNullableFilter
   rejectionReason: StringNullableFilter
   user: UserScalarRelationFilter
-  biller: UserScalarRelationFilter
+  biller: UserNullableScalarRelationFilter
+  requestedBiller: UserNullableScalarRelationFilter
 }
 
-input ResellerProfileCreateManyBillerInputEnvelope {
-  data: [ResellerProfileCreateManyBillerInput!]!
+input ResellerProfileCreateManyRequestedBillerInputEnvelope {
+  data: [ResellerProfileCreateManyRequestedBillerInput!]!
   skipDuplicates: Boolean
 }
 
-input ResellerProfileCreateManyBillerInput {
+input ResellerProfileCreateManyRequestedBillerInput {
   userId: String!
+  billerId: String
   tier: UserTier!
   creditLimit: Float!
   outstandingBalance: Float
@@ -9032,73 +9279,7 @@ input UserCreateWithoutPurchaseReturnApproversInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
-  Notification: NotificationCreateNestedManyWithoutUserInput
-  Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
-  BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
-  ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
-  PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
-  Supplier: SupplierCreateNestedManyWithoutUserInput
-}
-
-input ResellerTierHistoryCreateNestedManyWithoutAdminInput {
-  create: [ResellerTierHistoryCreateWithoutAdminInput!]
-  connectOrCreate: [ResellerTierHistoryCreateOrConnectWithoutAdminInput!]
-  createMany: ResellerTierHistoryCreateManyAdminInputEnvelope
-  connect: [ResellerTierHistoryWhereUniqueInput!]
-}
-
-input ResellerTierHistoryCreateWithoutAdminInput {
-  id: String
-  fromTier: UserTier!
-  toTier: UserTier!
-  changedAt: DateTime
-  user: UserCreateNestedOneWithoutResellerTierHistoryInput!
-}
-
-input UserCreateNestedOneWithoutResellerTierHistoryInput {
-  create: UserCreateWithoutResellerTierHistoryInput
-  connectOrCreate: UserCreateOrConnectWithoutResellerTierHistoryInput
-  connect: UserWhereUniqueInput
-}
-
-input UserCreateWithoutResellerTierHistoryInput {
-  id: String
-  email: String!
-  passwordHash: String!
-  tier: UserTier
-  referralCode: String
-  referredBy: String
-  createdAt: DateTime
-  updatedAt: DateTime
-  isEmailVerified: Boolean
-  emailVerificationToken: String
-  emailVerificationTokenExpiry: DateTime
-  role: RoleCreateNestedOneWithoutUsersInput!
-  resellerProfile: ResellerProfileCreateNestedOneWithoutUserInput
-  customerProfile: CustomerProfileCreateNestedOneWithoutUserInput
-  resellerPaymentsMade: ResellerPaymentCreateNestedManyWithoutResellerInput
-  resellerPaymentsReceived: ResellerPaymentCreateNestedManyWithoutReceivedByInput
-  adminLogs: AdminActionLogCreateNestedManyWithoutAdminInput
-  supportMessages: SupportMessageCreateNestedManyWithoutUserInput
-  ConsumerSale: ConsumerSaleCreateNestedManyWithoutBillerInput
-  ConsumerSaleAdjustedBys: ConsumerSaleCreateNestedManyWithoutAdjustedByInput
-  StockReceiptBatchReceivedBys: StockReceiptBatchCreateNestedManyWithoutReceivedByInput
-  StockReceiptBatchConfirmedBys: StockReceiptBatchCreateNestedManyWithoutConfirmedByInput
-  StockTransferRequests: StockTransferCreateNestedManyWithoutRequestedByInput
-  StockTransferApprovals: StockTransferCreateNestedManyWithoutApprovedByInput
-  Store: StoreCreateNestedManyWithoutManagerInput
-  ConsumerReceipt: ConsumerReceiptCreateNestedManyWithoutIssuedByInput
-  ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
-  BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
-  ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
-  SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
-  SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
-  SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
-  PurchaseReturnInitiators: PurchaseReturnCreateNestedManyWithoutInitiatedByInput
-  PurchaseReturnApprovers: PurchaseReturnCreateNestedManyWithoutApprovedByInput
-  Payment: PaymentCreateNestedManyWithoutReceivedByInput
-  ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
-  ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -9598,6 +9779,7 @@ input UserCreateWithoutPurchaseRequisitionInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -9716,6 +9898,7 @@ input UserCreateWithoutFulfillmentInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
@@ -10457,6 +10640,7 @@ input UserCreateWithoutSupplierInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -11910,43 +12094,6 @@ input QuotationCreateManyBillerInput {
   updatedAt: DateTime
 }
 
-input UserCreateOrConnectWithoutResellerTierHistoryInput {
-  where: UserWhereUniqueInput!
-  create: UserCreateWithoutResellerTierHistoryInput!
-}
-
-input ResellerTierHistoryCreateOrConnectWithoutAdminInput {
-  where: ResellerTierHistoryWhereUniqueInput!
-  create: ResellerTierHistoryCreateWithoutAdminInput!
-}
-
-input ResellerTierHistoryWhereUniqueInput {
-  id: String
-  AND: [ResellerTierHistoryWhereInput!]
-  OR: [ResellerTierHistoryWhereInput!]
-  NOT: [ResellerTierHistoryWhereInput!]
-  userId: StringFilter
-  fromTier: EnumUserTierFilter
-  toTier: EnumUserTierFilter
-  changedBy: StringFilter
-  changedAt: DateTimeFilter
-  user: UserScalarRelationFilter
-  admin: UserScalarRelationFilter
-}
-
-input ResellerTierHistoryCreateManyAdminInputEnvelope {
-  data: [ResellerTierHistoryCreateManyAdminInput!]!
-  skipDuplicates: Boolean
-}
-
-input ResellerTierHistoryCreateManyAdminInput {
-  id: String
-  userId: String!
-  fromTier: UserTier!
-  toTier: UserTier!
-  changedAt: DateTime
-}
-
 input UserCreateOrConnectWithoutPurchaseReturnApproversInput {
   where: UserWhereUniqueInput!
   create: UserCreateWithoutPurchaseReturnApproversInput!
@@ -12039,6 +12186,72 @@ input FulfillmentCreateManyDeliveryPersonnelInput {
   confirmationPin: String
   createdAt: DateTime
   updatedAt: DateTime
+}
+
+input UserCreateOrConnectWithoutResellerTierHistoryInput {
+  where: UserWhereUniqueInput!
+  create: UserCreateWithoutResellerTierHistoryInput!
+}
+
+input ResellerTierHistoryCreateOrConnectWithoutAdminInput {
+  where: ResellerTierHistoryWhereUniqueInput!
+  create: ResellerTierHistoryCreateWithoutAdminInput!
+}
+
+input ResellerTierHistoryWhereUniqueInput {
+  id: String
+  AND: [ResellerTierHistoryWhereInput!]
+  OR: [ResellerTierHistoryWhereInput!]
+  NOT: [ResellerTierHistoryWhereInput!]
+  userId: StringFilter
+  fromTier: EnumUserTierFilter
+  toTier: EnumUserTierFilter
+  changedBy: StringFilter
+  changedAt: DateTimeFilter
+  user: UserScalarRelationFilter
+  admin: UserScalarRelationFilter
+}
+
+input ResellerTierHistoryCreateManyAdminInputEnvelope {
+  data: [ResellerTierHistoryCreateManyAdminInput!]!
+  skipDuplicates: Boolean
+}
+
+input ResellerTierHistoryCreateManyAdminInput {
+  id: String
+  userId: String!
+  fromTier: UserTier!
+  toTier: UserTier!
+  changedAt: DateTime
+}
+
+input UserCreateOrConnectWithoutRequestedResellersInput {
+  where: UserWhereUniqueInput!
+  create: UserCreateWithoutRequestedResellersInput!
+}
+
+input ResellerProfileCreateOrConnectWithoutBillerInput {
+  where: ResellerProfileWhereUniqueInput!
+  create: ResellerProfileCreateWithoutBillerInput!
+}
+
+input ResellerProfileCreateManyBillerInputEnvelope {
+  data: [ResellerProfileCreateManyBillerInput!]!
+  skipDuplicates: Boolean
+}
+
+input ResellerProfileCreateManyBillerInput {
+  userId: String!
+  requestedBillerId: String
+  tier: UserTier!
+  creditLimit: Float!
+  outstandingBalance: Float
+  isActive: Boolean
+  profileStatus: ProfileStatus
+  requestedAt: DateTime
+  activatedAt: DateTime
+  rejectedAt: DateTime
+  rejectionReason: String
 }
 
 input UserCreateOrConnectWithoutResellerTierHistoryChangedBysInput {
@@ -13373,6 +13586,7 @@ input StockCreateOrConnectWithoutStoreInput {
 
 input StockWhereUniqueInput {
   id: String
+  storeId_productVariantId: StockStoreIdProductVariantIdCompoundUniqueInput
   AND: [StockWhereInput!]
   OR: [StockWhereInput!]
   NOT: [StockWhereInput!]
@@ -13386,6 +13600,11 @@ input StockWhereUniqueInput {
   updatedAt: DateTimeFilter
   store: StoreScalarRelationFilter
   productVariant: ProductVariantScalarRelationFilter
+}
+
+input StockStoreIdProductVariantIdCompoundUniqueInput {
+  storeId: String!
+  productVariantId: String!
 }
 
 input StockCreateManyStoreInputEnvelope {
@@ -13728,6 +13947,7 @@ input UserUpdateWithoutStoreInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -13851,7 +14071,8 @@ input ResellerProfileUpdateWithoutUserInput {
   activatedAt: NullableDateTimeFieldUpdateOperationsInput
   rejectedAt: NullableDateTimeFieldUpdateOperationsInput
   rejectionReason: NullableStringFieldUpdateOperationsInput
-  biller: UserUpdateOneRequiredWithoutResellerProfileNestedInput
+  biller: UserUpdateOneWithoutResellerProfileNestedInput
+  requestedBiller: UserUpdateOneWithoutRequestedResellersNestedInput
 }
 
 input EnumUserTierFieldUpdateOperationsInput {
@@ -13862,10 +14083,12 @@ input EnumProfileStatusFieldUpdateOperationsInput {
   set: ProfileStatus
 }
 
-input UserUpdateOneRequiredWithoutResellerProfileNestedInput {
+input UserUpdateOneWithoutResellerProfileNestedInput {
   create: UserCreateWithoutResellerProfileInput
   connectOrCreate: UserCreateOrConnectWithoutResellerProfileInput
   upsert: UserUpsertWithoutResellerProfileInput
+  disconnect: UserWhereInput
+  delete: UserWhereInput
   connect: UserWhereUniqueInput
   update: UserUpdateToOneWithWhereWithoutResellerProfileInput
 }
@@ -13914,6 +14137,7 @@ input UserUpdateWithoutResellerProfileInput {
   Payment: PaymentUpdateManyWithoutReceivedByNestedInput
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -14338,6 +14562,7 @@ input UserUpdateWithoutStockReceiptBatchReceivedBysInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -14696,6 +14921,7 @@ input UserUpdateWithoutConsumerSaleInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -14788,6 +15014,7 @@ input UserUpdateWithoutResellerPaymentsMadeInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -15125,6 +15352,7 @@ input UserUpdateWithoutConsumerSaleAdjustedBysInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -15217,6 +15445,7 @@ input UserUpdateWithoutStockReceiptBatchConfirmedBysInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -15427,6 +15656,7 @@ input UserUpdateWithoutResellerSalesInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -15647,6 +15877,7 @@ input UserUpdateWithoutBillerQuotationInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
@@ -15736,6 +15967,7 @@ input UserUpdateWithoutStockTransferApprovalsInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -16001,6 +16233,7 @@ input UserUpdateWithoutBillerResellerSaleInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -16091,6 +16324,7 @@ input UserUpdateWithoutStockTransferRequestsInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -16372,6 +16606,7 @@ input UserUpdateWithoutResellerSaleInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -16796,6 +17031,7 @@ input UserUpdateWithoutCustomerProfileInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -17045,6 +17281,7 @@ input UserUpdateWithoutConsumerReceiptInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -17174,6 +17411,7 @@ input UserUpdateWithoutResellerPaymentsReceivedInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -17270,6 +17508,7 @@ input UserUpdateWithoutSalesReturnRequestersInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -17366,6 +17605,7 @@ input UserUpdateWithoutSalesReturnReceiversInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -17464,6 +17704,7 @@ input UserUpdateWithoutSalesReturnInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -17893,6 +18134,7 @@ input UserUpdateWithoutResellerQuotationInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -17983,6 +18225,7 @@ input UserUpdateWithoutPurchaseReturnInitiatorsInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -18142,6 +18385,7 @@ input UserUpdateWithoutResellerTierHistoryChangedBysInput {
   Payment: PaymentUpdateManyWithoutReceivedByNestedInput
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -18181,14 +18425,214 @@ input ResellerProfileUpdateWithoutBillerInput {
   rejectedAt: NullableDateTimeFieldUpdateOperationsInput
   rejectionReason: NullableStringFieldUpdateOperationsInput
   user: UserUpdateOneRequiredWithoutResellerProfileNestedInput
+  requestedBiller: UserUpdateOneWithoutRequestedResellersNestedInput
 }
 
-input ResellerProfileUpdateWithWhereUniqueWithoutBillerInput {
+input UserUpdateOneRequiredWithoutResellerProfileNestedInput {
+  create: UserCreateWithoutResellerProfileInput
+  connectOrCreate: UserCreateOrConnectWithoutResellerProfileInput
+  upsert: UserUpsertWithoutResellerProfileInput
+  connect: UserWhereUniqueInput
+  update: UserUpdateToOneWithWhereWithoutResellerProfileInput
+}
+
+input UserUpdateToOneWithWhereWithoutResellerProfileInput {
+  where: UserWhereInput
+  data: UserUpdateWithoutResellerProfileInput!
+}
+
+input UserUpdateOneWithoutRequestedResellersNestedInput {
+  create: UserCreateWithoutRequestedResellersInput
+  connectOrCreate: UserCreateOrConnectWithoutRequestedResellersInput
+  upsert: UserUpsertWithoutRequestedResellersInput
+  disconnect: UserWhereInput
+  delete: UserWhereInput
+  connect: UserWhereUniqueInput
+  update: UserUpdateToOneWithWhereWithoutRequestedResellersInput
+}
+
+input UserUpsertWithoutRequestedResellersInput {
+  update: UserUpdateWithoutRequestedResellersInput!
+  create: UserCreateWithoutRequestedResellersInput!
+  where: UserWhereInput
+}
+
+input UserUpdateWithoutRequestedResellersInput {
+  id: StringFieldUpdateOperationsInput
+  email: StringFieldUpdateOperationsInput
+  passwordHash: StringFieldUpdateOperationsInput
+  tier: NullableEnumUserTierFieldUpdateOperationsInput
+  referralCode: NullableStringFieldUpdateOperationsInput
+  referredBy: NullableStringFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  isEmailVerified: BoolFieldUpdateOperationsInput
+  emailVerificationToken: NullableStringFieldUpdateOperationsInput
+  emailVerificationTokenExpiry: NullableDateTimeFieldUpdateOperationsInput
+  role: RoleUpdateOneRequiredWithoutUsersNestedInput
+  resellerProfile: ResellerProfileUpdateOneWithoutUserNestedInput
+  customerProfile: CustomerProfileUpdateOneWithoutUserNestedInput
+  resellerPaymentsMade: ResellerPaymentUpdateManyWithoutResellerNestedInput
+  resellerPaymentsReceived: ResellerPaymentUpdateManyWithoutReceivedByNestedInput
+  adminLogs: AdminActionLogUpdateManyWithoutAdminNestedInput
+  supportMessages: SupportMessageUpdateManyWithoutUserNestedInput
+  ConsumerSale: ConsumerSaleUpdateManyWithoutBillerNestedInput
+  ConsumerSaleAdjustedBys: ConsumerSaleUpdateManyWithoutAdjustedByNestedInput
+  StockReceiptBatchReceivedBys: StockReceiptBatchUpdateManyWithoutReceivedByNestedInput
+  StockReceiptBatchConfirmedBys: StockReceiptBatchUpdateManyWithoutConfirmedByNestedInput
+  StockTransferRequests: StockTransferUpdateManyWithoutRequestedByNestedInput
+  StockTransferApprovals: StockTransferUpdateManyWithoutApprovedByNestedInput
+  Store: StoreUpdateManyWithoutManagerNestedInput
+  ConsumerReceipt: ConsumerReceiptUpdateManyWithoutIssuedByNestedInput
+  ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
+  BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
+  ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
+  SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
+  SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
+  PurchaseReturnInitiators: PurchaseReturnUpdateManyWithoutInitiatedByNestedInput
+  PurchaseReturnApprovers: PurchaseReturnUpdateManyWithoutApprovedByNestedInput
+  Payment: PaymentUpdateManyWithoutReceivedByNestedInput
+  ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
+  ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
+  ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  Notification: NotificationUpdateManyWithoutUserNestedInput
+  Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
+  ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
+  PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
+}
+
+input ResellerTierHistoryUpdateManyWithoutAdminNestedInput {
+  create: [ResellerTierHistoryCreateWithoutAdminInput!]
+  connectOrCreate: [ResellerTierHistoryCreateOrConnectWithoutAdminInput!]
+  upsert: [ResellerTierHistoryUpsertWithWhereUniqueWithoutAdminInput!]
+  createMany: ResellerTierHistoryCreateManyAdminInputEnvelope
+  set: [ResellerTierHistoryWhereUniqueInput!]
+  disconnect: [ResellerTierHistoryWhereUniqueInput!]
+  delete: [ResellerTierHistoryWhereUniqueInput!]
+  connect: [ResellerTierHistoryWhereUniqueInput!]
+  update: [ResellerTierHistoryUpdateWithWhereUniqueWithoutAdminInput!]
+  updateMany: [ResellerTierHistoryUpdateManyWithWhereWithoutAdminInput!]
+  deleteMany: [ResellerTierHistoryScalarWhereInput!]
+}
+
+input ResellerTierHistoryUpsertWithWhereUniqueWithoutAdminInput {
+  where: ResellerTierHistoryWhereUniqueInput!
+  update: ResellerTierHistoryUpdateWithoutAdminInput!
+  create: ResellerTierHistoryCreateWithoutAdminInput!
+}
+
+input ResellerTierHistoryUpdateWithoutAdminInput {
+  id: StringFieldUpdateOperationsInput
+  fromTier: EnumUserTierFieldUpdateOperationsInput
+  toTier: EnumUserTierFieldUpdateOperationsInput
+  changedAt: DateTimeFieldUpdateOperationsInput
+  user: UserUpdateOneRequiredWithoutResellerTierHistoryNestedInput
+}
+
+input UserUpdateOneRequiredWithoutResellerTierHistoryNestedInput {
+  create: UserCreateWithoutResellerTierHistoryInput
+  connectOrCreate: UserCreateOrConnectWithoutResellerTierHistoryInput
+  upsert: UserUpsertWithoutResellerTierHistoryInput
+  connect: UserWhereUniqueInput
+  update: UserUpdateToOneWithWhereWithoutResellerTierHistoryInput
+}
+
+input UserUpsertWithoutResellerTierHistoryInput {
+  update: UserUpdateWithoutResellerTierHistoryInput!
+  create: UserCreateWithoutResellerTierHistoryInput!
+  where: UserWhereInput
+}
+
+input UserUpdateWithoutResellerTierHistoryInput {
+  id: StringFieldUpdateOperationsInput
+  email: StringFieldUpdateOperationsInput
+  passwordHash: StringFieldUpdateOperationsInput
+  tier: NullableEnumUserTierFieldUpdateOperationsInput
+  referralCode: NullableStringFieldUpdateOperationsInput
+  referredBy: NullableStringFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  isEmailVerified: BoolFieldUpdateOperationsInput
+  emailVerificationToken: NullableStringFieldUpdateOperationsInput
+  emailVerificationTokenExpiry: NullableDateTimeFieldUpdateOperationsInput
+  role: RoleUpdateOneRequiredWithoutUsersNestedInput
+  resellerProfile: ResellerProfileUpdateOneWithoutUserNestedInput
+  customerProfile: CustomerProfileUpdateOneWithoutUserNestedInput
+  resellerPaymentsMade: ResellerPaymentUpdateManyWithoutResellerNestedInput
+  resellerPaymentsReceived: ResellerPaymentUpdateManyWithoutReceivedByNestedInput
+  adminLogs: AdminActionLogUpdateManyWithoutAdminNestedInput
+  supportMessages: SupportMessageUpdateManyWithoutUserNestedInput
+  ConsumerSale: ConsumerSaleUpdateManyWithoutBillerNestedInput
+  ConsumerSaleAdjustedBys: ConsumerSaleUpdateManyWithoutAdjustedByNestedInput
+  StockReceiptBatchReceivedBys: StockReceiptBatchUpdateManyWithoutReceivedByNestedInput
+  StockReceiptBatchConfirmedBys: StockReceiptBatchUpdateManyWithoutConfirmedByNestedInput
+  StockTransferRequests: StockTransferUpdateManyWithoutRequestedByNestedInput
+  StockTransferApprovals: StockTransferUpdateManyWithoutApprovedByNestedInput
+  Store: StoreUpdateManyWithoutManagerNestedInput
+  ConsumerReceipt: ConsumerReceiptUpdateManyWithoutIssuedByNestedInput
+  ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
+  BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
+  ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
+  SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
+  SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
+  PurchaseReturnInitiators: PurchaseReturnUpdateManyWithoutInitiatedByNestedInput
+  PurchaseReturnApprovers: PurchaseReturnUpdateManyWithoutApprovedByNestedInput
+  Payment: PaymentUpdateManyWithoutReceivedByNestedInput
+  ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
+  ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
+  Notification: NotificationUpdateManyWithoutUserNestedInput
+  Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
+  ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
+  PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
+}
+
+input ResellerProfileUpdateManyWithoutRequestedBillerNestedInput {
+  create: [ResellerProfileCreateWithoutRequestedBillerInput!]
+  connectOrCreate: [ResellerProfileCreateOrConnectWithoutRequestedBillerInput!]
+  upsert: [ResellerProfileUpsertWithWhereUniqueWithoutRequestedBillerInput!]
+  createMany: ResellerProfileCreateManyRequestedBillerInputEnvelope
+  set: [ResellerProfileWhereUniqueInput!]
+  disconnect: [ResellerProfileWhereUniqueInput!]
+  delete: [ResellerProfileWhereUniqueInput!]
+  connect: [ResellerProfileWhereUniqueInput!]
+  update: [ResellerProfileUpdateWithWhereUniqueWithoutRequestedBillerInput!]
+  updateMany: [ResellerProfileUpdateManyWithWhereWithoutRequestedBillerInput!]
+  deleteMany: [ResellerProfileScalarWhereInput!]
+}
+
+input ResellerProfileUpsertWithWhereUniqueWithoutRequestedBillerInput {
   where: ResellerProfileWhereUniqueInput!
-  data: ResellerProfileUpdateWithoutBillerInput!
+  update: ResellerProfileUpdateWithoutRequestedBillerInput!
+  create: ResellerProfileCreateWithoutRequestedBillerInput!
 }
 
-input ResellerProfileUpdateManyWithWhereWithoutBillerInput {
+input ResellerProfileUpdateWithoutRequestedBillerInput {
+  tier: EnumUserTierFieldUpdateOperationsInput
+  creditLimit: FloatFieldUpdateOperationsInput
+  outstandingBalance: FloatFieldUpdateOperationsInput
+  isActive: BoolFieldUpdateOperationsInput
+  profileStatus: EnumProfileStatusFieldUpdateOperationsInput
+  requestedAt: DateTimeFieldUpdateOperationsInput
+  activatedAt: NullableDateTimeFieldUpdateOperationsInput
+  rejectedAt: NullableDateTimeFieldUpdateOperationsInput
+  rejectionReason: NullableStringFieldUpdateOperationsInput
+  user: UserUpdateOneRequiredWithoutResellerProfileNestedInput
+  biller: UserUpdateOneWithoutResellerProfileNestedInput
+}
+
+input ResellerProfileUpdateWithWhereUniqueWithoutRequestedBillerInput {
+  where: ResellerProfileWhereUniqueInput!
+  data: ResellerProfileUpdateWithoutRequestedBillerInput!
+}
+
+input ResellerProfileUpdateManyWithWhereWithoutRequestedBillerInput {
   where: ResellerProfileScalarWhereInput!
   data: ResellerProfileUpdateManyMutationInput!
 }
@@ -18198,7 +18642,8 @@ input ResellerProfileScalarWhereInput {
   OR: [ResellerProfileScalarWhereInput!]
   NOT: [ResellerProfileScalarWhereInput!]
   userId: StringFilter
-  billerId: StringFilter
+  billerId: StringNullableFilter
+  requestedBillerId: StringNullableFilter
   tier: EnumUserTierFilter
   creditLimit: FloatFilter
   outstandingBalance: FloatFilter
@@ -18565,94 +19010,7 @@ input UserUpdateWithoutPurchaseReturnApproversInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
-  Notification: NotificationUpdateManyWithoutUserNestedInput
-  Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
-  BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
-  ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
-  PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
-  Supplier: SupplierUpdateManyWithoutUserNestedInput
-}
-
-input ResellerTierHistoryUpdateManyWithoutAdminNestedInput {
-  create: [ResellerTierHistoryCreateWithoutAdminInput!]
-  connectOrCreate: [ResellerTierHistoryCreateOrConnectWithoutAdminInput!]
-  upsert: [ResellerTierHistoryUpsertWithWhereUniqueWithoutAdminInput!]
-  createMany: ResellerTierHistoryCreateManyAdminInputEnvelope
-  set: [ResellerTierHistoryWhereUniqueInput!]
-  disconnect: [ResellerTierHistoryWhereUniqueInput!]
-  delete: [ResellerTierHistoryWhereUniqueInput!]
-  connect: [ResellerTierHistoryWhereUniqueInput!]
-  update: [ResellerTierHistoryUpdateWithWhereUniqueWithoutAdminInput!]
-  updateMany: [ResellerTierHistoryUpdateManyWithWhereWithoutAdminInput!]
-  deleteMany: [ResellerTierHistoryScalarWhereInput!]
-}
-
-input ResellerTierHistoryUpsertWithWhereUniqueWithoutAdminInput {
-  where: ResellerTierHistoryWhereUniqueInput!
-  update: ResellerTierHistoryUpdateWithoutAdminInput!
-  create: ResellerTierHistoryCreateWithoutAdminInput!
-}
-
-input ResellerTierHistoryUpdateWithoutAdminInput {
-  id: StringFieldUpdateOperationsInput
-  fromTier: EnumUserTierFieldUpdateOperationsInput
-  toTier: EnumUserTierFieldUpdateOperationsInput
-  changedAt: DateTimeFieldUpdateOperationsInput
-  user: UserUpdateOneRequiredWithoutResellerTierHistoryNestedInput
-}
-
-input UserUpdateOneRequiredWithoutResellerTierHistoryNestedInput {
-  create: UserCreateWithoutResellerTierHistoryInput
-  connectOrCreate: UserCreateOrConnectWithoutResellerTierHistoryInput
-  upsert: UserUpsertWithoutResellerTierHistoryInput
-  connect: UserWhereUniqueInput
-  update: UserUpdateToOneWithWhereWithoutResellerTierHistoryInput
-}
-
-input UserUpsertWithoutResellerTierHistoryInput {
-  update: UserUpdateWithoutResellerTierHistoryInput!
-  create: UserCreateWithoutResellerTierHistoryInput!
-  where: UserWhereInput
-}
-
-input UserUpdateWithoutResellerTierHistoryInput {
-  id: StringFieldUpdateOperationsInput
-  email: StringFieldUpdateOperationsInput
-  passwordHash: StringFieldUpdateOperationsInput
-  tier: NullableEnumUserTierFieldUpdateOperationsInput
-  referralCode: NullableStringFieldUpdateOperationsInput
-  referredBy: NullableStringFieldUpdateOperationsInput
-  createdAt: DateTimeFieldUpdateOperationsInput
-  updatedAt: DateTimeFieldUpdateOperationsInput
-  isEmailVerified: BoolFieldUpdateOperationsInput
-  emailVerificationToken: NullableStringFieldUpdateOperationsInput
-  emailVerificationTokenExpiry: NullableDateTimeFieldUpdateOperationsInput
-  role: RoleUpdateOneRequiredWithoutUsersNestedInput
-  resellerProfile: ResellerProfileUpdateOneWithoutUserNestedInput
-  customerProfile: CustomerProfileUpdateOneWithoutUserNestedInput
-  resellerPaymentsMade: ResellerPaymentUpdateManyWithoutResellerNestedInput
-  resellerPaymentsReceived: ResellerPaymentUpdateManyWithoutReceivedByNestedInput
-  adminLogs: AdminActionLogUpdateManyWithoutAdminNestedInput
-  supportMessages: SupportMessageUpdateManyWithoutUserNestedInput
-  ConsumerSale: ConsumerSaleUpdateManyWithoutBillerNestedInput
-  ConsumerSaleAdjustedBys: ConsumerSaleUpdateManyWithoutAdjustedByNestedInput
-  StockReceiptBatchReceivedBys: StockReceiptBatchUpdateManyWithoutReceivedByNestedInput
-  StockReceiptBatchConfirmedBys: StockReceiptBatchUpdateManyWithoutConfirmedByNestedInput
-  StockTransferRequests: StockTransferUpdateManyWithoutRequestedByNestedInput
-  StockTransferApprovals: StockTransferUpdateManyWithoutApprovedByNestedInput
-  Store: StoreUpdateManyWithoutManagerNestedInput
-  ConsumerReceipt: ConsumerReceiptUpdateManyWithoutIssuedByNestedInput
-  ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
-  BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
-  ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
-  SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
-  SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
-  SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
-  PurchaseReturnInitiators: PurchaseReturnUpdateManyWithoutInitiatedByNestedInput
-  PurchaseReturnApprovers: PurchaseReturnUpdateManyWithoutApprovedByNestedInput
-  Payment: PaymentUpdateManyWithoutReceivedByNestedInput
-  ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
-  ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -19333,6 +19691,7 @@ input UserUpdateWithoutPurchaseRequisitionInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -19494,6 +19853,7 @@ input UserUpdateWithoutFulfillmentInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
@@ -20546,6 +20906,7 @@ input UserUpdateWithoutSupplierInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
@@ -21845,40 +22206,6 @@ input QuotationUpdateManyWithWhereWithoutBillerInput {
   data: QuotationUpdateManyMutationInput!
 }
 
-input UserUpdateToOneWithWhereWithoutResellerTierHistoryInput {
-  where: UserWhereInput
-  data: UserUpdateWithoutResellerTierHistoryInput!
-}
-
-input ResellerTierHistoryUpdateWithWhereUniqueWithoutAdminInput {
-  where: ResellerTierHistoryWhereUniqueInput!
-  data: ResellerTierHistoryUpdateWithoutAdminInput!
-}
-
-input ResellerTierHistoryUpdateManyWithWhereWithoutAdminInput {
-  where: ResellerTierHistoryScalarWhereInput!
-  data: ResellerTierHistoryUpdateManyMutationInput!
-}
-
-input ResellerTierHistoryScalarWhereInput {
-  AND: [ResellerTierHistoryScalarWhereInput!]
-  OR: [ResellerTierHistoryScalarWhereInput!]
-  NOT: [ResellerTierHistoryScalarWhereInput!]
-  id: StringFilter
-  userId: StringFilter
-  fromTier: EnumUserTierFilter
-  toTier: EnumUserTierFilter
-  changedBy: StringFilter
-  changedAt: DateTimeFilter
-}
-
-input ResellerTierHistoryUpdateManyMutationInput {
-  id: StringFieldUpdateOperationsInput
-  fromTier: EnumUserTierFieldUpdateOperationsInput
-  toTier: EnumUserTierFieldUpdateOperationsInput
-  changedAt: DateTimeFieldUpdateOperationsInput
-}
-
 input UserUpdateToOneWithWhereWithoutPurchaseReturnApproversInput {
   where: UserWhereInput
   data: UserUpdateWithoutPurchaseReturnApproversInput!
@@ -21976,6 +22303,55 @@ input FulfillmentUpdateManyMutationInput {
   confirmationPin: NullableStringFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
+}
+
+input UserUpdateToOneWithWhereWithoutResellerTierHistoryInput {
+  where: UserWhereInput
+  data: UserUpdateWithoutResellerTierHistoryInput!
+}
+
+input ResellerTierHistoryUpdateWithWhereUniqueWithoutAdminInput {
+  where: ResellerTierHistoryWhereUniqueInput!
+  data: ResellerTierHistoryUpdateWithoutAdminInput!
+}
+
+input ResellerTierHistoryUpdateManyWithWhereWithoutAdminInput {
+  where: ResellerTierHistoryScalarWhereInput!
+  data: ResellerTierHistoryUpdateManyMutationInput!
+}
+
+input ResellerTierHistoryScalarWhereInput {
+  AND: [ResellerTierHistoryScalarWhereInput!]
+  OR: [ResellerTierHistoryScalarWhereInput!]
+  NOT: [ResellerTierHistoryScalarWhereInput!]
+  id: StringFilter
+  userId: StringFilter
+  fromTier: EnumUserTierFilter
+  toTier: EnumUserTierFilter
+  changedBy: StringFilter
+  changedAt: DateTimeFilter
+}
+
+input ResellerTierHistoryUpdateManyMutationInput {
+  id: StringFieldUpdateOperationsInput
+  fromTier: EnumUserTierFieldUpdateOperationsInput
+  toTier: EnumUserTierFieldUpdateOperationsInput
+  changedAt: DateTimeFieldUpdateOperationsInput
+}
+
+input UserUpdateToOneWithWhereWithoutRequestedResellersInput {
+  where: UserWhereInput
+  data: UserUpdateWithoutRequestedResellersInput!
+}
+
+input ResellerProfileUpdateWithWhereUniqueWithoutBillerInput {
+  where: ResellerProfileWhereUniqueInput!
+  data: ResellerProfileUpdateWithoutBillerInput!
+}
+
+input ResellerProfileUpdateManyWithWhereWithoutBillerInput {
+  where: ResellerProfileScalarWhereInput!
+  data: ResellerProfileUpdateManyMutationInput!
 }
 
 input UserUpdateToOneWithWhereWithoutResellerTierHistoryChangedBysInput {
@@ -23022,11 +23398,6 @@ input CustomerProfileUpdateToOneWithWhereWithoutUserInput {
   data: CustomerProfileUpdateWithoutUserInput!
 }
 
-input UserUpdateToOneWithWhereWithoutResellerProfileInput {
-  where: UserWhereInput
-  data: UserUpdateWithoutResellerProfileInput!
-}
-
 input ResellerProfileUpdateToOneWithWhereWithoutUserInput {
   where: ResellerProfileWhereInput
   data: ResellerProfileUpdateWithoutUserInput!
@@ -23312,7 +23683,7 @@ input UpdateCustomerProfileInput {
 input ApplyResellerInput {
   email: String!
   password: String!
-  billerId: String!
+  requestedBillerId: String
   tier: UserTier!
   creditLimit: Float!
 }
@@ -23320,6 +23691,7 @@ input ApplyResellerInput {
 input ApproveResellerInput {
   tier: UserTier!
   creditLimit: Float!
+  billerId: String
 }
 
 input CreateSupplierInput {
@@ -23482,11 +23854,6 @@ enum RoleName {
   MANAGER
 }
 
-input AssignStoreManagerInput {
-  userId: ID!
-  storeId: ID!
-}
-
 input AssignBillerInput {
   billerId: ID!
   resellerId: ID!
@@ -23627,6 +23994,17 @@ input CreateFulfillmentInput {
   deliveryPersonnelId: ID
   deliveryAddress: String
   cost: Float
+}
+
+input AssignFulfillmentPersonnelInput {
+  saleOrderId: String!
+  deliveryPersonnelId: String!
+}
+
+input UpdateFulfillmentStatusInput {
+  saleOrderId: String!
+  status: FulfillmentStatus!
+  confirmationPin: String
 }
 
 input CreateSalesReturnInput {
@@ -23781,6 +24159,7 @@ input UserCreateInput {
   ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
@@ -23843,6 +24222,7 @@ input UserUpdateInput {
   ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
   ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput

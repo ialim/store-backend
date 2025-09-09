@@ -9,8 +9,9 @@ export class ApplyResellerInput {
   @Field()
   password: string;
 
-  @Field()
-  billerId: string;
+  // Optional requested biller during application; actual assignment happens on approval
+  @Field({ nullable: true })
+  requestedBillerId?: string;
 
   @Field(() => UserTier)
   tier: UserTier;

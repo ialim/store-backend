@@ -56,6 +56,29 @@ export class PaymentsOutboxHandler {
         await this.prisma.fulfillment.create({ data: { saleOrderId: orderId, type: 'PICKUP' as any, status: 'PENDING' as any } });
       }
 
+      // Reserve stock for this order now that it advances to fulfillment
+      const cSale = await this.prisma.consumerSale.findFirst({ where: { saleOrderId: orderId }, include: { items: true } });
+      if (cSale) {
+        for (const it of cSale.items) {
+          await this.prisma.stock.upsert({
+            where: { storeId_productVariantId: { storeId: cSale.storeId, productVariantId: it.productVariantId } },
+            update: { reserved: { increment: it.quantity } },
+            create: { storeId: cSale.storeId, productVariantId: it.productVariantId, quantity: 0, reserved: it.quantity },
+          });
+        }
+      } else {
+        const rSale = await this.prisma.resellerSale.findFirst({ where: { SaleOrderid: orderId }, include: { items: true } });
+        if (rSale) {
+          for (const it of rSale.items) {
+            await this.prisma.stock.upsert({
+              where: { storeId_productVariantId: { storeId: rSale.storeId, productVariantId: it.productVariantId } },
+              update: { reserved: { increment: it.quantity } },
+              create: { storeId: rSale.storeId, productVariantId: it.productVariantId, quantity: 0, reserved: it.quantity },
+            });
+          }
+        }
+      }
+
       // Notify store manager and biller
       const so = await this.prisma.saleOrder.findUnique({ where: { id: orderId } });
       if (so) {

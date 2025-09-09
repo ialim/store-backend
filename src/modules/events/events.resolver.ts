@@ -1,4 +1,4 @@
-import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Query, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -18,11 +18,11 @@ export class EventsResolver {
     private prisma: PrismaService,
   ) {}
 
-  @Mutation(() => Number)
+  @Mutation(() => Int)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
   processOutbox(
-    @Args('limit', { type: () => Number, nullable: true }) limit?: number,
+    @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     @Args('type', { nullable: true }) type?: string,
     @Args('status', { nullable: true }) status?: 'PENDING' | 'FAILED',
   ) {
@@ -45,7 +45,8 @@ export class EventsResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
   async outboxStatusByType(
-    @Args({ name: 'types', type: () => [String], nullable: true }) types?: string[],
+    @Args({ name: 'types', type: () => [String], nullable: true })
+    types?: string[],
   ) {
     let list = types;
     if (!list || !list.length) {
@@ -60,9 +61,15 @@ export class EventsResolver {
     const results: OutboxTypeCount[] = [];
     for (const t of list) {
       const [pending, failed, published] = await Promise.all([
-        this.prisma.outboxEvent.count({ where: { type: t, status: 'PENDING' as any } }),
-        this.prisma.outboxEvent.count({ where: { type: t, status: 'FAILED' as any } }),
-        this.prisma.outboxEvent.count({ where: { type: t, status: 'PUBLISHED' as any } }),
+        this.prisma.outboxEvent.count({
+          where: { type: t, status: 'PENDING' as any },
+        }),
+        this.prisma.outboxEvent.count({
+          where: { type: t, status: 'FAILED' as any },
+        }),
+        this.prisma.outboxEvent.count({
+          where: { type: t, status: 'PUBLISHED' as any },
+        }),
       ]);
       results.push({ type: t, pending, failed, published });
     }
@@ -79,8 +86,14 @@ export class EventsResolver {
   ) {
     const where: any = { createdAt: { gte: start, lt: end } };
     if (type) where.type = type;
-    const events = await this.prisma.outboxEvent.findMany({ where, select: { createdAt: true, status: true } });
-    const map = new Map<string, { pending: number; failed: number; published: number }>();
+    const events = await this.prisma.outboxEvent.findMany({
+      where,
+      select: { createdAt: true, status: true },
+    });
+    const map = new Map<
+      string,
+      { pending: number; failed: number; published: number }
+    >();
     for (const evt of events) {
       const d = new Date(evt.createdAt);
       const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
@@ -100,24 +113,32 @@ export class EventsResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
   lastFailedOutboxEvents(
-    @Args('limit', { type: () => Number, nullable: true }) limit?: number,
+    @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     @Args('type', { nullable: true }) type?: string,
   ) {
     const where: any = { status: 'FAILED' as any };
     if (type) where.type = type;
-    return this.prisma.outboxEvent.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit ?? 20 });
+    return this.prisma.outboxEvent.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: limit ?? 20,
+    });
   }
 
-  @Mutation(() => Number)
+  @Mutation(() => Int)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
   async retryOutboxFailed(
-    @Args('limit', { type: () => Number, nullable: true }) limit?: number,
+    @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     @Args('type', { nullable: true }) type?: string,
   ) {
     const where: any = { status: 'FAILED' as any };
     if (type) where.type = type;
-    const failed = await this.prisma.outboxEvent.findMany({ where, orderBy: { createdAt: 'asc' }, take: limit ?? 100 });
+    const failed = await this.prisma.outboxEvent.findMany({
+      where,
+      orderBy: { createdAt: 'asc' },
+      take: limit ?? 100,
+    });
     if (!failed.length) return 0;
     const ids = failed.map((f) => f.id);
     const results = await this.prisma.outboxEvent.updateMany({

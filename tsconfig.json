@@ -17,5 +17,15 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
-  }
+  },
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "prisma/**/*.ts"
+  ],
+  "exclude": [
+    "admin-ui",
+    "node_modules",
+    "dist"
+  ]
 }
