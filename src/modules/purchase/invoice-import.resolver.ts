@@ -1,0 +1,256 @@
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  Field,
+  InputType,
+} from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
+import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { InvoiceIngestService } from './invoice-ingest.service';
+import { StockService } from '../stock/stock.service';
+import { InvoiceImport } from 'src/shared/prismagraphql/invoice-import';
+import { normalizeParsedByVendor } from './vendor-rules';
+import { InvoiceImportQueue } from './invoice-import.queue';
+
+@InputType()
+class CreateInvoiceImportInput {
+  @Field(() => String) url!: string;
+  @Field(() => String, { nullable: true }) supplierName?: string;
+  @Field(() => String, { nullable: true }) storeId?: string;
+}
+
+@InputType()
+class ApproveInvoiceImportInput {
+  @Field(() => String) id!: string;
+  @Field(() => String, { nullable: true }) supplierName?: string;
+  @Field(() => String, { nullable: true }) storeId?: string;
+  @Field({ nullable: true }) createPurchaseOrder?: boolean;
+  @Field({ nullable: true }) createSupplierPayment?: boolean;
+  @Field({ nullable: true }) receiveStock?: boolean;
+  @Field(() => String, { nullable: true }) receivedById?: string;
+  @Field(() => String, { nullable: true }) confirmedById?: string;
+  @Field({ nullable: true }) useParsedTotal?: boolean;
+}
+
+@Resolver()
+export class InvoiceImportResolver {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ingest: InvoiceIngestService,
+    private readonly stock: StockService,
+    private readonly queue: InvoiceImportQueue,
+  ) {}
+
+  private sanitizeRawText(text: string): string {
+    // Remove NULLs and control characters that Postgres JSON/Text cannot store
+    try {
+      return text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+    } catch {
+      return text;
+    }
+  }
+
+  private sanitizeDeep<T = any>(value: T): T {
+    const strip = (s: string) => s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+    if (value == null) return value;
+    if (typeof value === 'string') return strip(value) as any;
+    if (Array.isArray(value)) return (value as any[]).map((v) => this.sanitizeDeep(v)) as any;
+    if (typeof value === 'object') {
+      // Keep prototypes simple; build a plain object
+      const out: Record<string, any> = {};
+      for (const [k, v] of Object.entries(value as any)) out[k] = this.sanitizeDeep(v);
+      return out as any;
+    }
+    return value;
+  }
+
+  @Query(() => [InvoiceImport])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  async invoiceImports(): Promise<InvoiceImport[]> {
+    return (this.prisma as any).invoiceImport.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  @Query(() => InvoiceImport, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  async invoiceImport(@Args('id') id: string): Promise<InvoiceImport | null> {
+    return (this.prisma as any).invoiceImport.findUnique({ where: { id } });
+  }
+
+  @Mutation(() => InvoiceImport)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  async adminCreateInvoiceImport(
+    @Args('input') input: CreateInvoiceImportInput,
+  ): Promise<InvoiceImport> {
+    const created = await (this.prisma as any).invoiceImport.create({
+      data: {
+        url: input.url,
+        supplierName: input.supplierName ?? null,
+        storeId: input.storeId ?? null,
+        status: 'PENDING',
+      },
+    });
+    // Queue background processing for better UX
+    try {
+      await (this.prisma as any).invoiceImport.update({ where: { id: created.id }, data: { status: 'PROCESSING' } });
+      await this.queue.enqueue(created.id, input.url, created.supplierName ?? null);
+    } catch {}
+    return (this.prisma as any).invoiceImport.findUnique({ where: { id: created.id } });
+  }
+
+  @Mutation(() => InvoiceImport)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  async adminReprocessInvoiceImport(
+    @Args('id') id: string,
+  ): Promise<InvoiceImport> {
+    const imp = await (this.prisma as any).invoiceImport.findUnique({
+      where: { id },
+    });
+    if (!imp) throw new Error('Import not found');
+    // Enqueue background reprocessing
+    await (this.prisma as any).invoiceImport.update({ where: { id }, data: { status: 'PROCESSING', message: 'Reprocessing…' } });
+    await this.queue.enqueue(id, imp.url, imp.supplierName ?? null);
+    return (this.prisma as any).invoiceImport.findUnique({ where: { id } });
+  }
+
+  // vendor normalization moved to vendor-rules.ts
+
+  @Mutation(() => InvoiceImport)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  async adminApproveInvoiceImport(
+    @Args('input') input: ApproveInvoiceImportInput,
+  ): Promise<InvoiceImport> {
+    const imp = await (this.prisma as any).invoiceImport.findUnique({
+      where: { id: input.id },
+    });
+    if (!imp) throw new Error('Import not found');
+    const parsed = imp.parsed || { lines: [] };
+    if (!parsed?.lines?.length) throw new Error('No parsed lines on import');
+
+    // Supplier find/create by name
+    const supplierName =
+      input.supplierName || imp.supplierName || 'Unknown Supplier';
+    let supplier = await (this.prisma as any).supplier.findFirst({
+      where: { name: supplierName },
+    });
+    if (!supplier)
+      supplier = await (this.prisma as any).supplier.create({
+        data: { name: supplierName, creditLimit: 0 },
+      });
+
+    // Ensure default category exists
+    const cat = await (this.prisma as any).productCategory.upsert({
+      where: { name: 'Imported' },
+      update: {},
+      create: { name: 'Imported' },
+      select: { id: true },
+    });
+
+    const poItems: Array<{
+      productVariantId: string;
+      quantity: number;
+      unitCost: number;
+    }> = [];
+    for (const ln of parsed.lines as any[]) {
+      const desc = String(ln.description || '').trim();
+      if (!desc) continue;
+      let prod = await (this.prisma as any).product.findFirst({
+        where: { name: desc },
+      });
+      if (!prod)
+        prod = await (this.prisma as any).product.create({
+          data: { name: desc, categoryId: cat.id },
+        });
+      let variant = await (this.prisma as any).productVariant.findFirst({
+        where: { productId: prod.id },
+      });
+      if (!variant)
+        variant = await (this.prisma as any).productVariant.create({
+          data: {
+            productId: prod.id,
+            size: 'STD',
+            concentration: 'STD',
+            packaging: 'STD',
+            barcode: null,
+            price: ln.unitPrice || 0,
+            resellerPrice: ln.discountedUnitPrice || ln.unitPrice || 0,
+          },
+        });
+      const qty = Number(ln.qty) || 1;
+      const unitCost = (ln.discountedUnitPrice ?? ln.unitPrice ?? (ln.lineTotal != null ? Number(ln.lineTotal) / qty : 0)) as number;
+      poItems.push({ productVariantId: variant.id, quantity: qty, unitCost });
+    }
+
+    let poId: string | undefined;
+    // Pre-compute totals to ensure consistency between PO and Payment
+    const lineSum = Array.isArray((parsed as any).lines)
+      ? (parsed as any).lines.reduce((s: number, ln: any) => {
+          const q = Number(ln.qty) || 1;
+          const unit = ln.discountedUnitPrice ?? ln.unitPrice ?? (ln.lineTotal != null ? Number(ln.lineTotal) / q : 0);
+          const tot = ln.lineTotal != null ? Number(ln.lineTotal) : Number(unit) * q;
+          return s + (isFinite(tot) ? tot : 0);
+        }, 0)
+      : 0;
+    const headerTotal = Number((parsed as any)?.total || 0);
+    const itemsTotal = poItems.reduce((s: number, i: any) => s + i.unitCost * i.quantity, 0);
+    const finalTotal = (() => {
+      if (input.useParsedTotal && headerTotal > 0) return headerTotal;
+      if (!input.useParsedTotal && lineSum > 0) return lineSum;
+      return lineSum || headerTotal || itemsTotal;
+    })();
+    if (input.createPurchaseOrder) {
+      const po = await (this.prisma as any).purchaseOrder.create({
+        data: {
+          supplierId: supplier.id,
+          storeId: input.storeId || imp.storeId || null,
+          invoiceNumber: parsed.invoiceNumber || `INV-${Date.now()}`,
+          status: 'PENDING',
+          dueDate: parsed.date ? new Date(parsed.date) : new Date(),
+          totalAmount: finalTotal,
+          items: { create: poItems },
+        },
+        select: { id: true },
+      });
+      poId = po.id;
+    }
+    if (input.createSupplierPayment && poId) {
+      await (this.prisma as any).supplierPayment.create({ data: { supplierId: supplier.id, purchaseOrderId: poId, amount: finalTotal, paymentDate: new Date(), method: 'BANK_TRANSFER', notes: 'Approved import' } });
+    }
+    if (input.receiveStock && poId) {
+      if (!input.storeId || !input.receivedById || !input.confirmedById) {
+        // leave as is, but don't throw
+      } else {
+        await this.stock.receiveStockBatch({
+          purchaseOrderId: poId,
+          storeId: input.storeId,
+          receivedById: input.receivedById,
+          confirmedById: input.confirmedById,
+          waybillUrl: imp.url,
+          items: poItems.map((i) => ({
+            productVariantId: i.productVariantId,
+            quantity: i.quantity,
+          })),
+        } as any);
+      }
+    }
+
+    await (this.prisma as any).invoiceImport.update({
+      where: { id: input.id },
+      data: { status: 'COMPLETED', message: 'Approved' },
+    });
+    return (this.prisma as any).invoiceImport.findUnique({
+      where: { id: input.id },
+    });
+  }
+}

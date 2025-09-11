@@ -15,6 +15,7 @@ const Suppliers = lazy(() => import('./pages/Suppliers'));
 const PurchaseOrders = lazy(() => import('./pages/PurchaseOrders'));
 const PurchaseOrderDetail = lazy(() => import('./pages/PurchaseOrderDetail'));
 const Products = lazy(() => import('./pages/Products'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
 const Stock = lazy(() => import('./pages/Stock'));
 const Users = lazy(() => import('./pages/Users'));
 const Payments = lazy(() => import('./pages/Payments'));
@@ -26,6 +27,7 @@ const Staff = lazy(() => import('./pages/Staff'));
 const ReceiveStock = lazy(() => import('./pages/ReceiveStock'));
 const SupplierPayments = lazy(() => import('./pages/SupplierPayments'));
 import NotFound from './pages/NotFound';
+const Forbidden = lazy(() => import('./pages/Forbidden'));
 import SidebarLayout from './shared/SidebarLayout';
 import Loading from './shared/Loading';
 import ErrorBoundary from './shared/ErrorBoundary';
@@ -34,6 +36,9 @@ const Resellers = lazy(() => import('./pages/Resellers'));
 const ResellerDetail = lazy(() => import('./pages/ResellerDetail'));
 const Customers = lazy(() => import('./pages/Customers'));
 const CustomerDetail = lazy(() => import('./pages/CustomerDetail'));
+const InvoiceIngest = lazy(() => import('./pages/InvoiceIngest'));
+const InvoiceImports = lazy(() => import('./pages/InvoiceImports'));
+const InvoiceImportDetail = lazy(() => import('./pages/InvoiceImportDetail'));
 
 export default function App() {
   return (
@@ -119,6 +124,43 @@ export default function App() {
               }
             />
             <Route
+              path="/invoice-ingest"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<InvoiceIngest />}
+                />
+              }
+            />
+            <Route
+              path="/invoice-imports"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<InvoiceImports />}
+                />
+              }
+            />
+            <Route
+              path="/invoice-imports/:id"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<InvoiceImportDetail />}
+                />
+              }
+            />
+            <Route
+              path="/products/:id"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  perms={['MANAGE_PRODUCTS']}
+                  element={<ProductDetail />}
+                />
+              }
+            />
+            <Route
               path="/stock"
               element={
                 <ProtectedRoute
@@ -194,6 +236,7 @@ export default function App() {
               }
             />
             <Route path="*" element={<NotFound />} />
+            <Route path="/forbidden" element={<Forbidden />} />
             <Route
               path="/analytics"
               element={

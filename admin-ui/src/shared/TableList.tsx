@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TableSortLabel, TablePagination, TextField, Box, Button, Stack } from '@mui/material';
+import { Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TableSortLabel, TablePagination, TextField, Box, Button, Stack, Select, MenuItem } from '@mui/material';
 import { useSearchParams } from 'react-router-dom';
 
 type Column<Row> = {
@@ -34,9 +34,13 @@ type Props<Row> = {
   globalSearchKeys?: string[];
   enableUrlState?: boolean;
   urlKey?: string;
+  onRowsProcessed?: (payload: { filtered: Row[]; sorted: Row[]; paged: Row[] }) => void;
+  onExport?: (payload: { filtered: Row[]; sorted: Row[]; paged: Row[] }) => void;
+  exportLabel?: string;
+  exportScopeControl?: boolean; // if true, show All vs Current Page toggle
 };
 
-export default function TableList<Row = any>({ columns, rows, loading, error, emptyMessage, onRowClick, getRowKey, size = 'small', paginated = true, rowsPerPageOptions = [10, 25, 50], defaultRowsPerPage = 25, defaultSortKey, defaultSortDir = 'asc', showFilters = false, globalSearch = false, globalSearchPlaceholder = 'Search', globalSearchKeys, enableUrlState = false, urlKey = 'tbl' }: Props<Row>) {
+export default function TableList<Row = any>({ columns, rows, loading, error, emptyMessage, onRowClick, getRowKey, size = 'small', paginated = true, rowsPerPageOptions = [10, 25, 50], defaultRowsPerPage = 25, defaultSortKey, defaultSortDir = 'asc', showFilters = false, globalSearch = false, globalSearchPlaceholder = 'Search', globalSearchKeys, enableUrlState = false, urlKey = 'tbl', onRowsProcessed, onExport, exportLabel = 'Export CSV', exportScopeControl = false }: Props<Row>) {
   const key = getRowKey || ((_: any, i: number) => i);
   const clickable = Boolean(onRowClick);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -166,10 +170,20 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
     return sortedRows.slice(start, start + rowsPerPage);
   }, [sortedRows, paginated, page, rowsPerPage]);
 
+  // Notify parent of current filtered/sorted/paged rows
+  const lastProcessedRef = React.useRef<{ filtered: Row[]; sorted: Row[]; paged: Row[] } | null>(null);
+  const [exportScope, setExportScope] = React.useState<'all' | 'page'>('all');
+  React.useEffect(() => {
+    const payload = { filtered: filteredRows, sorted: sortedRows, paged: pagedRows };
+    lastProcessedRef.current = payload;
+    if (onRowsProcessed) onRowsProcessed(payload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredRows, sortedRows, pagedRows]);
+
   return (
     <TableContainer component={Paper}>
       {error && <Alert severity="error">{error}</Alert>}
-      {(globalSearch || showFilters) && (
+      {(globalSearch || showFilters || onExport) && (
         <Box sx={{ p: 1 }}>
           <Stack direction="row" spacing={1} alignItems="center">
             {globalSearch && (
@@ -186,6 +200,35 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
             )}
             {((orderBy && orderBy !== defaultSortKey) || page !== 0 || rowsPerPage !== defaultRowsPerPage || order !== defaultSortDir) && (
               <Button onClick={() => { setOrderBy(defaultSortKey); setOrder(defaultSortDir); setPage(0); setRowsPerPage(defaultRowsPerPage); }} size="small">Reset</Button>
+            )}
+            {onExport && (
+              <>
+                {exportScopeControl && (
+                  <Select
+                    size="small"
+                    value={exportScope}
+                    onChange={(e) => setExportScope(e.target.value as any)}
+                    sx={{ minWidth: 140, ml: 'auto' }}
+                  >
+                    <MenuItem value="all">Export: All Rows</MenuItem>
+                    <MenuItem value="page">Export: Current Page</MenuItem>
+                  </Select>
+                )}
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    if (!lastProcessedRef.current) return;
+                    const payload = exportScopeControl && exportScope === 'page'
+                      ? { ...lastProcessedRef.current, sorted: lastProcessedRef.current.paged }
+                      : lastProcessedRef.current;
+                    onExport(payload);
+                  }}
+                  disabled={!sortedRows.length}
+                >
+                  {exportLabel}
+                </Button>
+              </>
             )}
           </Stack>
         </Box>

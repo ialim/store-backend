@@ -18,6 +18,26 @@ const USERS = gql`
 export default function Users() {
   const { data, loading, error, refetch } = useQuery(USERS, { variables: { take: 50 }, fetchPolicy: 'cache-and-network' });
   const list = data?.listUsers ?? [];
+  const exportCsv = ({ sorted }: { sorted: any[] }) => {
+    const rowsToUse = sorted?.length ? sorted : list;
+    if (!rowsToUse?.length) return;
+    const header = ['id','name','email','role','tier'];
+    const rows = rowsToUse.map((u: any) => [
+      u.id,
+      u.customerProfile?.fullName || (u.email?.split?.('@')?.[0] ?? ''),
+      u.email,
+      u.role?.name || '',
+      u.resellerProfile?.tier || '',
+    ]);
+    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `users.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Users</Typography>
@@ -40,6 +60,8 @@ export default function Users() {
         globalSearchKeys={['name','email','role']}
         enableUrlState
         urlKey="users"
+        onExport={exportCsv}
+        exportScopeControl
       />
     </Stack>
   );

@@ -20,6 +20,7 @@ import { EventsModule } from './modules/events/events.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ReturnsModule } from './modules/returns/returns.module';
 import { SupportModule } from './modules/support/support.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { SupportModule } from './modules/support/support.module';
     StoreModule,
     UsersModule,
     VerificationModule,
+    UploadsModule,
   ],
 })
 export class AppModule {}

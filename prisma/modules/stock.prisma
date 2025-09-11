@@ -24,6 +24,8 @@ model Store {
 
   PurchaseRequisition PurchaseRequisition[]
   purchaseOrders      PurchaseOrder[]
+
+  InvoiceImport InvoiceImport[]
 }
 
 model Stock {

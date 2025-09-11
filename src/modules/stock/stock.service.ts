@@ -49,6 +49,46 @@ export class StockService {
     });
   }
 
+  async stockTotalsByProduct(productId: string) {
+    const rows = await this.prisma.stock.findMany({
+      where: { productVariant: { productId } },
+      select: { productVariantId: true, quantity: true, reserved: true },
+    });
+    const totals = new Map<string, { onHand: number; reserved: number }>();
+    for (const r of rows) {
+      const t = totals.get(r.productVariantId) || { onHand: 0, reserved: 0 };
+      t.onHand += r.quantity || 0;
+      t.reserved += r.reserved || 0;
+      totals.set(r.productVariantId, t);
+    }
+    return Array.from(totals.entries()).map(([variantId, t]) => ({
+      variantId,
+      onHand: t.onHand,
+      reserved: t.reserved,
+      available: t.onHand - t.reserved,
+    }));
+  }
+
+  async stockTotalsByProductStore(productId: string, storeId: string) {
+    const rows = await this.prisma.stock.findMany({
+      where: { productVariant: { productId }, storeId },
+      select: { productVariantId: true, quantity: true, reserved: true },
+    });
+    const totals = new Map<string, { onHand: number; reserved: number }>();
+    for (const r of rows) {
+      const t = totals.get(r.productVariantId) || { onHand: 0, reserved: 0 };
+      t.onHand += r.quantity || 0;
+      t.reserved += r.reserved || 0;
+      totals.set(r.productVariantId, t);
+    }
+    return Array.from(totals.entries()).map(([variantId, t]) => ({
+      variantId,
+      onHand: t.onHand,
+      reserved: t.reserved,
+      available: t.onHand - t.reserved,
+    }));
+  }
+
   // Helper to apply stock changes after creating a movement record
   private async applyStockMovement(
     direction: MovementDirection,

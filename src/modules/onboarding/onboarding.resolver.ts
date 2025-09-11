@@ -11,7 +11,6 @@ import { CreateUserInput } from '../users/dto/create-user.input';
 import { UpdateCustomerProfileInput } from './dto/update-customer-profile.input';
 import { ApplyResellerInput } from './dto/apply-reseller.input';
 import { ApproveResellerInput } from './dto/approve-reseller.input';
-import { CustomerProfile } from '../../shared/prismagraphql/customer-profile/customer-profile.model';
 import { ResellerProfile } from '../../shared/prismagraphql/reseller-profile/reseller-profile.model';
 import { User } from '../../shared/prismagraphql/user/user.model';
 import { CustomerProfile } from '../../shared/prismagraphql/customer-profile/customer-profile.model';

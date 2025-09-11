@@ -3,6 +3,7 @@ import { Alert, Button, Card, CardContent, Grid, Skeleton, Stack, TextField, Typ
 import React from 'react';
 import { notify } from '../shared/notify';
 import TableList from '../shared/TableList';
+import { formatMoney } from '../shared/format';
 
 const BY_PO = gql`
   query SupplierPaymentsByPO($purchaseOrderId: String!) {
@@ -27,6 +28,20 @@ export default function SupplierPayments() {
   const { data, loading, error, refetch } = useQuery(BY_PO, { variables: { purchaseOrderId }, skip: !purchaseOrderId, fetchPolicy: 'cache-and-network' });
   const [create, { loading: creating, error: createErr }] = useMutation(CREATE);
   const list = data?.supplierPaymentsByPO ?? [];
+  const exportCsv = ({ sorted }: { sorted: any[] }) => {
+    const rowsToUse = sorted?.length ? sorted : list;
+    if (!rowsToUse?.length) return;
+    const header = ['id','paymentDate','method','amount','notes'];
+    const rows = rowsToUse.map((p: any) => [p.id, new Date(p.paymentDate).toISOString(), p.method, p.amount, p.notes || '']);
+    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `supplier-payments-${purchaseOrderId || 'all'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,19 +67,25 @@ export default function SupplierPayments() {
               {error && <Alert severity="error">{error.message}</Alert>}
               <TableList
                 columns={[
-                  { key: 'date', label: 'Date', render: (p: any) => new Date(p.paymentDate).toLocaleDateString() },
-                  { key: 'method', label: 'Method', render: (p: any) => p.method },
-                  { key: 'amount', label: 'Amount', render: (p: any) => p.amount },
-                  { key: 'notes', label: 'Notes', render: (p: any) => p.notes || '' },
+                  { key: 'paymentDate', label: 'Date', render: (p: any) => new Date(p.paymentDate).toLocaleDateString(), sort: true, accessor: (p: any) => new Date(p.paymentDate) },
+                  { key: 'method', label: 'Method', render: (p: any) => p.method, sort: true, filter: true },
+                  { key: 'amount', label: 'Amount', render: (p: any) => formatMoney(p.amount), sort: true, accessor: (p: any) => p.amount },
+                  { key: 'notes', label: 'Notes', render: (p: any) => p.notes || '', filter: true },
                 ] as any}
                 rows={list}
                 loading={loading}
                 emptyMessage={purchaseOrderId ? 'No payments for this PO' : 'Enter a PO ID'}
                 getRowKey={(p: any) => p.id}
+                defaultSortKey="paymentDate"
+                showFilters
+                globalSearch
+                globalSearchPlaceholder="Search payments"
+                globalSearchKeys={['method','notes']}
+                enableUrlState
+                urlKey="supplier_po_payments"
+                onExport={exportCsv}
+                exportScopeControl
               />
-              {!loading && !list.length && purchaseOrderId && (
-                <Typography color="text.secondary">No payments for this PO</Typography>
-              )}
             </CardContent>
           </Card>
         </Grid>

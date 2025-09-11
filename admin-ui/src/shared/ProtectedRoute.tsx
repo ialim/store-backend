@@ -18,7 +18,7 @@ export default function ProtectedRoute({
   if (perms && perms.length && hasPermission(...perms)) return element;
   // If either roles or perms were specified but not satisfied, block.
   if ((roles && roles.length) || (perms && perms.length))
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/forbidden" replace />;
   // Otherwise, just require auth.
   return element;
 }

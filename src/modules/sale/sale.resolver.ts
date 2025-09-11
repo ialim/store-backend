@@ -178,14 +178,25 @@ export class SalesResolver {
   consumerSalesByCustomer(
     @Args('customerId') customerId: string,
     @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+    @Args('order', { nullable: true }) order?: 'asc' | 'desc',
+    @Args('cursorId', { nullable: true }) cursorId?: string,
   ) {
-    // Link ConsumerSales via CustomerProfile relation by userId
-    return this.prisma.consumerSale.findMany({
-      where: { CustomerProfile: { some: { userId: customerId } } as any },
-      orderBy: { createdAt: 'desc' },
+    const where: any = { CustomerProfile: { some: { userId: customerId } } };
+    const orderBy: any = { createdAt: order === 'asc' ? 'asc' : 'desc' };
+    const args: any = {
+      where,
+      orderBy,
       take: take ?? 20,
+      skip: skip ?? 0,
       include: { items: true, store: true },
-    }) as any;
+    };
+    if (cursorId) {
+      args.cursor = { id: cursorId };
+      // When using cursor pagination, skip the cursor row itself by default
+      if (!skip) args.skip = 1;
+    }
+    return this.prisma.consumerSale.findMany(args) as any;
   }
 
   @Query(() => [ConsumerReceipt])
@@ -194,11 +205,22 @@ export class SalesResolver {
   consumerReceiptsByCustomer(
     @Args('customerId') customerId: string,
     @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+    @Args('order', { nullable: true }) order?: 'asc' | 'desc',
+    @Args('cursorId', { nullable: true }) cursorId?: string,
   ) {
-    return this.prisma.consumerReceipt.findMany({
-      where: { sale: { CustomerProfile: { some: { userId: customerId } } as any } },
-      orderBy: { issuedAt: 'desc' },
+    const where: any = { sale: { CustomerProfile: { some: { userId: customerId } } as any } };
+    const orderBy: any = { issuedAt: order === 'asc' ? 'asc' : 'desc' };
+    const args: any = {
+      where,
+      orderBy,
       take: take ?? 20,
-    }) as any;
+      skip: skip ?? 0,
+    };
+    if (cursorId) {
+      args.cursor = { id: cursorId };
+      if (!skip) args.skip = 1;
+    }
+    return this.prisma.consumerReceipt.findMany(args) as any;
   }
 }

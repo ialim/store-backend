@@ -3,6 +3,7 @@ import { Alert, Chip, MenuItem, Select, Stack, TextField, Typography } from '@mu
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TableList from '../shared/TableList';
+import { formatMoney } from '../shared/format';
 
 const LIST = gql`
   query Resellers($status: String, $take: Int, $q: String) {
@@ -53,7 +54,7 @@ export default function Resellers() {
     { key: 'email', label: 'Email', render: (r: any) => r?.user?.email, sort: true, accessor: (r: any) => r?.user?.email || '' },
     { key: 'status', label: 'Status', render: (r: any) => <Chip label={r.profileStatus} size="small" color={statusColor(r.profileStatus) as any} />, sort: true, accessor: (r: any) => r.profileStatus },
     { key: 'tier', label: 'Tier', render: (r: any) => r.tier, sort: true },
-    { key: 'creditLimit', label: 'Credit Limit', render: (r: any) => `₦${(r.creditLimit ?? 0).toLocaleString?.()}`, sort: true },
+    { key: 'creditLimit', label: 'Credit Limit', render: (r: any) => formatMoney(r.creditLimit), sort: true, accessor: (r: any) => r.creditLimit || 0 },
     { key: 'biller', label: 'Biller', render: (r: any) => r.biller?.email || '—', sort: true, accessor: (r: any) => r.biller?.email || '' },
     { key: 'requestedBiller', label: 'Requested Biller', render: (r: any) => r.requestedBiller?.email || '—', sort: true, accessor: (r: any) => r.requestedBiller?.email || '' },
     { key: 'requestedAt', label: 'Requested At', render: (r: any) => r.requestedAt ? new Date(r.requestedAt).toLocaleString() : '—', sort: true, accessor: (r: any) => new Date(r.requestedAt || 0) },

@@ -13,6 +13,7 @@ import {
   Switch,
   TextField,
 } from '@mui/material';
+import TableList from '../shared/TableList';
 import { gql, useMutation, useQuery } from '@apollo/client';
 import { useEffect, useState } from 'react';
 
@@ -66,6 +67,16 @@ export default function Outbox() {
   const [msg, setMsg] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [intervalSec, setIntervalSec] = useState(10);
+  const exportFailedCsv = ({ sorted }: { sorted: any[] }) => {
+    const rowsToUse = sorted?.length ? sorted : (failed?.lastFailedOutboxEvents ?? []);
+    if (!rowsToUse?.length) return;
+    const header = ['id','type','createdAt','lastError'];
+    const rows = rowsToUse.map((e: any) => [e.id, e.type, e.createdAt, (e.lastError || '').toString().slice(0, 400)]);
+    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `outbox-failed.csv`; a.click(); URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -137,31 +148,38 @@ export default function Outbox() {
         )}
       </Stack>
       <Box>
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          Last Failed
-        </Typography>
-        <Stack spacing={1}>
-          {loadingFailed && !(failed?.lastFailedOutboxEvents?.length) && (
-            <>
-              {[...Array(3)].map((_, i) => (
-                <Card key={i}><CardContent>
-                  <Skeleton variant="text" width="50%" />
-                  <Skeleton variant="text" />
-                </CardContent></Card>
-              ))}
-            </>
-          )}
-          {(failed?.lastFailedOutboxEvents ?? []).map((e: any) => (
-            <Card key={e.id}>
-              <CardContent>
-                <Typography variant="subtitle2">{e.type}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {e.lastError}
-                </Typography>
-              </CardContent>
-            </Card>
-          ))}
-        </Stack>
+        <Typography variant="h6" sx={{ mb: 1 }}>Last Failed</Typography>
+        {loadingFailed && !(failed?.lastFailedOutboxEvents?.length) ? (
+          <>
+            {[...Array(3)].map((_, i) => (
+              <Card key={i}><CardContent>
+                <Skeleton variant="text" width="50%" />
+                <Skeleton variant="text" />
+              </CardContent></Card>
+            ))}
+          </>
+        ) : (
+          <TableList
+            columns={[
+              { key: 'type', label: 'Type', sort: true, filter: true },
+              { key: 'createdAt', label: 'Created', render: (e: any) => new Date(e.createdAt).toLocaleString(), sort: true, accessor: (e: any) => new Date(e.createdAt) },
+              { key: 'lastError', label: 'Last Error', render: (e: any) => e.lastError || '', filter: true },
+            ] as any}
+            rows={failed?.lastFailedOutboxEvents ?? []}
+            loading={loadingFailed}
+            emptyMessage="No failed events"
+            getRowKey={(e: any) => e.id}
+            defaultSortKey="createdAt"
+            showFilters
+            globalSearch
+            globalSearchPlaceholder="Search failed events"
+            globalSearchKeys={['type','lastError']}
+            enableUrlState
+            urlKey="outbox_failed"
+            onExport={exportFailedCsv}
+            exportScopeControl
+          />
+        )}
       </Box>
 
       <Box>

@@ -69,6 +69,27 @@ export default function Customers() {
     }
   `;
   const [createCustomer, { loading: creating }] = useMutation(CREATE);
+  const exportCsv = ({ sorted }: { sorted: any[] }) => {
+    const rowsToUse = sorted?.length ? sorted : list;
+    if (!rowsToUse?.length) return;
+    const header = ['id','name','email','phone','store','status'];
+    const rows = rowsToUse.map((u: any) => [
+      u.id,
+      u.customerProfile?.fullName || (u.email?.split?.('@')?.[0] ?? ''),
+      u.customerProfile?.email || u.email || '',
+      u.customerProfile?.phone || '',
+      u.customerProfile?.preferredStore?.name || '',
+      u.customerProfile?.profileStatus || '',
+    ]);
+    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `customers.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <Stack spacing={2}>
@@ -175,6 +196,8 @@ export default function Customers() {
         globalSearchKeys={['name', 'email', 'phone', 'store']}
         enableUrlState
         urlKey="customers"
+        onExport={exportCsv}
+        exportScopeControl
       />
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">

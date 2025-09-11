@@ -4,6 +4,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { StoreSelect, UserSelect } from '../shared/IdSelects';
 import { notify } from '../shared/notify';
+import { formatMoney } from '../shared/format';
 
 const PO = gql`
   query PurchaseOrder($id: String!) {
@@ -73,7 +74,7 @@ export default function PurchaseOrderDetail() {
                 <Typography color="text.secondary">Supplier: {po.supplier?.name || po.supplierId}</Typography>
                 <Typography color="text.secondary">Status: {po.status} • Phase: {po.phase || '—'}</Typography>
                 <Typography color="text.secondary">Created: {new Date(po.createdAt).toLocaleString()}</Typography>
-                <Typography>Total: {po.totalAmount ?? '—'}</Typography>
+                <Typography>Total: {po.totalAmount == null ? '—' : formatMoney(po.totalAmount)}</Typography>
               </Stack>
             ) : null}
           </CardContent></Card>

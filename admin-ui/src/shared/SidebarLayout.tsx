@@ -75,6 +75,8 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         { label: 'Suppliers', to: '/suppliers', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <StoreIcon /> },
         { label: 'Purchase Orders', to: '/purchase-orders', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <AssignmentIcon /> },
         { label: 'Receive Stock', to: '/receive-stock', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <Inventory2Icon /> },
+        { label: 'Invoice Ingest', to: '/invoice-ingest', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <AssignmentIcon /> },
+        { label: 'Invoice Imports', to: '/invoice-imports', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <AssignmentIcon /> },
       ],
     },
     {

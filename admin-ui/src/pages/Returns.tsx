@@ -32,6 +32,26 @@ export default function Returns() {
   const [fulfillPurchaseReturn, { loading: fulfilling }] = useMutation(FULFILL_PURCHASE_RETURN);
   const sales = sData?.salesReturnsByStore ?? [];
   const purchases = pData?.purchaseReturnsBySupplier ?? [];
+  const exportSalesCsv = ({ sorted }: { sorted: any[] }) => {
+    const rowsToUse = sorted?.length ? sorted : sales;
+    if (!rowsToUse?.length) return;
+    const header = ['id','status','createdAt','saleId'];
+    const rows = rowsToUse.map((r: any) => [r.id, r.status, r.createdAt, r.consumerSaleId || r.resellerSaleId || '']);
+    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `sales-returns-${storeId || 'store'}.csv`; a.click(); URL.revokeObjectURL(url);
+  };
+  const exportPurchCsv = ({ sorted }: { sorted: any[] }) => {
+    const rowsToUse = sorted?.length ? sorted : purchases;
+    if (!rowsToUse?.length) return;
+    const header = ['id','status','createdAt','purchaseOrderId','supplierId'];
+    const rows = rowsToUse.map((r: any) => [r.id, r.status, r.createdAt, r.purchaseOrderId || '', r.supplierId || '']);
+    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `purchase-returns-${supplierId || 'supplier'}.csv`; a.click(); URL.revokeObjectURL(url);
+  };
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Returns</Typography>
@@ -68,6 +88,13 @@ export default function Returns() {
                     loading={sLoading}
                     emptyMessage={storeId ? 'No returns' : 'Enter Store ID'}
                     getRowKey={(r: any) => r.id}
+                    showFilters
+                    globalSearch
+                    globalSearchPlaceholder="Search returns"
+                    enableUrlState
+                    urlKey="returns_sales"
+                    onExport={exportSalesCsv}
+                    exportScopeControl
                   />
                 )}
               </Stack>
@@ -103,6 +130,13 @@ export default function Returns() {
                     loading={pLoading}
                     emptyMessage={supplierId ? 'No returns' : 'Enter Supplier ID'}
                     getRowKey={(r: any) => r.id}
+                    showFilters
+                    globalSearch
+                    globalSearchPlaceholder="Search purchase returns"
+                    enableUrlState
+                    urlKey="returns_purchase"
+                    onExport={exportPurchCsv}
+                    exportScopeControl
                   />
                 )}
               </Stack>

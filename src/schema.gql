@@ -958,6 +958,28 @@ type Stock {
   productVariant: ProductVariant!
 }
 
+type InvoiceImport {
+  id: ID!
+  url: String!
+  supplierName: String
+  storeId: String
+  status: InvoiceImportStatus!
+  parsed: JSON
+  message: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  store: Store
+}
+
+enum InvoiceImportStatus {
+  PENDING
+  PROCESSING
+  READY
+  NEEDS_REVIEW
+  FAILED
+  COMPLETED
+}
+
 type StoreCount {
   stocks: Int!
   receipts: Int!
@@ -972,6 +994,7 @@ type StoreCount {
   Quotation: Int!
   PurchaseRequisition: Int!
   purchaseOrders: Int!
+  InvoiceImport: Int!
 }
 
 type Store {
@@ -996,6 +1019,7 @@ type Store {
   Quotation: [Quotation!]
   PurchaseRequisition: [PurchaseRequisition!]
   purchaseOrders: [PurchaseOrder!]
+  InvoiceImport: [InvoiceImport!]
   _count: StoreCount!
 }
 
@@ -1238,6 +1262,16 @@ type ProductGroupBy {
   _count: ProductCountAggregate
   _min: ProductMinAggregate
   _max: ProductMaxAggregate
+}
+
+type OrphanVariantDiagnostic {
+  id: String!
+  productId: String
+  productExists: Boolean!
+  barcode: String
+  size: String!
+  concentration: String!
+  packaging: String!
 }
 
 type ProductCategoryCountAggregate {
@@ -1692,6 +1726,62 @@ type SupplierPaymentMethodBreakdownEntry {
   count: Int!
 }
 
+type IngestLineResult {
+  description: String!
+  qty: Float!
+  unitPrice: Float!
+  discountPct: Float
+  discountedUnitPrice: Float
+  lineTotal: Float!
+  variantId: String
+}
+
+type ProcessInvoiceResult {
+  status: String!
+  supplierId: String
+  supplierName: String
+  invoiceNumber: String
+  purchaseOrderId: String
+  totalAmount: Float
+  lines: [IngestLineResult!]!
+  message: String
+}
+
+type InvoiceImportCountAggregate {
+  id: Int!
+  url: Int!
+  supplierName: Int!
+  storeId: Int!
+  status: Int!
+  parsed: Int!
+  message: Int!
+  createdAt: Int!
+  updatedAt: Int!
+  _all: Int!
+}
+
+type InvoiceImportMinAggregate {
+  id: String
+  url: String
+  supplierName: String
+  storeId: String
+  status: InvoiceImportStatus
+  message: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type InvoiceImportMaxAggregate {
+  id: String
+  url: String
+  supplierName: String
+  storeId: String
+  status: InvoiceImportStatus
+  message: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
 type StockCountAggregate {
   id: Int!
   storeId: Int!
@@ -1834,6 +1924,13 @@ type StockTransferMaxAggregate {
   approvedById: String
   status: TransferStatus
   createdAt: DateTime
+}
+
+type VariantStockTotal {
+  variantId: String!
+  onHand: Float!
+  reserved: Float!
+  available: Float!
 }
 
 type ConsumerSaleCountAggregate {
@@ -2158,6 +2255,9 @@ type Query {
   lowStockByStore(storeId: String!): [ProductVariant!]!
   suppliersForVariant(productVariantId: String!): [SupplierCatalogEntry!]!
   tierPricesForVariant(productVariantId: String!): [VariantTierPrice!]!
+
+  """List product variants whose product linkage is invalid or missing"""
+  variantsWithInvalidProducts: [OrphanVariantDiagnostic!]!
   notifications: [Notification!]!
   outboxStatus: OutboxStatusCounts!
   outboxStatusByType(types: [String!]): [OutboxTypeCount!]!
@@ -2199,6 +2299,8 @@ type Query {
   rfqStatusCountsByStore(storeId: String!): RfqStatusCounts!
   rfqDashboardByStore(storeId: String!): RfqDashboard!
   adminProcurementDashboardByStore(storeId: String!): AdminProcurementDashboard!
+  invoiceImports: [InvoiceImport!]!
+  invoiceImport(id: String!): InvoiceImport
   consumerPaymentsByOrder(saleOrderId: String!): [ConsumerPayment!]!
   resellerPaymentsByOrder(saleOrderId: String!): [ResellerPayment!]!
   supplierPaymentsByPO(purchaseOrderId: String!): [SupplierPayment!]!
@@ -2216,6 +2318,10 @@ type Query {
   dailyPaymentsSeriesRange(start: DateTime!, end: DateTime!, storeId: String, billerId: String): [PaymentDaySeries!]!
   stock(input: QueryStockInput): [Stock!]!
   stockMovements(storeId: String!): [StockMovement!]!
+  stockTotalsByProduct(productId: String!): [VariantStockTotal!]!
+  stockTotalsByProductStore(productId: String!, storeId: String!): [VariantStockTotal!]!
+  consumerSalesByCustomer(customerId: String!, take: Int, skip: Int, order: String, cursorId: String): [ConsumerSale!]!
+  consumerReceiptsByCustomer(customerId: String!, take: Int, skip: Int, order: String, cursorId: String): [ConsumerReceipt!]!
   topSellingVariants(month: String, limit: Int): [VariantMonthlySales!]!
   customerAffinity(customerId: String!, limit: Int): [CustomerAffinityEntry!]!
   monthlySalesSummary(month: String): MonthlySalesSummary!
@@ -2529,6 +2635,7 @@ input StoreWhereInput {
   Quotation: QuotationListRelationFilter
   PurchaseRequisition: PurchaseRequisitionListRelationFilter
   purchaseOrders: PurchaseOrderListRelationFilter
+  InvoiceImport: InvoiceImportListRelationFilter
 }
 
 input BoolFilter {
@@ -4081,6 +4188,42 @@ input CustomerListRelationFilter {
   none: CustomerWhereInput
 }
 
+input InvoiceImportListRelationFilter {
+  every: InvoiceImportWhereInput
+  some: InvoiceImportWhereInput
+  none: InvoiceImportWhereInput
+}
+
+input InvoiceImportWhereInput {
+  AND: [InvoiceImportWhereInput!]
+  OR: [InvoiceImportWhereInput!]
+  NOT: [InvoiceImportWhereInput!]
+  id: StringFilter
+  url: StringFilter
+  supplierName: StringNullableFilter
+  storeId: StringNullableFilter
+  status: EnumInvoiceImportStatusFilter
+  parsed: JsonNullableFilter
+  message: StringNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  store: StoreNullableScalarRelationFilter
+}
+
+input EnumInvoiceImportStatusFilter {
+  equals: InvoiceImportStatus
+  in: [InvoiceImportStatus!]
+  notIn: [InvoiceImportStatus!]
+  not: NestedEnumInvoiceImportStatusFilter
+}
+
+input NestedEnumInvoiceImportStatusFilter {
+  equals: InvoiceImportStatus
+  in: [InvoiceImportStatus!]
+  notIn: [InvoiceImportStatus!]
+  not: NestedEnumInvoiceImportStatusFilter
+}
+
 input ProductSalesStatsNullableScalarRelationFilter {
   is: ProductSalesStatsWhereInput
   isNot: ProductSalesStatsWhereInput
@@ -4760,6 +4903,7 @@ input StoreOrderByWithRelationInput {
   Quotation: QuotationOrderByRelationAggregateInput
   PurchaseRequisition: PurchaseRequisitionOrderByRelationAggregateInput
   purchaseOrders: PurchaseOrderOrderByRelationAggregateInput
+  InvoiceImport: InvoiceImportOrderByRelationAggregateInput
 }
 
 input UserOrderByWithRelationInput {
@@ -4989,6 +5133,10 @@ input PurchaseOrderOrderByRelationAggregateInput {
   _count: SortOrder
 }
 
+input InvoiceImportOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
 input StoreWhereUniqueInput {
   id: String
   AND: [StoreWhereInput!]
@@ -5014,6 +5162,7 @@ input StoreWhereUniqueInput {
   Quotation: QuotationListRelationFilter
   PurchaseRequisition: PurchaseRequisitionListRelationFilter
   purchaseOrders: PurchaseOrderListRelationFilter
+  InvoiceImport: InvoiceImportListRelationFilter
 }
 
 enum StoreScalarFieldEnum {
@@ -5394,6 +5543,9 @@ type Mutation {
   deleteManyProductVariant(where: ProductVariantWhereInput, limit: Int): AffectedRows
   upsertVariantSupplierCatalog(input: UpsertVariantSupplierCatalogInput!): SupplierCatalogEntry!
   upsertVariantTierPrice(input: UpsertVariantTierPriceInput!): String!
+
+  """Attach a variant to a product by setting productId"""
+  attachVariantToProduct(variantId: String!, productId: String!): Boolean!
   markAsRead(id: String!): Notification!
   processOutbox(limit: Int, type: String, status: String): Int!
   retryOutboxFailed(limit: Int, type: String): Int!
@@ -5403,6 +5555,8 @@ type Mutation {
   approveReseller(resellerId: String!, input: ApproveResellerInput!): ResellerProfile!
   activateReseller(resellerId: String!, billerId: String): ResellerProfile!
   rejectReseller(resellerId: String!, reason: String): ResellerProfile!
+  adminUpdateCustomerProfile(userId: String!, input: AdminUpdateCustomerProfileInput!): CustomerProfile!
+  adminCreateCustomer(input: AdminCreateCustomerInput!): User!
   createSupplier(input: CreateSupplierInput!): Supplier!
   updateSupplier(input: UpdateSupplierInput!): Supplier!
   createPurchaseOrder(input: CreatePurchaseOrderInput!): PurchaseOrder!
@@ -5425,12 +5579,16 @@ type Mutation {
   updatePurchaseOrderPhase(input: UpdatePurchaseOrderPhaseInput!): PurchaseOrder!
   markPurchaseOrderReceived(input: MarkPurchaseOrderReceivedInput!): PurchaseOrder!
   createRequisitionFromLowStock(input: CreateRequisitionFromLowStockInput!): String
-  createStaff(input: CreateStaffInput!): User!
-  assignStoreManager(storeId: String!, managerId: String!): Boolean!
-  assignBiller(input: AssignBillerInput!): ResellerProfile!
+  adminProcessInvoiceUrl(input: ProcessInvoiceUrlInput!): ProcessInvoiceResult!
+  adminCreateInvoiceImport(input: CreateInvoiceImportInput!): InvoiceImport!
+  adminReprocessInvoiceImport(id: String!): InvoiceImport!
+  adminApproveInvoiceImport(input: ApproveInvoiceImportInput!): InvoiceImport!
   receiveStockBatch(input: ReceiveStockBatchInput!): StockReceiptBatch!
   transferStock(input: TransferStockInput!): StockTransfer!
   setReorderSettings(input: SetReorderSettingsInput!): Stock!
+  createStaff(input: CreateStaffInput!): User!
+  assignStoreManager(storeId: String!, managerId: String!): Boolean!
+  assignBiller(input: AssignBillerInput!): ResellerProfile!
   createQuotationDraft(input: CreateQuotationDraftInput!): Quotation!
   updateQuotationStatus(input: UpdateQuotationStatusInput!): Quotation!
   checkoutConsumerQuotation(input: CheckoutConsumerQuotationInput!): ConsumerSale!
@@ -5596,6 +5754,7 @@ input StoreCreateWithoutStocksInput {
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input UserCreateNestedOneWithoutStoreInput {
@@ -5837,6 +5996,7 @@ input StoreCreateWithoutCustomerProfileInput {
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input StockCreateNestedManyWithoutStoreInput {
@@ -5968,6 +6128,7 @@ input StoreCreateWithoutReceiptsInput {
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input StockTransferCreateNestedManyWithoutFromStoreInput {
@@ -6013,6 +6174,7 @@ input StoreCreateWithoutTransfersInInput {
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input StockReceiptBatchCreateNestedManyWithoutStoreInput {
@@ -6198,6 +6360,7 @@ input StoreCreateWithoutCustomerInput {
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input StockTransferCreateNestedManyWithoutToStoreInput {
@@ -6243,6 +6406,7 @@ input StoreCreateWithoutTransfersOutInput {
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input ConsumerSaleCreateNestedManyWithoutStoreInput {
@@ -6545,6 +6709,7 @@ input StoreCreateWithoutCustomerSalesInput {
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input SalesReturnCreateNestedManyWithoutStoreInput {
@@ -6797,6 +6962,7 @@ input StoreCreateWithoutQuotationInput {
   CustomerProfile: CustomerProfileCreateNestedManyWithoutPreferredStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input ResellerSaleCreateNestedManyWithoutStoreInput {
@@ -7128,6 +7294,7 @@ input StoreCreateWithoutManagerInput {
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input StockMovementCreateNestedManyWithoutStoreInput {
@@ -7732,6 +7899,7 @@ input StoreCreateWithoutResellerSalesInput {
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input CustomerCreateNestedManyWithoutPreferredStoreInput {
@@ -8436,6 +8604,7 @@ input StoreCreateWithoutPurchaseOrdersInput {
   CustomerProfile: CustomerProfileCreateNestedManyWithoutPreferredStoreInput
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input CustomerProfileCreateNestedManyWithoutPreferredStoreInput {
@@ -8564,6 +8733,7 @@ input StoreCreateWithoutSalesReturnsInput {
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input QuotationCreateNestedManyWithoutStoreInput {
@@ -9715,6 +9885,7 @@ input StoreCreateWithoutMovementsInput {
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input PurchaseRequisitionCreateNestedManyWithoutStoreInput {
@@ -9949,6 +10120,7 @@ input StoreCreateWithoutPurchaseRequisitionInput {
   CustomerProfile: CustomerProfileCreateNestedManyWithoutPreferredStoreInput
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input PurchaseOrderCreateNestedManyWithoutStoreInput {
@@ -11071,6 +11243,61 @@ input PurchaseOrderCreateManyStoreInput {
   phase: PurchasePhase
   dueDate: DateTime!
   totalAmount: Float!
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input InvoiceImportCreateNestedManyWithoutStoreInput {
+  create: [InvoiceImportCreateWithoutStoreInput!]
+  connectOrCreate: [InvoiceImportCreateOrConnectWithoutStoreInput!]
+  createMany: InvoiceImportCreateManyStoreInputEnvelope
+  connect: [InvoiceImportWhereUniqueInput!]
+}
+
+input InvoiceImportCreateWithoutStoreInput {
+  id: String
+  url: String!
+  supplierName: String
+  status: InvoiceImportStatus
+  parsed: JSON
+  message: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input InvoiceImportCreateOrConnectWithoutStoreInput {
+  where: InvoiceImportWhereUniqueInput!
+  create: InvoiceImportCreateWithoutStoreInput!
+}
+
+input InvoiceImportWhereUniqueInput {
+  id: String
+  AND: [InvoiceImportWhereInput!]
+  OR: [InvoiceImportWhereInput!]
+  NOT: [InvoiceImportWhereInput!]
+  url: StringFilter
+  supplierName: StringNullableFilter
+  storeId: StringNullableFilter
+  status: EnumInvoiceImportStatusFilter
+  parsed: JsonNullableFilter
+  message: StringNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  store: StoreNullableScalarRelationFilter
+}
+
+input InvoiceImportCreateManyStoreInputEnvelope {
+  data: [InvoiceImportCreateManyStoreInput!]!
+  skipDuplicates: Boolean
+}
+
+input InvoiceImportCreateManyStoreInput {
+  id: String
+  url: String!
+  supplierName: String
+  status: InvoiceImportStatus
+  parsed: JSON
+  message: String
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -13889,6 +14116,7 @@ input StoreUpdateWithoutStocksInput {
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input BoolFieldUpdateOperationsInput {
@@ -14217,6 +14445,7 @@ input StoreUpdateWithoutCustomerProfileInput {
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input StockUpdateManyWithoutStoreNestedInput {
@@ -14406,6 +14635,7 @@ input StoreUpdateWithoutReceiptsInput {
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input StockTransferUpdateManyWithoutFromStoreNestedInput {
@@ -14476,6 +14706,7 @@ input StoreUpdateWithoutTransfersInInput {
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input StockReceiptBatchUpdateManyWithoutStoreNestedInput {
@@ -14761,6 +14992,7 @@ input StoreUpdateWithoutCustomerInput {
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input StockTransferUpdateManyWithoutToStoreNestedInput {
@@ -14827,6 +15059,7 @@ input StoreUpdateWithoutTransfersOutInput {
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input ConsumerSaleUpdateManyWithoutStoreNestedInput {
@@ -15216,6 +15449,7 @@ input StoreUpdateWithoutCustomerSalesInput {
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input SalesReturnUpdateManyWithoutStoreNestedInput {
@@ -15565,6 +15799,7 @@ input StoreUpdateWithoutQuotationInput {
   CustomerProfile: CustomerProfileUpdateManyWithoutPreferredStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input ResellerSaleUpdateManyWithoutStoreNestedInput {
@@ -16016,6 +16251,7 @@ input StoreUpdateWithoutManagerInput {
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input StockMovementUpdateManyWithoutStoreNestedInput {
@@ -16880,6 +17116,7 @@ input StoreUpdateWithoutResellerSalesInput {
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input CustomerUpdateManyWithoutPreferredStoreNestedInput {
@@ -17855,6 +18092,7 @@ input StoreUpdateWithoutPurchaseOrdersInput {
   CustomerProfile: CustomerProfileUpdateManyWithoutPreferredStoreNestedInput
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input CustomerProfileUpdateManyWithoutPreferredStoreNestedInput {
@@ -18040,6 +18278,7 @@ input StoreUpdateWithoutSalesReturnsInput {
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input QuotationUpdateManyWithoutStoreNestedInput {
@@ -19602,6 +19841,7 @@ input StoreUpdateWithoutMovementsInput {
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input PurchaseRequisitionUpdateManyWithoutStoreNestedInput {
@@ -19925,6 +20165,7 @@ input StoreUpdateWithoutPurchaseRequisitionInput {
   CustomerProfile: CustomerProfileUpdateManyWithoutPreferredStoreNestedInput
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input PurchaseOrderUpdateManyWithoutStoreNestedInput {
@@ -21239,6 +21480,77 @@ input PurchaseOrderUpdateWithWhereUniqueWithoutStoreInput {
 input PurchaseOrderUpdateManyWithWhereWithoutStoreInput {
   where: PurchaseOrderScalarWhereInput!
   data: PurchaseOrderUpdateManyMutationInput!
+}
+
+input InvoiceImportUpdateManyWithoutStoreNestedInput {
+  create: [InvoiceImportCreateWithoutStoreInput!]
+  connectOrCreate: [InvoiceImportCreateOrConnectWithoutStoreInput!]
+  upsert: [InvoiceImportUpsertWithWhereUniqueWithoutStoreInput!]
+  createMany: InvoiceImportCreateManyStoreInputEnvelope
+  set: [InvoiceImportWhereUniqueInput!]
+  disconnect: [InvoiceImportWhereUniqueInput!]
+  delete: [InvoiceImportWhereUniqueInput!]
+  connect: [InvoiceImportWhereUniqueInput!]
+  update: [InvoiceImportUpdateWithWhereUniqueWithoutStoreInput!]
+  updateMany: [InvoiceImportUpdateManyWithWhereWithoutStoreInput!]
+  deleteMany: [InvoiceImportScalarWhereInput!]
+}
+
+input InvoiceImportUpsertWithWhereUniqueWithoutStoreInput {
+  where: InvoiceImportWhereUniqueInput!
+  update: InvoiceImportUpdateWithoutStoreInput!
+  create: InvoiceImportCreateWithoutStoreInput!
+}
+
+input InvoiceImportUpdateWithoutStoreInput {
+  id: StringFieldUpdateOperationsInput
+  url: StringFieldUpdateOperationsInput
+  supplierName: NullableStringFieldUpdateOperationsInput
+  status: EnumInvoiceImportStatusFieldUpdateOperationsInput
+  parsed: JSON
+  message: NullableStringFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+}
+
+input EnumInvoiceImportStatusFieldUpdateOperationsInput {
+  set: InvoiceImportStatus
+}
+
+input InvoiceImportUpdateWithWhereUniqueWithoutStoreInput {
+  where: InvoiceImportWhereUniqueInput!
+  data: InvoiceImportUpdateWithoutStoreInput!
+}
+
+input InvoiceImportUpdateManyWithWhereWithoutStoreInput {
+  where: InvoiceImportScalarWhereInput!
+  data: InvoiceImportUpdateManyMutationInput!
+}
+
+input InvoiceImportScalarWhereInput {
+  AND: [InvoiceImportScalarWhereInput!]
+  OR: [InvoiceImportScalarWhereInput!]
+  NOT: [InvoiceImportScalarWhereInput!]
+  id: StringFilter
+  url: StringFilter
+  supplierName: StringNullableFilter
+  storeId: StringNullableFilter
+  status: EnumInvoiceImportStatusFilter
+  parsed: JsonNullableFilter
+  message: StringNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input InvoiceImportUpdateManyMutationInput {
+  id: StringFieldUpdateOperationsInput
+  url: StringFieldUpdateOperationsInput
+  supplierName: NullableStringFieldUpdateOperationsInput
+  status: EnumInvoiceImportStatusFieldUpdateOperationsInput
+  parsed: JSON
+  message: NullableStringFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
 }
 
 input StoreUpdateToOneWithWhereWithoutPurchaseRequisitionInput {
@@ -23694,6 +24006,25 @@ input ApproveResellerInput {
   billerId: String
 }
 
+input AdminUpdateCustomerProfileInput {
+  fullName: String!
+  phone: String
+  email: String
+  gender: String
+  birthday: DateTime
+  preferredStoreId: String
+  profileStatus: String
+}
+
+input AdminCreateCustomerInput {
+  email: String!
+  password: String!
+  fullName: String
+  phone: String
+  preferredStoreId: String
+  profileStatus: String
+}
+
 input CreateSupplierInput {
   name: String!
   contactInfo: String
@@ -23842,21 +24173,33 @@ input CreateRequisitionFromLowStockInput {
   requestedById: String!
 }
 
-input CreateStaffInput {
-  email: String!
-  password: String!
-  role: RoleName!
+input ProcessInvoiceUrlInput {
+  url: String!
+  storeId: String
+  supplierName: String
+  receivedById: String
+  confirmedById: String
+  createPurchaseOrder: Boolean
+  createSupplierPayment: Boolean
+  receiveStock: Boolean
 }
 
-enum RoleName {
-  ADMIN
-  BILLER
-  MANAGER
+input CreateInvoiceImportInput {
+  url: String!
+  supplierName: String
+  storeId: String
 }
 
-input AssignBillerInput {
-  billerId: ID!
-  resellerId: ID!
+input ApproveInvoiceImportInput {
+  id: String!
+  supplierName: String
+  storeId: String
+  createPurchaseOrder: Boolean
+  createSupplierPayment: Boolean
+  receiveStock: Boolean
+  receivedById: String
+  confirmedById: String
+  useParsedTotal: Boolean
 }
 
 input ReceiveStockBatchInput {
@@ -23891,6 +24234,23 @@ input SetReorderSettingsInput {
   productVariantId: String!
   reorderPoint: Int
   reorderQty: Int
+}
+
+input CreateStaffInput {
+  email: String!
+  password: String!
+  role: RoleName!
+}
+
+enum RoleName {
+  ADMIN
+  BILLER
+  MANAGER
+}
+
+input AssignBillerInput {
+  billerId: ID!
+  resellerId: ID!
 }
 
 input CreateQuotationDraftInput {
@@ -24085,6 +24445,7 @@ input StoreCreateInput {
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
+  InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
 }
 
 input StoreCreateManyInput {
@@ -24118,6 +24479,7 @@ input StoreUpdateInput {
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
+  InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
 }
 
 input UserCreateInput {

@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@apollo/server": "^4.12.2",
+    "@aws-sdk/client-textract": "^3.886.0",
     "@nestjs/apollo": "^13.1.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
@@ -45,9 +46,12 @@
     "nodemailer": "^7.0.5",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^4.10.38",
     "prisma-graphql-type-decimal": "^3.0.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "tesseract.js": "^6.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

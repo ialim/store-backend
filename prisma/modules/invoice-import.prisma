@@ -1,0 +1,29 @@
+// invoice-import.prisma
+
+enum InvoiceImportStatus {
+  PENDING
+  PROCESSING
+  READY
+  NEEDS_REVIEW
+  FAILED
+  COMPLETED
+}
+
+model InvoiceImport {
+  id           String               @id @default(uuid())
+  url          String
+  supplierName String?
+  storeId      String?
+  status       InvoiceImportStatus  @default(PENDING)
+  parsed       Json?
+  message      String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  // Optional relation to a Store for context
+  store        Store?               @relation(fields: [storeId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+}
+

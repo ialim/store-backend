@@ -16,6 +16,7 @@ import {
   Typography,
 } from '@mui/material';
 import { notify } from '../shared/notify';
+import { formatMoney } from '../shared/format';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -142,12 +143,8 @@ export default function ResellerDetail() {
               </Typography>
               <Stack spacing={0.5} sx={{ mt: 1 }}>
                 <Typography>Tier: {r.tier}</Typography>
-                <Typography>
-                  Credit Limit: ₦{r.creditLimit?.toLocaleString?.()}
-                </Typography>
-                <Typography>
-                  Outstanding: ₦{r.outstandingBalance?.toLocaleString?.()}
-                </Typography>
+                <Typography>Credit Limit: {formatMoney(r.creditLimit)}</Typography>
+                <Typography>Outstanding: {formatMoney(r.outstandingBalance)}</Typography>
                 <Typography>
                   Requested At:{' '}
                   {r.requestedAt
