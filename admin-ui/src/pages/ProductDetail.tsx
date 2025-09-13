@@ -122,20 +122,20 @@ export default function ProductDetail() {
   const canAdd = !!size && !!concentration && !!packaging && price > 0 && resellerPrice > 0;
   const [editVariant, setEditVariant] = React.useState<Variant | null>(null);
   const [invVariant, setInvVariant] = React.useState<any | null>(null);
-
-  if ((loading || vLoading) && !p) return <Skeleton variant="rectangular" height={200} />;
-  if (error || vError) return <Alert severity="error">{error?.message || vError?.message}</Alert>;
-  if (!p) return <Alert severity="info">Product not found.</Alert>;
-
-  const variants = vData?.listProductVariants ?? p.variants ?? [];
+  // Hooks must not be conditional; keep before any early return
   const [showVariantFilters, setShowVariantFilters] = React.useState(false);
-
   const totalsMap = React.useMemo(() => {
     const map = new Map<string, { onHand: number; reserved: number; available: number }>();
     const list = storeTotalsFilter ? (totalsDataStore?.stockTotalsByProductStore || []) : (totalsDataAll?.stockTotalsByProduct || []);
     list.forEach((t: any) => map.set(t.variantId, t));
     return map;
   }, [totalsDataAll, totalsDataStore, storeTotalsFilter]);
+  const variants = vData?.listProductVariants ?? p?.variants ?? [];
+
+  if ((loading || vLoading) && !p) return <Skeleton variant="rectangular" height={200} />;
+  if (error || vError) return <Alert severity="error">{error?.message || vError?.message}</Alert>;
+  if (!p) return <Alert severity="info">Product not found.</Alert>;
+
   const totalsLoading = storeTotalsFilter ? loadingTotalsStore : loadingTotalsAll;
 
   const exportCsv = ({ sorted }: { sorted: any[] }) => {

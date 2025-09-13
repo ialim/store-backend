@@ -1782,6 +1782,11 @@ type InvoiceImportMaxAggregate {
   updatedAt: DateTime
 }
 
+type ApproveInvoiceResult {
+  invoiceImport: InvoiceImport!
+  purchaseOrderId: String
+}
+
 type StockCountAggregate {
   id: Int!
   storeId: Int!
@@ -5582,7 +5587,8 @@ type Mutation {
   adminProcessInvoiceUrl(input: ProcessInvoiceUrlInput!): ProcessInvoiceResult!
   adminCreateInvoiceImport(input: CreateInvoiceImportInput!): InvoiceImport!
   adminReprocessInvoiceImport(id: String!): InvoiceImport!
-  adminApproveInvoiceImport(input: ApproveInvoiceImportInput!): InvoiceImport!
+  adminUpdateInvoiceImport(input: UpdateInvoiceImportInput!): InvoiceImport!
+  adminApproveInvoiceImport(input: ApproveInvoiceImportInput!): ApproveInvoiceResult!
   receiveStockBatch(input: ReceiveStockBatchInput!): StockReceiptBatch!
   transferStock(input: TransferStockInput!): StockTransfer!
   setReorderSettings(input: SetReorderSettingsInput!): Stock!
@@ -24190,6 +24196,14 @@ input CreateInvoiceImportInput {
   storeId: String
 }
 
+input UpdateInvoiceImportInput {
+  id: String!
+  url: String
+  supplierName: String
+  storeId: String
+  invoiceNumber: String
+}
+
 input ApproveInvoiceImportInput {
   id: String!
   supplierName: String
@@ -24200,6 +24214,17 @@ input ApproveInvoiceImportInput {
   receivedById: String
   confirmedById: String
   useParsedTotal: Boolean
+  overrideLines: [InvoiceImportLineInput!]
+}
+
+input InvoiceImportLineInput {
+  description: String!
+  qty: Int!
+  unitPrice: Float
+  barcode: String
+  discountPct: Float
+  discountedUnitPrice: Float
+  lineTotal: Float
 }
 
 input ReceiveStockBatchInput {

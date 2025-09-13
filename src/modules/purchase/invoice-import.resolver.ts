@@ -5,6 +5,9 @@ import {
   Args,
   Field,
   InputType,
+  Int,
+  Float,
+  ObjectType,
 } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
@@ -25,6 +28,17 @@ class CreateInvoiceImportInput {
 }
 
 @InputType()
+class InvoiceImportLineInput {
+  @Field(() => String) description!: string;
+  @Field(() => Int) qty!: number;
+  @Field(() => Float, { nullable: true }) unitPrice?: number;
+  @Field(() => String, { nullable: true }) barcode?: string;
+  @Field(() => Float, { nullable: true }) discountPct?: number;
+  @Field(() => Float, { nullable: true }) discountedUnitPrice?: number;
+  @Field(() => Float, { nullable: true }) lineTotal?: number;
+}
+
+@InputType()
 class ApproveInvoiceImportInput {
   @Field(() => String) id!: string;
   @Field(() => String, { nullable: true }) supplierName?: string;
@@ -35,6 +49,24 @@ class ApproveInvoiceImportInput {
   @Field(() => String, { nullable: true }) receivedById?: string;
   @Field(() => String, { nullable: true }) confirmedById?: string;
   @Field({ nullable: true }) useParsedTotal?: boolean;
+  @Field(() => [InvoiceImportLineInput], { nullable: true }) overrideLines?: InvoiceImportLineInput[];
+}
+
+@InputType()
+class UpdateInvoiceImportInput {
+  @Field(() => String) id!: string;
+  @Field(() => String, { nullable: true }) url?: string;
+  @Field(() => String, { nullable: true }) supplierName?: string;
+  @Field(() => String, { nullable: true }) storeId?: string;
+  @Field(() => String, { nullable: true }) invoiceNumber?: string;
+}
+
+@ObjectType()
+class ApproveInvoiceResult {
+  @Field(() => InvoiceImport)
+  invoiceImport!: InvoiceImport;
+  @Field(() => String, { nullable: true })
+  purchaseOrderId?: string;
 }
 
 @Resolver()
@@ -128,14 +160,33 @@ export class InvoiceImportResolver {
   @Mutation(() => InvoiceImport)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  async adminUpdateInvoiceImport(
+    @Args('input') input: UpdateInvoiceImportInput,
+  ): Promise<InvoiceImport> {
+    const { id, invoiceNumber, ...data } = input as any;
+    const existing = await (this.prisma as any).invoiceImport.findUnique({ where: { id } });
+    const updateData: any = { ...data };
+    if (typeof invoiceNumber === 'string') {
+      const parsed = this.sanitizeDeep({ ...(existing?.parsed || {}), invoiceNumber });
+      updateData.parsed = parsed;
+    }
+    await (this.prisma as any).invoiceImport.update({ where: { id }, data: updateData });
+    return (this.prisma as any).invoiceImport.findUnique({ where: { id } });
+  }
+
+  @Mutation(() => ApproveInvoiceResult)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
   async adminApproveInvoiceImport(
     @Args('input') input: ApproveInvoiceImportInput,
-  ): Promise<InvoiceImport> {
+  ): Promise<ApproveInvoiceResult> {
     const imp = await (this.prisma as any).invoiceImport.findUnique({
       where: { id: input.id },
     });
     if (!imp) throw new Error('Import not found');
     const parsed = imp.parsed || { lines: [] };
+    const override = (input as any).overrideLines as InvoiceImportLineInput[] | undefined;
+    const sourceLines = Array.isArray(override) && override.length ? override : parsed.lines;
     if (!parsed?.lines?.length) throw new Error('No parsed lines on import');
 
     // Supplier find/create by name
@@ -162,7 +213,7 @@ export class InvoiceImportResolver {
       quantity: number;
       unitCost: number;
     }> = [];
-    for (const ln of parsed.lines as any[]) {
+    for (const ln of sourceLines as any[]) {
       const desc = String(ln.description || '').trim();
       if (!desc) continue;
       let prod = await (this.prisma as any).product.findFirst({
@@ -172,9 +223,11 @@ export class InvoiceImportResolver {
         prod = await (this.prisma as any).product.create({
           data: { name: desc, categoryId: cat.id },
         });
-      let variant = await (this.prisma as any).productVariant.findFirst({
-        where: { productId: prod.id },
-      });
+      // Prefer existing variant by barcode if provided
+      let variant = ln.barcode ? await (this.prisma as any).productVariant.findFirst({ where: { barcode: ln.barcode } }) : null;
+      if (!variant) {
+        variant = await (this.prisma as any).productVariant.findFirst({ where: { productId: prod.id } });
+      }
       if (!variant)
         variant = await (this.prisma as any).productVariant.create({
           data: {
@@ -182,11 +235,17 @@ export class InvoiceImportResolver {
             size: 'STD',
             concentration: 'STD',
             packaging: 'STD',
-            barcode: null,
+            barcode: ln.barcode ?? null,
             price: ln.unitPrice || 0,
             resellerPrice: ln.discountedUnitPrice || ln.unitPrice || 0,
           },
         });
+      // If variant exists without barcode, set it from line
+      if (ln.barcode && !variant.barcode) {
+        try {
+          variant = await (this.prisma as any).productVariant.update({ where: { id: variant.id }, data: { barcode: ln.barcode } });
+        } catch {}
+      }
       const qty = Number(ln.qty) || 1;
       const unitCost = (ln.discountedUnitPrice ?? ln.unitPrice ?? (ln.lineTotal != null ? Number(ln.lineTotal) / qty : 0)) as number;
       poItems.push({ productVariantId: variant.id, quantity: qty, unitCost });
@@ -194,8 +253,8 @@ export class InvoiceImportResolver {
 
     let poId: string | undefined;
     // Pre-compute totals to ensure consistency between PO and Payment
-    const lineSum = Array.isArray((parsed as any).lines)
-      ? (parsed as any).lines.reduce((s: number, ln: any) => {
+    const lineSum = Array.isArray(sourceLines)
+      ? (sourceLines as any[]).reduce((s: number, ln: any) => {
           const q = Number(ln.qty) || 1;
           const unit = ln.discountedUnitPrice ?? ln.unitPrice ?? (ln.lineTotal != null ? Number(ln.lineTotal) / q : 0);
           const tot = ln.lineTotal != null ? Number(ln.lineTotal) : Number(unit) * q;
@@ -249,8 +308,7 @@ export class InvoiceImportResolver {
       where: { id: input.id },
       data: { status: 'COMPLETED', message: 'Approved' },
     });
-    return (this.prisma as any).invoiceImport.findUnique({
-      where: { id: input.id },
-    });
+    const inv = await (this.prisma as any).invoiceImport.findUnique({ where: { id: input.id } });
+    return { invoiceImport: inv, purchaseOrderId: poId } as ApproveInvoiceResult;
   }
 }
