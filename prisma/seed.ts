@@ -196,18 +196,12 @@ async function main() {
   });
 
   // --- Product, Variant & Stock ---
-  const category = await prisma.productCategory.upsert({
-    where: { name: 'Designer Perfume' },
-    update: {},
-    create: { name: 'Designer Perfume' },
-  });
-
   const product = await prisma.product.upsert({
-    where: { id: '1', name: '24 Gold Elixir EDP' },
+    where: { id: 'prod-24-gold' },
     update: {},
     create: {
+      id: 'prod-24-gold',
       name: '24 Gold Elixir EDP',
-      categoryId: category.id,
       barcode: 'GOLD-24-EDP',
     },
   });

@@ -105,9 +105,8 @@ export class InvoiceIngestResolver {
     const lineResults: IngestLineResult[] = [];
     for (const ln of parsed.lines) {
       // Prefer existing variant by barcode; otherwise create an orphan variant
-      let variant = ln['barcode'] ? await this.prisma.productVariant.findFirst({ where: { barcode: (ln as any).barcode } }) : null;
-      if (!variant) {
-        variant = await this.variants.createLoose({
+      const found = (ln as any)['barcode'] ? await this.prisma.productVariant.findFirst({ where: { barcode: (ln as any).barcode } }) : null;
+      const variant = found ?? await this.variants.createLoose({
           productId: null,
           name: ln.description,
           size: 'STD',
@@ -117,9 +116,9 @@ export class InvoiceIngestResolver {
           price: ln.unitPrice,
           resellerPrice: ln.discountedUnitPrice ?? ln.unitPrice,
         } as any);
-      }
-      poItems.push({ productVariantId: variant.id, quantity: ln.qty, unitCost: ln.discountedUnitPrice ?? ln.unitPrice });
-      lineResults.push({ ...ln, variantId: variant.id });
+      const variantId = (variant as any).id as string;
+      poItems.push({ productVariantId: variantId, quantity: ln.qty, unitCost: ln.discountedUnitPrice ?? ln.unitPrice });
+      lineResults.push({ ...ln, variantId });
     }
 
     let purchaseOrderId: string | undefined;
