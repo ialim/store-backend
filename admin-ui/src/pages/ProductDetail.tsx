@@ -1,5 +1,5 @@
 import { gql, useMutation, useQuery } from '@apollo/client';
-import { Alert, Box, Button, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, CircularProgress } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, CircularProgress, Chip } from '@mui/material';
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import TableList from '../shared/TableList';
@@ -18,6 +18,11 @@ const GET = gql`
     }
   }
 `;
+
+const FACETS = gql`query { listFacets { id name code values isPrivate } }`;
+const PRODUCT_FACETS = gql`query($productId: String!) { productFacets(productId: $productId) { facet { id name code values isPrivate } value } }`;
+const ASSIGN_PRODUCT_FACET = gql`mutation($productId: String!, $facetId: String!, $value: String!) { assignFacetToProduct(productId: $productId, facetId: $facetId, value: $value) }`;
+const REMOVE_PRODUCT_FACET = gql`mutation($productId: String!, $facetId: String!, $value: String!) { removeFacetFromProduct(productId: $productId, facetId: $facetId, value: $value) }`;
 
 const CREATE_VARIANT = gql`
   mutation CreateVariant($data: ProductVariantCreateInput!) {
@@ -108,6 +113,16 @@ export default function ProductDetail() {
   const [updateProduct] = useMutation(UPDATE_PRODUCT);
   const [updateVariant] = useMutation(UPDATE_VARIANT);
   const [deleteVariant] = useMutation(DELETE_VARIANT);
+  // Facets (product)
+  const { data: facetsData } = useQuery(FACETS, { fetchPolicy: 'cache-first' });
+  const allFacets: Array<{ id: string; name: string; code: string; values?: string[]; isPrivate?: boolean }>
+    = facetsData?.listFacets ?? [];
+  const { data: prodFacetsData, refetch: refetchProdFacets } = useQuery(PRODUCT_FACETS, { variables: { productId: id as string }, skip: !id, fetchPolicy: 'cache-and-network' });
+  const productAssignments: Array<{ facet: any; value: string }> = prodFacetsData?.productFacets ?? [];
+  const [assignProductFacet] = useMutation(ASSIGN_PRODUCT_FACET);
+  const [removeProductFacet] = useMutation(REMOVE_PRODUCT_FACET);
+  const [selFacetId, setSelFacetId] = React.useState('');
+  const [selFacetValue, setSelFacetValue] = React.useState('');
 
   const [size, setSize] = React.useState('');
   const [concentration, setConcentration] = React.useState('');
@@ -194,8 +209,43 @@ export default function ProductDetail() {
               </Box>
             </Stack>
           </CardContent></Card>
-        </Grid>
       </Grid>
+    </Grid>
+
+      <Card sx={{ mt: 2 }}><CardContent>
+        <Typography variant="subtitle1">Facets</Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1 }} alignItems={{ sm: 'center' }}>
+          <Select size="small" value={selFacetId} onChange={(e) => { setSelFacetId(e.target.value); setSelFacetValue(''); }} displayEmpty sx={{ minWidth: 260 }}>
+            <MenuItem value=""><em>Select facet…</em></MenuItem>
+            {allFacets.map((f) => (<MenuItem key={f.id} value={f.id}>{f.name} ({f.code})</MenuItem>))}
+          </Select>
+          {(() => {
+            const f = allFacets.find((x) => x.id === selFacetId);
+            if (f && Array.isArray(f.values) && f.values.length) {
+              return (
+                <Select size="small" value={selFacetValue} onChange={(e) => setSelFacetValue(e.target.value)} displayEmpty sx={{ minWidth: 220 }}>
+                  <MenuItem value=""><em>Value…</em></MenuItem>
+                  {f.values.map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
+                </Select>
+              );
+            }
+            return (<TextField size="small" label="Value" value={selFacetValue} onChange={(e) => setSelFacetValue(e.target.value)} />);
+          })()}
+          <Button size="small" variant="contained" disabled={!selFacetId || !selFacetValue} onClick={async () => {
+            await assignProductFacet({ variables: { productId: id, facetId: selFacetId, value: selFacetValue } });
+            setSelFacetValue('');
+            await refetchProdFacets();
+          }}>Assign</Button>
+        </Stack>
+        <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
+          {productAssignments.map((a, i) => (
+            <Chip key={`${a.facet?.id}_${a.value}_${i}`} label={`${a.facet?.name || a.facet?.code}: ${a.value}`} onDelete={async () => {
+              await removeProductFacet({ variables: { productId: id, facetId: a.facet?.id, value: a.value } });
+              await refetchProdFacets();
+            }} />
+          ))}
+        </Stack>
+      </CardContent></Card>
 
       <Card><CardContent>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
@@ -230,6 +280,7 @@ export default function ProductDetail() {
                 <Button size="small" onClick={() => setEditVariant(v)}>Edit</Button>
                 <Button size="small" color="error" onClick={async () => { if (!window.confirm('Delete this variant?')) return; await deleteVariant({ variables: { id: v.id } }); await refetch(); }}>Delete</Button>
                 <Button size="small" variant="outlined" onClick={() => setInvVariant(v)}>Inventory</Button>
+                <VariantFacetsButton variantId={v.id} />
               </Stack>
             ) },
           ] as any}
@@ -257,9 +308,77 @@ export default function ProductDetail() {
   );
 }
 
-type Variant = { id: string; size: string; concentration: string; packaging: string; barcode?: string | null; price: number; resellerPrice: number };
+type Variant = { id: string; name?: string | null; size: string; concentration: string; packaging: string; barcode?: string | null; price: number; resellerPrice: number };
+
+const VARIANT_FACETS = gql`query($productVariantId: String!) { variantFacets(productVariantId: $productVariantId) { facet { id name code values isPrivate } value } }`;
+const ASSIGN_VARIANT_FACET = gql`mutation($productVariantId: String!, $facetId: String!, $value: String!) { assignFacetToVariant(productVariantId: $productVariantId, facetId: $facetId, value: $value) }`;
+const REMOVE_VARIANT_FACET = gql`mutation($productVariantId: String!, $facetId: String!, $value: String!) { removeFacetFromVariant(productVariantId: $productVariantId, facetId: $facetId, value: $value) }`;
+
+function VariantFacetsButton({ variantId }: { variantId: string }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <>
+      <Button size="small" onClick={() => setOpen(true)}>Facets</Button>
+      {open && <VariantFacetsDialog variantId={variantId} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+function VariantFacetsDialog({ variantId, onClose }: { variantId: string; onClose: () => void }) {
+  const { data: facetsData } = useQuery(FACETS, { fetchPolicy: 'cache-first' });
+  const allFacets: Array<{ id: string; name: string; code: string; values?: string[]; isPrivate?: boolean }>
+    = facetsData?.listFacets ?? [];
+  const { data, refetch } = useQuery(VARIANT_FACETS, { variables: { productVariantId: variantId }, fetchPolicy: 'cache-and-network' });
+  const assigns: Array<{ facet: any; value: string }> = data?.variantFacets ?? [];
+  const [assign] = useMutation(ASSIGN_VARIANT_FACET);
+  const [remove] = useMutation(REMOVE_VARIANT_FACET);
+  const [selFacetId, setSelFacetId] = React.useState('');
+  const [selValue, setSelValue] = React.useState('');
+  return (
+    <Dialog open onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>Variant Facets</DialogTitle>
+      <DialogContent>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1 }}>
+          <Select size="small" value={selFacetId} onChange={(e) => { setSelFacetId(e.target.value); setSelValue(''); }} displayEmpty sx={{ minWidth: 220 }}>
+            <MenuItem value=""><em>Select facet…</em></MenuItem>
+            {allFacets.map((f) => (<MenuItem key={f.id} value={f.id}>{f.name} ({f.code})</MenuItem>))}
+          </Select>
+          {(() => {
+            const f = allFacets.find((x) => x.id === selFacetId);
+            if (f && Array.isArray(f.values) && f.values.length) {
+              return (
+                <Select size="small" value={selValue} onChange={(e) => setSelValue(e.target.value)} displayEmpty sx={{ minWidth: 180 }}>
+                  <MenuItem value=""><em>Value…</em></MenuItem>
+                  {f.values.map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
+                </Select>
+              );
+            }
+            return (<TextField size="small" label="Value" value={selValue} onChange={(e) => setSelValue(e.target.value)} />);
+          })()}
+          <Button size="small" variant="contained" disabled={!selFacetId || !selValue} onClick={async () => {
+            await assign({ variables: { productVariantId: variantId, facetId: selFacetId, value: selValue } });
+            setSelValue('');
+            await refetch();
+          }}>Assign</Button>
+        </Stack>
+        <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
+          {assigns.map((a, i) => (
+            <Chip key={`${a.facet?.id}_${a.value}_${i}`} label={`${a.facet?.name || a.facet?.code}: ${a.value}`} onDelete={async () => {
+              await remove({ variables: { productVariantId: variantId, facetId: a.facet?.id, value: a.value } });
+              await refetch();
+            }} />
+          ))}
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
 
 function VariantDialog({ variant, onClose, onSave }: { variant: Variant | null; onClose: () => void; onSave: (data: any) => Promise<void> }) {
+  const [name, setName] = React.useState('');
   const [size, setSize] = React.useState('');
   const [concentration, setConcentration] = React.useState('');
   const [packaging, setPackaging] = React.useState('');
@@ -268,6 +387,7 @@ function VariantDialog({ variant, onClose, onSave }: { variant: Variant | null; 
   const [resellerPrice, setResellerPrice] = React.useState<number>(0);
   React.useEffect(() => {
     if (!variant) return;
+    setName(variant.name || '');
     setSize(variant.size || '');
     setConcentration(variant.concentration || '');
     setPackaging(variant.packaging || '');
@@ -281,6 +401,7 @@ function VariantDialog({ variant, onClose, onSave }: { variant: Variant | null; 
       <DialogTitle>Edit Variant</DialogTitle>
       <DialogContent>
         <Stack spacing={1} sx={{ mt: 1 }}>
+          <TextField label="Name" size="small" value={name} onChange={(e) => setName(e.target.value)} />
           <TextField label="Size" size="small" value={size} onChange={(e) => setSize(e.target.value)} />
           <TextField label="Concentration" size="small" value={concentration} onChange={(e) => setConcentration(e.target.value)} />
           <TextField label="Packaging" size="small" value={packaging} onChange={(e) => setPackaging(e.target.value)} />
@@ -295,6 +416,7 @@ function VariantDialog({ variant, onClose, onSave }: { variant: Variant | null; 
         <Button onClick={onClose}>Cancel</Button>
         <Button variant="contained" onClick={async () => {
           await onSave({
+            name: { set: name || null },
             size: { set: size },
             concentration: { set: concentration },
             packaging: { set: packaging },
