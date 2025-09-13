@@ -114,7 +114,12 @@ export default function PurchaseOrderDetail() {
                   <TableCell padding="checkbox">
                     <Checkbox checked={rows[idx]?.selected || false} onChange={(e) => setRow(idx, { selected: e.target.checked })} />
                   </TableCell>
-                  <TableCell>{it.productVariant?.name || it.productVariant?.product?.name || it.productVariant?.barcode || it.productVariantId}</TableCell>
+                  <TableCell>{
+                    it.productVariant?.name
+                    || [it.productVariant?.size, it.productVariant?.concentration, it.productVariant?.packaging].filter(Boolean).join(' ')
+                    || it.productVariant?.product?.name
+                    || it.productVariantId
+                  }</TableCell>
                   <TableCell>{rows[idx]?.ordered ?? it.quantity}</TableCell>
                   <TableCell>{rows[idx]?.received ?? 0}</TableCell>
                   <TableCell>{Math.max(0, (rows[idx]?.ordered ?? it.quantity) - (rows[idx]?.received ?? 0))}</TableCell>
