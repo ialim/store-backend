@@ -6,6 +6,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { InvoiceIngestService } from './invoice-ingest.service';
 import { StockService } from '../stock/stock.service';
+import { ProductVariantService } from '../catalogue/variant/product-variant.service';
 
 @InputType()
 class ProcessInvoiceUrlInput {
@@ -67,7 +68,12 @@ class ProcessInvoiceResult {
 
 @Resolver()
 export class InvoiceIngestResolver {
-  constructor(private readonly prisma: PrismaService, private readonly ingest: InvoiceIngestService, private readonly stock: StockService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ingest: InvoiceIngestService,
+    private readonly stock: StockService,
+    private readonly variants: ProductVariantService,
+  ) {}
 
   @Mutation(() => ProcessInvoiceResult)
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -94,37 +100,23 @@ export class InvoiceIngestResolver {
       supplier = await (this.prisma as any).supplier.create({ data: { name: supplierName, creditLimit: 0 } });
     }
 
-    // Ensure default category exists
-    const cat = await this.prisma.productCategory.upsert({
-      where: { name: 'Imported' },
-      update: {},
-      create: { name: 'Imported' },
-      select: { id: true },
-    });
-
     // Build PO items
     const poItems: { productVariantId: string; quantity: number; unitCost: number }[] = [];
     const lineResults: IngestLineResult[] = [];
     for (const ln of parsed.lines) {
-      const existingProd = await this.prisma.product.findFirst({ where: { name: ln.description } });
-      let productId = existingProd?.id;
-      if (!productId) {
-        const prod = await this.prisma.product.create({ data: { name: ln.description, categoryId: cat.id } });
-        productId = prod.id;
-      }
-      let variant = await this.prisma.productVariant.findFirst({ where: { productId } });
+      // Prefer existing variant by barcode; otherwise create an orphan variant
+      let variant = ln['barcode'] ? await this.prisma.productVariant.findFirst({ where: { barcode: (ln as any).barcode } }) : null;
       if (!variant) {
-        variant = await this.prisma.productVariant.create({
-          data: {
-            productId,
-            size: 'STD',
-            concentration: 'STD',
-            packaging: 'STD',
-            barcode: null,
-            price: ln.unitPrice,
-            resellerPrice: ln.discountedUnitPrice ?? ln.unitPrice,
-          },
-        });
+        variant = await this.variants.createLoose({
+          productId: null,
+          name: ln.description,
+          size: 'STD',
+          concentration: 'STD',
+          packaging: 'STD',
+          barcode: (ln as any).barcode ?? null,
+          price: ln.unitPrice,
+          resellerPrice: ln.discountedUnitPrice ?? ln.unitPrice,
+        } as any);
       }
       poItems.push({ productVariantId: variant.id, quantity: ln.qty, unitCost: ln.discountedUnitPrice ?? ln.unitPrice });
       lineResults.push({ ...ln, variantId: variant.id });
