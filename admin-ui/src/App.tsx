@@ -39,6 +39,8 @@ const CustomerDetail = lazy(() => import('./pages/CustomerDetail'));
 const InvoiceIngest = lazy(() => import('./pages/InvoiceIngest'));
 const InvoiceImports = lazy(() => import('./pages/InvoiceImports'));
 const InvoiceImportDetail = lazy(() => import('./pages/InvoiceImportDetail'));
+const Variants = lazy(() => import('./pages/Variants'));
+const Facets = lazy(() => import('./pages/Facets'));
 
 export default function App() {
   return (
@@ -120,6 +122,20 @@ export default function App() {
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
                   perms={['MANAGE_PRODUCTS']}
                   element={<Products />}
+                />
+              }
+            />
+            <Route
+              path="/variants"
+              element={<ProtectedRoute element={<Variants />} />}
+            />
+            <Route
+              path="/facets"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  perms={['MANAGE_PRODUCTS']}
+                  element={<Facets />}
                 />
               }
             />

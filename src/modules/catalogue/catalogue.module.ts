@@ -19,5 +19,6 @@ import { FacetService } from './facet/facet.service';
     FacetResolver,
     FacetService,
   ],
+  exports: [ProductVariantService],
 })
 export class CatalogueModule {}
