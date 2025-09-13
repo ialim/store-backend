@@ -40,6 +40,7 @@ const InvoiceIngest = lazy(() => import('./pages/InvoiceIngest'));
 const InvoiceImports = lazy(() => import('./pages/InvoiceImports'));
 const InvoiceImportDetail = lazy(() => import('./pages/InvoiceImportDetail'));
 const Variants = lazy(() => import('./pages/Variants'));
+const VariantDetail = lazy(() => import('./pages/VariantDetail'));
 const Facets = lazy(() => import('./pages/Facets'));
 
 export default function App() {
@@ -125,10 +126,8 @@ export default function App() {
                 />
               }
             />
-            <Route
-              path="/variants"
-              element={<ProtectedRoute element={<Variants />} />}
-            />
+            <Route path="/variants" element={<Variants />} />
+            <Route path="/variants/:id" element={<VariantDetail />} />
             <Route
               path="/facets"
               element={

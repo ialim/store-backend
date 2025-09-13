@@ -1,5 +1,8 @@
 import { gql, useMutation, useQuery } from '@apollo/client';
 import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
+import { useAuth } from '../shared/AuthProvider';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../shared/AuthProvider';
 import React from 'react';
 import TableList from '../shared/TableList';
 
@@ -44,6 +47,9 @@ const REMOVE_VARIANT_FACET = gql`
 `;
 
 export default function Variants() {
+  const auth = useAuth();
+  const isManager = auth.hasRole('SUPERADMIN','ADMIN','MANAGER') || auth.hasPermission('MANAGE_PRODUCTS');
+  const navigate = useNavigate();
   const [take, setTake] = React.useState(50);
   const [q, setQ] = React.useState('');
   // Facet filters
@@ -52,6 +58,8 @@ export default function Variants() {
     = facetsData?.listFacets ?? [];
   const [filterFacetId, setFilterFacetId] = React.useState('');
   const [filterFacetValue, setFilterFacetValue] = React.useState('');
+  const [gender, setGender] = React.useState('');
+  const [brand, setBrand] = React.useState('');
   const where = React.useMemo(() => {
     const sq = (q || '').trim();
     const w: any = {};
@@ -79,8 +87,14 @@ export default function Variants() {
         });
       }
     }
+    if (gender) {
+      w.AND = (w.AND || []).concat({ facets: { some: { facet: { code: { equals: 'gender' } }, value: { equals: gender } } } });
+    }
+    if (brand) {
+      w.AND = (w.AND || []).concat({ facets: { some: { facet: { code: { equals: 'brand' } }, value: { equals: brand } } } });
+    }
     return Object.keys(w).length ? w : undefined;
-  }, [q, filterFacetId, filterFacetValue, allFacets]);
+  }, [q, filterFacetId, filterFacetValue, allFacets, gender, brand]);
   const { data, loading, error, refetch } = useQuery(VARIANTS, { variables: { take, where }, fetchPolicy: 'cache-and-network' });
   const list = data?.listProductVariants ?? [];
   return (
@@ -90,6 +104,22 @@ export default function Variants() {
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
         <TextField label="Take" type="number" size="small" value={take} onChange={(e) => setTake(Number(e.target.value) || 50)} sx={{ width: 120 }} />
         <TextField label="Search (name/sku/barcode/product)" size="small" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') refetch(); }} />
+        {(() => {
+          const genderFacet = allFacets.find((f) => f.code.toLowerCase() === 'gender');
+          const brandFacet = allFacets.find((f) => f.code.toLowerCase() === 'brand');
+          return (
+            <>
+              <Select size="small" value={gender} onChange={(e) => setGender(e.target.value)} displayEmpty sx={{ minWidth: 160 }}>
+                <MenuItem value=""><em>Gender</em></MenuItem>
+                {(genderFacet?.values || ['Male','Female','Unisex']).map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
+              </Select>
+              <Select size="small" value={brand} onChange={(e) => setBrand(e.target.value)} displayEmpty sx={{ minWidth: 160 }}>
+                <MenuItem value=""><em>Brand</em></MenuItem>
+                {(brandFacet?.values || []).map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
+              </Select>
+            </>
+          );
+        })()}
         <Select size="small" value={filterFacetId} onChange={(e) => { setFilterFacetId(e.target.value); setFilterFacetValue(''); }} displayEmpty sx={{ minWidth: 220 }}>
           <MenuItem value=""><em>Facet filter…</em></MenuItem>
           {allFacets.map((f) => (<MenuItem key={f.id} value={f.id}>{f.name} ({f.code})</MenuItem>))}
@@ -113,12 +143,13 @@ export default function Variants() {
         columns={[
           { key: 'name', label: 'Name', render: (v: any) => v.name || `${v.size} ${v.concentration} ${v.packaging}`.trim(), sort: true, accessor: (v: any) => v.name || '' },
           { key: 'product', label: 'Product', render: (v: any) => v.product?.name || '—', sort: true, accessor: (v: any) => v.product?.name || '', filter: true },
+          { key: 'tags', label: 'Brand/Gender', render: (v: any) => (<BrandGenderChips variantId={v.id} />) },
           { key: 'barcode', label: 'Barcode', render: (v: any) => v.barcode || '—', sort: true, filter: true },
           { key: 'price', label: 'Price', render: (v: any) => v.price ?? '—', sort: true, accessor: (v: any) => v.price || 0 },
           { key: 'resellerPrice', label: 'Reseller Price', render: (v: any) => v.resellerPrice ?? '—', sort: true, accessor: (v: any) => v.resellerPrice || 0 },
           { key: 'createdAt', label: 'Created', render: (v: any) => new Date(v.createdAt).toLocaleString(), sort: true, accessor: (v: any) => new Date(v.createdAt || 0) },
           { key: 'facets', label: 'Facets', render: (v: any) => (<VariantFacetsChips variantId={v.id} />) },
-          { key: 'actions', label: 'Actions', render: (v: any) => (<VariantFacetsButton variantId={v.id} />) },
+          ...(isManager ? [{ key: 'actions', label: 'Actions', render: (v: any) => (<VariantFacetsButton variantId={v.id} />) }] as any[] : []),
         ] as any}
         rows={list}
         loading={loading}
@@ -128,6 +159,7 @@ export default function Variants() {
         showFilters
         enableUrlState
         urlKey="variants"
+        onRowClick={(v: any) => navigate(`/variants/${v.id}`)}
       />
     </Stack>
   );
@@ -205,5 +237,21 @@ function VariantFacetsDialog({ variantId, onClose }: { variantId: string; onClos
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
     </Dialog>
+  );
+}
+
+function BrandGenderChips({ variantId }: { variantId: string }) {
+  const { data, loading } = useQuery(VARIANT_FACETS, { variables: { productVariantId: variantId }, fetchPolicy: 'cache-first' });
+  if (loading) return null;
+  const assigns: Array<{ facet: any; value: string }> = data?.variantFacets ?? [];
+  const lower = assigns.map((a) => ({ code: String(a.facet?.code || '').toLowerCase(), value: a.value }));
+  const gender = lower.find((x) => x.code === 'gender')?.value;
+  const brand = lower.find((x) => x.code === 'brand')?.value;
+  if (!gender && !brand) return <>—</>;
+  return (
+    <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
+      {brand && <Chip size="small" label={brand} />}
+      {gender && <Chip size="small" label={gender} />}
+    </Stack>
   );
 }

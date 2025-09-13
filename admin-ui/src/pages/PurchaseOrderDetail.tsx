@@ -10,7 +10,7 @@ const PO = gql`
   query PurchaseOrder($id: String!) {
     purchaseOrder(id: $id) {
       id supplierId status phase totalAmount createdAt supplier { id name }
-      items { productVariantId quantity unitCost productVariant { id barcode size concentration packaging product { name } } }
+      items { productVariantId quantity unitCost productVariant { id name barcode size concentration packaging product { name } } }
     }
     purchaseOrderReceiptProgress(purchaseOrderId: $id) {
       productVariantId orderedQty receivedQty
@@ -114,7 +114,7 @@ export default function PurchaseOrderDetail() {
                   <TableCell padding="checkbox">
                     <Checkbox checked={rows[idx]?.selected || false} onChange={(e) => setRow(idx, { selected: e.target.checked })} />
                   </TableCell>
-                  <TableCell>{it.productVariant?.product?.name || it.productVariant?.barcode || it.productVariantId}</TableCell>
+                  <TableCell>{it.productVariant?.name || it.productVariant?.product?.name || it.productVariant?.barcode || it.productVariantId}</TableCell>
                   <TableCell>{rows[idx]?.ordered ?? it.quantity}</TableCell>
                   <TableCell>{rows[idx]?.received ?? 0}</TableCell>
                   <TableCell>{Math.max(0, (rows[idx]?.ordered ?? it.quantity) - (rows[idx]?.received ?? 0))}</TableCell>

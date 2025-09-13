@@ -84,6 +84,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       label: 'Catalog & Stock',
       items: [
         { label: 'Products', to: '/products', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <Inventory2Icon /> },
+        { label: 'Variants', to: '/variants', show: true, icon: <Inventory2Icon /> },
         { label: 'Stock', to: '/stock', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <Inventory2Icon /> },
         { label: 'Stores', to: '/stores', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <StoreIcon /> },
       ],
@@ -182,7 +183,10 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
               <Button color="inherit" onClick={() => { logout(); navigate('/login'); }}>Logout</Button>
             </>
           ) : (
-            <Button color="inherit" component={Link} to="/login">Login</Button>
+            <>
+              <Button color="inherit" component={Link} to="/variants" sx={{ mr: 1 }}>Variants</Button>
+              <Button color="inherit" component={Link} to="/login">Login</Button>
+            </>
           )}
         </Toolbar>
       </AppBar>
