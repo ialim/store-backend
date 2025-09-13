@@ -1,5 +1,5 @@
 import { gql, useMutation, useQuery } from '@apollo/client';
-import { Button, Card, CardContent, Stack, Typography } from '@mui/material';
+import { Button, Card, CardContent, Chip, Stack, Typography } from '@mui/material';
 import React from 'react';
 import TableList from '../shared/TableList';
 import { useNavigate } from 'react-router-dom';
@@ -41,7 +41,11 @@ export default function InvoiceImports() {
           columns={[
             { key: 'createdAt', label: 'Created', sort: true, accessor: (r: any) => new Date(r.createdAt) },
             { key: 'supplierName', label: 'Supplier', filter: true },
-            { key: 'status', label: 'Status', sort: true },
+            { key: 'status', label: 'Status', sort: true, render: (r: any) => {
+              const s = String(r.status || '').toUpperCase();
+              const color = s === 'READY' || s === 'COMPLETED' ? 'success' : (s === 'FAILED' ? 'error' : (s === 'PROCESSING' || s === 'PENDING' ? 'info' : 'default'));
+              return <Chip size="small" color={color as any} label={s} />;
+            } },
             { key: 'actions', label: 'Actions', render: (r: any) => (
               <Button size="small" onClick={() => navigate(`/invoice-imports/${(r as any).id}`)}>Review</Button>
             ) },

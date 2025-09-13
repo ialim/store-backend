@@ -12,6 +12,11 @@ API
   - Body (JSON): { "contentType": "application/pdf|image/jpeg|...", "data": "<base64>" }
   - Response JSON: { supplierName?, invoiceNumber?, date?, total?, lines: [ { description, qty, unitPrice, lineTotal, discountPct?, discountedUnitPrice? } ], rawText? }
 
+Environment tuning
+- OCR_RASTER_DPI: base DPI for scanned PDF rasterization (default: 300). Try 400–450 for small fonts.
+- OCR_PSMS: comma-separated Tesseract PSMs to try (default: 6,4,12,11,3).
+- OCR_REMOVE_LINES: set to 1 to attempt table border line removal before OCR.
+
 Quick Start
 1) System deps (macOS example):
    - brew install tesseract ghostscript
@@ -30,4 +35,3 @@ Configure Backend
 Notes
 - Camelot requires Ghostscript. If camelot import fails, the service continues without table extraction.
 - For noisy mobile photos, consider preprocessing (binarization/deskew). The app includes light preproc.
-

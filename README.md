@@ -97,6 +97,21 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 
+## Developer Quick Start (Invoice Imports)
+
+- One-time: ensure Docker is installed (for the Python OCR container).
+- Start the OCR microservice: `docker compose up -d`
+- Start the API (watch): `npm run start:dev`
+- Start the admin UI: `cd admin-ui && npm run dev`
+
+Alternatively, use the helper script:
+
+```
+npm run dev:stack
+```
+
+Notes and current TODOs are captured in `docs/INVOICE_IMPORT_NOTES.md`.
+
 ## Invoice Import OCR Providers
 
 This project supports multiple providers to extract and parse invoice content into structured line items.

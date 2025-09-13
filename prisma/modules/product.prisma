@@ -4,21 +4,15 @@ model Product {
   name         String
   description  String?
   barcode      String?          @unique
-  categoryId   String
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
-  category     ProductCategory  @relation(fields: [categoryId], references: [id])
   variants     ProductVariant[]
   // Facet assignments (per-product values)
   facets       ProductFacetValue[]
 }
 
-model ProductCategory {
-  id        String     @id @default(uuid())
-  name      String     @unique
-  products  Product[]
-}
+// Removed ProductCategory model; classification now via Facets
 
 model ProductVariant {
   id               String   @id @default(uuid())

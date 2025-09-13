@@ -1,0 +1,755 @@
+{
+  "header": {
+    "date_transfer": "05/04/2025",
+    "serie_cash_num": "TQ / / 72630",
+    "source_warehouse": "A1. MAIN WAREHOUSE Serie / Cash / Num: TQ / / 72630",
+    "destination_location": "RE. ELEMOH PERFUMERY",
+    "date_hour_transport": "05/04/2025 12:48 PM"
+  },
+  "items": [
+    {
+      "description": "Afnan 9 Pm Men Edp 100ml",
+      "barcode": "6290171002338",
+      "qty": 48,
+      "price": 35000.0,
+      "amount": 1680000.0,
+      "page": 1
+    },
+    {
+      "description": "Afnan Supremacy Pink P/F Edp 100ml",
+      "barcode": "6290171002048",
+      "qty": 12,
+      "price": 41000.0,
+      "amount": 492000.0,
+      "page": 1
+    },
+    {
+      "description": "Amouage Opus XII Rose Incense Edp 100ml",
+      "barcode": "701666410553",
+      "qty": 2,
+      "price": 270000.0,
+      "amount": 540000.0,
+      "page": 1
+    },
+    {
+      "description": "Amouage Interlude Man Edp 100ml NEW",
+      "barcode": "701666410195",
+      "qty": 3,
+      "price": 270000.0,
+      "amount": 810000.0,
+      "page": 1
+    },
+    {
+      "description": "Amouage Beach Hut Man Edp 100ml",
+      "barcode": "701666231004",
+      "qty": 3,
+      "price": 270000.0,
+      "amount": 810000.0,
+      "page": 1
+    },
+    {
+      "description": "Amouage Reflection 45 Man Ext 100ml New",
+      "barcode": "701666410706",
+      "qty": 3,
+      "price": 380000.0,
+      "amount": 1140000.0,
+      "page": 1
+    },
+    {
+      "description": "Armaf The Pride Rose Oud Edp100ml",
+      "barcode": "6294015180985",
+      "qty": 6,
+      "price": 39000.0,
+      "amount": 234000.0,
+      "page": 1
+    },
+    {
+      "description": "Afnan Tribute Blue Edp 100ml",
+      "barcode": "6290171002109",
+      "qty": 12,
+      "price": 45000.0,
+      "amount": 540000.0,
+      "page": 1
+    },
+    {
+      "description": "Armani Si Passione Edp 100ml",
+      "barcode": "3614271994844",
+      "qty": 3,
+      "price": 147000.0,
+      "amount": 441000.0,
+      "page": 1
+    },
+    {
+      "description": "Burberry Hero Parfum Intense 100ml",
+      "barcode": "3616305880604",
+      "qty": 3,
+      "price": 191000.0,
+      "amount": 573000.0,
+      "page": 1
+    },
+    {
+      "description": "Burberry Her Elixir Intense Edp100ml",
+      "barcode": "3616304061943",
+      "qty": 3,
+      "price": 133000.0,
+      "amount": 399000.0,
+      "page": 1
+    },
+    {
+      "description": "CK Defy Parfum 100ml",
+      "barcode": "3616304183621",
+      "qty": 6,
+      "price": 92000.0,
+      "amount": 552000.0,
+      "page": 1
+    },
+    {
+      "description": "D&G The One Men Intense Edp 100ml",
+      "barcode": "3423473051756",
+      "qty": 6,
+      "price": 115000.0,
+      "amount": 690000.0,
+      "page": 1
+    },
+    {
+      "description": "CD Sauvage Elixir Parfum 100ml",
+      "barcode": "3348901640916",
+      "qty": 6,
+      "price": 351000.0,
+      "amount": 2106000.0,
+      "page": 1
+    },
+    {
+      "description": "D&G The One Gold Intense Men Edp 100ml",
+      "barcode": "3423222026004",
+      "qty": 3,
+      "price": 143000.0,
+      "amount": 429000.0,
+      "page": 1
+    },
+    {
+      "description": "D&G Light Blue Eau Intense P/F Edp 100ml",
+      "barcode": "3423473032816",
+      "qty": 6,
+      "price": 122500.0,
+      "amount": 735000.0,
+      "page": 1
+    },
+    {
+      "description": "Guerlain Oud Essentiel Edp 125ml",
+      "barcode": "3346470132245",
+      "qty": 3,
+      "price": 145000.0,
+      "amount": 435000.0,
+      "page": 1
+    },
+    {
+      "description": "Guerlain Patchouli Ardent Edp 125ml",
+      "barcode": "3346470140189",
+      "qty": 3,
+      "price": 145000.0,
+      "amount": 435000.0,
+      "page": 1
+    },
+    {
+      "description": "Guerlain Santal Royal Edp 125ml",
+      "barcode": "3346470116375",
+      "qty": 3,
+      "price": 145000.0,
+      "amount": 435000.0,
+      "page": 1
+    },
+    {
+      "description": "E.A Provocative Woman Edp 100ml",
+      "barcode": "085805004675",
+      "qty": 6,
+      "price": 41000.0,
+      "amount": 246000.0,
+      "page": 1
+    },
+    {
+      "description": "E.A Pretty Edp 100ml",
+      "barcode": "085805506261",
+      "qty": 3,
+      "price": 44000.0,
+      "amount": 132000.0,
+      "page": 1
+    },
+    {
+      "description": "Giv Gentleman Boisee Edp 100ml",
+      "barcode": "3274872399020",
+      "qty": 6,
+      "price": 135000.0,
+      "amount": 810000.0,
+      "page": 1
+    },
+    {
+      "description": "Giv Gentleman Intense Edt 100ml",
+      "barcode": "3274872423008",
+      "qty": 3,
+      "price": 125000.0,
+      "amount": 375000.0,
+      "page": 1
+    },
+    {
+      "description": "Issey Miyake Pour Homme Intense Edt125ml",
+      "barcode": "3423470486018",
+      "qty": 6,
+      "price": 48000.0,
+      "amount": 288000.0,
+      "page": 1
+    },
+    {
+      "description": "Issey Miyake Pour Homme Edt 200ml",
+      "barcode": "3423470485448",
+      "qty": 6,
+      "price": 72000.0,
+      "amount": 432000.0,
+      "page": 1
+    },
+    {
+      "description": "Issey Miyake P/ H Noir Ambre Edp 100ml",
+      "barcode": "3423474884957",
+      "qty": 3,
+      "price": 68000.0,
+      "amount": 204000.0,
+      "page": 1
+    },
+    {
+      "description": "Issey Miyake Wood & Wood P/H Edp 100ml",
+      "barcode": "3423478509351",
+      "qty": 6,
+      "price": 62000.0,
+      "amount": 372000.0,
+      "page": 1
+    },
+    {
+      "description": "Issey Miyake Nuit P/H Parfum 125ml",
+      "barcode": "3423474883950",
+      "qty": 3,
+      "price": 61000.0,
+      "amount": 183000.0,
+      "page": 1
+    },
+    {
+      "description": "Issey Miyake Nuit Men Edt 125ml",
+      "barcode": "3423474874750",
+      "qty": 3,
+      "price": 48000.0,
+      "amount": 144000.0,
+      "page": 1
+    },
+    {
+      "description": "Jimmy Choo I Want Choo Le Parfum100ml",
+      "barcode": "3386460141703",
+      "qty": 6,
+      "price": 113000.0,
+      "amount": 678000.0,
+      "page": 1
+    },
+    {
+      "description": "Jimmy Choo I Want Choo Edp 100ml",
+      "barcode": "3386460119252",
+      "qty": 12,
+      "price": 88000.0,
+      "amount": 1056000.0,
+      "page": 1
+    },
+    {
+      "description": "Mancera Coco Vanille Edp120ml",
+      "barcode": "3760265191611",
+      "qty": 6,
+      "price": 80100.0,
+      "amount": 480600.0,
+      "page": 1
+    },
+    {
+      "description": "Jimmy Choo Illicit Flow er Edt 100ml",
+      "barcode": "3386460075343",
+      "qty": 3,
+      "price": 74700.0,
+      "amount": 224100.0,
+      "page": 2
+    },
+    {
+      "description": "Mancera Instant Crush Edp120ml",
+      "barcode": "3760265193134",
+      "qty": 12,
+      "price": 80100.0,
+      "amount": 961200.0,
+      "page": 2
+    },
+    {
+      "description": "Mancera Red Tabacco Edp 120ml",
+      "barcode": "3760265191864",
+      "qty": 12,
+      "price": 108000.0,
+      "amount": 1296000.0,
+      "page": 2
+    },
+    {
+      "description": "Mancera Red Tobacco Intense Edp 120ml",
+      "barcode": "3760265194513",
+      "qty": 12,
+      "price": 126000.0,
+      "amount": 1512000.0,
+      "page": 2
+    },
+    {
+      "description": "Mancera Wild Leather Edp 120ml",
+      "barcode": "024982248",
+      "qty": 3,
+      "price": 80100.0,
+      "amount": 240300.0,
+      "page": 2
+    },
+    {
+      "description": "Geoffrey Beene Grey Flannel Men Edt120ml",
+      "barcode": "719346021814",
+      "qty": 24,
+      "price": 27900.0,
+      "amount": 669600.0,
+      "page": 2
+    },
+    {
+      "description": "Cerruti 1881 Pour Homme Edt 100ml",
+      "barcode": "688575003659",
+      "qty": 6,
+      "price": 43200.0,
+      "amount": 259200.0,
+      "page": 2
+    },
+    {
+      "description": "Memo Cuirs Nomades Iberian LeatheEdp75ml",
+      "barcode": "3700458603095",
+      "qty": 2,
+      "price": 190950.0,
+      "amount": 381900.0,
+      "page": 2
+    },
+    {
+      "description": "Memo Cuirs Nomades Irish Leather Edp75ml",
+      "barcode": "3700458611519",
+      "qty": 2,
+      "price": 190950.0,
+      "amount": 381900.0,
+      "page": 2
+    },
+    {
+      "description": "Memo Cuirs Nomades African Leat Edp200ml",
+      "barcode": "3700458611991",
+      "qty": 2,
+      "price": 332500.0,
+      "amount": 665000.0,
+      "page": 2
+    },
+    {
+      "description": "Mont Blanc Explorer Ultra Blue Edp 100ml",
+      "barcode": "3386460121514",
+      "qty": 3,
+      "price": 81000.0,
+      "amount": 243000.0,
+      "page": 2
+    },
+    {
+      "description": "Mont Blanc Explorer Platinum Edp100ml",
+      "barcode": "3386460135818",
+      "qty": 3,
+      "price": 119700.0,
+      "amount": 359100.0,
+      "page": 2
+    },
+    {
+      "description": "Mont Blanc Explorer Edp 100ml",
+      "barcode": "3386460101035",
+      "qty": 12,
+      "price": 81000.0,
+      "amount": 972000.0,
+      "page": 2
+    },
+    {
+      "description": "Narciso Rodriguez Ambree Edp 90ml",
+      "barcode": "3423473053958",
+      "qty": 3,
+      "price": 82800.0,
+      "amount": 248400.0,
+      "page": 2
+    },
+    {
+      "description": "Narciso Rodriguez Bleu Noir Him Edt100ml",
+      "barcode": "3423478806054",
+      "qty": 3,
+      "price": 66600.0,
+      "amount": 199800.0,
+      "page": 2
+    },
+    {
+      "description": "Mont Blanc Legend Edp 100ml",
+      "barcode": "3386460118125",
+      "qty": 12,
+      "price": 63900.0,
+      "amount": 766800.0,
+      "page": 2
+    },
+    {
+      "description": "Narciso Rodriguez For Her Int Edp 100ml",
+      "barcode": "3423222121297",
+      "qty": 3,
+      "price": 0.0,
+      "amount": 0.0,
+      "page": 2
+    },
+    {
+      "description": "PDM Oriana Royal Essence Edp 75ml",
+      "barcode": "3700578502407",
+      "qty": 3,
+      "price": 259350.0,
+      "amount": 778050.0,
+      "page": 2
+    },
+    {
+      "description": "Nishane Ani Extrait de Parfum100ml",
+      "barcode": "8681008055074",
+      "qty": 6,
+      "price": 278350.0,
+      "amount": 1670100.0,
+      "page": 2
+    },
+    {
+      "description": "Nishane Favonius Extrait de Parfum100m",
+      "barcode": "8683608071621",
+      "qty": 6,
+      "price": 327750.0,
+      "amount": 1966500.0,
+      "page": 2
+    },
+    {
+      "description": "Ralph Lauren Polo Blue Men Edt 125ml",
+      "barcode": "3360377022928",
+      "qty": 3,
+      "price": 81900.0,
+      "amount": 245700.0,
+      "page": 2
+    },
+    {
+      "description": "P.R Phantom Men Parfum 100ml",
+      "barcode": "3349668614592",
+      "qty": 3,
+      "price": 115200.0,
+      "amount": 345600.0,
+      "page": 2
+    },
+    {
+      "description": "Thomas Kosmala No4 Apres L'Amou Edp100ml",
+      "barcode": "5060412110235",
+      "qty": 12,
+      "price": 137700.0,
+      "amount": 1652400.0,
+      "page": 2
+    },
+    {
+      "description": "Tom Ford Black Orchid Edp 100ml",
+      "barcode": "888066000079",
+      "qty": 12,
+      "price": 174600.0,
+      "amount": 2095200.0,
+      "page": 2
+    },
+    {
+      "description": "Tom Ford Ombre Leather Parfum100ml",
+      "barcode": "888066117692",
+      "qty": 12,
+      "price": 211500.0,
+      "amount": 2538000.0,
+      "page": 2
+    },
+    {
+      "description": "Versace Crystal Noir Ladies Edp 90ml",
+      "barcode": "8018365070462",
+      "qty": 6,
+      "price": 92700.0,
+      "amount": 556200.0,
+      "page": 2
+    },
+    {
+      "description": "Ysl Y Men Intense Edp100ml",
+      "barcode": "3614273898478",
+      "qty": 6,
+      "price": 126900.0,
+      "amount": 761400.0,
+      "page": 2
+    },
+    {
+      "description": "Ysl Myslf Edp 100ml",
+      "barcode": "3614273852814",
+      "qty": 6,
+      "price": 128700.0,
+      "amount": 772200.0,
+      "page": 2
+    },
+    {
+      "description": "Ysl Libre Le Parfum 90ml",
+      "barcode": "3614273776127",
+      "qty": 6,
+      "price": 160200.0,
+      "amount": 961200.0,
+      "page": 2
+    },
+    {
+      "description": "Armani Acqua Di Gio Homme Parfum 100ml",
+      "barcode": "3614273954167",
+      "qty": 6,
+      "price": 141300.0,
+      "amount": 847800.0,
+      "page": 2
+    },
+    {
+      "description": "Armani Stronger With You He Parfum 100ml",
+      "barcode": "3614274219579",
+      "qty": 6,
+      "price": 164700.0,
+      "amount": 988200.0,
+      "page": 2
+    },
+    {
+      "description": "Armani Acqua Di Gio Profondo Parfum100ml",
+      "barcode": "3614273953696",
+      "qty": 6,
+      "price": 147150.0,
+      "amount": 882900.0,
+      "page": 2
+    },
+    {
+      "description": "Armani Code Parfum 125ml",
+      "barcode": "3614273604932",
+      "qty": 6,
+      "price": 141300.0,
+      "amount": 847800.0,
+      "page": 2
+    },
+    {
+      "description": "D&G The Only One Edp100ml",
+      "barcode": "3423478452657",
+      "qty": 3,
+      "price": 95400.0,
+      "amount": 286200.0,
+      "page": 2
+    },
+    {
+      "description": "Azzaro The Most Wanted Parfum100ml",
+      "barcode": "3614273638852",
+      "qty": 12,
+      "price": 99900.0,
+      "amount": 1198800.0,
+      "page": 2
+    },
+    {
+      "description": "Azzaro The Most Wanted Intense Edp 100ml",
+      "barcode": "3614273521307",
+      "qty": 12,
+      "price": 99900.0,
+      "amount": 1198800.0,
+      "page": 2
+    },
+    {
+      "description": "Lancome Idole Pow er Intense Edp100ml",
+      "barcode": "3614274299229",
+      "qty": 6,
+      "price": 0.0,
+      "amount": 0.0,
+      "page": 3
+    },
+    {
+      "description": "Narciso Rodriguez For Her Edp 100ml",
+      "barcode": "3423470890129",
+      "qty": 6,
+      "price": 86400.0,
+      "amount": 518400.0,
+      "page": 3
+    },
+    {
+      "description": "Lancome La Vie Est Belle Rose Ext Edp100",
+      "barcode": "3614274104370",
+      "qty": 6,
+      "price": 147150.0,
+      "amount": 882900.0,
+      "page": 3
+    },
+    {
+      "description": "Lancome La Vie Est Belle L'Eau Edp 100ml",
+      "barcode": "3605533286555",
+      "qty": 6,
+      "price": 126000.0,
+      "amount": 756000.0,
+      "page": 3
+    },
+    {
+      "description": "Valentino Uomo Born In Roma Edt 100ml",
+      "barcode": "3614272761469",
+      "qty": 6,
+      "price": 105300.0,
+      "amount": 631800.0,
+      "page": 3
+    },
+    {
+      "description": "Valentino Uomo Intense Edp 100ml",
+      "barcode": "8411061835555",
+      "qty": 5,
+      "price": 114300.0,
+      "amount": 571500.0,
+      "page": 3
+    },
+    {
+      "description": "Valentino Donna Born In Roma Int Edp100m",
+      "barcode": "3614273790840",
+      "qty": 12,
+      "price": 141300.0,
+      "amount": 1695600.0,
+      "page": 3
+    },
+    {
+      "description": "Valentino Uomo Born In Roma Int Edp100ml",
+      "barcode": "3614273790826",
+      "qty": 12,
+      "price": 105300.0,
+      "amount": 1263600.0,
+      "page": 3
+    },
+    {
+      "description": "Viktor& RolfSpicebomb Extreme P/H Edp 90",
+      "barcode": "3614270659706",
+      "qty": 12,
+      "price": 127800.0,
+      "amount": 1533600.0,
+      "page": 3
+    },
+    {
+      "description": "Ysl Libre L'Eau Nue Parfum 90ml",
+      "barcode": "3614274241006",
+      "qty": 6,
+      "price": 0.0,
+      "amount": 0.0,
+      "page": 3
+    },
+    {
+      "description": "Ysl Libre Edp 90ml",
+      "barcode": "3614272648425",
+      "qty": 6,
+      "price": 144000.0,
+      "amount": 864000.0,
+      "page": 3
+    },
+    {
+      "description": "Ysl Black Opium Glitter Edp 90ml",
+      "barcode": "3614274185294",
+      "qty": 3,
+      "price": 184050.0,
+      "amount": 552150.0,
+      "page": 3
+    },
+    {
+      "description": "Ysl Libre Intense Edp 90ml",
+      "barcode": "3614273069557",
+      "qty": 12,
+      "price": 150300.0,
+      "amount": 1803600.0,
+      "page": 3
+    },
+    {
+      "description": "Ysl M7 Oud Absolu Edt 80ml",
+      "barcode": "3365440037281",
+      "qty": 12,
+      "price": 80100.0,
+      "amount": 961200.0,
+      "page": 3
+    },
+    {
+      "description": "Ysl Y Men Edp 100ml",
+      "barcode": "3614272050358",
+      "qty": 12,
+      "price": 118800.0,
+      "amount": 1425600.0,
+      "page": 3
+    },
+    {
+      "description": "Ysl Myslf Le Parfum 100ml",
+      "barcode": "3614274114645",
+      "qty": 6,
+      "price": 160200.0,
+      "amount": 961200.0,
+      "page": 3
+    },
+    {
+      "description": "Zimaya Evolution Edp100ml",
+      "barcode": "6290171072249",
+      "qty": 12,
+      "price": 16650.0,
+      "amount": 199800.0,
+      "page": 3
+    },
+    {
+      "description": "Zimaya Noor Oud Edp100ml",
+      "barcode": "6290171073642",
+      "qty": 12,
+      "price": 16650.0,
+      "amount": 199800.0,
+      "page": 3
+    },
+    {
+      "description": "Zimaya Inekas Luna Edp100ml",
+      "barcode": "6290171074793",
+      "qty": 6,
+      "price": 18900.0,
+      "amount": 113400.0,
+      "page": 3
+    },
+    {
+      "description": "Zimaya Al Embratur Elixir Edp100ml",
+      "barcode": "6290171074960",
+      "qty": 10,
+      "price": 16650.0,
+      "amount": 166500.0,
+      "page": 3
+    },
+    {
+      "description": "Armaf CDN Man Private key TMD100ml",
+      "barcode": "6294015164992",
+      "qty": 12,
+      "price": 61200.0,
+      "amount": 734400.0,
+      "page": 3
+    },
+    {
+      "description": "Armaf CDN Private key TML100ml",
+      "barcode": "6294015165012",
+      "qty": 12,
+      "price": 61200.0,
+      "amount": 734400.0,
+      "page": 3
+    },
+    {
+      "description": "Ysl Black Opium Edp 90ml",
+      "barcode": "3365440787971",
+      "qty": 4,
+      "price": 120600.0,
+      "amount": 482400.0,
+      "page": 3
+    },
+    {
+      "description": "Ysl Mon Paris Edp 90ml",
+      "barcode": "3614270561634",
+      "qty": 3,
+      "price": 115200.0,
+      "amount": 345600.0,
+      "page": 3
+    }
+  ],
+  "reported_totals": {
+    "qty": 651,
+    "amount": 66247400.0
+  },
+  "computed_totals": {
+    "qty": 651,
+    "amount": 66247400.0
+  }
+}

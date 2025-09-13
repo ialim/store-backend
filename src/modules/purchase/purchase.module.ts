@@ -11,9 +11,10 @@ import { InvoiceIngestService } from './invoice-ingest.service';
 import { InvoiceImportResolver } from './invoice-import.resolver';
 import { InvoiceImportQueue } from './invoice-import.queue';
 import { StockModule } from '../stock/stock.module';
+import { CatalogueModule } from '../catalogue/catalogue.module';
 
 @Module({
-  imports: [NotificationModule, EventsModule, PaymentModule, StockModule],
+  imports: [NotificationModule, EventsModule, PaymentModule, StockModule, CatalogueModule],
   providers: [PurchaseService, PurchaseResolver, PrismaService, LowStockSchedulerService, InvoiceIngestResolver, InvoiceIngestService, InvoiceImportResolver, InvoiceImportQueue],
 })
 export class PurchaseModule {}

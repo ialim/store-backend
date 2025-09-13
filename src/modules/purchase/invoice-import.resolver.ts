@@ -19,6 +19,7 @@ import { StockService } from '../stock/stock.service';
 import { InvoiceImport } from 'src/shared/prismagraphql/invoice-import';
 import { normalizeParsedByVendor } from './vendor-rules';
 import { InvoiceImportQueue } from './invoice-import.queue';
+import { ProductVariantService } from '../catalogue/variant/product-variant.service';
 
 @InputType()
 class CreateInvoiceImportInput {
@@ -76,6 +77,7 @@ export class InvoiceImportResolver {
     private readonly ingest: InvoiceIngestService,
     private readonly stock: StockService,
     private readonly queue: InvoiceImportQueue,
+    private readonly variants: ProductVariantService,
   ) {}
 
   private sanitizeRawText(text: string): string {
@@ -200,14 +202,6 @@ export class InvoiceImportResolver {
         data: { name: supplierName, creditLimit: 0 },
       });
 
-    // Ensure default category exists
-    const cat = await (this.prisma as any).productCategory.upsert({
-      where: { name: 'Imported' },
-      update: {},
-      create: { name: 'Imported' },
-      select: { id: true },
-    });
-
     const poItems: Array<{
       productVariantId: string;
       quantity: number;
@@ -216,30 +210,19 @@ export class InvoiceImportResolver {
     for (const ln of sourceLines as any[]) {
       const desc = String(ln.description || '').trim();
       if (!desc) continue;
-      let prod = await (this.prisma as any).product.findFirst({
-        where: { name: desc },
-      });
-      if (!prod)
-        prod = await (this.prisma as any).product.create({
-          data: { name: desc, categoryId: cat.id },
-        });
       // Prefer existing variant by barcode if provided
       let variant = ln.barcode ? await (this.prisma as any).productVariant.findFirst({ where: { barcode: ln.barcode } }) : null;
-      if (!variant) {
-        variant = await (this.prisma as any).productVariant.findFirst({ where: { productId: prod.id } });
-      }
       if (!variant)
-        variant = await (this.prisma as any).productVariant.create({
-          data: {
-            productId: prod.id,
-            size: 'STD',
-            concentration: 'STD',
-            packaging: 'STD',
-            barcode: ln.barcode ?? null,
-            price: ln.unitPrice || 0,
-            resellerPrice: ln.discountedUnitPrice || ln.unitPrice || 0,
-          },
-        });
+        variant = await this.variants.createLoose({
+          productId: null,
+          name: desc,
+          size: 'STD',
+          concentration: 'STD',
+          packaging: 'STD',
+          barcode: ln.barcode ?? null,
+          price: ln.unitPrice || 0,
+          resellerPrice: ln.discountedUnitPrice || ln.unitPrice || 0,
+        } as any);
       // If variant exists without barcode, set it from line
       if (ln.barcode && !variant.barcode) {
         try {

@@ -13,7 +13,7 @@ const GET = gql`
       description
       barcode
       createdAt
-      categoryId
+      
       variants { id size concentration packaging barcode price resellerPrice createdAt stockItems { quantity reserved store { id name } } }
     }
   }
@@ -41,9 +41,6 @@ const DELETE_VARIANT = gql`
   mutation DeleteVariant($id: String!) { deleteProductVariant(where: { id: $id }) { id } }
 `;
 
-const CATEGORIES = gql`
-  query ProductCategories { listProductCategorys(take: 200) { id name } }
-`;
 
 const VARIANTS = gql`
   query VariantsByProduct($id: String!) {
@@ -101,8 +98,7 @@ export default function ProductDetail() {
   const { data, loading, error, refetch } = useQuery(GET, { variables: { id }, skip: !id, fetchPolicy: 'cache-and-network' });
   const [createVariant, { loading: creating }] = useMutation(CREATE_VARIANT);
   const p = data?.findUniqueProduct;
-  const { data: catData } = useQuery(CATEGORIES, { fetchPolicy: 'cache-first' });
-  const categories = catData?.listProductCategorys ?? [];
+  // Categories removed; facets will be used for classification going forward.
   const { data: vData, loading: vLoading, error: vError, refetch: refetchVariants } = useQuery(VARIANTS, { variables: { id }, skip: !id, fetchPolicy: 'cache-and-network' });
   const [storeTotalsFilter, setStoreTotalsFilter] = React.useState<string>('');
   const { data: storesData } = useQuery(STORES, { fetchPolicy: 'cache-first' });
@@ -167,13 +163,7 @@ export default function ProductDetail() {
               <TextField label="Name" size="small" defaultValue={p.name} onBlur={async (e) => { const v = e.target.value.trim(); if (v && v !== p.name) { await updateProduct({ variables: { id, data: { name: { set: v } } } }); refetch(); } }} />
               <TextField label="Barcode" size="small" defaultValue={p.barcode || ''} onBlur={async (e) => { const v = e.target.value.trim(); await updateProduct({ variables: { id, data: { barcode: { set: v || null } } } }); refetch(); }} />
               <TextField label="Description" size="small" defaultValue={p.description || ''} onBlur={async (e) => { const v = e.target.value; await updateProduct({ variables: { id, data: { description: { set: v || null } } } }); refetch(); }} multiline minRows={2} />
-              <Typography color="text.secondary">Category: {categories.find((c: any) => c.id === p.categoryId)?.name || p.categoryId}</Typography>
-              <Select size="small" defaultValue={p.categoryId || ''} onChange={async (e) => { const catId = e.target.value as string; await updateProduct({ variables: { id, data: { category: { connect: { id: catId } } } } }); refetch(); }} displayEmpty>
-                <MenuItem value=""><em>Select category…</em></MenuItem>
-                {categories.map((c: any) => (
-                  <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
-                ))}
-              </Select>
+              {/* Category removed */}
             </Stack>
           </CardContent></Card>
         </Grid>

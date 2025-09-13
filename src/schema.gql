@@ -1274,36 +1274,6 @@ type OrphanVariantDiagnostic {
   packaging: String!
 }
 
-type ProductCategoryCountAggregate {
-  id: Int!
-  name: Int!
-  _all: Int!
-}
-
-type ProductCategoryMinAggregate {
-  id: String
-  name: String
-}
-
-type ProductCategoryMaxAggregate {
-  id: String
-  name: String
-}
-
-type AggregateProductCategory {
-  _count: ProductCategoryCountAggregate
-  _min: ProductCategoryMinAggregate
-  _max: ProductCategoryMaxAggregate
-}
-
-type ProductCategoryGroupBy {
-  id: String!
-  name: String!
-  _count: ProductCategoryCountAggregate
-  _min: ProductCategoryMinAggregate
-  _max: ProductCategoryMaxAggregate
-}
-
 type ProductVariantCountAggregate {
   id: Int!
   productId: Int!
@@ -2259,11 +2229,6 @@ type Query {
   listProducts(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, distinct: [ProductScalarFieldEnum!]): [Product!]!
   groupByProduct(where: ProductWhereInput, orderBy: [ProductOrderByWithAggregationInput!], by: [ProductScalarFieldEnum!]!, having: ProductScalarWhereWithAggregatesInput, take: Int, skip: Int, _count: ProductCountAggregateInput, _min: ProductMinAggregateInput, _max: ProductMaxAggregateInput): [ProductGroupBy!]!
   aggregateProduct(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, _count: ProductCountAggregateInput, _min: ProductMinAggregateInput, _max: ProductMaxAggregateInput): AggregateProduct!
-  findFirstProductCategory(where: ProductCategoryWhereInput, orderBy: [ProductCategoryOrderByWithRelationInput!], cursor: ProductCategoryWhereUniqueInput, take: Int, skip: Int, distinct: [ProductCategoryScalarFieldEnum!]): ProductCategory!
-  findUniqueProductCategory(where: ProductCategoryWhereUniqueInput!): ProductCategory!
-  listProductCategorys(where: ProductCategoryWhereInput, orderBy: [ProductCategoryOrderByWithRelationInput!], cursor: ProductCategoryWhereUniqueInput, take: Int, skip: Int, distinct: [ProductCategoryScalarFieldEnum!]): [ProductCategory!]!
-  groupByProductCategory(where: ProductCategoryWhereInput, orderBy: [ProductCategoryOrderByWithAggregationInput!], by: [ProductCategoryScalarFieldEnum!]!, having: ProductCategoryScalarWhereWithAggregatesInput, take: Int, skip: Int, _count: ProductCategoryCountAggregateInput, _min: ProductCategoryMinAggregateInput, _max: ProductCategoryMaxAggregateInput): [ProductCategoryGroupBy!]!
-  aggregateProductCategory(where: ProductCategoryWhereInput, orderBy: [ProductCategoryOrderByWithRelationInput!], cursor: ProductCategoryWhereUniqueInput, take: Int, skip: Int, _count: ProductCategoryCountAggregateInput, _min: ProductCategoryMinAggregateInput, _max: ProductCategoryMaxAggregateInput): AggregateProductCategory!
   findFirstProductVariant(where: ProductVariantWhereInput, orderBy: [ProductVariantOrderByWithRelationInput!], cursor: ProductVariantWhereUniqueInput, take: Int, skip: Int, distinct: [ProductVariantScalarFieldEnum!]): ProductVariant!
   findUniqueProductVariant(where: ProductVariantWhereUniqueInput!): ProductVariant!
   listProductVariants(where: ProductVariantWhereInput, orderBy: [ProductVariantOrderByWithRelationInput!], cursor: ProductVariantWhereUniqueInput, take: Int, skip: Int, distinct: [ProductVariantScalarFieldEnum!]): [ProductVariant!]!
@@ -4531,67 +4496,6 @@ input ProductMaxAggregateInput {
   updatedAt: Boolean
 }
 
-input ProductCategoryWhereUniqueInput {
-  id: String
-  name: String
-  AND: [ProductCategoryWhereInput!]
-  OR: [ProductCategoryWhereInput!]
-  NOT: [ProductCategoryWhereInput!]
-  products: ProductListRelationFilter
-}
-
-enum ProductCategoryScalarFieldEnum {
-  id
-  name
-}
-
-input ProductCategoryOrderByWithAggregationInput {
-  id: SortOrder
-  name: SortOrder
-  _count: ProductCategoryCountOrderByAggregateInput
-  _max: ProductCategoryMaxOrderByAggregateInput
-  _min: ProductCategoryMinOrderByAggregateInput
-}
-
-input ProductCategoryCountOrderByAggregateInput {
-  id: SortOrder
-  name: SortOrder
-}
-
-input ProductCategoryMaxOrderByAggregateInput {
-  id: SortOrder
-  name: SortOrder
-}
-
-input ProductCategoryMinOrderByAggregateInput {
-  id: SortOrder
-  name: SortOrder
-}
-
-input ProductCategoryScalarWhereWithAggregatesInput {
-  AND: [ProductCategoryScalarWhereWithAggregatesInput!]
-  OR: [ProductCategoryScalarWhereWithAggregatesInput!]
-  NOT: [ProductCategoryScalarWhereWithAggregatesInput!]
-  id: StringWithAggregatesFilter
-  name: StringWithAggregatesFilter
-}
-
-input ProductCategoryCountAggregateInput {
-  id: Boolean
-  name: Boolean
-  _all: Boolean
-}
-
-input ProductCategoryMinAggregateInput {
-  id: Boolean
-  name: Boolean
-}
-
-input ProductCategoryMaxAggregateInput {
-  id: Boolean
-  name: Boolean
-}
-
 input ProductVariantOrderByWithRelationInput {
   id: SortOrder
   productId: SortOrder
@@ -5550,12 +5454,6 @@ type Mutation {
   updateManyProduct(data: ProductUpdateManyMutationInput!, where: ProductWhereInput, limit: Int): AffectedRows
   deleteProduct(where: ProductWhereUniqueInput!): Product
   deleteManyProduct(where: ProductWhereInput, limit: Int): AffectedRows
-  createProductCategory(data: ProductCategoryCreateInput!): ProductCategory
-  createManyProductCategory(data: [ProductCategoryCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
-  updateProductCategory(data: ProductCategoryUpdateInput!, where: ProductCategoryWhereUniqueInput!): ProductCategory
-  updateManyProductCategory(data: ProductCategoryUpdateManyMutationInput!, where: ProductCategoryWhereInput, limit: Int): AffectedRows
-  deleteProductCategory(where: ProductCategoryWhereUniqueInput!): ProductCategory
-  deleteManyProductCategory(where: ProductCategoryWhereInput, limit: Int): AffectedRows
   createProductVariant(data: ProductVariantCreateInput!): ProductVariant
   createManyProductVariant(data: [ProductVariantCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
   updateProductVariant(data: ProductVariantUpdateInput!, where: ProductVariantWhereUniqueInput!): ProductVariant
@@ -5706,6 +5604,15 @@ input ProductCategoryCreateWithoutProductsInput {
 input ProductCategoryCreateOrConnectWithoutProductsInput {
   where: ProductCategoryWhereUniqueInput!
   create: ProductCategoryCreateWithoutProductsInput!
+}
+
+input ProductCategoryWhereUniqueInput {
+  id: String
+  name: String
+  AND: [ProductCategoryWhereInput!]
+  OR: [ProductCategoryWhereInput!]
+  NOT: [ProductCategoryWhereInput!]
+  products: ProductListRelationFilter
 }
 
 input ProductVariantCreateNestedManyWithoutProductInput {
@@ -23812,117 +23719,6 @@ input ProductUpdateManyMutationInput {
   barcode: NullableStringFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
-}
-
-input ProductCategoryCreateInput {
-  id: String
-  name: String!
-  products: ProductCreateNestedManyWithoutCategoryInput
-}
-
-input ProductCreateNestedManyWithoutCategoryInput {
-  create: [ProductCreateWithoutCategoryInput!]
-  connectOrCreate: [ProductCreateOrConnectWithoutCategoryInput!]
-  createMany: ProductCreateManyCategoryInputEnvelope
-  connect: [ProductWhereUniqueInput!]
-}
-
-input ProductCreateWithoutCategoryInput {
-  id: String
-  name: String!
-  description: String
-  barcode: String
-  createdAt: DateTime
-  updatedAt: DateTime
-  variants: ProductVariantCreateNestedManyWithoutProductInput
-}
-
-input ProductCreateOrConnectWithoutCategoryInput {
-  where: ProductWhereUniqueInput!
-  create: ProductCreateWithoutCategoryInput!
-}
-
-input ProductCreateManyCategoryInputEnvelope {
-  data: [ProductCreateManyCategoryInput!]!
-  skipDuplicates: Boolean
-}
-
-input ProductCreateManyCategoryInput {
-  id: String
-  name: String!
-  description: String
-  barcode: String
-  createdAt: DateTime
-  updatedAt: DateTime
-}
-
-input ProductCategoryCreateManyInput {
-  id: String
-  name: String!
-}
-
-input ProductCategoryUpdateInput {
-  id: StringFieldUpdateOperationsInput
-  name: StringFieldUpdateOperationsInput
-  products: ProductUpdateManyWithoutCategoryNestedInput
-}
-
-input ProductUpdateManyWithoutCategoryNestedInput {
-  create: [ProductCreateWithoutCategoryInput!]
-  connectOrCreate: [ProductCreateOrConnectWithoutCategoryInput!]
-  upsert: [ProductUpsertWithWhereUniqueWithoutCategoryInput!]
-  createMany: ProductCreateManyCategoryInputEnvelope
-  set: [ProductWhereUniqueInput!]
-  disconnect: [ProductWhereUniqueInput!]
-  delete: [ProductWhereUniqueInput!]
-  connect: [ProductWhereUniqueInput!]
-  update: [ProductUpdateWithWhereUniqueWithoutCategoryInput!]
-  updateMany: [ProductUpdateManyWithWhereWithoutCategoryInput!]
-  deleteMany: [ProductScalarWhereInput!]
-}
-
-input ProductUpsertWithWhereUniqueWithoutCategoryInput {
-  where: ProductWhereUniqueInput!
-  update: ProductUpdateWithoutCategoryInput!
-  create: ProductCreateWithoutCategoryInput!
-}
-
-input ProductUpdateWithoutCategoryInput {
-  id: StringFieldUpdateOperationsInput
-  name: StringFieldUpdateOperationsInput
-  description: NullableStringFieldUpdateOperationsInput
-  barcode: NullableStringFieldUpdateOperationsInput
-  createdAt: DateTimeFieldUpdateOperationsInput
-  updatedAt: DateTimeFieldUpdateOperationsInput
-  variants: ProductVariantUpdateManyWithoutProductNestedInput
-}
-
-input ProductUpdateWithWhereUniqueWithoutCategoryInput {
-  where: ProductWhereUniqueInput!
-  data: ProductUpdateWithoutCategoryInput!
-}
-
-input ProductUpdateManyWithWhereWithoutCategoryInput {
-  where: ProductScalarWhereInput!
-  data: ProductUpdateManyMutationInput!
-}
-
-input ProductScalarWhereInput {
-  AND: [ProductScalarWhereInput!]
-  OR: [ProductScalarWhereInput!]
-  NOT: [ProductScalarWhereInput!]
-  id: StringFilter
-  name: StringFilter
-  description: StringNullableFilter
-  barcode: StringNullableFilter
-  categoryId: StringFilter
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-}
-
-input ProductCategoryUpdateManyMutationInput {
-  id: StringFieldUpdateOperationsInput
-  name: StringFieldUpdateOperationsInput
 }
 
 input ProductVariantCreateInput {
