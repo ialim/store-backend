@@ -15,6 +15,7 @@ import {
   ProductVariantAggregateArgs,
   ProductVariantGroupByArgs,
 } from '../../../shared/prismagraphql/product-variant';
+import { LooseProductVariantInput } from '../dto/loose-product-variant.input';
 @Injectable()
 export class ProductVariantService extends BaseCrudService<
   ProductVariant,
@@ -143,6 +144,35 @@ export class ProductVariantService extends BaseCrudService<
       where: { productVariantId },
       select: { productVariantId: true, tier: true, price: true },
       orderBy: { tier: 'asc' },
+    });
+  }
+
+  async createLoose(input: LooseProductVariantInput) {
+    return (this.prisma as any).productVariant.create({
+      data: {
+        productId: input.productId ?? null,
+        name: input.name ?? null,
+        size: input.size,
+        concentration: input.concentration,
+        packaging: input.packaging,
+        barcode: input.barcode ?? null,
+        price: input.price,
+        resellerPrice: input.resellerPrice,
+      },
+    });
+  }
+
+  async linkToProduct(variantId: string, productId: string) {
+    return (this.prisma as any).productVariant.update({
+      where: { id: variantId },
+      data: { productId },
+    });
+  }
+
+  async unlinkFromProduct(variantId: string) {
+    return (this.prisma as any).productVariant.update({
+      where: { id: variantId },
+      data: { productId: null },
     });
   }
 }

@@ -7,6 +7,8 @@ import { ProductCategoryService } from './category/product-category.service';
 import { ProductCategorysResolver } from './category/product-category.resolver';
 import { ProductVariantService } from './variant/product-variant.service';
 import { ProductVariantsResolver } from './variant/product-variant.resolver';
+import { FacetResolver } from './facet/facet.resolver';
+import { FacetService } from './facet/facet.service';
 
 @Module({
   providers: [
@@ -18,6 +20,8 @@ import { ProductVariantsResolver } from './variant/product-variant.resolver';
     ProductVariantsResolver,
     ProductVariantService,
     CatalogueDiagnosticsResolver,
+    FacetResolver,
+    FacetService,
   ],
 })
 export class CatalogueModule {}

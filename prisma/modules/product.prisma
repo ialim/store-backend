@@ -10,6 +10,8 @@ model Product {
 
   category     ProductCategory  @relation(fields: [categoryId], references: [id])
   variants     ProductVariant[]
+  // Facet assignments (per-product values)
+  facets       ProductFacetValue[]
 }
 
 model ProductCategory {
@@ -20,7 +22,10 @@ model ProductCategory {
 
 model ProductVariant {
   id               String   @id @default(uuid())
-  productId        String
+  // Optional parent product; variants can exist without a product and be linked later
+  productId        String?
+  // Optional display name for standalone listing pages
+  name             String?
   size             String
   concentration    String
   packaging        String
@@ -30,7 +35,7 @@ model ProductVariant {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  product          Product  @relation(fields: [productId], references: [id])
+  product          Product? @relation(fields: [productId], references: [id])
 
   stockItems       Stock[]
   receiptItems     StockReceiptBatchItem[]
@@ -53,6 +58,9 @@ model ProductVariant {
   SupplierQuoteItem SupplierQuoteItem[]
 
   ProductVariantTierPrice ProductVariantTierPrice[]
+
+  // Facet assignments (per-variant values)
+  facets          VariantFacetValue[]
 }
 
 
@@ -65,4 +73,51 @@ model ProductVariantTierPrice {
   variant          ProductVariant @relation(fields: [productVariantId], references: [id])
 
   @@unique([productVariantId, tier])
+}
+
+// ------------------------------------
+// Facets & assignments for categorization
+// ------------------------------------
+
+model Facet {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  isPrivate Boolean  @default(false)
+  // Allowed values for this facet (e.g., ["male","female"]) — stored as text array
+  values    String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Assignments
+  products  ProductFacetValue[]
+  variants  VariantFacetValue[]
+}
+
+model ProductFacetValue {
+  id         String  @id @default(uuid())
+  productId  String
+  facetId    String
+  value      String
+
+  product    Product @relation(fields: [productId], references: [id])
+  facet      Facet   @relation(fields: [facetId], references: [id])
+
+  @@index([productId])
+  @@index([facetId])
+  @@unique([productId, facetId, value], name: "product_facet_value_unique")
+}
+
+model VariantFacetValue {
+  id               String  @id @default(uuid())
+  productVariantId String
+  facetId          String
+  value            String
+
+  variant          ProductVariant @relation(fields: [productVariantId], references: [id])
+  facet            Facet          @relation(fields: [facetId], references: [id])
+
+  @@index([productVariantId])
+  @@index([facetId])
+  @@unique([productVariantId, facetId, value], name: "variant_facet_value_unique")
 }

@@ -23,6 +23,7 @@ import { UpsertVariantSupplierCatalogInput } from '../dto/upsert-variant-supplie
 import { SupplierCatalogEntry } from '../../purchase/types/supplier-catalog-entry.type';
 import { VariantTierPrice } from '../types/variant-tier-price.type';
 import { UpsertVariantTierPriceInput } from '../dto/upsert-variant-tier-price.input';
+import { LooseProductVariantInput, LinkVariantToProductInput, UnlinkVariantFromProductInput } from '../dto/loose-product-variant.input';
 @Resolver(() => ProductVariant)
 export class ProductVariantsResolver {
   constructor(private readonly ProductVariantService: ProductVariantService) {}
@@ -127,6 +128,25 @@ export class ProductVariantsResolver {
   @UseGuards(GqlAuthGuard)
   tierPricesForVariant(@Args('productVariantId') productVariantId: string) {
     return this.ProductVariantService.tierPricesForVariant(productVariantId);
+  }
+
+  // Flexible variant management
+  @Mutation(() => ProductVariant)
+  @UseGuards(GqlAuthGuard)
+  createLooseProductVariant(@Args('input') input: LooseProductVariantInput) {
+    return this.ProductVariantService.createLoose(input);
+  }
+
+  @Mutation(() => ProductVariant)
+  @UseGuards(GqlAuthGuard)
+  linkVariantToProduct(@Args('input') input: LinkVariantToProductInput) {
+    return this.ProductVariantService.linkToProduct(input.variantId, input.productId);
+  }
+
+  @Mutation(() => ProductVariant)
+  @UseGuards(GqlAuthGuard)
+  unlinkVariantFromProduct(@Args('input') input: UnlinkVariantFromProductInput) {
+    return this.ProductVariantService.unlinkFromProduct(input.variantId);
   }
 
 }

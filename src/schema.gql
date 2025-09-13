@@ -1394,6 +1394,19 @@ type VariantTierPrice {
   price: Float!
 }
 
+type FacetGQL {
+  id: ID!
+  name: String!
+  code: String!
+  isPrivate: Boolean!
+  values: [String!]!
+}
+
+type FacetAssignment {
+  facet: FacetGQL!
+  value: String!
+}
+
 type StoreCountAggregate {
   id: Int!
   name: Int!
@@ -2263,6 +2276,9 @@ type Query {
 
   """List product variants whose product linkage is invalid or missing"""
   variantsWithInvalidProducts: [OrphanVariantDiagnostic!]!
+  listFacets: [FacetGQL!]!
+  productFacets(productId: String!): [FacetAssignment!]!
+  variantFacets(productVariantId: String!): [FacetAssignment!]!
   notifications: [Notification!]!
   outboxStatus: OutboxStatusCounts!
   outboxStatusByType(types: [String!]): [OutboxTypeCount!]!
@@ -5548,9 +5564,19 @@ type Mutation {
   deleteManyProductVariant(where: ProductVariantWhereInput, limit: Int): AffectedRows
   upsertVariantSupplierCatalog(input: UpsertVariantSupplierCatalogInput!): SupplierCatalogEntry!
   upsertVariantTierPrice(input: UpsertVariantTierPriceInput!): String!
+  createLooseProductVariant(input: LooseProductVariantInput!): ProductVariant!
+  linkVariantToProduct(input: LinkVariantToProductInput!): ProductVariant!
+  unlinkVariantFromProduct(input: UnlinkVariantFromProductInput!): ProductVariant!
 
   """Attach a variant to a product by setting productId"""
   attachVariantToProduct(variantId: String!, productId: String!): Boolean!
+  createFacet(input: CreateFacetInput!): FacetGQL!
+  updateFacet(input: UpdateFacetInput!): FacetGQL!
+  deleteFacet(id: String!): String!
+  assignFacetToProduct(productId: String!, facetId: String!, value: String!): String!
+  removeFacetFromProduct(productId: String!, facetId: String!, value: String!): String!
+  assignFacetToVariant(productVariantId: String!, facetId: String!, value: String!): String!
+  removeFacetFromVariant(productVariantId: String!, facetId: String!, value: String!): String!
   markAsRead(id: String!): Notification!
   processOutbox(limit: Int, type: String, status: String): Int!
   retryOutboxFailed(limit: Int, type: String): Int!
@@ -23980,6 +24006,40 @@ input UpsertVariantTierPriceInput {
   productVariantId: String!
   tier: UserTier!
   price: Float!
+}
+
+input LooseProductVariantInput {
+  productId: ID
+  name: String
+  size: String!
+  concentration: String!
+  packaging: String!
+  barcode: String
+  price: Float!
+  resellerPrice: Float!
+}
+
+input LinkVariantToProductInput {
+  variantId: ID!
+  productId: ID!
+}
+
+input UnlinkVariantFromProductInput {
+  variantId: ID!
+}
+
+input CreateFacetInput {
+  name: String!
+  code: String!
+  isPrivate: Boolean
+  values: [String!]!
+}
+
+input UpdateFacetInput {
+  id: ID!
+  name: String
+  isPrivate: Boolean
+  values: [String!]
 }
 
 input CreateUserInput {
