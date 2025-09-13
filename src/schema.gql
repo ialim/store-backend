@@ -2250,6 +2250,12 @@ type VariantSalesWithDetails {
   barcode: String
 }
 
+type DevCounts {
+  invoiceImports: Int!
+  purchaseOrders: Int!
+  orphanVariants: Int!
+}
+
 type Query {
   me: User!
   findFirstProduct(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, distinct: [ProductScalarFieldEnum!]): Product!
@@ -2365,6 +2371,8 @@ type Query {
   groupByUser(where: UserWhereInput, orderBy: [UserOrderByWithAggregationInput!], by: [UserScalarFieldEnum!]!, having: UserScalarWhereWithAggregatesInput, take: Int, skip: Int, _count: UserCountAggregateInput, _min: UserMinAggregateInput, _max: UserMaxAggregateInput): [UserGroupBy!]!
   aggregateUser(where: UserWhereInput, orderBy: [UserOrderByWithRelationInput!], cursor: UserWhereUniqueInput, take: Int, skip: Int, _count: UserCountAggregateInput, _min: UserMinAggregateInput, _max: UserMaxAggregateInput): AggregateUser!
   listManagers: [User!]!
+  devCounts: DevCounts!
+  devExportSnapshot(tables: [String!]!, filter: DevPurgeFilter): String!
 }
 
 input ProductWhereInput {
@@ -5523,6 +5531,15 @@ input UserMaxAggregateInput {
   emailVerificationTokenExpiry: Boolean
 }
 
+input DevPurgeFilter {
+  beforeDate: String
+  status: String
+  storeId: String
+  supplierId: String
+  dryRun: Boolean
+  orphanOnly: Boolean
+}
+
 type Mutation {
   login(input: LoginInput!): AuthResponse!
   changePassword(input: ChangePasswordInput!): Boolean!
@@ -5645,6 +5662,11 @@ type Mutation {
   verifyEmail(token: String!): Boolean!
   sendPhoneVerification: Boolean!
   verifyPhone(code: String!): Boolean!
+  devPurgeInvoiceImports(filter: DevPurgeFilter): Int!
+  devPurgePurchaseOrders(filter: DevPurgeFilter): Int!
+  devImportSnapshot(json: String!, preview: Boolean): String!
+  devSeedFixtures(kind: String): String!
+  devPurgeOrphanVariants: Int!
 }
 
 input LoginInput {

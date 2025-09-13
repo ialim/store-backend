@@ -85,6 +85,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       items: [
         { label: 'Products', to: '/products', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <Inventory2Icon /> },
         { label: 'Variants', to: '/variants', show: true, icon: <Inventory2Icon /> },
+        { label: 'Facets', to: '/facets', show: hasPermission('MANAGE_PRODUCTS'), icon: <AssignmentIcon /> },
         { label: 'Stock', to: '/stock', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <Inventory2Icon /> },
         { label: 'Stores', to: '/stores', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <StoreIcon /> },
       ],
@@ -115,6 +116,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         { label: 'Reseller Approvals', to: '/reseller-approvals', show: hasRole('SUPERADMIN','ADMIN','MANAGER') || hasPermission('APPROVE_RESELLER'), icon: <AssignmentIcon /> },
         { label: 'Support', to: '/support', show: true, icon: <AssignmentIcon /> },
         { label: 'Staff', to: '/staff', show: hasRole('SUPERADMIN', 'ADMIN'), icon: <PeopleIcon /> },
+        { label: 'Dev DB Tools', to: '/dev/db-tools', show: hasRole('SUPERADMIN'), icon: <AssignmentIcon /> },
       ],
     },
   ];

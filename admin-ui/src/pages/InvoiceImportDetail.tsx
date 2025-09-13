@@ -194,13 +194,20 @@ export default function InvoiceImportDetail() {
             <Typography color="text.secondary">Totals — Parsed: ₦{fmt(parsedTotal)} | Lines: ₦{fmt(computedTotal)} | Diff: ₦{fmt(diff)}</Typography>
             <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
               <Button size="small" variant="outlined" onClick={async () => {
-                const q = String((item?.parsed as any)?.invoiceNumber || supplierName || '').trim();
-                if (!q) return;
-                await searchPOs({ variables: { q } });
+                const q = String((item?.parsed as any)?.invoiceNumber || invoiceNumber || supplierName || '').trim();
+                if (!q) { notify('Enter or parse an invoice number first', 'warning'); return; }
+                try {
+                  const res = await searchPOs({ variables: { q }, fetchPolicy: 'network-only' as any });
+                  const found = res?.data?.purchaseOrdersSearch?.[0]?.id;
+                  if (found) {
+                    navigate(`/purchase-orders/${found}`);
+                  } else {
+                    notify('No purchase order found for that query', 'info');
+                  }
+                } catch (e: any) {
+                  notify(e?.message || 'Search failed', 'error');
+                }
               }}>Find PO</Button>
-              {!!searchPO.data?.purchaseOrdersSearch?.[0]?.id && (
-                <Button size="small" variant="contained" onClick={() => navigate(`/purchase-orders/${searchPO.data.purchaseOrdersSearch[0].id}`)}>View PO</Button>
-              )}
             </Stack>
           </Box>
           {(item.status === 'PROCESSING' || item.status === 'PENDING') && (

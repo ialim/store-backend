@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PRODUCT_VARIANT_SUMMARY_SELECT } from '../../common/prisma/selects';
 import { NotificationService } from '../notification/notification.service';
 import { UpdateSupplierInput } from './dto/update-supplier.input';
 import { CreatePurchaseOrderInput } from './dto/create-purchase-order.input';
@@ -898,7 +899,7 @@ export class PurchaseService {
     const po = await this.prisma.purchaseOrder.findUnique({
       where: { id },
       include: {
-        items: { include: { productVariant: { select: { id: true, size: true, concentration: true, packaging: true, barcode: true, product: { select: { name: true } } } } } },
+        items: { include: { productVariant: { select: PRODUCT_VARIANT_SUMMARY_SELECT } } },
         supplier: { select: { id: true, name: true } },
       },
     });

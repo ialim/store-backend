@@ -2,6 +2,7 @@
 
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PRODUCT_VARIANT_SUMMARY_SELECT } from '../../common/prisma/selects';
 import { ReceiveStockBatchInput } from './dto/receive-stock-batch.input';
 import { TransferStockInput } from './dto/transfer-stock.input';
 import { MovementDirection } from '../../shared/prismagraphql/prisma/movement-direction.enum';
@@ -26,16 +27,7 @@ export class StockService {
       },
       include: {
         store: { select: { id: true, name: true } },
-        productVariant: {
-          select: {
-            id: true,
-            size: true,
-            concentration: true,
-            packaging: true,
-            barcode: true,
-            product: { select: { name: true } },
-          },
-        },
+        productVariant: { select: PRODUCT_VARIANT_SUMMARY_SELECT },
       },
     });
   }

@@ -1,9 +1,10 @@
 import { gql, useMutation, useQuery } from '@apollo/client';
-import { Alert, Box, Button, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, CircularProgress, Chip } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, CircularProgress, Chip, Autocomplete } from '@mui/material';
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import TableList from '../shared/TableList';
 import { formatMoney } from '../shared/format';
+import { notify } from '../shared/notify';
 
 const GET = gql`
   query Product($id: String!) {
@@ -223,25 +224,42 @@ export default function ProductDetail() {
             const f = allFacets.find((x) => x.id === selFacetId);
             if (f && Array.isArray(f.values) && f.values.length) {
               return (
-                <Select size="small" value={selFacetValue} onChange={(e) => setSelFacetValue(e.target.value)} displayEmpty sx={{ minWidth: 220 }}>
-                  <MenuItem value=""><em>Value…</em></MenuItem>
-                  {f.values.map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
-                </Select>
+                <Autocomplete
+                  size="small"
+                  options={f.values}
+                  value={selFacetValue || ''}
+                  inputValue={selFacetValue}
+                  onInputChange={(_, v) => setSelFacetValue(v)}
+                  onChange={(_, v) => setSelFacetValue((v as string) || '')}
+                  renderInput={(params) => <TextField {...params} label="Value" />}
+                  sx={{ minWidth: 220 }}
+                  freeSolo
+                />
               );
             }
             return (<TextField size="small" label="Value" value={selFacetValue} onChange={(e) => setSelFacetValue(e.target.value)} />);
           })()}
           <Button size="small" variant="contained" disabled={!selFacetId || !selFacetValue} onClick={async () => {
-            await assignProductFacet({ variables: { productId: id, facetId: selFacetId, value: selFacetValue } });
-            setSelFacetValue('');
-            await refetchProdFacets();
+            try {
+              await assignProductFacet({ variables: { productId: id, facetId: selFacetId, value: selFacetValue } });
+              notify('Facet assigned', 'success');
+              setSelFacetValue('');
+              await refetchProdFacets();
+            } catch (e: any) {
+              notify(e?.message || 'Failed to assign facet', 'error');
+            }
           }}>Assign</Button>
         </Stack>
         <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
           {productAssignments.map((a, i) => (
             <Chip key={`${a.facet?.id}_${a.value}_${i}`} label={`${a.facet?.name || a.facet?.code}: ${a.value}`} onDelete={async () => {
-              await removeProductFacet({ variables: { productId: id, facetId: a.facet?.id, value: a.value } });
-              await refetchProdFacets();
+              try {
+                await removeProductFacet({ variables: { productId: id, facetId: a.facet?.id, value: a.value } });
+                notify('Facet removed', 'info');
+                await refetchProdFacets();
+              } catch (e: any) {
+                notify(e?.message || 'Failed to remove facet', 'error');
+              }
             }} />
           ))}
         </Stack>
@@ -347,25 +365,42 @@ function VariantFacetsDialog({ variantId, onClose }: { variantId: string; onClos
             const f = allFacets.find((x) => x.id === selFacetId);
             if (f && Array.isArray(f.values) && f.values.length) {
               return (
-                <Select size="small" value={selValue} onChange={(e) => setSelValue(e.target.value)} displayEmpty sx={{ minWidth: 180 }}>
-                  <MenuItem value=""><em>Value…</em></MenuItem>
-                  {f.values.map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
-                </Select>
+                <Autocomplete
+                  size="small"
+                  options={f.values}
+                  value={selValue || ''}
+                  inputValue={selValue}
+                  onInputChange={(_, v) => setSelValue(v)}
+                  onChange={(_, v) => setSelValue((v as string) || '')}
+                  renderInput={(params) => <TextField {...params} label="Value" />}
+                  sx={{ minWidth: 180 }}
+                  freeSolo
+                />
               );
             }
             return (<TextField size="small" label="Value" value={selValue} onChange={(e) => setSelValue(e.target.value)} />);
           })()}
           <Button size="small" variant="contained" disabled={!selFacetId || !selValue} onClick={async () => {
-            await assign({ variables: { productVariantId: variantId, facetId: selFacetId, value: selValue } });
-            setSelValue('');
-            await refetch();
+            try {
+              await assign({ variables: { productVariantId: variantId, facetId: selFacetId, value: selValue } });
+              notify('Facet assigned', 'success');
+              setSelValue('');
+              await refetch();
+            } catch (e: any) {
+              notify(e?.message || 'Failed to assign facet', 'error');
+            }
           }}>Assign</Button>
         </Stack>
         <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
           {assigns.map((a, i) => (
             <Chip key={`${a.facet?.id}_${a.value}_${i}`} label={`${a.facet?.name || a.facet?.code}: ${a.value}`} onDelete={async () => {
-              await remove({ variables: { productVariantId: variantId, facetId: a.facet?.id, value: a.value } });
-              await refetch();
+              try {
+                await remove({ variables: { productVariantId: variantId, facetId: a.facet?.id, value: a.value } });
+                notify('Facet removed', 'info');
+                await refetch();
+              } catch (e: any) {
+                notify(e?.message || 'Failed to remove facet', 'error');
+              }
             }} />
           ))}
         </Stack>

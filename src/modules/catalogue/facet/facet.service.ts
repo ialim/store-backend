@@ -23,26 +23,26 @@ export class FacetService {
 
   assignToProduct(productId: string, facetId: string, value: string) {
     return (this.prisma as any).productFacetValue.upsert({
-      where: { productId_facetId_value: { productId, facetId, value } },
+      where: { product_facet_value_unique: { productId, facetId, value } },
       update: {},
       create: { productId, facetId, value },
     });
   }
 
   removeFromProduct(productId: string, facetId: string, value: string) {
-    return (this.prisma as any).productFacetValue.delete({ where: { productId_facetId_value: { productId, facetId, value } } });
+    return (this.prisma as any).productFacetValue.delete({ where: { product_facet_value_unique: { productId, facetId, value } } });
   }
 
   assignToVariant(productVariantId: string, facetId: string, value: string) {
     return (this.prisma as any).variantFacetValue.upsert({
-      where: { productVariantId_facetId_value: { productVariantId, facetId, value } },
+      where: { variant_facet_value_unique: { productVariantId, facetId, value } },
       update: {},
       create: { productVariantId, facetId, value },
     });
   }
 
   removeFromVariant(productVariantId: string, facetId: string, value: string) {
-    return (this.prisma as any).variantFacetValue.delete({ where: { productVariantId_facetId_value: { productVariantId, facetId, value } } });
+    return (this.prisma as any).variantFacetValue.delete({ where: { variant_facet_value_unique: { productVariantId, facetId, value } } });
   }
 
   async listProductAssignments(productId: string) {

@@ -5,16 +5,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import TableList from '../shared/TableList';
 
 const POS = gql`
-  query PurchaseOrders { purchaseOrders { id status phase createdAt supplier { id name } } }
+  query PurchaseOrders { purchaseOrders { id invoiceNumber status phase createdAt supplier { id name } } }
 `;
 const POS_BY_STATUS = gql`
-  query PurchaseOrdersByStatus($status: String!) { purchaseOrdersByStatus(status: $status) { id status phase createdAt supplier { id name } } }
+  query PurchaseOrdersByStatus($status: String!) { purchaseOrdersByStatus(status: $status) { id invoiceNumber status phase createdAt supplier { id name } } }
 `;
 const POS_BY_PHASE = gql`
-  query PurchaseOrdersByPhase($phase: String!) { purchaseOrdersByPhase(phase: $phase) { id status phase createdAt supplier { id name } } }
+  query PurchaseOrdersByPhase($phase: String!) { purchaseOrdersByPhase(phase: $phase) { id invoiceNumber status phase createdAt supplier { id name } } }
 `;
 const POS_SEARCH = gql`
-  query PurchaseOrdersSearch($q: String!) { purchaseOrdersSearch(q: $q) { id status phase createdAt supplier { id name } } }
+  query PurchaseOrdersSearch($q: String!) { purchaseOrdersSearch(q: $q) { id invoiceNumber status phase createdAt supplier { id name } } }
 `;
 
 const UPDATE_STATUS = gql`
@@ -72,6 +72,7 @@ export default function PurchaseOrders() {
       <TableList
         columns={React.useMemo(() => ([
           { key: 'id', label: 'ID' },
+          { key: 'invoiceNumber', label: 'Invoice #', render: (po: any) => po.invoiceNumber || '—', sort: true, filter: true },
           { key: 'supplier', label: 'Supplier', render: (po: any) => po.supplier?.name || po.supplier?.id || '—', sort: true, accessor: (po: any) => po.supplier?.name || '' , filter: true },
           { key: 'createdAt', label: 'Created', render: (po: any) => po.createdAt ? new Date(po.createdAt).toLocaleString() : '—', sort: true, accessor: (po: any) => new Date(po.createdAt || 0) },
           { key: 'status', label: 'Status', render: (po: any) => (
@@ -105,8 +106,8 @@ export default function PurchaseOrders() {
         defaultSortKey="createdAt"
         showFilters
         globalSearch
-        globalSearchPlaceholder="Search id/supplier"
-        globalSearchKeys={['id','supplier']}
+        globalSearchPlaceholder="Search id/invoice/supplier"
+        globalSearchKeys={['id','invoiceNumber','supplier']}
         enableUrlState
         urlKey="pos"
       />

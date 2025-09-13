@@ -1,6 +1,5 @@
 import { gql, useMutation, useQuery } from '@apollo/client';
 import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
-import { useAuth } from '../shared/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/AuthProvider';
 import React from 'react';
@@ -70,7 +69,7 @@ export default function Variants() {
         { concentration: { contains: sq, mode: 'insensitive' } },
         { packaging: { contains: sq, mode: 'insensitive' } },
         { barcode: { contains: sq, mode: 'insensitive' } },
-        { product: { name: { contains: sq, mode: 'insensitive' } } },
+        { product: { is: { name: { contains: sq, mode: 'insensitive' } } } },
       ];
     }
     if (filterFacetId && filterFacetValue) {
@@ -80,7 +79,7 @@ export default function Variants() {
         w.AND = (w.AND || []).concat({
           facets: {
             some: {
-              facet: { code: { equals: facet.code } },
+              facet: { is: { code: { equals: facet.code } } },
               value: { equals: filterFacetValue },
             },
           },
@@ -88,10 +87,10 @@ export default function Variants() {
       }
     }
     if (gender) {
-      w.AND = (w.AND || []).concat({ facets: { some: { facet: { code: { equals: 'gender' } }, value: { equals: gender } } } });
+      w.AND = (w.AND || []).concat({ facets: { some: { facet: { is: { code: { equals: 'gender' } } }, value: { equals: gender } } } });
     }
     if (brand) {
-      w.AND = (w.AND || []).concat({ facets: { some: { facet: { code: { equals: 'brand' } }, value: { equals: brand } } } });
+      w.AND = (w.AND || []).concat({ facets: { some: { facet: { is: { code: { equals: 'brand' } } }, value: { equals: brand } } } });
     }
     return Object.keys(w).length ? w : undefined;
   }, [q, filterFacetId, filterFacetValue, allFacets, gender, brand]);
@@ -181,7 +180,7 @@ function VariantFacetsButton({ variantId }: { variantId: string }) {
   const [open, setOpen] = React.useState(false);
   return (
     <>
-      <Button size="small" onClick={() => setOpen(true)}>Manage Facets</Button>
+      <Button size="small" onClick={(e) => { e.stopPropagation(); setOpen(true); }}>Manage Facets</Button>
       {open && <VariantFacetsDialog variantId={variantId} onClose={() => setOpen(false)} />}
     </>
   );
