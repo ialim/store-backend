@@ -207,9 +207,10 @@ export class InvoiceImportResolver {
       quantity: number;
       unitCost: number;
     }> = [];
+    const resolvedNames: Array<string | null> = [];
     for (const ln of sourceLines as any[]) {
       const desc = String(ln.description || '').trim();
-      if (!desc) continue;
+      if (!desc) { resolvedNames.push(null); continue; }
       // Prefer existing variant by barcode if provided
       let variant = ln.barcode ? await (this.prisma as any).productVariant.findFirst({ where: { barcode: ln.barcode } }) : null;
       if (!variant)
@@ -232,6 +233,11 @@ export class InvoiceImportResolver {
       const qty = Number(ln.qty) || 1;
       const unitCost = (ln.discountedUnitPrice ?? ln.unitPrice ?? (ln.lineTotal != null ? Number(ln.lineTotal) / qty : 0)) as number;
       poItems.push({ productVariantId: variant.id, quantity: qty, unitCost });
+      // Keep track of the resolved, human-friendly variant name for UI display
+      const human = (variant as any)?.name
+        || [ (variant as any)?.size, (variant as any)?.concentration, (variant as any)?.packaging ].filter(Boolean).join(' ')
+        || desc;
+      resolvedNames.push(human);
     }
 
     let poId: string | undefined;
@@ -287,10 +293,25 @@ export class InvoiceImportResolver {
       }
     }
 
-    await (this.prisma as any).invoiceImport.update({
+    // Update parsed lines' description with resolved variant names for better UI display
+    try {
+      const newParsed = { ...(parsed || {}) } as any;
+      if (Array.isArray(newParsed.lines)) {
+        newParsed.lines = newParsed.lines.map((ln: any, i: number) => {
+          const rn = resolvedNames[i];
+          return rn ? { ...ln, description: rn } : ln;
+        });
+      }
+      await (this.prisma as any).invoiceImport.update({
+        where: { id: input.id },
+        data: { status: 'COMPLETED', message: 'Approved', parsed: this.sanitizeDeep(newParsed) },
+      });
+    } catch {
+      await (this.prisma as any).invoiceImport.update({
       where: { id: input.id },
       data: { status: 'COMPLETED', message: 'Approved' },
-    });
+      });
+    }
     const inv = await (this.prisma as any).invoiceImport.findUnique({ where: { id: input.id } });
     return { invoiceImport: inv, purchaseOrderId: poId } as ApproveInvoiceResult;
   }

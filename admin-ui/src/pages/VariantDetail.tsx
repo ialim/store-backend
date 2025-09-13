@@ -1,6 +1,8 @@
 import { gql, useQuery } from '@apollo/client';
-import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, Stack, Typography, Drawer, IconButton, TextField } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../shared/AuthProvider';
 import React from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -30,6 +32,9 @@ const VARIANT_FACETS = gql`
 export default function VariantDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const auth = useAuth();
+  const [openCart, setOpenCart] = React.useState(false);
+  const [qty, setQty] = React.useState<number>(1);
   const { data, loading, error } = useQuery(VARIANT, { variables: { id }, skip: !id, fetchPolicy: 'cache-and-network' });
   const v = data?.findUniqueProductVariant;
   const { data: facetsData } = useQuery(VARIANT_FACETS, { variables: { productVariantId: id as string }, skip: !id, fetchPolicy: 'cache-first' });
@@ -52,7 +57,13 @@ export default function VariantDetail() {
         {v.product?.name && (<Chip label={v.product.name} />)}
       </Stack>
       <Box>
-        <Button variant="contained" color="primary" onClick={() => alert('Add to cart coming soon')}>Add to cart</Button>
+        <Button variant="contained" color="primary" onClick={() => {
+          if (!auth.token) {
+            navigate('/login');
+          } else {
+            setOpenCart(true);
+          }
+        }}>Add to cart</Button>
       </Box>
       <Box>
         <Typography color="text.secondary">Barcode: {v.barcode || '—'}</Typography>
@@ -68,6 +79,22 @@ export default function VariantDetail() {
         </Stack>
       </Box>
       <RelatedVariants currentId={id as string} brand={brand} gender={gender} />
+
+      <Drawer anchor="right" open={openCart} onClose={() => setOpenCart(false)}>
+        <Box sx={{ width: 320, p: 2 }} role="presentation">
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Typography variant="h6">Cart</Typography>
+            <IconButton onClick={() => setOpenCart(false)}><CloseIcon /></IconButton>
+          </Stack>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2">Item</Typography>
+            <Typography>{title}</Typography>
+            <Typography color="text.secondary">Price: {v.price != null ? v.price.toLocaleString() : '—'}</Typography>
+            <TextField label="Quantity" type="number" size="small" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))} sx={{ mt: 1, width: 120 }} />
+            <Button variant="contained" sx={{ mt: 2 }} onClick={() => alert('Checkout coming soon')}>Checkout</Button>
+          </Box>
+        </Box>
+      </Drawer>
     </Stack>
   );
 }
