@@ -199,8 +199,23 @@ export class PurchaseResolver {
   @Query(() => [RequisitionSummary])
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
-  requisitionsByStatus(@Args('status') status: string) {
-    return this.purchaseService.requisitionsByStatus(status);
+  requisitionsByStatus(
+    @Args('status') status: string,
+    @Args('storeId', { nullable: true }) storeId?: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    return this.purchaseService.requisitionsByStatus(status, storeId || undefined, take, skip);
+  }
+
+  @Query(() => Int)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  requisitionsCountByStatus(
+    @Args('status') status: string,
+    @Args('storeId', { nullable: true }) storeId?: string,
+  ) {
+    return this.purchaseService.requisitionsCountByStatus(status, storeId || undefined);
   }
 
   @Query(() => [SupplierQuoteSummary])

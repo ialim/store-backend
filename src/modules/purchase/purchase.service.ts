@@ -195,9 +195,9 @@ export class PurchaseService {
   }
 
   // Requisition and quotes listings for dashboards
-  async requisitionsByStatus(status: string) {
+  async requisitionsByStatus(status: string, storeId?: string, take?: number, skip?: number) {
     return this.prisma.purchaseRequisition.findMany({
-      where: { status: status as any },
+      where: { status: status as any, ...(storeId ? { storeId } : {}) },
       select: {
         id: true,
         storeId: true,
@@ -206,7 +206,13 @@ export class PurchaseService {
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
+      take: take ?? undefined,
+      skip: skip ?? undefined,
     });
+  }
+
+  async requisitionsCountByStatus(status: string, storeId?: string) {
+    return this.prisma.purchaseRequisition.count({ where: { status: status as any, ...(storeId ? { storeId } : {}) } });
   }
 
   async requisitionSummary(id: string) {

@@ -2301,7 +2301,8 @@ type Query {
   purchaseOrdersCount(status: String, phase: String): Int!
   purchaseOrdersByPhaseEnum(phase: PurchasePhase!): [PurchaseOrder!]!
   purchaseOrdersOverdue: [PurchaseOrder!]!
-  requisitionsByStatus(status: String!): [RequisitionSummary!]!
+  requisitionsByStatus(status: String!, storeId: String, take: Int, skip: Int): [RequisitionSummary!]!
+  requisitionsCountByStatus(status: String!, storeId: String): Int!
   supplierQuotesByRequisition(requisitionId: String!): [SupplierQuoteSummary!]!
   purchaseRequisitionSummary(id: String!): RequisitionSummary
   supplierCatalogBySupplier(supplierId: String!): [SupplierCatalogEntry!]!
