@@ -59,6 +59,25 @@ export default function PurchaseOrders() {
   const rangeStart = total > 0 ? Math.min(total, skip + 1) : 0;
   const rangeEnd = total > 0 ? Math.min(total, skip + list.length) : 0;
   const navigate = useNavigate();
+  const exportCsv = () => {
+    const rows = list.map((po: any) => [
+      po.id,
+      po.invoiceNumber || '',
+      po.supplier?.name || po.supplier?.id || '',
+      po.status || '',
+      po.phase || '',
+      po.createdAt ? new Date(po.createdAt).toISOString() : '',
+    ]);
+    const header = ['id','invoiceNumber','supplier','status','phase','createdAt'];
+    const csv = [header, ...rows]
+      .map((r) => r.map((x) => JSON.stringify(x ?? '')).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const fname = `purchase-orders-${mode}-${skip}-${skip + list.length}.csv`;
+    // Use native download if file-saver is not desired
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = fname; a.click(); URL.revokeObjectURL(url);
+  };
   // Debounced search when only query is used (no status/phase active)
   React.useEffect(() => {
     const q = query.trim();
@@ -128,6 +147,7 @@ export default function PurchaseOrders() {
           await refetchCount({ status: null, phase: null });
         }}>Clear</Button>
         <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
+          <Button size="small" onClick={exportCsv}>Export CSV</Button>
           <TextField size="small" label="Page size" type="number" value={take} onChange={(e) => { const v = Math.max(1, Number(e.target.value) || 25); setPage(1); setTake(v); }} sx={{ width: 120 }} />
           <Button size="small" disabled={!canPrev} onClick={async () => {
             if (!canPrev) return;

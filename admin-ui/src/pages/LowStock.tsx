@@ -2,6 +2,8 @@ import { gql, useMutation, useQuery } from '@apollo/client';
 import { Alert, Button, CircularProgress, Stack, TextField, Typography, FormControlLabel, Switch } from '@mui/material';
 import { useEffect, useState } from 'react';
 import TableList from '../shared/TableList';
+import { UserSelect } from '../shared/IdSelects';
+import { notify } from '../shared/notify';
 
 const CANDIDATES = gql`
   query LowStock($storeId: String, $limit: Int) {
@@ -24,6 +26,7 @@ export default function LowStock() {
   const [err, setErr] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [intervalSec, setIntervalSec] = useState(15);
+  const [requestedById, setRequestedById] = useState<string>('');
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -55,12 +58,26 @@ export default function LowStock() {
       )}
       <Stack direction="row" spacing={2} alignItems="center">
         <TextField label="Store ID (optional)" value={storeId ?? ''} onChange={e => setStoreId(e.target.value || undefined)} size="small" />
+        <UserSelect value={requestedById} onChange={setRequestedById} label="Requested By" />
         <Button variant="contained" onClick={() => refetch()} disabled={loading} startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}>
           {loading ? 'Refreshing…' : 'Refresh'}
         </Button>
         <Button variant="outlined" onClick={doScan} disabled={scanning} startIcon={scanning ? <CircularProgress size={16} /> : undefined}>
           {scanning ? 'Scanning…' : 'Run Scan Now'}
         </Button>
+        <Button variant="contained" disabled={!storeId || !requestedById} onClick={async () => {
+          try {
+            const res = await (refetch as any).client.mutate({
+              mutation: gql`mutation($storeId: String!, $requestedById: String!) { createRequisitionFromLowStock(input: { storeId: $storeId, requestedById: $requestedById }) }`,
+              variables: { storeId, requestedById },
+            });
+            const reqId = res?.data?.createRequisitionFromLowStock as string | null;
+            if (reqId) notify(`Requisition created: ${reqId}`, 'success');
+            else notify('No items qualified for requisition', 'info');
+          } catch (e: any) {
+            notify(e?.message || 'Failed to create requisition', 'error');
+          }
+        }}>Create Requisition</Button>
         <FormControlLabel control={<Switch checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />} label={`Auto Refresh (${intervalSec}s)`} />
         <TextField label="Interval" type="number" size="small" value={intervalSec} onChange={(e) => setIntervalSec(Number(e.target.value) || 15)} inputProps={{ min: 5, style: { width: 80 } }} />
         {error && (
