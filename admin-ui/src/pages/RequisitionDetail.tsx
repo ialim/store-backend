@@ -35,6 +35,7 @@ const QUOTES = gql`
 const ISSUE_PREF = gql`mutation($id: String!) { issueRFQPreferred(requisitionId: $id) }`;
 const SELECT_QUOTE = gql`mutation($quoteId: String!, $exclusive: Boolean) { selectSupplierQuote(input: { quoteId: $quoteId, exclusive: $exclusive }) }`;
 const REJECT_QUOTE = gql`mutation($quoteId: String!, $reason: String) { rejectSupplierQuote(input: { quoteId: $quoteId, reason: $reason }) }`;
+const REJECT_REQ = gql`mutation($id: String!, $reason: String) { rejectPurchaseRequisition(input: { id: $id, reason: $reason }) }`;
 
 export default function RequisitionDetail() {
   const { id } = useParams();
@@ -46,6 +47,7 @@ export default function RequisitionDetail() {
   const [issuePref, { loading: issuing }] = useMutation(ISSUE_PREF);
   const [selectQuote] = useMutation(SELECT_QUOTE);
   const [rejectQuote] = useMutation(REJECT_QUOTE);
+  const [rejectReq, { loading: rejectingReq }] = useMutation(REJECT_REQ);
   const exportCsv = ({ sorted }: { sorted: any[] }) => {
     const rows = (sorted?.length ? sorted : quotes).map((q: any) => [q.id, q.supplierId, q.status, q.validUntil || '', q.createdAt || '']);
     if (!rows.length) return;
@@ -92,6 +94,10 @@ export default function RequisitionDetail() {
             <Button size="small" variant="outlined" disabled={reqSummary?.status !== 'SUBMITTED'} onClick={async () => {
               try { await (refetchDash as any).client.mutate({ mutation: gql`mutation($id: String!) { approvePurchaseRequisition(input: { id: $id }) }`, variables: { id } }); notify('Requisition approved','success'); refetchDash(); } catch (e: any) { notify(e?.message || 'Failed to approve requisition','error'); }
             }}>Approve Requisition</Button>
+            <Button size="small" color="error" variant="outlined" disabled={!(reqSummary?.status === 'DRAFT' || reqSummary?.status === 'SUBMITTED') || rejectingReq} onClick={async () => {
+              const reason = window.prompt('Reason for rejection (optional):') || undefined;
+              try { await rejectReq({ variables: { id, reason } }); notify('Requisition rejected','info'); refetchDash(); refetchQuotes(); } catch (e: any) { notify(e?.message || 'Failed to reject requisition','error'); }
+            }}>{rejectingReq ? 'Rejecting…' : 'Reject Requisition'}</Button>
           </Stack>
           <TableList
             columns={[
