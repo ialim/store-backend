@@ -20,7 +20,9 @@ const POS_BY_PHASE = gql`
   }
 `;
 const POS_SEARCH = gql`
-  query PurchaseOrdersSearch($q: String!) { purchaseOrdersSearch(q: $q) { id invoiceNumber status phase createdAt supplier { id name } } }
+  query PurchaseOrdersSearch($q: String!, $take: Int, $skip: Int) {
+    purchaseOrdersSearch(q: $q, take: $take, skip: $skip) { id invoiceNumber status phase createdAt supplier { id name } }
+  }
 `;
 
 const POS_COUNT = gql`
@@ -46,10 +48,14 @@ export default function PurchaseOrders() {
   const [loadByPhase, byPhase] = useLazyQuery(POS_BY_PHASE);
   const { data: countData, refetch: refetchCount } = useQuery(POS_COUNT, { variables: { status: status || null, phase: phase || null }, fetchPolicy: 'cache-and-network' });
   const [loadSearch, bySearch] = useLazyQuery(POS_SEARCH);
+  const [loadSearchCount, bySearchCount] = useLazyQuery(POS_SEARCH_COUNT);
+  const [mode, setMode] = React.useState<'all'|'status'|'phase'|'search'>('all');
   const list = (bySearch.data?.purchaseOrdersSearch ?? byStatus.data?.purchaseOrdersByStatus ?? byPhase.data?.purchaseOrdersByPhase ?? data?.purchaseOrders) ?? [];
-  const total = countData?.purchaseOrdersCount ?? 0;
-  const canPrev = page > 1 && !bySearch.data; // disable paging on search results for now
-  const canNext = !bySearch.data && skip + list.length < total;
+  const baseTotal = countData?.purchaseOrdersCount ?? 0;
+  const searchTotal = bySearchCount.data?.purchaseOrdersSearchCount ?? 0;
+  const total = mode === 'search' ? searchTotal : baseTotal;
+  const canPrev = page > 1;
+  const canNext = skip + list.length < total;
   const navigate = useNavigate();
   return (
     <Stack spacing={2}>
@@ -73,14 +79,19 @@ export default function PurchaseOrders() {
         </FormControl>
         <Button variant="contained" onClick={async () => {
           if (query.trim().length >= 2) {
-            await loadSearch({ variables: { q: query.trim() } });
+            setMode('search');
+            await loadSearch({ variables: { q: query.trim(), take, skip } });
+            await loadSearchCount({ variables: { q: query.trim() } });
           } else if (status) {
+            setMode('status');
             await loadByStatus({ variables: { status, take, skip } });
             await refetchCount({ status, phase: null });
           } else if (phase) {
+            setMode('phase');
             await loadByPhase({ variables: { phase, take, skip } });
             await refetchCount({ status: null, phase });
           } else {
+            setMode('all');
             await refetch({ take, skip });
             await refetchCount({ status: null, phase: null });
           }
@@ -90,9 +101,27 @@ export default function PurchaseOrders() {
         )}
         <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
           <TextField size="small" label="Page size" type="number" value={take} onChange={(e) => { const v = Math.max(1, Number(e.target.value) || 25); setPage(1); setTake(v); }} sx={{ width: 120 }} />
-          <Button size="small" disabled={!canPrev} onClick={async () => { if (!canPrev) return; const p = Math.max(1, page - 1); setPage(p); const s = (p - 1) * take; if (status) await loadByStatus({ variables: { status, take, skip: s } }); else if (phase) await loadByPhase({ variables: { phase, take, skip: s } }); else await refetch({ take, skip: s }); }}>Prev</Button>
+          <Button size="small" disabled={!canPrev} onClick={async () => {
+            if (!canPrev) return;
+            const p = Math.max(1, page - 1);
+            setPage(p);
+            const s = (p - 1) * take;
+            if (mode === 'search') await loadSearch({ variables: { q: query.trim(), take, skip: s } });
+            else if (mode === 'status') await loadByStatus({ variables: { status, take, skip: s } });
+            else if (mode === 'phase') await loadByPhase({ variables: { phase, take, skip: s } });
+            else await refetch({ take, skip: s });
+          }}>Prev</Button>
           <Typography variant="body2">Page {page}</Typography>
-          <Button size="small" disabled={!canNext} onClick={async () => { if (!canNext) return; const p = page + 1; setPage(p); const s = (p - 1) * take; if (status) await loadByStatus({ variables: { status, take, skip: s } }); else if (phase) await loadByPhase({ variables: { phase, take, skip: s } }); else await refetch({ take, skip: s }); }}>Next</Button>
+          <Button size="small" disabled={!canNext} onClick={async () => {
+            if (!canNext) return;
+            const p = page + 1;
+            setPage(p);
+            const s = (p - 1) * take;
+            if (mode === 'search') await loadSearch({ variables: { q: query.trim(), take, skip: s } });
+            else if (mode === 'status') await loadByStatus({ variables: { status, take, skip: s } });
+            else if (mode === 'phase') await loadByPhase({ variables: { phase, take, skip: s } });
+            else await refetch({ take, skip: s });
+          }}>Next</Button>
         </Stack>
       </Stack>
       <TableList
@@ -113,6 +142,9 @@ export default function PurchaseOrders() {
                   try { await updateStatus({ variables: { input: { id: po.id, status } } }); await refetch(); } catch {}
                 }}
               >
+const POS_SEARCH_COUNT = gql`
+  query PurchaseOrdersSearchCount($q: String!) { purchaseOrdersSearchCount(q: $q) }
+`;
                 {['DRAFT','APPROVED','SENT','RECEIVED','CANCELLED'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
               </Select>
             </FormControl>

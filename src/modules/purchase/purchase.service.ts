@@ -940,9 +940,14 @@ export class PurchaseService {
     }));
   }
 
-  async purchaseOrdersSearch(q: string) {
+  async purchaseOrdersSearch(q: string, take?: number, skip?: number) {
     const query = q.trim();
-    if (!query) return this.prisma.purchaseOrder.findMany({ take: 50 });
+    if (!query)
+      return this.prisma.purchaseOrder.findMany({
+        take: take ?? 50,
+        skip: skip ?? undefined,
+        orderBy: { createdAt: 'desc' },
+      });
     return this.prisma.purchaseOrder.findMany({
       where: {
         OR: [
@@ -952,8 +957,22 @@ export class PurchaseService {
         ],
       },
       orderBy: { createdAt: 'desc' },
-      take: 100,
+      take: take ?? 100,
+      skip: skip ?? undefined,
     });
+  }
+
+  async purchaseOrdersSearchCount(q: string) {
+    const query = q.trim();
+    if (!query) return this.prisma.purchaseOrder.count();
+    const where: any = {
+      OR: [
+        { id: { contains: query, mode: 'insensitive' } as any },
+        { supplierId: { contains: query, mode: 'insensitive' } as any },
+        { invoiceNumber: { contains: query, mode: 'insensitive' } as any },
+      ],
+    };
+    return this.prisma.purchaseOrder.count({ where });
   }
 
   // Close RFQ: reject selected categories of quotes and publish event

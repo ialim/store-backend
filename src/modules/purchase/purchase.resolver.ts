@@ -419,8 +419,18 @@ export class PurchaseResolver {
 
   @Query(() => [PurchaseOrder])
   @UseGuards(GqlAuthGuard)
-  purchaseOrdersSearch(@Args('q') q: string) {
-    return this.purchaseService.purchaseOrdersSearch(q);
+  purchaseOrdersSearch(
+    @Args('q') q: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    return this.purchaseService.purchaseOrdersSearch(q, take, skip);
+  }
+
+  @Query(() => Int)
+  @UseGuards(GqlAuthGuard)
+  purchaseOrdersSearchCount(@Args('q') q: string) {
+    return this.purchaseService.purchaseOrdersSearchCount(q);
   }
 
   @Query(() => [RequisitionSummary])

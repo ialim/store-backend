@@ -2315,7 +2315,8 @@ type Query {
   adminProcurementDashboard: AdminProcurementDashboard!
   purchaseOrdersOverdueByStore(storeId: String!): [PurchaseOrder!]!
   purchaseOrderReceiptProgress(purchaseOrderId: String!): [PurchaseOrderReceiptProgress!]!
-  purchaseOrdersSearch(q: String!): [PurchaseOrder!]!
+  purchaseOrdersSearch(q: String!, take: Int, skip: Int): [PurchaseOrder!]!
+  purchaseOrdersSearchCount(q: String!): Int!
   requisitionsWithNoSubmittedQuotesByStore(storeId: String!): [RequisitionSummary!]!
   requisitionsWithPartialSubmissionsByStore(storeId: String!): [RequisitionSummary!]!
   rfqStatusCountsByStore(storeId: String!): RfqStatusCounts!
