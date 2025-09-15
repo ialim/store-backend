@@ -5606,6 +5606,7 @@ type Mutation {
   updatePurchaseOrderPhase(input: UpdatePurchaseOrderPhaseInput!): PurchaseOrder!
   markPurchaseOrderReceived(input: MarkPurchaseOrderReceivedInput!): PurchaseOrder!
   createRequisitionFromLowStock(input: CreateRequisitionFromLowStockInput!): String
+  createLowStockRequisitionAndIssuePreferred(input: CreateRequisitionFromLowStockInput!): String
   adminProcessInvoiceUrl(input: ProcessInvoiceUrlInput!): ProcessInvoiceResult!
   adminCreateInvoiceImport(input: CreateInvoiceImportInput!): InvoiceImport!
   adminReprocessInvoiceImport(id: String!): InvoiceImport!

@@ -477,4 +477,13 @@ export class PurchaseResolver {
   ) {
     return this.purchaseService.createRequisitionFromLowStock(input);
   }
+
+  @Mutation(() => String, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  createLowStockRequisitionAndIssuePreferred(
+    @Args('input') input: CreateRequisitionFromLowStockInput,
+  ) {
+    return this.purchaseService.createLowStockRequisitionAndIssuePreferred(input);
+  }
 }

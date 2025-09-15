@@ -18,10 +18,24 @@ const RUN_SCAN = gql`
   mutation RunScan { runLowStockScanNow }
 `;
 
+const CREATE_REQ = gql`
+  mutation CreateLowStockReq($storeId: String!, $requestedById: String!) {
+    createRequisitionFromLowStock(input: { storeId: $storeId, requestedById: $requestedById })
+  }
+`;
+
+const CREATE_AND_ISSUE = gql`
+  mutation CreateAndIssuePreferred($storeId: String!, $requestedById: String!) {
+    createLowStockRequisitionAndIssuePreferred(input: { storeId: $storeId, requestedById: $requestedById })
+  }
+`;
+
 export default function LowStock() {
   const [storeId, setStoreId] = useState<string | undefined>(undefined);
   const { data, loading, error, refetch } = useQuery(CANDIDATES, { variables: { storeId, limit: 100 } });
   const [runScan, { loading: scanning }] = useMutation(RUN_SCAN);
+  const [createReq, { loading: creating }] = useMutation(CREATE_REQ);
+  const [createAndIssue, { loading: creatingIssuing }] = useMutation(CREATE_AND_ISSUE);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -65,19 +79,26 @@ export default function LowStock() {
         <Button variant="outlined" onClick={doScan} disabled={scanning} startIcon={scanning ? <CircularProgress size={16} /> : undefined}>
           {scanning ? 'Scanning…' : 'Run Scan Now'}
         </Button>
-        <Button variant="contained" disabled={!storeId || !requestedById} onClick={async () => {
+        <Button variant="contained" disabled={!storeId || !requestedById || creating} onClick={async () => {
           try {
-            const res = await (refetch as any).client.mutate({
-              mutation: gql`mutation($storeId: String!, $requestedById: String!) { createRequisitionFromLowStock(input: { storeId: $storeId, requestedById: $requestedById }) }`,
-              variables: { storeId, requestedById },
-            });
-            const reqId = res?.data?.createRequisitionFromLowStock as string | null;
+            const { data } = await createReq({ variables: { storeId, requestedById } });
+            const reqId = data?.createRequisitionFromLowStock as string | null;
             if (reqId) notify(`Requisition created: ${reqId}`, 'success');
             else notify('No items qualified for requisition', 'info');
           } catch (e: any) {
             notify(e?.message || 'Failed to create requisition', 'error');
           }
-        }}>Create Requisition</Button>
+        }}>{creating ? 'Creating…' : 'Create Requisition'}</Button>
+        <Button variant="contained" color="secondary" disabled={!storeId || !requestedById || creatingIssuing} onClick={async () => {
+          try {
+            const { data } = await createAndIssue({ variables: { storeId, requestedById } });
+            const reqId = data?.createLowStockRequisitionAndIssuePreferred as string | null;
+            if (reqId) notify(`Req created and RFQ issued: ${reqId}`, 'success');
+            else notify('No items qualified for requisition', 'info');
+          } catch (e: any) {
+            notify(e?.message || 'Failed to create and issue RFQ', 'error');
+          }
+        }}>{creatingIssuing ? 'Creating & Issuing…' : 'Create + Issue RFQ (Preferred)'}</Button>
         <FormControlLabel control={<Switch checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />} label={`Auto Refresh (${intervalSec}s)`} />
         <TextField label="Interval" type="number" size="small" value={intervalSec} onChange={(e) => setIntervalSec(Number(e.target.value) || 15)} inputProps={{ min: 5, style: { width: 80 } }} />
         {error && (
