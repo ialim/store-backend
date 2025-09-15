@@ -1,5 +1,6 @@
 import React from 'react';
 import { gql, useLazyQuery } from '@apollo/client';
+import { useListSuppliersLazyQuery } from '../generated/graphql';
 import { Autocomplete, TextField } from '@mui/material';
 
 const SEARCH_USERS = gql`
@@ -104,3 +105,58 @@ export function VariantSelect({ value, onChange, label = 'Variant', placeholder 
   );
 }
 
+export function SupplierSelect({ value, onChange, label = 'Supplier', placeholder = 'Search supplier name' }: { value: string; onChange: (id: string) => void; label?: string; placeholder?: string }) {
+  const [q, setQ] = React.useState('');
+  const [load, { data }] = useListSuppliersLazyQuery();
+  React.useEffect(() => {
+    const h = setTimeout(() => {
+      if (q.trim().length >= 2) {
+        load({ variables: { where: { OR: [{ name: { contains: q, mode: 'insensitive' } }, { id: { equals: q } }] }, take: 20 } });
+      }
+    }, 250);
+    return () => clearTimeout(h);
+  }, [q, load]);
+  const options = (data?.listSuppliers ?? []).map((s: any) => ({ id: s.id, label: s.name || s.id }));
+  const current = options.find((o: any) => o.id === value) || (value ? { id: value, label: value } : null);
+  return (
+    <Autocomplete
+      options={options}
+      value={current}
+      inputValue={q}
+      onInputChange={(_, v) => setQ(v)}
+      onChange={(_, v: any) => onChange(v?.id || '')}
+      renderInput={(params) => <TextField {...params} label={label} size="small" placeholder={placeholder} />}
+      isOptionEqualToValue={(a, b) => a.id === b.id}
+      clearOnBlur={false}
+      freeSolo
+    />
+  );
+}
+
+export function SupplierNameSelect({ value, onChange, label = 'Supplier', placeholder = 'Search supplier name' }: { value: string; onChange: (name: string) => void; label?: string; placeholder?: string }) {
+  const [q, setQ] = React.useState('');
+  const [load, { data }] = useListSuppliersLazyQuery();
+  React.useEffect(() => {
+    const h = setTimeout(() => {
+      if (q.trim().length >= 2) {
+        load({ variables: { where: { name: { contains: q, mode: 'insensitive' } }, take: 20 } });
+      }
+    }, 250);
+    return () => clearTimeout(h);
+  }, [q, load]);
+  const options = (data?.listSuppliers ?? []).map((s: any) => ({ id: s.id, label: s.name || s.id }));
+  const current = value ? { id: options.find((o: any) => o.label === value)?.id || value, label: value } : null;
+  return (
+    <Autocomplete
+      options={options}
+      value={current}
+      inputValue={q}
+      onInputChange={(_, v) => setQ(v)}
+      onChange={(_, v: any) => onChange(v?.label || '')}
+      renderInput={(params) => <TextField {...params} label={label} size="small" placeholder={placeholder} />}
+      isOptionEqualToValue={(a, b) => a.label === b.label}
+      clearOnBlur={false}
+      freeSolo
+    />
+  );
+}

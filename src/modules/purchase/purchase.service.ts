@@ -216,6 +216,24 @@ export class PurchaseService {
     return this.prisma.purchaseRequisition.count({ where: { status: status as any, ...(storeId ? { storeId } : {}) } });
   }
 
+  async requisitionsByStore(storeId: string, status?: string, take?: number, skip?: number) {
+    const where: any = { storeId };
+    if (status) where.status = status as any;
+    return this.prisma.purchaseRequisition.findMany({
+      where,
+      select: { id: true, storeId: true, requestedById: true, status: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+      take: take ?? undefined,
+      skip: skip ?? undefined,
+    });
+  }
+
+  async requisitionsCountByStore(storeId: string, status?: string) {
+    const where: any = { storeId };
+    if (status) where.status = status as any;
+    return this.prisma.purchaseRequisition.count({ where });
+  }
+
   async requisitionSummary(id: string) {
     return this.prisma.purchaseRequisition.findUnique({
       where: { id },

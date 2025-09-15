@@ -1,16 +1,13 @@
-import { gql, useMutation, useQuery } from '@apollo/client';
+import { useCreateInvoiceImportMutation, useInvoiceImportsQuery } from '../generated/graphql';
 import { Button, Card, CardContent, Chip, Stack, Typography } from '@mui/material';
 import React from 'react';
 import TableList from '../shared/TableList';
 import { useNavigate } from 'react-router-dom';
 
-const LIST = gql`query InvoiceImports { invoiceImports { id url supplierName storeId status createdAt } }`;
-const CREATE = gql`mutation CreateInvoiceImport($input: CreateInvoiceImportInput!) { adminCreateInvoiceImport(input: $input) { id } }`;
-
 export default function InvoiceImports() {
   const navigate = useNavigate();
-  const { data, loading, error, refetch } = useQuery(LIST, { fetchPolicy: 'cache-and-network' });
-  const [createImport, { loading: creating }] = useMutation(CREATE);
+  const { data, loading, error, refetch } = useInvoiceImportsQuery({ fetchPolicy: 'cache-and-network' });
+  const [createImport, { loading: creating }] = useCreateInvoiceImportMutation();
   const items = data?.invoiceImports ?? [];
   const hasProcessing = items.some((x: any) => x.status === 'PROCESSING' || x.status === 'PENDING');
   React.useEffect(() => {

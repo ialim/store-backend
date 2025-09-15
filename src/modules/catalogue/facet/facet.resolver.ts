@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, Field, ObjectType, ID, InputType } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Field, ObjectType, ID, InputType, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -134,5 +134,53 @@ export class FacetResolver {
   @Query(() => [FacetAssignment])
   variantFacets(@Args('productVariantId') productVariantId: string) {
     return this.service.listVariantAssignments(productVariantId).then((rows: any[]) => rows.map((r) => ({ facet: r.facet, value: r.value })));
+  }
+
+  @Mutation(() => Int)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  bulkAssignFacetToVariants(
+    @Args({ name: 'variantIds', type: () => [String] }) variantIds: string[],
+    @Args('facetId') facetId: string,
+    @Args('value') value: string,
+  ) {
+    const ids = Array.isArray(variantIds) ? variantIds.filter((x) => !!x) : [];
+    return this.service.bulkAssignToVariants(ids, facetId, value);
+  }
+
+  @Mutation(() => Int)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  bulkAssignFacetToProducts(
+    @Args({ name: 'productIds', type: () => [String] }) productIds: string[],
+    @Args('facetId') facetId: string,
+    @Args('value') value: string,
+  ) {
+    const ids = Array.isArray(productIds) ? productIds.filter((x) => !!x) : [];
+    return this.service.bulkAssignToProducts(ids, facetId, value);
+  }
+
+  @Mutation(() => Int)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  bulkRemoveFacetFromVariants(
+    @Args({ name: 'variantIds', type: () => [String] }) variantIds: string[],
+    @Args('facetId') facetId: string,
+    @Args('value') value: string,
+  ) {
+    const ids = Array.isArray(variantIds) ? variantIds.filter((x) => !!x) : [];
+    return this.service.bulkRemoveFromVariants(ids, facetId, value);
+  }
+
+  @Mutation(() => Int)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  bulkRemoveFacetFromProducts(
+    @Args({ name: 'productIds', type: () => [String] }) productIds: string[],
+    @Args('facetId') facetId: string,
+    @Args('value') value: string,
+  ) {
+    const ids = Array.isArray(productIds) ? productIds.filter((x) => !!x) : [];
+    return this.service.bulkRemoveFromProducts(ids, facetId, value);
   }
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TableSortLabel, TablePagination, TextField, Box, Button, Stack, Select, MenuItem } from '@mui/material';
+import { Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TableSortLabel, TablePagination, TextField, Box, Button, Stack, Select, MenuItem, Checkbox, Typography } from '@mui/material';
 import { useSearchParams } from 'react-router-dom';
 
 type Column<Row> = {
@@ -38,9 +38,13 @@ type Props<Row> = {
   onExport?: (payload: { filtered: Row[]; sorted: Row[]; paged: Row[] }) => void;
   exportLabel?: string;
   exportScopeControl?: boolean; // if true, show All vs Current Page toggle
+  // Selection helpers
+  selectable?: boolean; // show selection checkbox column and header select-all
+  selectedIds?: Array<string | number>; // controlled mode; if omitted, internal state is used
+  onSelectedIdsChange?: (ids: Array<string | number>) => void;
 };
 
-export default function TableList<Row = any>({ columns, rows, loading, error, emptyMessage, onRowClick, getRowKey, size = 'small', paginated = true, rowsPerPageOptions = [10, 25, 50], defaultRowsPerPage = 25, defaultSortKey, defaultSortDir = 'asc', showFilters = false, globalSearch = false, globalSearchPlaceholder = 'Search', globalSearchKeys, enableUrlState = false, urlKey = 'tbl', onRowsProcessed, onExport, exportLabel = 'Export CSV', exportScopeControl = false }: Props<Row>) {
+export default function TableList<Row = any>({ columns, rows, loading, error, emptyMessage, onRowClick, getRowKey, size = 'small', paginated = true, rowsPerPageOptions = [10, 25, 50], defaultRowsPerPage = 25, defaultSortKey, defaultSortDir = 'asc', showFilters = false, globalSearch = false, globalSearchPlaceholder = 'Search', globalSearchKeys, enableUrlState = false, urlKey = 'tbl', onRowsProcessed, onExport, exportLabel = 'Export CSV', exportScopeControl = false, selectable = false, selectedIds, onSelectedIdsChange }: Props<Row>) {
   const key = getRowKey || ((_: any, i: number) => i);
   const clickable = Boolean(onRowClick);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -180,10 +184,52 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredRows, sortedRows, pagedRows]);
 
+  // Selection state (persist across pages/filters within this component)
+  const [internalSelected, setInternalSelected] = React.useState<Set<string | number>>(new Set());
+  const isControlled = Array.isArray(selectedIds);
+  const selectedSet = React.useMemo(() => {
+    return isControlled ? new Set(selectedIds as Array<string | number>) : internalSelected;
+  }, [isControlled, selectedIds, internalSelected]);
+  const keyFn = getRowKey || ((_: any, i: number) => i);
+  const setSelected = (next: Set<string | number>) => {
+    if (isControlled) {
+      onSelectedIdsChange && onSelectedIdsChange(Array.from(next));
+    } else {
+      setInternalSelected(new Set(next));
+      onSelectedIdsChange && onSelectedIdsChange(Array.from(next));
+    }
+  };
+  const toggleOne = (row: any, idx: number, checked: boolean) => {
+    const id = keyFn(row, idx);
+    const next = new Set(selectedSet);
+    if (checked) next.add(id); else next.delete(id);
+    setSelected(next);
+  };
+  const togglePage = (checked: boolean) => {
+    const next = new Set(selectedSet);
+    pagedRows.forEach((row: any, i: number) => {
+      const id = keyFn(row, i + page * rowsPerPage);
+      if (checked) next.add(id); else next.delete(id);
+    });
+    setSelected(next);
+  };
+  const selectAllFiltered = () => {
+    const next = new Set<string | number>(selectedSet);
+    filteredRows.forEach((row: any, i: number) => {
+      const id = keyFn(row, i);
+      next.add(id);
+    });
+    setSelected(next);
+  };
+  const clearSelection = () => setSelected(new Set());
+  const selectedCount = selectedSet.size;
+  const pageAllSelected = pagedRows.length > 0 && pagedRows.every((row: any, i: number) => selectedSet.has(keyFn(row, i + page * rowsPerPage)));
+  const pageSomeSelected = pagedRows.some((row: any, i: number) => selectedSet.has(keyFn(row, i + page * rowsPerPage)));
+
   return (
     <TableContainer component={Paper}>
       {error && <Alert severity="error">{error}</Alert>}
-      {(globalSearch || showFilters || onExport) && (
+      {(globalSearch || showFilters || onExport || selectable) && (
         <Box sx={{ p: 1 }}>
           <Stack direction="row" spacing={1} alignItems="center">
             {globalSearch && (
@@ -230,12 +276,28 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
                 </Button>
               </>
             )}
+            {selectable && (
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
+                <Typography variant="body2">Selected: {selectedCount}</Typography>
+                <Button size="small" onClick={selectAllFiltered} disabled={!filteredRows.length}>Select All Filtered</Button>
+                <Button size="small" onClick={clearSelection} disabled={!selectedCount}>Clear Selection</Button>
+              </Stack>
+            )}
           </Stack>
         </Box>
       )}
       <Table size={size}>
         <TableHead>
           <TableRow>
+            {selectable && (
+              <TableCell padding="checkbox">
+                <Checkbox
+                  indeterminate={!pageAllSelected && pageSomeSelected}
+                  checked={pageAllSelected}
+                  onChange={(e) => togglePage(e.target.checked)}
+                />
+              </TableCell>
+            )}
             {columns.map((c) => {
               const active = orderBy === c.key;
               const canSort = !!c.sort;
@@ -261,6 +323,7 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
           </TableRow>
           {showFilters && (
             <TableRow>
+              {selectable && (<TableCell padding="checkbox" />)}
               {columns.map((c) => (
                 <TableCell key={`f-${c.key}`} align={c.align}>
                   {c.filter ? (
@@ -280,6 +343,7 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
           {loading && rows.length === 0 && (
             [...Array(3)].map((_, i) => (
               <TableRow key={`s-${i}`}>
+                {selectable && (<TableCell padding="checkbox"><Skeleton variant="rectangular" width={18} height={18} /></TableCell>)}
                 {columns.map((c) => (
                   <TableCell key={c.key}><Skeleton variant="text" /></TableCell>
                 ))}
@@ -288,7 +352,7 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
           )}
           {!loading && rows.length === 0 && (
             <TableRow>
-              <TableCell colSpan={columns.length} align="center" sx={{ color: 'text.secondary' }}>
+              <TableCell colSpan={columns.length + (selectable ? 1 : 0)} align="center" sx={{ color: 'text.secondary' }}>
                 {emptyMessage || 'No records'}
               </TableCell>
             </TableRow>
@@ -300,6 +364,14 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
               sx={{ cursor: clickable ? 'pointer' : 'default' }}
               onClick={clickable ? () => onRowClick!(row) : undefined}
             >
+              {selectable && (
+                <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    checked={selectedSet.has(key(row, idx + page * rowsPerPage))}
+                    onChange={(e) => toggleOne(row, idx + page * rowsPerPage, e.target.checked)}
+                  />
+                </TableCell>
+              )}
               {columns.map((c) => (
                 <TableCell key={c.key} align={c.align} onClick={(e) => { /* prevent bubbling from interactive controls */ if ((e.target as HTMLElement).closest('button, input, select, a, textarea')) e.stopPropagation(); }}>
                   {c.render ? c.render(row, idx) : (row as any)[c.key]}

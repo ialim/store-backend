@@ -1,22 +1,10 @@
-import { gql, useQuery } from '@apollo/client';
+import { useUsersQuery } from '../generated/graphql';
 import { Alert, Stack, Typography } from '@mui/material';
 import React from 'react';
 import TableList from '../shared/TableList';
 
-const USERS = gql`
-  query Users($take: Int) {
-    listUsers(take: $take) {
-      id
-      email
-      role { name }
-      customerProfile { fullName }
-      resellerProfile { tier }
-    }
-  }
-`;
-
 export default function Users() {
-  const { data, loading, error, refetch } = useQuery(USERS, { variables: { take: 50 }, fetchPolicy: 'cache-and-network' });
+  const { data, loading, error, refetch } = useUsersQuery({ variables: { take: 50 }, fetchPolicy: 'cache-and-network' as any });
   const list = data?.listUsers ?? [];
   const exportCsv = ({ sorted }: { sorted: any[] }) => {
     const rowsToUse = sorted?.length ? sorted : list;
@@ -29,7 +17,9 @@ export default function Users() {
       u.role?.name || '',
       u.resellerProfile?.tier || '',
     ]);
-    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const csv = [header, ...rows]
+      .map((r: any[]) => r.map((v: any) => JSON.stringify(v ?? '')).join(','))
+      .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

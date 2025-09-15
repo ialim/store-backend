@@ -8,7 +8,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { gql, useMutation } from '@apollo/client';
+import { useLoginMutation } from '../generated/graphql';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/AuthProvider';
 import { notify } from '../shared/notify';
@@ -16,19 +16,12 @@ import { decodeJwt } from '../shared/jwt';
 import { Link as RouterLink } from 'react-router-dom';
 import Link from '@mui/material/Link';
 
-const LOGIN = gql`
-  mutation Login($input: LoginInput!) {
-    login(input: $input) {
-      accessToken
-    }
-  }
-`;
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [login, { loading }] = useMutation(LOGIN);
+  const [login, { loading }] = useLoginMutation();
   const { setAuth, token } = useAuth();
   const navigate = useNavigate();
 

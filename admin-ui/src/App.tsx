@@ -46,6 +46,7 @@ const Variants = lazy(() => import('./pages/Variants'));
 const VariantDetail = lazy(() => import('./pages/VariantDetail'));
 const DevDbTools = lazy(() => import('./pages/DevDbTools'));
 const Facets = lazy(() => import('./pages/Facets'));
+const Collections = lazy(() => import('./pages/Collections'));
 const RequisitionDetail = lazy(() => import('./pages/RequisitionDetail'));
 
 export default function App() {
@@ -158,6 +159,16 @@ export default function App() {
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
                   perms={['MANAGE_PRODUCTS']}
                   element={<Facets />}
+                />
+              }
+            />
+            <Route
+              path="/collections"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  perms={['MANAGE_PRODUCTS']}
+                  element={<Collections />}
                 />
               }
             />

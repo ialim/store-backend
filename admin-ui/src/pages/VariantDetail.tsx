@@ -1,4 +1,4 @@
-import { gql, useMutation, useQuery } from '@apollo/client';
+import { useAssignFacetToVariantMutation, useListFacetsQuery, useRemoveFacetFromVariantMutation, useVariantFacetsQuery, useVariantQuery, useVariantsQuery } from '../generated/graphql';
 import {
   Alert,
   Box,
@@ -20,104 +20,28 @@ import React from 'react';
 import { notify } from '../shared/notify';
 import { useParams } from 'react-router-dom';
 
-const VARIANT = gql`
-  query Variant($id: String!) {
-    findUniqueProductVariant(where: { id: $id }) {
-      id
-      name
-      barcode
-      size
-      concentration
-      packaging
-      price
-      resellerPrice
-      createdAt
-      product {
-        id
-        name
-      }
-    }
-  }
-`;
-
-const VARIANT_FACETS = gql`
-  query ($productVariantId: String!) {
-    variantFacets(productVariantId: $productVariantId) {
-      facet {
-        id
-        name
-        code
-      }
-      value
-    }
-  }
-`;
-
-const FACETS = gql`
-  query {
-    listFacets {
-      id
-      name
-      code
-      values
-      isPrivate
-    }
-  }
-`;
-const ASSIGN_VARIANT_FACET = gql`
-  mutation ($productVariantId: String!, $facetId: String!, $value: String!) {
-    assignFacetToVariant(
-      productVariantId: $productVariantId
-      facetId: $facetId
-      value: $value
-    )
-  }
-`;
-const REMOVE_VARIANT_FACET = gql`
-  mutation ($productVariantId: String!, $facetId: String!, $value: String!) {
-    removeFacetFromVariant(
-      productVariantId: $productVariantId
-      facetId: $facetId
-      value: $value
-    )
-  }
-`;
-
 export default function VariantDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const auth = useAuth();
   const [openCart, setOpenCart] = React.useState(false);
   const [qty, setQty] = React.useState<number>(1);
-  const { data, loading, error } = useQuery(VARIANT, {
-    variables: { id },
-    skip: !id,
-    fetchPolicy: 'cache-and-network',
-  });
+  const { data, loading, error } = useVariantQuery({ variables: { id: id as string }, skip: !id, fetchPolicy: 'cache-and-network' as any });
   const v = data?.findUniqueProductVariant;
-  const { data: facetsData, refetch: refetchFacets } = useQuery(
-    VARIANT_FACETS,
-    {
-      variables: { productVariantId: id as string },
-      skip: !id,
-      fetchPolicy: 'cache-first',
-    },
-  );
+  const { data: facetsData, refetch: refetchFacets } = useVariantFacetsQuery({ variables: { productVariantId: id as string }, skip: !id, fetchPolicy: 'cache-first' as any });
   const facets: Array<{
     facet: { id: string; name: string; code: string };
     value: string;
   }> = facetsData?.variantFacets ?? [];
-  const { data: allFacetsData } = useQuery(FACETS, {
-    fetchPolicy: 'cache-first',
-  });
+  const { data: allFacetsData } = useListFacetsQuery({ fetchPolicy: 'cache-first' as any });
   const allFacets: Array<{
     id: string;
     name: string;
     code: string;
     values?: string[];
   }> = allFacetsData?.listFacets ?? [];
-  const [assignFacet] = useMutation(ASSIGN_VARIANT_FACET);
-  const [removeFacet] = useMutation(REMOVE_VARIANT_FACET);
+  const [assignFacet] = useAssignFacetToVariantMutation();
+  const [removeFacet] = useRemoveFacetFromVariantMutation();
   const [selFacetId, setSelFacetId] = React.useState('');
   const [selValue, setSelValue] = React.useState('');
 
@@ -324,22 +248,6 @@ export default function VariantDetail() {
   );
 }
 
-const RELATED = gql`
-  query RelatedVariants($take: Int, $where: ProductVariantWhereInput) {
-    listProductVariants(take: $take, where: $where) {
-      id
-      name
-      size
-      concentration
-      packaging
-      product {
-        id
-        name
-      }
-    }
-  }
-`;
-
 function RelatedVariants({
   currentId,
   brand,
@@ -375,11 +283,7 @@ function RelatedVariants({
     if (and.length) w.AND = and;
     return Object.keys(w).length ? w : undefined;
   }, [currentId, brand, gender]);
-  const { data, loading, error } = useQuery(RELATED, {
-    variables: { take: 8, where },
-    skip: !where,
-    fetchPolicy: 'cache-and-network',
-  });
+  const { data, loading, error } = useVariantsQuery({ variables: { take: 8, where }, skip: !where, fetchPolicy: 'cache-and-network' as any });
   const list: Array<{
     id: string;
     name?: string;

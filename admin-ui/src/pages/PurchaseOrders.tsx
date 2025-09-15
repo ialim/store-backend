@@ -1,58 +1,24 @@
 import React from 'react';
-import { gql, useLazyQuery, useMutation, useQuery } from '@apollo/client';
+import { usePurchaseOrdersQuery, usePurchaseOrdersByStatusLazyQuery, usePurchaseOrdersByPhaseLazyQuery, usePurchaseOrdersCountQuery, usePurchaseOrdersSearchLazyQuery, usePurchaseOrdersSearchCountLazyQuery, useUpdatePoStatusMutation } from '../generated/graphql';
 import { Alert, Button, Chip, FormControl, InputLabel, MenuItem, Select, Skeleton, Stack, TextField, Typography } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import TableList from '../shared/TableList';
 
-const POS = gql`
-  query PurchaseOrders($take: Int, $skip: Int) {
-    purchaseOrders(take: $take, skip: $skip) { id invoiceNumber status phase createdAt supplier { id name } }
-  }
-`;
-const POS_BY_STATUS = gql`
-  query PurchaseOrdersByStatus($status: String!, $take: Int, $skip: Int) {
-    purchaseOrdersByStatus(status: $status, take: $take, skip: $skip) { id invoiceNumber status phase createdAt supplier { id name } }
-  }
-`;
-const POS_BY_PHASE = gql`
-  query PurchaseOrdersByPhase($phase: String!, $take: Int, $skip: Int) {
-    purchaseOrdersByPhase(phase: $phase, take: $take, skip: $skip) { id invoiceNumber status phase createdAt supplier { id name } }
-  }
-`;
-const POS_SEARCH = gql`
-  query PurchaseOrdersSearch($q: String!, $take: Int, $skip: Int) {
-    purchaseOrdersSearch(q: $q, take: $take, skip: $skip) { id invoiceNumber status phase createdAt supplier { id name } }
-  }
-`;
-
-const POS_COUNT = gql`
-  query PurchaseOrdersCount($status: String, $phase: String) { purchaseOrdersCount(status: $status, phase: $phase) }
-`;
-
-const POS_SEARCH_COUNT = gql`
-  query PurchaseOrdersSearchCount($q: String!) { purchaseOrdersSearchCount(q: $q) }
-`;
-
-const UPDATE_STATUS = gql`
-  mutation UpdatePOStatus($input: UpdatePurchaseOrderStatusInput!) {
-    updatePurchaseOrderStatus(input: $input) { id status phase }
-  }
-`;
 
 export default function PurchaseOrders() {
   const [take, setTake] = React.useState(25);
   const [page, setPage] = React.useState(1);
   const skip = Math.max(0, (page - 1) * take);
-  const { data, loading, error, refetch } = useQuery(POS, { variables: { take, skip }, fetchPolicy: 'cache-and-network' });
-  const [updateStatus] = useMutation(UPDATE_STATUS);
+  const { data, loading, error, refetch } = usePurchaseOrdersQuery({ variables: { take, skip }, fetchPolicy: 'cache-and-network' as any });
+  const [updateStatus] = useUpdatePoStatusMutation();
   const [status, setStatus] = React.useState<string>('');
   const [phase, setPhase] = React.useState<string>('');
   const [query, setQuery] = React.useState<string>('');
-  const [loadByStatus, byStatus] = useLazyQuery(POS_BY_STATUS);
-  const [loadByPhase, byPhase] = useLazyQuery(POS_BY_PHASE);
-  const { data: countData, refetch: refetchCount } = useQuery(POS_COUNT, { variables: { status: status || null, phase: phase || null }, fetchPolicy: 'cache-and-network' });
-  const [loadSearch, bySearch] = useLazyQuery(POS_SEARCH);
-  const [loadSearchCount, bySearchCount] = useLazyQuery(POS_SEARCH_COUNT);
+  const [loadByStatus, byStatus] = usePurchaseOrdersByStatusLazyQuery();
+  const [loadByPhase, byPhase] = usePurchaseOrdersByPhaseLazyQuery();
+  const { data: countData, refetch: refetchCount } = usePurchaseOrdersCountQuery({ variables: { status: status || null, phase: phase || null }, fetchPolicy: 'cache-and-network' as any });
+  const [loadSearch, bySearch] = usePurchaseOrdersSearchLazyQuery();
+  const [loadSearchCount, bySearchCount] = usePurchaseOrdersSearchCountLazyQuery();
   const [mode, setMode] = React.useState<'all'|'status'|'phase'|'search'>('all');
   const list = (bySearch.data?.purchaseOrdersSearch ?? byStatus.data?.purchaseOrdersByStatus ?? byPhase.data?.purchaseOrdersByPhase ?? data?.purchaseOrders) ?? [];
   const baseTotal = countData?.purchaseOrdersCount ?? 0;
@@ -74,7 +40,7 @@ export default function PurchaseOrders() {
     ]);
     const header = ['id','invoiceNumber','supplier','status','phase','createdAt'];
     const csv = [header, ...rows]
-      .map((r) => r.map((x) => JSON.stringify(x ?? '')).join(','))
+      .map((r: any[]) => r.map((x: any) => JSON.stringify(x ?? '')).join(','))
       .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const fname = `purchase-orders-${mode}-${skip}-${skip + list.length}.csv`;

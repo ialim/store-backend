@@ -3,7 +3,7 @@ import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { Supplier } from '../../shared/prismagraphql/supplier';
+import { Supplier, FindManySupplierArgs } from '../../shared/prismagraphql/supplier';
 import { PurchaseOrder } from '../../shared/prismagraphql/purchase-order';
 import { SupplierPayment } from '../../shared/prismagraphql/supplier-payment';
 import { PurchaseService } from './purchase.service';
@@ -58,6 +58,13 @@ export class PurchaseResolver {
   @UseGuards(GqlAuthGuard)
   suppliers() {
     return this.purchaseService.suppliers();
+  }
+
+  @Query(() => [Supplier])
+  @UseGuards(GqlAuthGuard)
+  listSuppliers(@Args() args: FindManySupplierArgs) {
+    // Mirror of listUsers/listStores pattern for server-side search
+    return (this.purchaseService as any).prisma.supplier.findMany(args as any);
   }
 
   @Query(() => Supplier)
@@ -216,6 +223,28 @@ export class PurchaseResolver {
     @Args('storeId', { nullable: true }) storeId?: string,
   ) {
     return this.purchaseService.requisitionsCountByStatus(status, storeId || undefined);
+  }
+
+  @Query(() => [RequisitionSummary])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  requisitionsByStore(
+    @Args('storeId') storeId: string,
+    @Args('status', { nullable: true }) status?: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    return this.purchaseService.requisitionsByStore(storeId, status, take, skip);
+  }
+
+  @Query(() => Int)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  requisitionsCountByStore(
+    @Args('storeId') storeId: string,
+    @Args('status', { nullable: true }) status?: string,
+  ) {
+    return this.purchaseService.requisitionsCountByStore(storeId, status);
   }
 
   @Query(() => [SupplierQuoteSummary])

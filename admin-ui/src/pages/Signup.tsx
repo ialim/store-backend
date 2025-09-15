@@ -1,25 +1,18 @@
 import { useEffect, useState } from 'react';
-import { gql, useMutation } from '@apollo/client';
+import { useSignupCustomerMutation } from '../generated/graphql';
 import { Alert, Box, Button, Link, Paper, Stack, TextField, Typography } from '@mui/material';
 import { useAuth } from '../shared/AuthProvider';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { decodeJwt } from '../shared/jwt';
 import { notify } from '../shared/notify';
 
-const SIGNUP = gql`
-  mutation SignupCustomer($input: CreateUserInput!) {
-    signupCustomer(input: $input) {
-      accessToken
-    }
-  }
-`;
 
 export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [signup, { loading }] = useMutation(SIGNUP);
+  const [signup, { loading }] = useSignupCustomerMutation();
   const { token, setAuth } = useAuth();
   const navigate = useNavigate();
 
@@ -78,4 +71,3 @@ export default function Signup() {
     </Box>
   );
 }
-

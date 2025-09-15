@@ -1,4 +1,22 @@
-import { gql, useMutation, useQuery } from '@apollo/client';
+import {
+  useAssignFacetToProductMutation,
+  useRemoveFacetFromProductMutation,
+  useDeleteProductVariantMutation,
+  useListFacetsQuery,
+  useProductFacetsQuery,
+  useProductQuery,
+  useCreateProductVariantMutation,
+  useUpdateProductMutation,
+  useUpdateProductVariantMutation,
+  useVariantsQuery,
+  useStoresQuery,
+  useStockTotalsByProductQuery,
+  useStockTotalsByProductStoreQuery,
+  useVariantFacetsQuery,
+  useAssignFacetToVariantMutation,
+  useRemoveFacetFromVariantMutation,
+  useStockByVariantQuery,
+} from '../generated/graphql';
 import { Alert, Box, Button, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, CircularProgress, Chip, Autocomplete } from '@mui/material';
 import React from 'react';
 import { useParams } from 'react-router-dom';
@@ -6,122 +24,29 @@ import TableList from '../shared/TableList';
 import { formatMoney } from '../shared/format';
 import { notify } from '../shared/notify';
 
-const GET = gql`
-  query Product($id: String!) {
-    findUniqueProduct(where: { id: $id }) {
-      id
-      name
-      description
-      barcode
-      createdAt
-      
-      variants { id size concentration packaging barcode price resellerPrice createdAt stockItems { quantity reserved store { id name } } }
-    }
-  }
-`;
-
-const FACETS = gql`query { listFacets { id name code values isPrivate } }`;
-const PRODUCT_FACETS = gql`query($productId: String!) { productFacets(productId: $productId) { facet { id name code values isPrivate } value } }`;
-const ASSIGN_PRODUCT_FACET = gql`mutation($productId: String!, $facetId: String!, $value: String!) { assignFacetToProduct(productId: $productId, facetId: $facetId, value: $value) }`;
-const REMOVE_PRODUCT_FACET = gql`mutation($productId: String!, $facetId: String!, $value: String!) { removeFacetFromProduct(productId: $productId, facetId: $facetId, value: $value) }`;
-
-const CREATE_VARIANT = gql`
-  mutation CreateVariant($data: ProductVariantCreateInput!) {
-    createProductVariant(data: $data) { id }
-  }
-`;
-
-const UPDATE_PRODUCT = gql`
-  mutation UpdateProduct($id: String!, $data: ProductUpdateInput!) {
-    updateProduct(where: { id: $id }, data: $data) { id }
-  }
-`;
-
-const UPDATE_VARIANT = gql`
-  mutation UpdateVariant($id: String!, $data: ProductVariantUpdateInput!) {
-    updateProductVariant(where: { id: $id }, data: $data) { id }
-  }
-`;
-
-const DELETE_VARIANT = gql`
-  mutation DeleteVariant($id: String!) { deleteProductVariant(where: { id: $id }) { id } }
-`;
-
-
-const VARIANTS = gql`
-  query VariantsByProduct($id: String!) {
-    listProductVariants(where: { productId: { equals: $id } }) {
-      id
-      size
-      concentration
-      packaging
-      barcode
-      price
-      resellerPrice
-      createdAt
-      stockItems { quantity reserved store { id name } }
-    }
-  }
-`;
-
-const STOCK_TOTALS = gql`
-  query StockTotalsByProduct($productId: String!) {
-    stockTotalsByProduct(productId: $productId) {
-      variantId
-      onHand
-      reserved
-      available
-    }
-  }
-`;
-
-const STOCK_BY_VARIANT = gql`
-  query StockByVariant($productVariantId: ID!) {
-    stock(input: { productVariantId: $productVariantId }) {
-      quantity
-      reserved
-      store { id name }
-    }
-  }
-`;
-
-const STORES = gql`
-  query ListStoresForInventory { listStores(take: 200) { id name } }
-`;
-const STOCK_TOTALS_BY_STORE = gql`
-  query StockTotalsByProductStore($productId: String!, $storeId: String!) {
-    stockTotalsByProductStore(productId: $productId, storeId: $storeId) {
-      variantId
-      onHand
-      reserved
-      available
-    }
-  }
-`;
-
 export default function ProductDetail() {
   const { id } = useParams();
-  const { data, loading, error, refetch } = useQuery(GET, { variables: { id }, skip: !id, fetchPolicy: 'cache-and-network' });
-  const [createVariant, { loading: creating }] = useMutation(CREATE_VARIANT);
+  const { data, loading, error, refetch } = useProductQuery({ variables: { id: id as string }, skip: !id, fetchPolicy: 'cache-and-network' as any });
+  const [createVariant, { loading: creating }] = useCreateProductVariantMutation();
   const p = data?.findUniqueProduct;
   // Categories removed; facets will be used for classification going forward.
-  const { data: vData, loading: vLoading, error: vError, refetch: refetchVariants } = useQuery(VARIANTS, { variables: { id }, skip: !id, fetchPolicy: 'cache-and-network' });
+  const { data: vData, loading: vLoading, error: vError, refetch: refetchVariants } = useVariantsQuery({ variables: { where: { productId: { equals: id } } }, skip: !id, fetchPolicy: 'cache-and-network' as any });
   const [storeTotalsFilter, setStoreTotalsFilter] = React.useState<string>('');
-  const { data: storesData } = useQuery(STORES, { fetchPolicy: 'cache-first' });
+  const { data: storesData } = useStoresQuery({ variables: { take: 200 }, fetchPolicy: 'cache-first' as any });
   const storeList = storesData?.listStores ?? [];
-  const { data: totalsDataAll, loading: loadingTotalsAll } = useQuery(STOCK_TOTALS, { variables: { productId: id! }, skip: !id || !!storeTotalsFilter, fetchPolicy: 'network-only' });
-  const { data: totalsDataStore, loading: loadingTotalsStore } = useQuery(STOCK_TOTALS_BY_STORE, { variables: { productId: id!, storeId: storeTotalsFilter }, skip: !id || !storeTotalsFilter, fetchPolicy: 'network-only' });
-  const [updateProduct] = useMutation(UPDATE_PRODUCT);
-  const [updateVariant] = useMutation(UPDATE_VARIANT);
-  const [deleteVariant] = useMutation(DELETE_VARIANT);
+  const { data: totalsDataAll, loading: loadingTotalsAll } = useStockTotalsByProductQuery({ variables: { productId: id! }, skip: !id || !!storeTotalsFilter, fetchPolicy: 'network-only' as any });
+  const { data: totalsDataStore, loading: loadingTotalsStore } = useStockTotalsByProductStoreQuery({ variables: { productId: id!, storeId: storeTotalsFilter }, skip: !id || !storeTotalsFilter, fetchPolicy: 'network-only' as any });
+  const [updateProduct] = useUpdateProductMutation();
+  const [updateVariant] = useUpdateProductVariantMutation();
+  const [deleteVariant] = useDeleteProductVariantMutation();
   // Facets (product)
-  const { data: facetsData } = useQuery(FACETS, { fetchPolicy: 'cache-first' });
+  const { data: facetsData } = useListFacetsQuery({ fetchPolicy: 'cache-first' as any });
   const allFacets: Array<{ id: string; name: string; code: string; values?: string[]; isPrivate?: boolean }>
     = facetsData?.listFacets ?? [];
-  const { data: prodFacetsData, refetch: refetchProdFacets } = useQuery(PRODUCT_FACETS, { variables: { productId: id as string }, skip: !id, fetchPolicy: 'cache-and-network' });
+  const { data: prodFacetsData, refetch: refetchProdFacets } = useProductFacetsQuery({ variables: { productId: id as string }, skip: !id, fetchPolicy: 'cache-and-network' as any });
   const productAssignments: Array<{ facet: any; value: string }> = prodFacetsData?.productFacets ?? [];
-  const [assignProductFacet] = useMutation(ASSIGN_PRODUCT_FACET);
-  const [removeProductFacet] = useMutation(REMOVE_PRODUCT_FACET);
+  const [assignProductFacet] = useAssignFacetToProductMutation();
+  const [removeProductFacet] = useRemoveFacetFromProductMutation();
   const [selFacetId, setSelFacetId] = React.useState('');
   const [selFacetValue, setSelFacetValue] = React.useState('');
 
@@ -160,7 +85,9 @@ export default function ProductDetail() {
     });
     if (!rows.length) return;
     const header = ['id','size','concentration','packaging','barcode','price','resellerPrice','onHand','reserved','available','createdAt'];
-    const csv = [header, ...rows].map((r) => r.map((x) => JSON.stringify(x ?? '')).join(',')).join('\n');
+    const csv = [header, ...rows]
+      .map((r: any[]) => r.map((x: any) => JSON.stringify(x ?? '')).join(','))
+      .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `product-${p.id}-variants.csv`; a.click(); URL.revokeObjectURL(url);
@@ -329,9 +256,7 @@ export default function ProductDetail() {
 
 type Variant = { id: string; name?: string | null; size: string; concentration: string; packaging: string; barcode?: string | null; price: number; resellerPrice: number };
 
-const VARIANT_FACETS = gql`query($productVariantId: String!) { variantFacets(productVariantId: $productVariantId) { facet { id name code values isPrivate } value } }`;
-const ASSIGN_VARIANT_FACET = gql`mutation($productVariantId: String!, $facetId: String!, $value: String!) { assignFacetToVariant(productVariantId: $productVariantId, facetId: $facetId, value: $value) }`;
-const REMOVE_VARIANT_FACET = gql`mutation($productVariantId: String!, $facetId: String!, $value: String!) { removeFacetFromVariant(productVariantId: $productVariantId, facetId: $facetId, value: $value) }`;
+// variant facet helpers
 
 function VariantFacetsButton({ variantId }: { variantId: string }) {
   const [open, setOpen] = React.useState(false);
@@ -344,13 +269,13 @@ function VariantFacetsButton({ variantId }: { variantId: string }) {
 }
 
 function VariantFacetsDialog({ variantId, onClose }: { variantId: string; onClose: () => void }) {
-  const { data: facetsData } = useQuery(FACETS, { fetchPolicy: 'cache-first' });
+  const { data: facetsData } = useListFacetsQuery({ fetchPolicy: 'cache-first' as any });
   const allFacets: Array<{ id: string; name: string; code: string; values?: string[]; isPrivate?: boolean }>
     = facetsData?.listFacets ?? [];
-  const { data, refetch } = useQuery(VARIANT_FACETS, { variables: { productVariantId: variantId }, fetchPolicy: 'cache-and-network' });
+  const { data, refetch } = useVariantFacetsQuery({ variables: { productVariantId: variantId }, fetchPolicy: 'cache-and-network' as any });
   const assigns: Array<{ facet: any; value: string }> = data?.variantFacets ?? [];
-  const [assign] = useMutation(ASSIGN_VARIANT_FACET);
-  const [remove] = useMutation(REMOVE_VARIANT_FACET);
+  const [assign] = useAssignFacetToVariantMutation();
+  const [remove] = useRemoveFacetFromVariantMutation();
   const [selFacetId, setSelFacetId] = React.useState('');
   const [selValue, setSelValue] = React.useState('');
   return (
@@ -468,11 +393,7 @@ function VariantDialog({ variant, onClose, onSave }: { variant: Variant | null; 
 
 function InventoryDialog({ variant, onClose }: { variant: any | null; onClose: () => void }) {
   const open = !!variant;
-  const { data, loading, error } = useQuery(STOCK_BY_VARIANT, {
-    variables: { productVariantId: variant?.id as string },
-    skip: !variant?.id,
-    fetchPolicy: 'network-only',
-  });
+  const { data, loading, error } = useStockByVariantQuery({ variables: { productVariantId: variant?.id as string }, skip: !variant?.id, fetchPolicy: 'network-only' as any });
   const items: Array<{ quantity: number; reserved: number; store?: { id: string; name: string } }>
     = (data?.stock || []);
   const stores = React.useMemo(() => {

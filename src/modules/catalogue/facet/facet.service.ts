@@ -52,4 +52,52 @@ export class FacetService {
   async listVariantAssignments(productVariantId: string) {
     return (this.prisma as any).variantFacetValue.findMany({ where: { productVariantId }, include: { facet: true } });
   }
+
+  async bulkAssignToVariants(variantIds: string[], facetId: string, value: string) {
+    let count = 0;
+    for (const id of variantIds) {
+      await (this.prisma as any).variantFacetValue.upsert({
+        where: { variant_facet_value_unique: { productVariantId: id, facetId, value } },
+        update: {},
+        create: { productVariantId: id, facetId, value },
+      });
+      count++;
+    }
+    return count;
+  }
+
+  async bulkAssignToProducts(productIds: string[], facetId: string, value: string) {
+    let count = 0;
+    for (const id of productIds) {
+      await (this.prisma as any).productFacetValue.upsert({
+        where: { product_facet_value_unique: { productId: id, facetId, value } },
+        update: {},
+        create: { productId: id, facetId, value },
+      });
+      count++;
+    }
+    return count;
+  }
+
+  async bulkRemoveFromVariants(variantIds: string[], facetId: string, value: string) {
+    let removed = 0;
+    for (const id of variantIds) {
+      const res = await (this.prisma as any).variantFacetValue.deleteMany({
+        where: { productVariantId: id, facetId, value },
+      });
+      removed += res.count || 0;
+    }
+    return removed;
+  }
+
+  async bulkRemoveFromProducts(productIds: string[], facetId: string, value: string) {
+    let removed = 0;
+    for (const id of productIds) {
+      const res = await (this.prisma as any).productFacetValue.deleteMany({
+        where: { productId: id, facetId, value },
+      });
+      removed += res.count || 0;
+    }
+    return removed;
+  }
 }

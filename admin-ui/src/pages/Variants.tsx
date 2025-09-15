@@ -1,53 +1,11 @@
-import { gql, useMutation, useQuery } from '@apollo/client';
+import { useAssignFacetToVariantMutation, useListFacetsQuery, useProductVariantsCountQuery, useVariantFacetsQuery, useRemoveFacetFromVariantMutation, useBulkAssignFacetToVariantsMutation, useBulkRemoveFacetFromVariantsMutation } from '../generated/graphql';
+import { useVariantsQuery } from '../generated/graphql';
 import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/AuthProvider';
 import React from 'react';
 import TableList from '../shared/TableList';
 
-const VARIANTS = gql`
-  query Variants($take: Int, $skip: Int, $where: ProductVariantWhereInput) {
-    listProductVariants(take: $take, skip: $skip, where: $where) {
-      id
-      name
-      size
-      concentration
-      packaging
-      barcode
-      price
-      resellerPrice
-      createdAt
-      product { id name }
-    }
-  }
-`;
-
-const FACETS = gql`query { listFacets { id name code values isPrivate } }`;
-
-const VARIANT_FACETS = gql`
-  query($productVariantId: String!) {
-    variantFacets(productVariantId: $productVariantId) {
-      facet { id name code values isPrivate }
-      value
-    }
-  }
-`;
-
-const ASSIGN_VARIANT_FACET = gql`
-  mutation($productVariantId: String!, $facetId: String!, $value: String!) {
-    assignFacetToVariant(productVariantId: $productVariantId, facetId: $facetId, value: $value)
-  }
-`;
-
-const REMOVE_VARIANT_FACET = gql`
-  mutation($productVariantId: String!, $facetId: String!, $value: String!) {
-    removeFacetFromVariant(productVariantId: $productVariantId, facetId: $facetId, value: $value)
-  }
-`;
-
-const VARIANTS_COUNT = gql`
-  query VariantsCount($where: ProductVariantWhereInput) { productVariantsCount(where: $where) }
-`;
 
 export default function Variants() {
   const auth = useAuth();
@@ -57,7 +15,7 @@ export default function Variants() {
   const [page, setPage] = React.useState(1);
   const [q, setQ] = React.useState('');
   // Facet filters
-  const { data: facetsData } = useQuery(FACETS, { fetchPolicy: 'cache-first' });
+  const { data: facetsData } = useListFacetsQuery({ fetchPolicy: 'cache-first' as any });
   const allFacets: Array<{ id: string; name: string; code: string; values?: string[]; isPrivate?: boolean }>
     = facetsData?.listFacets ?? [];
   const [filterFacetId, setFilterFacetId] = React.useState('');
@@ -100,8 +58,8 @@ export default function Variants() {
     return Object.keys(w).length ? w : undefined;
   }, [q, filterFacetId, filterFacetValue, allFacets, gender, brand]);
   const skip = Math.max(0, (page - 1) * take);
-  const { data, loading, error, refetch } = useQuery(VARIANTS, { variables: { take, skip, where }, fetchPolicy: 'cache-and-network' });
-  const { data: countData, refetch: refetchVariantCount } = useQuery(VARIANTS_COUNT, { variables: { where }, fetchPolicy: 'cache-and-network' });
+  const { data, loading, error, refetch } = useVariantsQuery({ variables: { take, skip, where }, fetchPolicy: 'cache-and-network' as any });
+  const { data: countData, refetch: refetchVariantCount } = useProductVariantsCountQuery({ variables: { where }, fetchPolicy: 'cache-and-network' as any });
   const list = data?.listProductVariants ?? [];
   const total = countData?.productVariantsCount ?? 0;
   const canPrev = page > 1;
@@ -118,6 +76,16 @@ export default function Variants() {
     return () => clearTimeout(h);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, filterFacetId, filterFacetValue, gender, brand, take]);
+
+  // Selection for bulk operations via TableList API
+  const [selectedIds, setSelectedIds] = React.useState<Array<string | number>>([]);
+  const clearSelection = () => setSelectedIds([]);
+
+  // Bulk facet assign/remove
+  const [bulkFacetId, setBulkFacetId] = React.useState('');
+  const [bulkValue, setBulkValue] = React.useState('');
+  const [bulkAssign, { loading: bulkAssignLoading }] = useBulkAssignFacetToVariantsMutation();
+  const [bulkRemove, { loading: bulkRemoveLoading }] = useBulkRemoveFacetFromVariantsMutation();
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Variants</Typography>
@@ -171,9 +139,38 @@ export default function Variants() {
           <Typography variant="body2" sx={{ ml: 1, minWidth: 110, textAlign: 'right' }}>{total ? `${rangeStart}–${rangeEnd} of ${total}` : '0 of 0'}</Typography>
         </Stack>
       </Stack>
+      {selectedIds.length > 0 && (
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
+          <Select size="small" value={bulkFacetId} onChange={(e) => { setBulkFacetId(e.target.value); setBulkValue(''); }} displayEmpty sx={{ minWidth: 220 }}>
+            <MenuItem value=""><em>Select facet…</em></MenuItem>
+            {allFacets.map((f) => (<MenuItem key={f.id} value={f.id}>{f.name} ({f.code})</MenuItem>))}
+          </Select>
+          {(() => {
+            const f = allFacets.find((x) => x.id === bulkFacetId);
+            if (f && Array.isArray(f.values) && f.values.length) {
+              return (
+                <Select size="small" value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} displayEmpty sx={{ minWidth: 180 }}>
+                  <MenuItem value=""><em>Value…</em></MenuItem>
+                  {(f.values || []).map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
+                </Select>
+              );
+            }
+            return (<TextField size="small" label="Value" value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} />);
+          })()}
+          <Button size="small" variant="contained" disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkAssignLoading} onClick={async () => {
+            await bulkAssign({ variables: { variantIds: selectedIds as string[], facetId: bulkFacetId, value: bulkValue } });
+            clearSelection();
+          }}>Assign to selected</Button>
+          <Button size="small" color="error" variant="outlined" disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkRemoveLoading} onClick={async () => {
+            await bulkRemove({ variables: { variantIds: selectedIds as string[], facetId: bulkFacetId, value: bulkValue } });
+            clearSelection();
+          }}>Remove from selected</Button>
+          <Button size="small" onClick={clearSelection}>Clear selection</Button>
+        </Stack>
+      )}
       <TableList
         columns={[
-          { key: 'name', label: 'Name', render: (v: any) => v.name || `${v.size} ${v.concentration} ${v.packaging}`.trim(), sort: true, accessor: (v: any) => v.name || '' },
+          { key: 'name', label: 'Name', render: (v: any) => v.name || `${v.size} ${v.concentration} ${v.packaging}`.trim(), sort: true, filter: true, accessor: (v: any) => (v.name || `${v.size || ''} ${v.concentration || ''} ${v.packaging || ''}`).trim() },
           { key: 'product', label: 'Product', render: (v: any) => v.product?.name || '—', sort: true, accessor: (v: any) => v.product?.name || '', filter: true },
           { key: 'tags', label: 'Brand/Gender', render: (v: any) => (<BrandGenderChips variantId={v.id} />) },
           { key: 'barcode', label: 'Barcode', render: (v: any) => v.barcode || '—', sort: true, filter: true },
@@ -192,13 +189,16 @@ export default function Variants() {
         enableUrlState
         urlKey="variants"
         onRowClick={(v: any) => navigate(`/variants/${v.id}`)}
+        selectable
+        selectedIds={selectedIds}
+        onSelectedIdsChange={(ids) => setSelectedIds(ids)}
       />
     </Stack>
   );
 }
 
 function VariantFacetsChips({ variantId }: { variantId: string }) {
-  const { data, loading } = useQuery(VARIANT_FACETS, { variables: { productVariantId: variantId }, fetchPolicy: 'cache-first' });
+  const { data, loading } = useVariantFacetsQuery({ variables: { productVariantId: variantId }, fetchPolicy: 'cache-first' as any });
   const assigns: Array<{ facet: any; value: string }> = data?.variantFacets ?? [];
   if (loading) return null;
   if (!assigns.length) return <>—</>;
@@ -220,13 +220,13 @@ function VariantFacetsButton({ variantId }: { variantId: string }) {
 }
 
 function VariantFacetsDialog({ variantId, onClose }: { variantId: string; onClose: () => void }) {
-  const { data: facetsData } = useQuery(FACETS, { fetchPolicy: 'cache-first' });
+  const { data: facetsData } = useListFacetsQuery({ fetchPolicy: 'cache-first' as any });
   const allFacets: Array<{ id: string; name: string; code: string; values?: string[]; isPrivate?: boolean }>
     = facetsData?.listFacets ?? [];
-  const { data, refetch } = useQuery(VARIANT_FACETS, { variables: { productVariantId: variantId }, fetchPolicy: 'cache-and-network' });
+  const { data, refetch } = useVariantFacetsQuery({ variables: { productVariantId: variantId }, fetchPolicy: 'cache-and-network' as any });
   const assigns: Array<{ facet: any; value: string }> = data?.variantFacets ?? [];
-  const [assign] = useMutation(ASSIGN_VARIANT_FACET);
-  const [remove] = useMutation(REMOVE_VARIANT_FACET);
+  const [assign] = useAssignFacetToVariantMutation();
+  const [remove] = useRemoveFacetFromVariantMutation();
   const [selFacetId, setSelFacetId] = React.useState('');
   const [selValue, setSelValue] = React.useState('');
   return (
@@ -273,7 +273,7 @@ function VariantFacetsDialog({ variantId, onClose }: { variantId: string; onClos
 }
 
 function BrandGenderChips({ variantId }: { variantId: string }) {
-  const { data, loading } = useQuery(VARIANT_FACETS, { variables: { productVariantId: variantId }, fetchPolicy: 'cache-first' });
+  const { data, loading } = useVariantFacetsQuery({ variables: { productVariantId: variantId }, fetchPolicy: 'cache-first' as any });
   if (loading) return null;
   const assigns: Array<{ facet: any; value: string }> = data?.variantFacets ?? [];
   const lower = assigns.map((a) => ({ code: String(a.facet?.code || '').toLowerCase(), value: a.value }));

@@ -1,4 +1,4 @@
-import { gql, useLazyQuery, useMutation, useQuery } from '@apollo/client';
+import { usePurchaseOrderQuery, useReceiveStockBatchMutation } from '../generated/graphql';
 import {
   Alert,
   Box,
@@ -22,60 +22,10 @@ import { StoreSelect, UserSelect } from '../shared/IdSelects';
 import { notify } from '../shared/notify';
 import { formatMoney } from '../shared/format';
 
-const PO = gql`
-  query PurchaseOrder($id: String!) {
-    purchaseOrder(id: $id) {
-      id
-      supplierId
-      status
-      phase
-      totalAmount
-      createdAt
-      supplier {
-        id
-        name
-      }
-      items {
-        productVariantId
-        quantity
-        unitCost
-        productVariant {
-          id
-          name
-          barcode
-          size
-          concentration
-          packaging
-          product {
-            name
-          }
-        }
-      }
-    }
-    purchaseOrderReceiptProgress(purchaseOrderId: $id) {
-      productVariantId
-      orderedQty
-      receivedQty
-    }
-  }
-`;
-
-const RECEIVE = gql`
-  mutation ReceiveStock($input: ReceiveStockBatchInput!) {
-    receiveStockBatch(input: $input) {
-      id
-      storeId
-    }
-  }
-`;
-
 export default function PurchaseOrderDetail() {
   const { id } = useParams();
-  const { data, loading, error, refetch } = useQuery(PO, {
-    variables: { id },
-    fetchPolicy: 'network-only',
-  });
-  const [receive, { loading: receiving }] = useMutation(RECEIVE);
+  const { data, loading, error, refetch } = usePurchaseOrderQuery({ variables: { id: id as string }, fetchPolicy: 'network-only' as any });
+  const [receive, { loading: receiving }] = useReceiveStockBatchMutation();
 
   const [storeId, setStoreId] = React.useState('');
   const [receivedById, setReceivedById] = React.useState('');

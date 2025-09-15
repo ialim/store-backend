@@ -1,18 +1,9 @@
 import { useState } from 'react';
-import { gql, useMutation } from '@apollo/client';
+import { useApplyResellerMutation } from '../generated/graphql';
 import { Alert, Box, Button, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { notify } from '../shared/notify';
 
-const APPLY = gql`
-  mutation ApplyReseller($input: ApplyResellerInput!) {
-    applyReseller(input: $input) {
-      userId
-      profileStatus
-      tier
-    }
-  }
-`;
 
 const TIERS = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'];
 
@@ -23,7 +14,7 @@ export default function ApplyReseller() {
   const [tier, setTier] = useState('BRONZE');
   const [creditLimit, setCreditLimit] = useState<number>(100000);
   const [error, setError] = useState<string | null>(null);
-  const [apply, { loading }] = useMutation(APPLY);
+  const [apply, { loading }] = useApplyResellerMutation();
   const navigate = useNavigate();
 
   const submit = async (e: React.FormEvent) => {

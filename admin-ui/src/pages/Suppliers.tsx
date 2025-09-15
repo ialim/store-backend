@@ -1,16 +1,10 @@
-import { gql, useQuery } from '@apollo/client';
+import { useSuppliersQuery } from '../generated/graphql';
 import { Alert, Stack, Typography } from '@mui/material';
 import { useMemo } from 'react';
 import TableList from '../shared/TableList';
 
-const SUPPLIERS = gql`
-  query Suppliers {
-    suppliers { id name contactInfo creditLimit currentBalance isFrequent }
-  }
-`;
-
 export default function Suppliers() {
-  const { data, loading, error, refetch } = useQuery(SUPPLIERS, { fetchPolicy: 'cache-and-network' });
+  const { data, loading, error, refetch } = useSuppliersQuery({ fetchPolicy: 'cache-and-network' as any });
   const list = data?.suppliers ?? [];
   return (
     <Stack spacing={2}>

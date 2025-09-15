@@ -7,6 +7,8 @@ import { ProductVariantService } from './variant/product-variant.service';
 import { ProductVariantsResolver } from './variant/product-variant.resolver';
 import { FacetResolver } from './facet/facet.resolver';
 import { FacetService } from './facet/facet.service';
+import { CollectionResolver } from './collection/collection.resolver';
+import { CollectionService } from './collection/collection.service';
 
 @Module({
   providers: [
@@ -18,6 +20,8 @@ import { FacetService } from './facet/facet.service';
     CatalogueDiagnosticsResolver,
     FacetResolver,
     FacetService,
+    CollectionResolver,
+    CollectionService,
   ],
   exports: [ProductVariantService],
 })

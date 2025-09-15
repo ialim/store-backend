@@ -1,28 +1,9 @@
 import React from 'react';
-import { gql, useQuery, useMutation } from '@apollo/client';
+import { useAdminCreateCustomerMutation, useAdminUpdateCustomerProfileMutation, useCustomersQuery, useStoresForCustomersQuery } from '../generated/graphql';
 import { Alert, Stack, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem } from '@mui/material';
 import TableList from '../shared/TableList';
 import { useNavigate } from 'react-router-dom';
 import { notify } from '../shared/notify';
-
-const CUSTOMERS = gql`
-  query Customers($take: Int, $where: UserWhereInput) {
-    listUsers(
-      take: $take
-      where: $where
-    ) {
-      id
-      email
-      customerProfile {
-        fullName
-        email
-        phone
-        profileStatus
-        preferredStore { id name }
-      }
-    }
-  }
-`;
 
 export default function Customers() {
   const navigate = useNavigate();
@@ -37,18 +18,13 @@ export default function Customers() {
     return { AND: and } as any;
   }, [statusFilter, storeFilter]);
 
-  const { data, loading, error, refetch } = useQuery(CUSTOMERS, {
+  const { data, loading, error, refetch } = useCustomersQuery({
     variables: { take: 100, where },
-    fetchPolicy: 'cache-and-network',
+    fetchPolicy: 'cache-and-network' as any,
     errorPolicy: 'all',
   });
   const list = data?.listUsers ?? [];
-  const UPDATE = gql`
-    mutation AdminUpdateCustomerProfile($userId: String!, $input: AdminUpdateCustomerProfileInput!) {
-      adminUpdateCustomerProfile(userId: $userId, input: $input) { userId profileStatus }
-    }
-  `;
-  const [updateProfile] = useMutation(UPDATE);
+  const [updateProfile] = useAdminUpdateCustomerProfileMutation();
 
   // Create customer modal state
   const [open, setOpen] = React.useState(false);
@@ -59,16 +35,10 @@ export default function Customers() {
   const [preferredStoreId, setPreferredStoreId] = React.useState('');
   const [status, setStatus] = React.useState<'PENDING' | 'ACTIVE' | 'REJECTED'>('ACTIVE');
 
-  const STORES = gql`query StoresForCustomers { listStores(take: 200) { id name } }`;
-  const { data: storesData } = useQuery(STORES, { fetchPolicy: 'cache-first' });
+  const { data: storesData } = useStoresForCustomersQuery({ fetchPolicy: 'cache-first' as any });
   const stores = storesData?.listStores ?? [];
 
-  const CREATE = gql`
-    mutation AdminCreateCustomer($input: AdminCreateCustomerInput!) {
-      adminCreateCustomer(input: $input) { id email customerProfile { fullName } }
-    }
-  `;
-  const [createCustomer, { loading: creating }] = useMutation(CREATE);
+  const [createCustomer, { loading: creating }] = useAdminCreateCustomerMutation();
   const exportCsv = ({ sorted }: { sorted: any[] }) => {
     const rowsToUse = sorted?.length ? sorted : list;
     if (!rowsToUse?.length) return;
@@ -81,7 +51,9 @@ export default function Customers() {
       u.customerProfile?.preferredStore?.name || '',
       u.customerProfile?.profileStatus || '',
     ]);
-    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const csv = [header, ...rows]
+      .map((r: any[]) => r.map((v: any) => JSON.stringify(v ?? '')).join(','))
+      .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

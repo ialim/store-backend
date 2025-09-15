@@ -1,30 +1,9 @@
-import { gql, useLazyQuery, useQuery, useMutation } from '@apollo/client';
+import { useAssignStoreManagerMutation, useBulkAssignStoreManagerMutation, useListManagersQuery, useStoresQuery, useStoresWithInvalidManagersLazyQuery } from '../generated/graphql';
 import { Alert, Button, Stack, TextField, Typography, Select, MenuItem } from '@mui/material';
 import React, { useMemo } from 'react';
 import { useApolloClient } from '@apollo/client';
 import TableList from '../shared/TableList';
 
-const STORES = gql`
-  query Stores($take: Int, $where: StoreWhereInput) {
-    listStores(take: $take, where: $where) { id name location isMain manager { id email } }
-  }
-`;
-const DIAG = gql`
-  query StoresWithInvalidManagers { storesWithInvalidManagers { id name managerId managerEmail validManager } }
-`;
-const MANAGERS = gql`
-  query ListManagers { listManagers { id email customerProfile { fullName } } }
-`;
-const ASSIGN = gql`
-  mutation AssignStoreManager($storeId: String!, $managerId: String!) {
-    assignStoreManager(storeId: $storeId, managerId: $managerId)
-  }
-`;
-const BULK = gql`
-  mutation BulkAssignStoreManager($storeIds: [String!]!, $managerId: String!) {
-    bulkAssignStoreManager(storeIds: $storeIds, managerId: $managerId)
-  }
-`;
 
 export default function Stores() {
   const apollo = useApolloClient();
@@ -39,16 +18,16 @@ export default function Stores() {
       { location: { contains: query, mode: 'insensitive' } },
     ] };
   }
-  const { data, loading, error, refetch } = useQuery(STORES, { variables: vars, fetchPolicy: 'cache-and-network' });
+  const { data, loading, error, refetch } = useStoresQuery({ variables: vars, fetchPolicy: 'cache-and-network' as any });
   let list = data?.listStores ?? [];
   if (managerFilter) {
     list = list.filter((s: any) => (s.manager?.id || '') === managerFilter);
   }
-  const [runDiag, { data: diag, loading: loadingDiag, error: errorDiag }] = useLazyQuery(DIAG, { fetchPolicy: 'network-only' });
-  const [assignOne, { loading: assigningOne }] = useMutation(ASSIGN);
-  const [assignMany, { loading: assigningMany }] = useMutation(BULK);
+  const [runDiag, { data: diag, loading: loadingDiag, error: errorDiag }] = useStoresWithInvalidManagersLazyQuery({ fetchPolicy: 'network-only' as any });
+  const [assignOne, { loading: assigningOne }] = useAssignStoreManagerMutation();
+  const [assignMany, { loading: assigningMany }] = useBulkAssignStoreManagerMutation();
   const [mgrId, setMgrId] = React.useState('');
-  const { data: mgrsData } = useQuery(MANAGERS, { fetchPolicy: 'cache-first' });
+  const { data: mgrsData } = useListManagersQuery({ fetchPolicy: 'cache-first' as any });
   const managers = mgrsData?.listManagers ?? [];
   // Fallback for React-router-only environment: implement useLazyQuery manually via useApolloClient if needed
   return (

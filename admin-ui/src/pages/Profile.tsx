@@ -3,26 +3,8 @@ import { Box, Button, Card, CardContent, Grid, Stack, TextField, Typography } fr
 import { useAuth } from '../shared/AuthProvider';
 import { decodeJwt } from '../shared/jwt';
 import { notify } from '../shared/notify';
-import { gql, useMutation, useQuery } from '@apollo/client';
+import { useChangePasswordMutation, useMeQuery } from '../generated/graphql';
 
-const CHANGE_PASSWORD = gql`
-  mutation ChangePassword($input: ChangePasswordInput!) {
-    changePassword(input: $input)
-  }
-`;
-
-const ME = gql`
-  query Me {
-    me {
-      id
-      email
-      role {
-        name
-        permissions { id name module action }
-      }
-    }
-  }
-`;
 
 function formatDate(ts?: number) {
   if (!ts) return '-';
@@ -45,11 +27,11 @@ export default function Profile() {
   const claims = token ? decodeJwt(token) : null;
   const exp = (claims?.exp as number | undefined) || undefined;
   const iat = (claims?.iat as number | undefined) || undefined;
-  const { data: meData, refetch } = useQuery(ME, { fetchPolicy: 'cache-and-network' });
+  const { data: meData, refetch } = useMeQuery({ fetchPolicy: 'cache-and-network' as any });
   const [currentPassword, setCurrentPassword] = React.useState('');
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
-  const [changePassword, { loading: changing }] = useMutation(CHANGE_PASSWORD);
+  const [changePassword, { loading: changing }] = useChangePasswordMutation();
 
   const copy = async () => {
     if (!token) return;

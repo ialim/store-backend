@@ -1,4 +1,13 @@
-import { gql, useMutation, useQuery } from '@apollo/client';
+import {
+  useRfqDashboardQuery,
+  useQuotesByReqQuery,
+  useIssueRfqPreferredMutation,
+  useSelectSupplierQuoteMutation,
+  useRejectSupplierQuoteMutation,
+  useRejectPurchaseRequisitionMutation,
+  useSubmitPurchaseRequisitionMutation,
+  useApprovePurchaseRequisitionMutation,
+} from '../generated/graphql';
 import { Alert, Button, Card, CardContent, Chip, Stack, Typography } from '@mui/material';
 import { notify } from '../shared/notify';
 import React from 'react';
@@ -6,56 +15,28 @@ import { useParams } from 'react-router-dom';
 import TableList from '../shared/TableList';
 import { Switch, FormControlLabel } from '@mui/material';
 
-const RFQ_DASH = gql`
-  query RfqDashboard($id: String!) {
-    rfqDashboard(requisitionId: $id) {
-      draft
-      submitted
-      selected
-      rejected
-      total
-      pendingQuotes { id requisitionId supplierId status validUntil createdAt }
-    }
-    purchaseRequisitionSummary(id: $id) { id status createdAt }
-  }
-`;
-
-const QUOTES = gql`
-  query QuotesByReq($id: String!) {
-    supplierQuotesByRequisition(requisitionId: $id) {
-      id
-      requisitionId
-      supplierId
-      status
-      validUntil
-      createdAt
-    }
-  }
-`;
-
-const ISSUE_PREF = gql`mutation($id: String!) { issueRFQPreferred(requisitionId: $id) }`;
-const SELECT_QUOTE = gql`mutation($quoteId: String!, $exclusive: Boolean) { selectSupplierQuote(input: { quoteId: $quoteId, exclusive: $exclusive }) }`;
-const REJECT_QUOTE = gql`mutation($quoteId: String!, $reason: String) { rejectSupplierQuote(input: { quoteId: $quoteId, reason: $reason }) }`;
-const REJECT_REQ = gql`mutation($id: String!, $reason: String) { rejectPurchaseRequisition(input: { id: $id, reason: $reason }) }`;
-
 export default function RequisitionDetail() {
   const { id } = useParams();
-  const { data: dashData, loading: dashLoading, error: dashError, refetch: refetchDash } = useQuery(RFQ_DASH, { variables: { id }, skip: !id, fetchPolicy: 'cache-and-network' });
-  const { data: qData, loading: qLoading, error: qError, refetch: refetchQuotes } = useQuery(QUOTES, { variables: { id }, skip: !id, fetchPolicy: 'cache-and-network' });
+  const { data: dashData, loading: dashLoading, error: dashError, refetch: refetchDash } = useRfqDashboardQuery({ variables: { id: id as string }, skip: !id, fetchPolicy: 'cache-and-network' as any });
+  const { data: qData, loading: qLoading, error: qError, refetch: refetchQuotes } = useQuotesByReqQuery({ variables: { id: id as string }, skip: !id, fetchPolicy: 'cache-and-network' as any });
   const dash = dashData?.rfqDashboard;
   const reqSummary = dashData?.purchaseRequisitionSummary;
   const quotes = qData?.supplierQuotesByRequisition ?? [];
-  const [issuePref, { loading: issuing }] = useMutation(ISSUE_PREF);
-  const [selectQuote] = useMutation(SELECT_QUOTE);
-  const [rejectQuote] = useMutation(REJECT_QUOTE);
-  const [rejectReq, { loading: rejectingReq }] = useMutation(REJECT_REQ);
+  const [issuePref, { loading: issuing }] = useIssueRfqPreferredMutation();
+  const [selectQuote] = useSelectSupplierQuoteMutation();
+  const [rejectQuote] = useRejectSupplierQuoteMutation();
+  const [rejectReq, { loading: rejectingReq }] = useRejectPurchaseRequisitionMutation();
+  const [submitReq, { loading: submittingReq }] = useSubmitPurchaseRequisitionMutation();
+  const [approveReq, { loading: approvingReq }] = useApprovePurchaseRequisitionMutation();
   const hasSelected = quotes.some((q: any) => q.status === 'SELECTED');
   const [nonExclusive, setNonExclusive] = React.useState(false);
   const exportCsv = ({ sorted }: { sorted: any[] }) => {
     const rows = (sorted?.length ? sorted : quotes).map((q: any) => [q.id, q.supplierId, q.status, q.validUntil || '', q.createdAt || '']);
     if (!rows.length) return;
     const header = ['id','supplierId','status','validUntil','createdAt'];
-    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const csv = [header, ...rows]
+      .map((r: any[]) => r.map((v: any) => JSON.stringify(v ?? '')).join(','))
+      .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `requisition-${id}-quotes.csv`; a.click(); URL.revokeObjectURL(url);
@@ -91,12 +72,12 @@ export default function RequisitionDetail() {
         <CardContent>
           <Typography variant="subtitle1">Supplier Quotes</Typography>
           <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-            <Button size="small" variant="outlined" disabled={reqSummary?.status !== 'DRAFT'} onClick={async () => {
-              try { await (refetchDash as any).client.mutate({ mutation: gql`mutation($id: String!) { submitPurchaseRequisition(input: { id: $id }) }`, variables: { id } }); notify('Requisition submitted','success'); refetchDash(); } catch (e: any) { notify(e?.message || 'Failed to submit requisition','error'); }
-            }}>Submit Requisition</Button>
-            <Button size="small" variant="outlined" disabled={reqSummary?.status !== 'SUBMITTED'} onClick={async () => {
-              try { await (refetchDash as any).client.mutate({ mutation: gql`mutation($id: String!) { approvePurchaseRequisition(input: { id: $id }) }`, variables: { id } }); notify('Requisition approved','success'); refetchDash(); } catch (e: any) { notify(e?.message || 'Failed to approve requisition','error'); }
-            }}>Approve Requisition</Button>
+            <Button size="small" variant="outlined" disabled={reqSummary?.status !== 'DRAFT' || submittingReq} onClick={async () => {
+              try { await submitReq({ variables: { id: id as string } }); notify('Requisition submitted','success'); refetchDash(); } catch (e: any) { notify(e?.message || 'Failed to submit requisition','error'); }
+            }}>{submittingReq ? 'Submitting…' : 'Submit Requisition'}</Button>
+            <Button size="small" variant="outlined" disabled={reqSummary?.status !== 'SUBMITTED' || approvingReq} onClick={async () => {
+              try { await approveReq({ variables: { id: id as string } }); notify('Requisition approved','success'); refetchDash(); } catch (e: any) { notify(e?.message || 'Failed to approve requisition','error'); }
+            }}>{approvingReq ? 'Approving…' : 'Approve Requisition'}</Button>
             <Button size="small" color="error" variant="outlined" disabled={!(reqSummary?.status === 'DRAFT' || reqSummary?.status === 'SUBMITTED') || rejectingReq} onClick={async () => {
               const reason = window.prompt('Reason for rejection (optional):') || undefined;
               try { await rejectReq({ variables: { id, reason } }); notify('Requisition rejected','info'); refetchDash(); refetchQuotes(); } catch (e: any) { notify(e?.message || 'Failed to reject requisition','error'); }

@@ -1,4 +1,4 @@
-import { gql, useMutation, useQuery } from '@apollo/client';
+import { useCreateLowStockRequisitionAndIssuePreferredMutation, useCreateRequisitionFromLowStockMutation, useLowStockCandidatesQuery, useRunLowStockScanNowMutation } from '../generated/graphql';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Button, CircularProgress, Stack, TextField, Typography, FormControlLabel, Switch } from '@mui/material';
 import { useEffect, useState } from 'react';
@@ -6,37 +6,12 @@ import TableList from '../shared/TableList';
 import { UserSelect } from '../shared/IdSelects';
 import { notify } from '../shared/notify';
 
-const CANDIDATES = gql`
-  query LowStock($storeId: String, $limit: Int) {
-    lowStockCandidates(storeId: $storeId, limit: $limit) {
-      storeId storeName productVariantId productId productName size concentration packaging barcode
-      quantity reorderPoint reorderQty supplierId supplierName supplierDefaultCost supplierLeadTimeDays supplierIsPreferred supplierCount
-    }
-  }
-`;
-
-const RUN_SCAN = gql`
-  mutation RunScan { runLowStockScanNow }
-`;
-
-const CREATE_REQ = gql`
-  mutation CreateLowStockReq($storeId: String!, $requestedById: String!) {
-    createRequisitionFromLowStock(input: { storeId: $storeId, requestedById: $requestedById })
-  }
-`;
-
-const CREATE_AND_ISSUE = gql`
-  mutation CreateAndIssuePreferred($storeId: String!, $requestedById: String!) {
-    createLowStockRequisitionAndIssuePreferred(input: { storeId: $storeId, requestedById: $requestedById })
-  }
-`;
-
 export default function LowStock() {
   const [storeId, setStoreId] = useState<string | undefined>(undefined);
-  const { data, loading, error, refetch } = useQuery(CANDIDATES, { variables: { storeId, limit: 100 } });
-  const [runScan, { loading: scanning }] = useMutation(RUN_SCAN);
-  const [createReq, { loading: creating }] = useMutation(CREATE_REQ);
-  const [createAndIssue, { loading: creatingIssuing }] = useMutation(CREATE_AND_ISSUE);
+  const { data, loading, error, refetch } = useLowStockCandidatesQuery({ variables: { storeId, limit: 100 } });
+  const [runScan, { loading: scanning }] = useRunLowStockScanNowMutation();
+  const [createReq, { loading: creating }] = useCreateRequisitionFromLowStockMutation();
+  const [createAndIssue, { loading: creatingIssuing }] = useCreateLowStockRequisitionAndIssuePreferredMutation();
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);

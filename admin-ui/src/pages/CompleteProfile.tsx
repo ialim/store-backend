@@ -1,17 +1,9 @@
 import { useState } from 'react';
-import { gql, useMutation } from '@apollo/client';
+import { useCompleteCustomerProfileMutation } from '../generated/graphql';
 import { Alert, Box, Button, Card, CardContent, Grid, Stack, TextField, Typography } from '@mui/material';
 import { notify } from '../shared/notify';
 import { useNavigate } from 'react-router-dom';
 
-const COMPLETE = gql`
-  mutation CompleteCustomerProfile($input: UpdateCustomerProfileInput!) {
-    completeCustomerProfile(input: $input) {
-      userId
-      profileStatus
-    }
-  }
-`;
 
 export default function CompleteProfile() {
   const [fullName, setFullName] = useState('');
@@ -20,7 +12,7 @@ export default function CompleteProfile() {
   const [gender, setGender] = useState('');
   const [birthday, setBirthday] = useState('');
   const [err, setErr] = useState<string | null>(null);
-  const [mutate, { loading }] = useMutation(COMPLETE);
+  const [mutate, { loading }] = useCompleteCustomerProfileMutation();
   const navigate = useNavigate();
 
   const submit = async (e: React.FormEvent) => {
@@ -69,4 +61,3 @@ export default function CompleteProfile() {
     </Stack>
   );
 }
-

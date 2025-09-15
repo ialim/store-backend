@@ -1,31 +1,22 @@
-import { gql, useMutation } from '@apollo/client';
+import { useAssignBillerMutation, useAssignStoreManagerMutation, useCreateStaffMutation } from '../generated/graphql';
 import { Alert, Card, CardContent, Grid, MenuItem, Stack, TextField, Typography, Button } from '@mui/material';
 import { UserSelect, StoreSelect } from '../shared/IdSelects';
 import React from 'react';
 
-const CREATE_STAFF = gql`
-  mutation CreateStaff($input: CreateStaffInput!) { createStaff(input: $input) { id email } }
-`;
-const ASSIGN_MANAGER = gql`
-  mutation AssignManager($input: AssignStoreManagerInput!) { assignStoreManager(input: $input) { id name managerId } }
-`;
-const ASSIGN_BILLER = gql`
-  mutation AssignBiller($input: AssignBillerInput!) { assignBiller(input: $input) { userId billerId } }
-`;
 
 export default function Staff() {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [role, setRole] = React.useState<'ADMIN'|'BILLER'|'MANAGER'>('MANAGER');
-  const [createStaff, { loading: creating, error: createErr }] = useMutation(CREATE_STAFF);
+  const [createStaff, { loading: creating, error: createErr }] = useCreateStaffMutation();
 
   const [userId, setUserId] = React.useState('');
   const [storeId, setStoreId] = React.useState('');
-  const [assignManager, { loading: assigningMgr, error: assignMgrErr }] = useMutation(ASSIGN_MANAGER);
+  const [assignManager, { loading: assigningMgr, error: assignMgrErr }] = useAssignStoreManagerMutation();
 
   const [billerId, setBillerId] = React.useState('');
   const [resellerId, setResellerId] = React.useState('');
-  const [assignBiller, { loading: assigningBiller, error: assignBillerErr }] = useMutation(ASSIGN_BILLER);
+  const [assignBiller, { loading: assigningBiller, error: assignBillerErr }] = useAssignBillerMutation();
 
   const submitCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +25,7 @@ export default function Staff() {
   };
   const submitManager = async (e: React.FormEvent) => {
     e.preventDefault();
-    await assignManager({ variables: { input: { userId, storeId } } });
+    await assignManager({ variables: { storeId, managerId: userId } });
   };
   const submitBiller = async (e: React.FormEvent) => {
     e.preventDefault();

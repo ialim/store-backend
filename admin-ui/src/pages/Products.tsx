@@ -1,17 +1,8 @@
-import { gql, useMutation, useQuery } from '@apollo/client';
+import { useCreateProductMutation, useProductsQuery, useListFacetsQuery, useBulkAssignFacetToProductsMutation, useBulkRemoveFacetFromProductsMutation } from '../generated/graphql';
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
 import React from 'react';
 import TableList from '../shared/TableList';
 import { useNavigate } from 'react-router-dom';
-
-const PRODUCTS = gql`
-  query Products($take: Int, $where: ProductWhereInput) {
-    listProducts(take: $take, where: $where) { id name barcode }
-  }
-`;
-const CREATE_PRODUCT = gql`
-  mutation CreateProduct($data: ProductCreateInput!) { createProduct(data: $data) { id } }
-`;
 
 export default function Products() {
   const [take, setTake] = React.useState(20);
@@ -26,9 +17,18 @@ export default function Products() {
     ];
     return Object.keys(w).length ? w : undefined;
   }, [q]);
-  const { data, loading, error, refetch } = useQuery(PRODUCTS, { variables: { take, where }, fetchPolicy: 'cache-and-network' });
+  const { data, loading, error, refetch } = useProductsQuery({ variables: { take, where }, fetchPolicy: 'cache-and-network' as any });
   const list = data?.listProducts ?? [];
-  const [createProduct, { loading: creating }] = useMutation(CREATE_PRODUCT);
+  const [createProduct, { loading: creating }] = useCreateProductMutation();
+  // Facets for bulk operations
+  const { data: facetsData } = useListFacetsQuery({ fetchPolicy: 'cache-first' as any });
+  const facets: Array<{ id: string; name: string; code: string; values?: string[] }> = facetsData?.listFacets ?? [];
+  // Selection controlled via TableList
+  const [selectedIds, setSelectedIds] = React.useState<Array<string | number>>([]);
+  const [selFacetId, setSelFacetId] = React.useState('');
+  const [selValue, setSelValue] = React.useState('');
+  const [bulkAssign, { loading: assigning }] = useBulkAssignFacetToProductsMutation();
+  const [bulkRemove, { loading: removing }] = useBulkRemoveFacetFromProductsMutation();
   
 
   // Export
@@ -36,7 +36,9 @@ export default function Products() {
     const rows = (sorted?.length ? sorted : list).map((p: any) => [p.id, p.name || '', p.barcode || '']);
     if (!rows.length) return;
     const header = ['id','name','barcode'];
-    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const csv = [header, ...rows]
+      .map((r: any[]) => r.map((v: any) => JSON.stringify(v ?? '')).join(','))
+      .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'products.csv'; a.click(); URL.revokeObjectURL(url);
@@ -59,6 +61,35 @@ export default function Products() {
         <TextField label="Take" type="number" size="small" value={take} onChange={(e) => setTake(Number(e.target.value) || 20)} sx={{ width: 120 }} />
         <TextField label="Search name/barcode" size="small" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') refetch(); }} />
       </Stack>
+      {selectedIds.length > 0 && (
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
+          <Typography variant="body2">Selected: {selectedIds.length}</Typography>
+          <Select size="small" value={selFacetId} onChange={(e) => { setSelFacetId(e.target.value); setSelValue(''); }} displayEmpty sx={{ minWidth: 220 }}>
+            <MenuItem value=""><em>Select facet…</em></MenuItem>
+            {facets.map((f) => (<MenuItem key={f.id} value={f.id}>{f.name} ({f.code})</MenuItem>))}
+          </Select>
+          {(() => {
+            const f = facets.find((x) => x.id === selFacetId);
+            if (f && Array.isArray(f.values) && f.values.length) {
+              return (
+                <Select size="small" value={selValue} onChange={(e) => setSelValue(e.target.value)} displayEmpty sx={{ minWidth: 180 }}>
+                  <MenuItem value=""><em>Value…</em></MenuItem>
+                  {f.values.map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
+                </Select>
+              );
+            }
+            return (<TextField size="small" label="Value" value={selValue} onChange={(e) => setSelValue(e.target.value)} />);
+          })()}
+          <Button size="small" variant="contained" disabled={!selFacetId || !selValue || !selectedIds.length || assigning} onClick={async () => {
+            await bulkAssign({ variables: { productIds: selectedIds as string[], facetId: selFacetId, value: selValue } });
+            setSelValue('');
+          }}>Assign to selected</Button>
+          <Button size="small" color="error" variant="outlined" disabled={!selFacetId || !selValue || !selectedIds.length || removing} onClick={async () => {
+            await bulkRemove({ variables: { productIds: selectedIds as string[], facetId: selFacetId, value: selValue } });
+            setSelValue('');
+          }}>Remove from selected</Button>
+        </Stack>
+      )}
       <TableList
         columns={React.useMemo(() => ([
           { key: 'name', label: 'Name', render: (p: any) => p.name || p.id, sort: true, accessor: (p: any) => p.name || '', filter: true },
@@ -79,6 +110,9 @@ export default function Products() {
         urlKey="products"
         onExport={exportCsv}
         exportScopeControl
+        selectable
+        selectedIds={selectedIds}
+        onSelectedIdsChange={(ids) => setSelectedIds(ids)}
       />
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">

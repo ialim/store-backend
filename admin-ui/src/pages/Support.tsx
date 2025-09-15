@@ -1,34 +1,19 @@
-import { gql, useLazyQuery, useMutation, useQuery } from '@apollo/client';
+import { useAdminSendSupportMessageMutation, useMySupportMessagesQuery, useRecentSupportThreadsQuery, useSendSupportMessageMutation, useSupportConversationLazyQuery } from '../generated/graphql';
 import { Alert, Box, Button, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography } from '@mui/material';
 import React from 'react';
 import { useAuth } from '../shared/AuthProvider';
 
-const MY_MESSAGES = gql`
-  query MySupportMessages { mySupportMessages { id message isAdmin createdAt } }
-`;
-const RECENT_THREADS = gql`
-  query RecentSupportThreads($limit: Int) { recentSupportThreads(limit: $limit) { id userId isAdmin message createdAt } }
-`;
-const CONVERSATION = gql`
-  query SupportConversation($userId: String!) { supportConversation(userId: $userId) { id isAdmin message createdAt } }
-`;
-const SEND = gql`
-  mutation SendSupport($message: String!) { sendSupportMessage(input: { message: $message }) { id } }
-`;
-const ADMIN_SEND = gql`
-  mutation AdminSendSupport($userId: String!, $message: String!) { adminSendSupportMessage(input: { userId: $userId, message: $message }) { id } }
-`;
 
 export default function Support() {
   const { hasRole } = useAuth();
-  const { data: mine, loading: loadingMine, error: errorMine, refetch: refetchMine } = useQuery(MY_MESSAGES, { fetchPolicy: 'cache-and-network' });
-  const [send, { loading: sending }] = useMutation(SEND);
+  const { data: mine, loading: loadingMine, error: errorMine, refetch: refetchMine } = useMySupportMessagesQuery({ fetchPolicy: 'cache-and-network' as any });
+  const [send, { loading: sending }] = useSendSupportMessageMutation();
   const [text, setText] = React.useState('');
 
   const canAdmin = hasRole('SUPERADMIN','ADMIN','MANAGER');
-  const { data: recent, loading: loadingRecent, error: errorRecent, refetch: refetchRecent } = useQuery(RECENT_THREADS, { variables: { limit: 10 }, skip: !canAdmin, fetchPolicy: 'cache-and-network' });
-  const [loadConv, { data: conv, loading: loadingConv, error: errorConv, refetch: refetchConv }] = useLazyQuery(CONVERSATION);
-  const [adminSend, { loading: adminSending }] = useMutation(ADMIN_SEND);
+  const { data: recent, loading: loadingRecent, error: errorRecent, refetch: refetchRecent } = useRecentSupportThreadsQuery({ variables: { limit: 10 }, skip: !canAdmin, fetchPolicy: 'cache-and-network' as any });
+  const [loadConv, { data: conv, loading: loadingConv, error: errorConv, refetch: refetchConv }] = useSupportConversationLazyQuery();
+  const [adminSend, { loading: adminSending }] = useAdminSendSupportMessageMutation();
   const [activeUser, setActiveUser] = React.useState<string | null>(null);
   const [adminText, setAdminText] = React.useState('');
 
@@ -130,4 +115,3 @@ export default function Support() {
     </Stack>
   );
 }
-

@@ -1,35 +1,17 @@
-import { gql, useLazyQuery, useMutation } from '@apollo/client';
+import { useFulfillPurchaseReturnMutation, usePurchaseReturnsBySupplierLazyQuery, useSalesReturnsByStoreLazyQuery, useUpdateSalesReturnStatusMutation } from '../generated/graphql';
 import { Alert, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography, Button } from '@mui/material';
 import { ConfirmButton } from '../shared/Confirm';
 import TableList from '../shared/TableList';
 import { notify } from '../shared/notify';
 import React from 'react';
 
-const SALES_BY_STORE = gql`
-  query SalesReturnsByStore($storeId: String!) {
-    salesReturnsByStore(storeId: $storeId) { id status createdAt consumerSaleId resellerSaleId }
-  }
-`;
-const PURCHASE_BY_SUPPLIER = gql`
-  query PurchaseReturnsBySupplier($supplierId: String!) {
-    purchaseReturnsBySupplier(supplierId: $supplierId) { id status createdAt purchaseOrderId supplierId }
-  }
-`;
-
-const UPDATE_SALES_RETURN = gql`
-  mutation UpdateSalesReturn($input: UpdateSalesReturnStatusInput!) { updateSalesReturnStatus(input: $input) }
-`;
-const FULFILL_PURCHASE_RETURN = gql`
-  mutation FulfillPurchaseReturn($input: FulfillPurchaseReturnInput!) { fulfillPurchaseReturn(input: $input) }
-`;
-
 export default function Returns() {
   const [storeId, setStoreId] = React.useState('');
   const [supplierId, setSupplierId] = React.useState('');
-  const [loadSales, { data: sData, loading: sLoading, error: sError }] = useLazyQuery(SALES_BY_STORE);
-  const [loadPurch, { data: pData, loading: pLoading, error: pError }] = useLazyQuery(PURCHASE_BY_SUPPLIER);
-  const [updateSalesReturn, { loading: updatingSales }] = useMutation(UPDATE_SALES_RETURN);
-  const [fulfillPurchaseReturn, { loading: fulfilling }] = useMutation(FULFILL_PURCHASE_RETURN);
+  const [loadSales, { data: sData, loading: sLoading, error: sError }] = useSalesReturnsByStoreLazyQuery();
+  const [loadPurch, { data: pData, loading: pLoading, error: pError }] = usePurchaseReturnsBySupplierLazyQuery();
+  const [updateSalesReturn, { loading: updatingSales }] = useUpdateSalesReturnStatusMutation();
+  const [fulfillPurchaseReturn, { loading: fulfilling }] = useFulfillPurchaseReturnMutation();
   const sales = sData?.salesReturnsByStore ?? [];
   const purchases = pData?.purchaseReturnsBySupplier ?? [];
   const exportSalesCsv = ({ sorted }: { sorted: any[] }) => {
@@ -37,7 +19,9 @@ export default function Returns() {
     if (!rowsToUse?.length) return;
     const header = ['id','status','createdAt','saleId'];
     const rows = rowsToUse.map((r: any) => [r.id, r.status, r.createdAt, r.consumerSaleId || r.resellerSaleId || '']);
-    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const csv = [header, ...rows]
+      .map((r: any[]) => r.map((v: any) => JSON.stringify(v ?? '')).join(','))
+      .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `sales-returns-${storeId || 'store'}.csv`; a.click(); URL.revokeObjectURL(url);
@@ -47,7 +31,9 @@ export default function Returns() {
     if (!rowsToUse?.length) return;
     const header = ['id','status','createdAt','purchaseOrderId','supplierId'];
     const rows = rowsToUse.map((r: any) => [r.id, r.status, r.createdAt, r.purchaseOrderId || '', r.supplierId || '']);
-    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const csv = [header, ...rows]
+      .map((r: any[]) => r.map((v: any) => JSON.stringify(v ?? '')).join(','))
+      .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `purchase-returns-${supplierId || 'supplier'}.csv`; a.click(); URL.revokeObjectURL(url);

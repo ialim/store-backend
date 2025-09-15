@@ -1,24 +1,11 @@
-import { gql, useQuery } from '@apollo/client';
+import { useResellersQuery } from '../generated/graphql';
 import { Alert, Chip, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TableList from '../shared/TableList';
 import { formatMoney } from '../shared/format';
 
-const LIST = gql`
-  query Resellers($status: String, $take: Int, $q: String) {
-    resellers(status: $status, take: $take, q: $q) {
-      userId
-      profileStatus
-      tier
-      creditLimit
-      requestedAt
-      user { id email }
-      biller { id email }
-      requestedBiller { id email }
-    }
-  }
-`;
+ 
 
 function statusColor(s?: string) {
   switch ((s || '').toUpperCase()) {
@@ -32,7 +19,7 @@ function statusColor(s?: string) {
 export default function Resellers() {
   const [status, setStatus] = useState<string>('PENDING');
   const [q, setQ] = useState('');
-  const { data, loading, error, refetch } = useQuery(LIST, { variables: { status, take: 50, q }, fetchPolicy: 'cache-and-network' });
+  const { data, loading, error, refetch } = useResellersQuery({ variables: { status, take: 50, q }, fetchPolicy: 'cache-and-network' as any });
   const list = data?.resellers ?? [];
   const navigate = useNavigate();
 

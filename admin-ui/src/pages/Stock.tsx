@@ -1,24 +1,12 @@
-import { gql, useQuery } from '@apollo/client';
+import { useStockQuery } from '../generated/graphql';
 import { Alert, Button, Stack, TextField, Typography } from '@mui/material';
 import React from 'react';
 import TableList from '../shared/TableList';
 
-const STOCK = gql`
-  query Stock($input: QueryStockInput) {
-    stock(input: $input) {
-      storeId
-      quantity
-      reserved
-      store { id name }
-      productVariant { id barcode size concentration packaging product { name } }
-    }
-  }
-`;
-
 export default function Stock() {
   const [storeId, setStoreId] = React.useState('');
   const [variantId, setVariantId] = React.useState('');
-  const { data, loading, error, refetch } = useQuery(STOCK, { variables: { input: { storeId: storeId || null, productVariantId: variantId || null } }, fetchPolicy: 'cache-and-network' });
+  const { data, loading, error, refetch } = useStockQuery({ variables: { input: { storeId: storeId || null, productVariantId: variantId || null } }, fetchPolicy: 'cache-and-network' as any });
   const list = data?.stock ?? [];
   return (
     <Stack spacing={2}>

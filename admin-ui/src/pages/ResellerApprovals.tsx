@@ -1,4 +1,4 @@
-import { gql, useMutation, useQuery } from '@apollo/client';
+import { useActivateResellerMutation, useApproveResellerMutation, useListBillersQuery, usePendingResellerApplicationsQuery, useRejectResellerMutation } from '../generated/graphql';
 import {
   Alert,
   Box,
@@ -13,90 +13,16 @@ import { useMemo, useState } from 'react';
 import { notify } from '../shared/notify';
 import TableList from '../shared/TableList';
 
-const PENDING = gql`
-  query PendingResellerApplications($take: Int, $skip: Int, $q: String) {
-    pendingResellerApplications(take: $take, skip: $skip, q: $q) {
-      userId
-      tier
-      creditLimit
-      requestedAt
-      requestedBillerId
-      biller {
-        id
-        email
-      }
-      requestedBiller {
-        id
-        email
-      }
-      user {
-        id
-        email
-      }
-    }
-  }
-`;
-
-const BILLERS = gql`
-  query ListBillers {
-    listBillers {
-      id
-      email
-    }
-  }
-`;
-
-const APPROVE = gql`
-  mutation ApproveReseller(
-    $resellerId: String!
-    $input: ApproveResellerInput!
-  ) {
-    approveReseller(resellerId: $resellerId, input: $input) {
-      userId
-      profileStatus
-      biller {
-        id
-        email
-      }
-    }
-  }
-`;
-
-const ACTIVATE = gql`
-  mutation ActivateReseller($resellerId: String!, $billerId: String) {
-    activateReseller(resellerId: $resellerId, billerId: $billerId) {
-      userId
-      profileStatus
-      biller {
-        id
-        email
-      }
-    }
-  }
-`;
-
-const REJECT = gql`
-  mutation RejectReseller($resellerId: String!, $reason: String) {
-    rejectReseller(resellerId: $resellerId, reason: $reason) {
-      userId
-      profileStatus
-      rejectionReason
-    }
-  }
-`;
-
 export default function ResellerApprovals() {
   const [q, setQ] = useState('');
-  const { data, loading, error, refetch } = useQuery(PENDING, {
+  const { data, loading, error, refetch } = usePendingResellerApplicationsQuery({
     variables: { take: 50, q },
-    fetchPolicy: 'cache-and-network',
+    fetchPolicy: 'cache-and-network' as any,
   });
-  const { data: billersData } = useQuery(BILLERS, {
-    fetchPolicy: 'cache-first',
-  });
-  const [approve] = useMutation(APPROVE);
-  const [activate] = useMutation(ACTIVATE);
-  const [reject] = useMutation(REJECT);
+  const { data: billersData } = useListBillersQuery({ fetchPolicy: 'cache-first' as any });
+  const [approve] = useApproveResellerMutation();
+  const [activate] = useActivateResellerMutation();
+  const [reject] = useRejectResellerMutation();
 
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);

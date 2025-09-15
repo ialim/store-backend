@@ -1,26 +1,14 @@
-import { gql, useMutation } from '@apollo/client';
+import { useAssignFulfillmentPersonnelMutation, useUpdateFulfillmentStatusMutation } from '../generated/graphql';
 import { Alert, Button, Paper, Stack, TextField, Typography } from '@mui/material';
 import { useState } from 'react';
-
-const ASSIGN = gql`
-  mutation Assign($input: AssignFulfillmentPersonnelInput!) {
-    assignFulfillmentPersonnel(input: $input) { saleOrderId status deliveryPersonnelId }
-  }
-`;
-
-const UPDATE = gql`
-  mutation UpdateF($input: UpdateFulfillmentStatusInput!) {
-    updateFulfillmentStatus(input: $input) { saleOrderId status }
-  }
-`;
 
 export default function Fulfillment() {
   const [orderId, setOrderId] = useState('');
   const [personId, setPersonId] = useState('');
   const [status, setStatus] = useState('ASSIGNED');
   const [pin, setPin] = useState('');
-  const [assign, { loading: assigning }] = useMutation(ASSIGN);
-  const [update, { loading: updating }] = useMutation(UPDATE);
+  const [assign, { loading: assigning }] = useAssignFulfillmentPersonnelMutation();
+  const [update, { loading: updating }] = useUpdateFulfillmentStatusMutation();
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -59,4 +47,3 @@ export default function Fulfillment() {
     </Paper>
   );
 }
-

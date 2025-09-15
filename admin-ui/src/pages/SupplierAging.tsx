@@ -1,20 +1,16 @@
-import { gql, useLazyQuery } from '@apollo/client';
-import { Alert, Button, Card, CardContent, Stack, TextField, Typography } from '@mui/material';
+import { useSupplierAgingDataLazyQuery } from '../generated/graphql';
+import { Alert, Button, Card, CardContent, Stack, Typography } from '@mui/material';
+import { SupplierSelect } from '../shared/IdSelects';
 import React from 'react';
 import TableList from '../shared/TableList';
 import { formatMoney } from '../shared/format';
 
-const DATA = gql`
-  query SupplierAgingData($supplierId: String!) {
-    purchaseOrdersBySupplier(supplierId: $supplierId) { id totalAmount dueDate createdAt payments { amount paymentDate } }
-  }
-`;
 
 type AgingRow = { bucket: string; amount: number };
 
 export default function SupplierAging() {
   const [supplierId, setSupplierId] = React.useState('');
-  const [load, { data, loading, error }] = useLazyQuery(DATA);
+  const [load, { data, loading, error }] = useSupplierAgingDataLazyQuery();
   const pos = data?.purchaseOrdersBySupplier ?? [];
   const today = new Date();
   const buckets = React.useMemo(() => {
@@ -44,15 +40,15 @@ export default function SupplierAging() {
     const header = ['bucket','amount'];
     const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `supplier-aging-${supplierId}.csv`; a.click(); URL.revokeObjectURL(url);
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `supplier-aging-${(supplierId||'supplier')}.csv`; a.click(); URL.revokeObjectURL(url);
   };
 
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Supplier Aging</Typography>
       <Stack direction="row" spacing={1} alignItems="center">
-        <TextField label="Supplier ID" size="small" value={supplierId} onChange={(e) => setSupplierId(e.target.value)} />
-        <Button variant="contained" onClick={() => supplierId && load({ variables: { supplierId }, fetchPolicy: 'network-only' })} disabled={!supplierId || loading}>Load</Button>
+        <SupplierSelect value={supplierId} onChange={setSupplierId} label="Supplier" placeholder="Search supplier name" />
+        <Button variant="contained" onClick={async () => supplierId && load({ variables: { supplierId }, fetchPolicy: 'network-only' as any })} disabled={!supplierId || loading}>Load</Button>
       </Stack>
       {error && <Alert severity="error">{String(error.message)}</Alert>}
       <Card>
@@ -65,7 +61,7 @@ export default function SupplierAging() {
             ] as any}
             rows={buckets}
             loading={loading}
-            emptyMessage={supplierId ? 'No outstanding' : 'Enter supplier ID'}
+            emptyMessage={supplierId ? 'No outstanding' : 'Select supplier'}
             getRowKey={(r: any) => r.bucket}
             defaultSortKey="bucket"
             onExport={exportCsv}
@@ -76,4 +72,3 @@ export default function SupplierAging() {
     </Stack>
   );
 }
-

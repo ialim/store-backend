@@ -1,0 +1,18 @@
+// collection.prisma
+
+enum CollectionTarget {
+  PRODUCT
+  VARIANT
+}
+
+model Collection {
+  id        String           @id @default(uuid())
+  name      String
+  code      String           @unique
+  target    CollectionTarget
+  // Array of { facetId: string, value: string }
+  filters   Json
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+

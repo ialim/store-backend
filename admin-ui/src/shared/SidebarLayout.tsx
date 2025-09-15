@@ -86,7 +86,8 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       items: [
         { label: 'Products', to: '/products', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <Inventory2Icon /> },
         { label: 'Variants', to: '/variants', show: true, icon: <Inventory2Icon /> },
-        { label: 'Facets', to: '/facets', show: hasPermission('MANAGE_PRODUCTS'), icon: <AssignmentIcon /> },
+        { label: 'Collections', to: '/collections', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <AssignmentIcon /> },
+        { label: 'Facets', to: '/facets', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <AssignmentIcon /> },
         { label: 'Stock', to: '/stock', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <Inventory2Icon /> },
         { label: 'Stores', to: '/stores', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <StoreIcon /> },
       ],

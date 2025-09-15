@@ -1,4 +1,4 @@
-import { gql, useQuery } from '@apollo/client';
+import { useDailyPaymentsSeriesQuery, useDailyPaymentsSeriesRangeQuery, useStorePaymentsSummaryQuery, useStorePaymentsSummaryRangeQuery, useStoresForPaymentsQuery } from '../generated/graphql';
 import {
   Alert,
   Card,
@@ -18,70 +18,20 @@ import React from 'react';
 import TableList from '../shared/TableList';
 import { formatMoney } from '../shared/format';
 
-const STORE_SUMMARY = gql`
-  query StorePaymentsSummary($storeId: String!, $month: String) {
-    storePaymentsSummary(storeId: $storeId, month: $month) {
-      storeId
-      month
-      consumerPaid
-      resellerPaid
-      totalPaid
-    }
-  }
-`;
-
-const DAILY_SERIES = gql`
-  query DailyPaymentsSeries($month: String, $storeId: String) {
-    dailyPaymentsSeries(month: $month, storeId: $storeId) {
-      date
-      consumerPaid
-      resellerPaid
-      totalPaid
-    }
-  }
-`;
-
-const STORES = gql`
-  query StoresForPayments { listStores(take: 200) { id name } }
-`;
-
-const STORE_SUMMARY_RANGE = gql`
-  query StorePaymentsSummaryRange($storeId: String!, $start: DateTime!, $end: DateTime!) {
-    storePaymentsSummaryRange(storeId: $storeId, start: $start, end: $end) {
-      storeId
-      month
-      consumerPaid
-      resellerPaid
-      totalPaid
-    }
-  }
-`;
-
-const DAILY_SERIES_RANGE = gql`
-  query DailyPaymentsSeriesRange($start: DateTime!, $end: DateTime!, $storeId: String) {
-    dailyPaymentsSeriesRange(start: $start, end: $end, storeId: $storeId) {
-      date
-      consumerPaid
-      resellerPaid
-      totalPaid
-    }
-  }
-`;
-
 export default function Payments() {
   const [storeId, setStoreId] = React.useState('');
   const [month, setMonth] = React.useState<string>('');
   const [start, setStart] = React.useState<string>('');
   const [end, setEnd] = React.useState<string>('');
   const [showChart, setShowChart] = React.useState<boolean>(true);
-  const { data: storesData } = useQuery(STORES, { fetchPolicy: 'cache-first' });
+  const { data: storesData } = useStoresForPaymentsQuery({ fetchPolicy: 'cache-first' as any });
   const stores = storesData?.listStores ?? [];
   const {
     data: summary,
     loading: loadingSummary,
     error: errorSummary,
     refetch: refetchSummary,
-  } = useQuery(STORE_SUMMARY, {
+  } = useStorePaymentsSummaryQuery({
     variables: { storeId: storeId || '', month: month || null },
     skip: !storeId || !!(start && end),
     fetchPolicy: 'cache-and-network',
@@ -91,7 +41,7 @@ export default function Payments() {
     loading: loadingSummaryRange,
     error: errorSummaryRange,
     refetch: refetchSummaryRange,
-  } = useQuery(STORE_SUMMARY_RANGE, {
+  } = useStorePaymentsSummaryRangeQuery({
     variables: { storeId: storeId || '', start: start ? new Date(start) : undefined, end: end ? new Date(end) : undefined },
     skip: !storeId || !(start && end),
     fetchPolicy: 'cache-and-network',
@@ -101,7 +51,7 @@ export default function Payments() {
     loading: loadingSeries,
     error: errorSeries,
     refetch: refetchSeries,
-  } = useQuery(DAILY_SERIES, {
+  } = useDailyPaymentsSeriesQuery({
     variables: { month: month || null, storeId: storeId || null },
     skip: !storeId || !!(start && end),
     fetchPolicy: 'cache-and-network',
@@ -111,7 +61,7 @@ export default function Payments() {
     loading: loadingSeriesRange,
     error: errorSeriesRange,
     refetch: refetchSeriesRange,
-  } = useQuery(DAILY_SERIES_RANGE, {
+  } = useDailyPaymentsSeriesRangeQuery({
     variables: { start: start ? new Date(start) : undefined, end: end ? new Date(end) : undefined, storeId: storeId || null },
     skip: !storeId || !(start && end),
     fetchPolicy: 'cache-and-network',
@@ -151,7 +101,9 @@ export default function Payments() {
     if (!source?.length) return;
     const header = ['date', 'consumerPaid', 'resellerPaid', 'totalPaid'];
     const rows = source.map((d: any) => [d.date, d.consumerPaid, d.resellerPaid, d.totalPaid]);
-    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const csv = [header, ...rows]
+      .map((r: any[]) => r.map((v: any) => JSON.stringify(v ?? '')).join(','))
+      .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

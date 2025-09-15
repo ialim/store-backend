@@ -1,24 +1,29 @@
-import { gql, useMutation, useQuery } from '@apollo/client';
-import { Alert, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Switch, TextField, Typography } from '@mui/material';
+import { useCreateFacetMutation, useDeleteFacetMutation, useListFacetsAllQuery, useUpdateFacetMutation, useBulkAssignFacetToVariantsMutation, useBulkAssignFacetToProductsMutation, useBulkRemoveFacetFromVariantsMutation, useBulkRemoveFacetFromProductsMutation } from '../generated/graphql';
+import { Alert, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Select, Stack, Switch, TextField, Typography } from '@mui/material';
+import { notify } from '../shared/notify';
 import React from 'react';
 import TableList from '../shared/TableList';
 
-const LIST = gql`query { listFacets { id name code isPrivate values } }`;
-const CREATE = gql`mutation($input: CreateFacetInput!) { createFacet(input: $input) { id } }`;
-const UPDATE = gql`mutation($input: UpdateFacetInput!) { updateFacet(input: $input) { id } }`;
-const DELETE = gql`mutation($id: String!) { deleteFacet(id: $id) }`;
-
 export default function Facets() {
-  const { data, loading, error, refetch } = useQuery(LIST, { fetchPolicy: 'cache-and-network' });
-  const [create] = useMutation(CREATE);
-  const [update] = useMutation(UPDATE);
-  const [del] = useMutation(DELETE);
+  const { data, loading, error, refetch } = useListFacetsAllQuery({ fetchPolicy: 'cache-and-network' as any });
+  const [create] = useCreateFacetMutation();
+  const [update] = useUpdateFacetMutation();
+  const [del] = useDeleteFacetMutation();
   const list = data?.listFacets ?? [];
+  // Bulk assignment state
+  const [target, setTarget] = React.useState<'variants'|'products'>('variants');
+  const [idsInput, setIdsInput] = React.useState('');
+  const [selFacetId, setSelFacetId] = React.useState('');
+  const [selValue, setSelValue] = React.useState('');
+  const [bulkAssignVariants, { loading: bulkVarLoading }] = useBulkAssignFacetToVariantsMutation();
+  const [bulkAssignProducts, { loading: bulkProdLoading }] = useBulkAssignFacetToProductsMutation();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState('');
   const [code, setCode] = React.useState('');
   const [isPrivate, setIsPrivate] = React.useState(false);
   const [values, setValues] = React.useState('');
+  const [bulkRemoveVariants, { loading: bulkVarRemoveLoading }] = useBulkRemoveFacetFromVariantsMutation();
+  const [bulkRemoveProducts, { loading: bulkProdRemoveLoading }] = useBulkRemoveFacetFromProductsMutation();
   const reset = () => { setName(''); setCode(''); setIsPrivate(false); setValues(''); };
   return (
     <Stack spacing={2}>
@@ -58,6 +63,81 @@ export default function Facets() {
         />
       </CardContent></Card>
 
+      <Card><CardContent>
+        <Typography variant="subtitle1">Bulk Facet Assignment</Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1 }}>
+          <Select size="small" value={target} onChange={(e) => setTarget(e.target.value as any)}>
+            <MenuItem value="variants">Variants</MenuItem>
+            <MenuItem value="products">Products</MenuItem>
+          </Select>
+          <Select size="small" value={selFacetId} onChange={(e) => { setSelFacetId(e.target.value); setSelValue(''); }} displayEmpty sx={{ minWidth: 220 }}>
+            <MenuItem value=""><em>Select facet…</em></MenuItem>
+            {list.map((f: any) => (<MenuItem key={f.id} value={f.id}>{f.name} ({f.code})</MenuItem>))}
+          </Select>
+          {(() => {
+            const f = list.find((x: any) => x.id === selFacetId);
+            if (f && Array.isArray(f.values) && f.values.length) {
+              return (
+                <Select size="small" value={selValue} onChange={(e) => setSelValue(e.target.value)} displayEmpty sx={{ minWidth: 180 }}>
+                  <MenuItem value=""><em>Value…</em></MenuItem>
+                  {f.values.map((v: string) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
+                </Select>
+              );
+            }
+            return (<TextField size="small" label="Value" value={selValue} onChange={(e) => setSelValue(e.target.value)} />);
+          })()}
+        </Stack>
+        <TextField
+          label={target === 'variants' ? 'Variant IDs (comma/space/newline separated)' : 'Product IDs (comma/space/newline separated)'}
+          value={idsInput}
+          onChange={(e) => setIdsInput(e.target.value)}
+          multiline minRows={3}
+          fullWidth sx={{ mt: 1 }}
+        />
+        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+          <Button
+            variant="contained"
+            disabled={!selFacetId || !selValue || !idsInput.trim() || bulkVarLoading || bulkProdLoading}
+            onClick={async () => {
+              const ids = idsInput.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+              if (!ids.length) { notify('Enter at least one ID', 'warning'); return; }
+              try {
+                if (target === 'variants') {
+                  const res = await bulkAssignVariants({ variables: { variantIds: ids, facetId: selFacetId, value: selValue } });
+                  notify(`Assigned to ${res.data?.bulkAssignFacetToVariants ?? 0} variant(s)`, 'success');
+                } else {
+                  const res = await bulkAssignProducts({ variables: { productIds: ids, facetId: selFacetId, value: selValue } });
+                  notify(`Assigned to ${res.data?.bulkAssignFacetToProducts ?? 0} product(s)`, 'success');
+                }
+              } catch (e: any) {
+                notify(e?.message || 'Bulk assignment failed', 'error');
+              }
+            }}
+          >Assign</Button>
+          <Button
+            variant="outlined"
+            color="error"
+            disabled={!selFacetId || !selValue || !idsInput.trim() || bulkVarRemoveLoading || bulkProdRemoveLoading}
+            onClick={async () => {
+              const ids = idsInput.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+              if (!ids.length) { notify('Enter at least one ID', 'warning'); return; }
+              try {
+                if (target === 'variants') {
+                  const res = await bulkRemoveVariants({ variables: { variantIds: ids, facetId: selFacetId, value: selValue } });
+                  notify(`Removed ${res.data?.bulkRemoveFacetFromVariants ?? 0} assignment(s)`, 'success');
+                } else {
+                  const res = await bulkRemoveProducts({ variables: { productIds: ids, facetId: selFacetId, value: selValue } });
+                  notify(`Removed ${res.data?.bulkRemoveFacetFromProducts ?? 0} assignment(s)`, 'success');
+                }
+              } catch (e: any) {
+                notify(e?.message || 'Bulk removal failed', 'error');
+              }
+            }}
+          >Remove</Button>
+          <Button variant="text" onClick={() => { setIdsInput(''); setSelFacetId(''); setSelValue(''); }}>Clear</Button>
+        </Stack>
+      </CardContent></Card>
+
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>New Facet</DialogTitle>
         <DialogContent>
@@ -76,4 +156,3 @@ export default function Facets() {
     </Stack>
   );
 }
-

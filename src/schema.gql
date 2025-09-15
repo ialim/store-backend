@@ -1405,6 +1405,21 @@ type FacetAssignment {
   value: String!
 }
 
+type CollectionGQL {
+  id: ID!
+  name: String!
+  code: String!
+  target: CollectionTarget!
+  filters: JSON!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum CollectionTarget {
+  PRODUCT
+  VARIANT
+}
+
 type StoreCountAggregate {
   id: Int!
   name: Int!
@@ -2279,6 +2294,11 @@ type Query {
   listFacets: [FacetGQL!]!
   productFacets(productId: String!): [FacetAssignment!]!
   variantFacets(productVariantId: String!): [FacetAssignment!]!
+  collections: [CollectionGQL!]!
+  collection(id: String!): CollectionGQL!
+  collectionMembersCount(id: String!): Int!
+  collectionVariants(id: String!, take: Int, skip: Int): [ProductVariant!]!
+  collectionProducts(id: String!, take: Int, skip: Int): [Product!]!
   notifications: [Notification!]!
   outboxStatus: OutboxStatusCounts!
   outboxStatusByType(types: [String!]): [OutboxTypeCount!]!
@@ -2289,6 +2309,7 @@ type Query {
   resellers(status: String, take: Int, skip: Int, q: String): [ResellerProfile!]!
   resellerProfile(userId: String!): ResellerProfile
   suppliers: [Supplier!]!
+  listSuppliers(where: SupplierWhereInput, orderBy: [SupplierOrderByWithRelationInput!], cursor: SupplierWhereUniqueInput, take: Int, skip: Int, distinct: [SupplierScalarFieldEnum!]): [Supplier!]!
   supplier(id: String!): Supplier!
   purchaseOrders(take: Int, skip: Int): [PurchaseOrder!]!
   purchaseOrder(id: String!): PurchaseOrder!
@@ -2303,6 +2324,8 @@ type Query {
   purchaseOrdersOverdue: [PurchaseOrder!]!
   requisitionsByStatus(status: String!, storeId: String, take: Int, skip: Int): [RequisitionSummary!]!
   requisitionsCountByStatus(status: String!, storeId: String): Int!
+  requisitionsByStore(storeId: String!, status: String, take: Int, skip: Int): [RequisitionSummary!]!
+  requisitionsCountByStore(storeId: String!, status: String): Int!
   supplierQuotesByRequisition(requisitionId: String!): [SupplierQuoteSummary!]!
   purchaseRequisitionSummary(id: String!): RequisitionSummary
   supplierCatalogBySupplier(supplierId: String!): [SupplierCatalogEntry!]!
@@ -4894,34 +4917,40 @@ input ProductVariantMaxAggregateInput {
   updatedAt: Boolean
 }
 
-input QueryStockInput {
-  storeId: ID
-  productVariantId: ID
-}
-
-input StoreOrderByWithRelationInput {
+input SupplierOrderByWithRelationInput {
   id: SortOrder
   name: SortOrder
-  location: SortOrderInput
-  isMain: SortOrder
-  managerId: SortOrder
+  contactInfo: SortOrderInput
+  isFrequent: SortOrder
+  creditLimit: SortOrder
+  currentBalance: SortOrder
+  paymentTerms: SortOrderInput
+  notes: SortOrderInput
   createdAt: SortOrder
   updatedAt: SortOrder
-  manager: UserOrderByWithRelationInput
-  stocks: StockOrderByRelationAggregateInput
-  receipts: StockReceiptBatchOrderByRelationAggregateInput
-  transfersOut: StockTransferOrderByRelationAggregateInput
-  transfersIn: StockTransferOrderByRelationAggregateInput
-  customerSales: ConsumerSaleOrderByRelationAggregateInput
-  salesReturns: SalesReturnOrderByRelationAggregateInput
-  resellerSales: ResellerSaleOrderByRelationAggregateInput
-  movements: StockMovementOrderByRelationAggregateInput
-  Customer: CustomerOrderByRelationAggregateInput
-  CustomerProfile: CustomerProfileOrderByRelationAggregateInput
-  Quotation: QuotationOrderByRelationAggregateInput
-  PurchaseRequisition: PurchaseRequisitionOrderByRelationAggregateInput
+  userId: SortOrderInput
   purchaseOrders: PurchaseOrderOrderByRelationAggregateInput
-  InvoiceImport: InvoiceImportOrderByRelationAggregateInput
+  payments: SupplierPaymentOrderByRelationAggregateInput
+  returns: PurchaseReturnOrderByRelationAggregateInput
+  catalogs: SupplierCatalogOrderByRelationAggregateInput
+  quotes: SupplierQuoteOrderByRelationAggregateInput
+  user: UserOrderByWithRelationInput
+}
+
+input PurchaseOrderOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input SupplierPaymentOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input PurchaseReturnOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input SupplierQuoteOrderByRelationAggregateInput {
+  _count: SortOrder
 }
 
 input UserOrderByWithRelationInput {
@@ -5033,11 +5062,72 @@ input CustomerProfileOrderByWithRelationInput {
   preferences: CustomerPreferenceProfileOrderByWithRelationInput
 }
 
-input CustomerProfileOrderByRelationAggregateInput {
+input StoreOrderByWithRelationInput {
+  id: SortOrder
+  name: SortOrder
+  location: SortOrderInput
+  isMain: SortOrder
+  managerId: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
+  manager: UserOrderByWithRelationInput
+  stocks: StockOrderByRelationAggregateInput
+  receipts: StockReceiptBatchOrderByRelationAggregateInput
+  transfersOut: StockTransferOrderByRelationAggregateInput
+  transfersIn: StockTransferOrderByRelationAggregateInput
+  customerSales: ConsumerSaleOrderByRelationAggregateInput
+  salesReturns: SalesReturnOrderByRelationAggregateInput
+  resellerSales: ResellerSaleOrderByRelationAggregateInput
+  movements: StockMovementOrderByRelationAggregateInput
+  Customer: CustomerOrderByRelationAggregateInput
+  CustomerProfile: CustomerProfileOrderByRelationAggregateInput
+  Quotation: QuotationOrderByRelationAggregateInput
+  PurchaseRequisition: PurchaseRequisitionOrderByRelationAggregateInput
+  purchaseOrders: PurchaseOrderOrderByRelationAggregateInput
+  InvoiceImport: InvoiceImportOrderByRelationAggregateInput
+}
+
+input StockReceiptBatchOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input StockTransferOrderByRelationAggregateInput {
   _count: SortOrder
 }
 
 input ConsumerSaleOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input SalesReturnOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input ResellerSaleOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input StockMovementOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input CustomerOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input CustomerProfileOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input QuotationOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input PurchaseRequisitionOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input InvoiceImportOrderByRelationAggregateInput {
   _count: SortOrder
 }
 
@@ -5067,10 +5157,6 @@ input CustomerPreferenceProfileOrderByRelationAggregateInput {
   _count: SortOrder
 }
 
-input QuotationOrderByRelationAggregateInput {
-  _count: SortOrder
-}
-
 input ResellerPaymentOrderByRelationAggregateInput {
   _count: SortOrder
 }
@@ -5083,31 +5169,11 @@ input SupportMessageOrderByRelationAggregateInput {
   _count: SortOrder
 }
 
-input StockReceiptBatchOrderByRelationAggregateInput {
-  _count: SortOrder
-}
-
-input StockTransferOrderByRelationAggregateInput {
-  _count: SortOrder
-}
-
 input StoreOrderByRelationAggregateInput {
   _count: SortOrder
 }
 
 input ConsumerReceiptOrderByRelationAggregateInput {
-  _count: SortOrder
-}
-
-input ResellerSaleOrderByRelationAggregateInput {
-  _count: SortOrder
-}
-
-input SalesReturnOrderByRelationAggregateInput {
-  _count: SortOrder
-}
-
-input PurchaseReturnOrderByRelationAggregateInput {
   _count: SortOrder
 }
 
@@ -5131,28 +5197,50 @@ input FulfillmentOrderByRelationAggregateInput {
   _count: SortOrder
 }
 
-input PurchaseRequisitionOrderByRelationAggregateInput {
-  _count: SortOrder
-}
-
 input SupplierOrderByRelationAggregateInput {
   _count: SortOrder
 }
 
-input StockMovementOrderByRelationAggregateInput {
-  _count: SortOrder
+input SupplierWhereUniqueInput {
+  id: String
+  AND: [SupplierWhereInput!]
+  OR: [SupplierWhereInput!]
+  NOT: [SupplierWhereInput!]
+  name: StringFilter
+  contactInfo: JsonNullableFilter
+  isFrequent: BoolFilter
+  creditLimit: FloatFilter
+  currentBalance: FloatFilter
+  paymentTerms: StringNullableFilter
+  notes: StringNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  userId: StringNullableFilter
+  purchaseOrders: PurchaseOrderListRelationFilter
+  payments: SupplierPaymentListRelationFilter
+  returns: PurchaseReturnListRelationFilter
+  catalogs: SupplierCatalogListRelationFilter
+  quotes: SupplierQuoteListRelationFilter
+  user: UserNullableScalarRelationFilter
 }
 
-input CustomerOrderByRelationAggregateInput {
-  _count: SortOrder
+enum SupplierScalarFieldEnum {
+  id
+  name
+  contactInfo
+  isFrequent
+  creditLimit
+  currentBalance
+  paymentTerms
+  notes
+  createdAt
+  updatedAt
+  userId
 }
 
-input PurchaseOrderOrderByRelationAggregateInput {
-  _count: SortOrder
-}
-
-input InvoiceImportOrderByRelationAggregateInput {
-  _count: SortOrder
+input QueryStockInput {
+  storeId: ID
+  productVariantId: ID
 }
 
 input StoreWhereUniqueInput {
@@ -5577,6 +5665,13 @@ type Mutation {
   removeFacetFromProduct(productId: String!, facetId: String!, value: String!): String!
   assignFacetToVariant(productVariantId: String!, facetId: String!, value: String!): String!
   removeFacetFromVariant(productVariantId: String!, facetId: String!, value: String!): String!
+  bulkAssignFacetToVariants(variantIds: [String!]!, facetId: String!, value: String!): Int!
+  bulkAssignFacetToProducts(productIds: [String!]!, facetId: String!, value: String!): Int!
+  bulkRemoveFacetFromVariants(variantIds: [String!]!, facetId: String!, value: String!): Int!
+  bulkRemoveFacetFromProducts(productIds: [String!]!, facetId: String!, value: String!): Int!
+  createCollection(input: CreateCollectionInput!): CollectionGQL!
+  updateCollection(input: UpdateCollectionInput!): CollectionGQL!
+  deleteCollection(id: String!): Boolean!
   markAsRead(id: String!): Notification!
   processOutbox(limit: Int, type: String, status: String): Int!
   retryOutboxFailed(limit: Int, type: String): Int!
@@ -5675,7 +5770,8 @@ type Mutation {
   devPurgePurchaseOrders(filter: DevPurgeFilter): Int!
   devImportSnapshot(json: String!, preview: Boolean): String!
   devSeedFixtures(kind: String): String!
-  devPurgeOrphanVariants: Int!
+  devPurgeOrphanVariants(filter: DevPurgeFilter): Int!
+  devPurgeProducts(filter: DevPurgeFilter): Int!
 }
 
 input LoginInput {
@@ -11108,29 +11204,6 @@ input UserCreateOrConnectWithoutSupplierInput {
 input SupplierCreateOrConnectWithoutCatalogsInput {
   where: SupplierWhereUniqueInput!
   create: SupplierCreateWithoutCatalogsInput!
-}
-
-input SupplierWhereUniqueInput {
-  id: String
-  AND: [SupplierWhereInput!]
-  OR: [SupplierWhereInput!]
-  NOT: [SupplierWhereInput!]
-  name: StringFilter
-  contactInfo: JsonNullableFilter
-  isFrequent: BoolFilter
-  creditLimit: FloatFilter
-  currentBalance: FloatFilter
-  paymentTerms: StringNullableFilter
-  notes: StringNullableFilter
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-  userId: StringNullableFilter
-  purchaseOrders: PurchaseOrderListRelationFilter
-  payments: SupplierPaymentListRelationFilter
-  returns: PurchaseReturnListRelationFilter
-  catalogs: SupplierCatalogListRelationFilter
-  quotes: SupplierQuoteListRelationFilter
-  user: UserNullableScalarRelationFilter
 }
 
 input SupplierCatalogCreateOrConnectWithoutProductVariantInput {
@@ -24555,6 +24628,25 @@ input UpdateFacetInput {
   name: String
   isPrivate: Boolean
   values: [String!]
+}
+
+input CreateCollectionInput {
+  name: String!
+  code: String!
+  target: CollectionTarget!
+  filters: [FacetFilterInput!]!
+}
+
+input FacetFilterInput {
+  facetId: String!
+  value: String!
+}
+
+input UpdateCollectionInput {
+  id: ID!
+  name: String
+  code: String
+  filters: [FacetFilterInput!]
 }
 
 input CreateUserInput {

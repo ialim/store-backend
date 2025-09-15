@@ -1,0 +1,35 @@
+# Multi-stage Dockerfile for NestJS + Prisma backend
+
+# Build stage
+FROM node:20-alpine AS build
+WORKDIR /app
+
+# Install deps
+COPY package*.json ./
+RUN npm ci
+
+# Prisma generate
+COPY prisma ./prisma
+RUN npx prisma generate
+
+# Build sources
+COPY tsconfig*.json ./
+COPY src ./src
+RUN npm run build
+
+# Runtime stage
+FROM node:20-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY prisma ./prisma
+RUN npx prisma generate
+
+COPY --from=build /app/dist ./dist
+
+# Default command (consider running migrations before starting in your entrypoint)
+CMD ["node", "dist/main.js"]
+

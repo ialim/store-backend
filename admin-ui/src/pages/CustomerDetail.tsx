@@ -1,72 +1,17 @@
-import { gql, useMutation, useQuery } from '@apollo/client';
+import { useAdminUpdateCustomerProfileMutation, useConsumerReceiptsByCustomerQuery, useConsumerSalesByCustomerQuery, useCustomerQuery, useStoresForCustomerQuery } from '../generated/graphql';
 import { Alert, Card, CardContent, Grid, Skeleton, Stack, Typography, TextField, MenuItem, Select, Button } from '@mui/material';
 import React from 'react';
 import { formatMoney } from '../shared/format';
 import { useParams } from 'react-router-dom';
 import TableList from '../shared/TableList';
 
-const GET = gql`
-  query Customer($id: String!) {
-    findUniqueUser(where: { id: $id }) {
-      id
-      email
-      customerProfile {
-        fullName
-        email
-        phone
-        profileStatus
-        preferredStore { id name }
-        sales {
-          id
-          status
-          totalAmount
-          createdAt
-          store { id name }
-          receipt { id issuedAt consumerSaleId }
-        }
-      }
-    }
-  }
-`;
-
-const SALES = gql`
-  query ConsumerSalesByCustomer($customerId: String!, $take: Int, $skip: Int, $order: String) {
-    consumerSalesByCustomer(customerId: $customerId, take: $take, skip: $skip, order: $order) {
-      id
-      status
-      totalAmount
-      createdAt
-      store { id name }
-    }
-  }
-`;
-
-const RECEIPTS = gql`
-  query ConsumerReceiptsByCustomer($customerId: String!, $take: Int, $skip: Int, $order: String) {
-    consumerReceiptsByCustomer(customerId: $customerId, take: $take, skip: $skip, order: $order) {
-      id
-      issuedAt
-      consumerSaleId
-    }
-  }
-`;
-
-const UPDATE = gql`
-  mutation AdminUpdateCustomerProfile($userId: String!, $input: AdminUpdateCustomerProfileInput!) {
-    adminUpdateCustomerProfile(userId: $userId, input: $input) { userId profileStatus preferredStore { id name } }
-  }
-`;
-const STORES = gql`
-  query StoresForCustomer { listStores(take: 200) { id name } }
-`;
-
 export default function CustomerDetail() {
   const { id } = useParams();
-  const { data, loading, error } = useQuery(GET, { variables: { id }, fetchPolicy: 'cache-and-network', errorPolicy: 'all' });
+  const { data, loading, error } = useCustomerQuery({ variables: { id: id as string }, fetchPolicy: 'cache-and-network' as any, errorPolicy: 'all' as any });
   const profile = data?.findUniqueUser;
-  const { data: sData, loading: sLoading, error: sError } = useQuery(SALES, { variables: { customerId: id, take: 20, skip: 0, order: 'desc' }, skip: !id, fetchPolicy: 'cache-and-network' });
-  const { data: rData, loading: rLoading, error: rError } = useQuery(RECEIPTS, { variables: { customerId: id, take: 20, skip: 0, order: 'desc' }, skip: !id, fetchPolicy: 'cache-and-network' });
-  const { data: storesData } = useQuery(STORES, { fetchPolicy: 'cache-first', errorPolicy: 'all' });
+  const { data: sData, loading: sLoading, error: sError } = useConsumerSalesByCustomerQuery({ variables: { customerId: id as string, take: 20, skip: 0, order: 'desc' }, skip: !id, fetchPolicy: 'cache-and-network' as any });
+  const { data: rData, loading: rLoading, error: rError } = useConsumerReceiptsByCustomerQuery({ variables: { customerId: id as string, take: 20, skip: 0, order: 'desc' }, skip: !id, fetchPolicy: 'cache-and-network' as any });
+  const { data: storesData } = useStoresForCustomerQuery({ fetchPolicy: 'cache-first' as any, errorPolicy: 'all' as any });
   const stores = storesData?.listStores ?? [];
   const sales = sData?.consumerSalesByCustomer ?? (profile?.customerProfile?.sales ?? []);
   const receipts = rData?.consumerReceiptsByCustomer ?? React.useMemo(
@@ -82,7 +27,7 @@ export default function CustomerDetail() {
   const [phone, setPhone] = React.useState('');
   const [status, setStatus] = React.useState('');
   const [storeId, setStoreId] = React.useState('');
-  const [updateProfile] = useMutation(UPDATE);
+  const [updateProfile] = useAdminUpdateCustomerProfileMutation();
 
   React.useEffect(() => {
     if (profile) {

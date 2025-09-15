@@ -1,67 +1,26 @@
-import { gql, useQuery } from '@apollo/client';
+import { useMonthlySalesSummaryByStoreQuery, useMonthlySalesSummaryQuery, useTopSellingVariantsByStoreQuery, useTopSellingVariantsDetailedQuery } from '../generated/graphql';
 import { Alert, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography, Button } from '@mui/material';
 import React from 'react';
 
-const SUMMARY = gql`
-  query MonthlySalesSummary($month: String) {
-    monthlySalesSummary(month: $month) {
-      month
-      totalSold
-      totalReturned
-    }
-  }
-`;
-
-const SUMMARY_BY_STORE = gql`
-  query MonthlySalesSummaryByStore($storeId: String!, $month: String) {
-    monthlySalesSummaryByStore(storeId: $storeId, month: $month) {
-      month
-      totalSold
-      totalReturned
-    }
-  }
-`;
-
-const TOP_VARIANTS = gql`
-  query TopVariants($month: String, $limit: Int) {
-    topSellingVariantsDetailed(month: $month, limit: $limit) {
-      productVariantId
-      productName
-      size
-      concentration
-      packaging
-      quantity
-      barcode
-    }
-  }
-`;
-
-const TOP_VARIANTS_BY_STORE = gql`
-  query TopVariantsByStore($storeId: String!, $month: String, $limit: Int) {
-    topSellingVariantsByStore(storeId: $storeId, month: $month, limit: $limit) {
-      productVariantId
-      productName
-      size
-      concentration
-      packaging
-      quantity
-      barcode
-    }
-  }
-`;
 
 export default function Analytics() {
   const [storeId, setStoreId] = React.useState('');
   const [month, setMonth] = React.useState('');
   const [limit, setLimit] = React.useState(10);
 
-  const summaryQuery = storeId ? SUMMARY_BY_STORE : SUMMARY;
   const varsSummary: any = storeId ? { storeId, month: month || null } : { month: month || null };
-  const { data: sum, loading: loadingSum, error: errorSum, refetch: refetchSum } = useQuery(summaryQuery, { variables: varsSummary, fetchPolicy: 'cache-and-network' });
+  const { data: sum, loading: loadingSum, error: errorSum, refetch: refetchSum } = (
+    storeId
+      ? useMonthlySalesSummaryByStoreQuery({ variables: varsSummary, fetchPolicy: 'cache-and-network' as any })
+      : useMonthlySalesSummaryQuery({ variables: varsSummary, fetchPolicy: 'cache-and-network' as any })
+  );
 
-  const topQuery = storeId ? TOP_VARIANTS_BY_STORE : TOP_VARIANTS;
   const varsTop: any = storeId ? { storeId, month: month || null, limit } : { month: month || null, limit };
-  const { data: top, loading: loadingTop, error: errorTop, refetch: refetchTop } = useQuery(topQuery, { variables: varsTop, fetchPolicy: 'cache-and-network' });
+  const { data: top, loading: loadingTop, error: errorTop, refetch: refetchTop } = (
+    storeId
+      ? useTopSellingVariantsByStoreQuery({ variables: varsTop, fetchPolicy: 'cache-and-network' as any })
+      : useTopSellingVariantsDetailedQuery({ variables: varsTop, fetchPolicy: 'cache-and-network' as any })
+  );
 
   const s = sum?.monthlySalesSummary || sum?.monthlySalesSummaryByStore;
   const list = (top?.topSellingVariantsDetailed || top?.topSellingVariantsByStore) ?? [];

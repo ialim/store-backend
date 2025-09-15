@@ -1,4 +1,4 @@
-import { gql, useMutation, useQuery } from '@apollo/client';
+import { useActivateResellerMutation, useListBillersQuery, useRejectResellerMutation, useResellerProfileQuery } from '../generated/graphql';
 import {
   Alert,
   Box,
@@ -20,67 +20,6 @@ import { formatMoney } from '../shared/format';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-const GET = gql`
-  query ResellerProfile($userId: String!) {
-    resellerProfile(userId: $userId) {
-      userId
-      profileStatus
-      tier
-      creditLimit
-      outstandingBalance
-      requestedAt
-      activatedAt
-      rejectedAt
-      rejectionReason
-      biller {
-        id
-        email
-      }
-      requestedBiller {
-        id
-        email
-      }
-      user {
-        id
-        email
-      }
-    }
-  }
-`;
-
-const BILLERS = gql`
-  query ListBillers {
-    listBillers {
-      id
-      email
-    }
-  }
-`;
-
-const ACTIVATE = gql`
-  mutation ActivateReseller($resellerId: String!, $billerId: String) {
-    activateReseller(resellerId: $resellerId, billerId: $billerId) {
-      userId
-      profileStatus
-      biller {
-        id
-        email
-      }
-      activatedAt
-    }
-  }
-`;
-
-const REJECT = gql`
-  mutation RejectReseller($resellerId: String!, $reason: String) {
-    rejectReseller(resellerId: $resellerId, reason: $reason) {
-      userId
-      profileStatus
-      rejectionReason
-      rejectedAt
-    }
-  }
-`;
 
 function statusColor(s?: string) {
   switch ((s || '').toUpperCase()) {
@@ -97,17 +36,10 @@ function statusColor(s?: string) {
 
 export default function ResellerDetail() {
   const { id } = useParams();
-  const { data, loading, error, refetch } = useQuery(GET, {
-    variables: { userId: id },
-    fetchPolicy: 'cache-and-network',
-    errorPolicy: 'all',
-  });
-  const { data: billersData } = useQuery(BILLERS, {
-    fetchPolicy: 'cache-first',
-    errorPolicy: 'all',
-  });
-  const [activate, { loading: activating }] = useMutation(ACTIVATE);
-  const [reject, { loading: rejecting }] = useMutation(REJECT);
+  const { data, loading, error, refetch } = useResellerProfileQuery({ variables: { userId: id as string }, fetchPolicy: 'cache-and-network' as any, errorPolicy: 'all' as any });
+  const { data: billersData } = useListBillersQuery({ fetchPolicy: 'cache-first' as any, errorPolicy: 'all' as any });
+  const [activate, { loading: activating }] = useActivateResellerMutation();
+  const [reject, { loading: rejecting }] = useRejectResellerMutation();
   const r = data?.resellerProfile;
   const billers = billersData?.listBillers ?? [];
   const [billerId, setBillerId] = useState<string>('');

@@ -14,56 +14,23 @@ import {
   TextField,
 } from '@mui/material';
 import TableList from '../shared/TableList';
-import { gql, useMutation, useQuery } from '@apollo/client';
+import {
+  useOutboxStatusQuery,
+  useLastFailedOutboxEventsQuery,
+  useOutboxStatusByTypeQuery,
+  useProcessOutboxMutation,
+  useRetryOutboxFailedMutation,
+} from '../generated/graphql';
 import { useEffect, useState } from 'react';
 
-const STATUS = gql`
-  query OutboxStatus {
-    outboxStatus {
-      pending
-      failed
-      published
-    }
-  }
-`;
-
-const LAST_FAILED = gql`
-  query LastFailed($limit: Int) {
-    lastFailedOutboxEvents(limit: $limit) {
-      id
-      type
-      lastError
-      createdAt
-    }
-  }
-`;
-
-const PROCESS = gql`
-  mutation ProcessOutbox($limit: Int, $type: String, $status: String) {
-    processOutbox(limit: $limit, type: $type, status: $status)
-  }
-`;
-
-const RETRY = gql`
-  mutation RetryFailed($limit: Int, $type: String) {
-    retryOutboxFailed(limit: $limit, type: $type)
-  }
-`;
-
-const BY_TYPE = gql`
-  query StatusByType($types: [String!]) {
-    outboxStatusByType(types: $types) { type pending failed published }
-  }
-`;
-
 export default function Outbox() {
-  const { data, loading, error, refetch } = useQuery(STATUS, { fetchPolicy: 'network-only' });
-  const { data: failed, loading: loadingFailed, error: errorFailed, refetch: refetchFailed } = useQuery(LAST_FAILED, {
+  const { data, loading, error, refetch } = useOutboxStatusQuery({ fetchPolicy: 'network-only' as any });
+  const { data: failed, loading: loadingFailed, error: errorFailed, refetch: refetchFailed } = useLastFailedOutboxEventsQuery({
     variables: { limit: 10 },
   });
-  const { data: byType, loading: loadingByType, error: errorByType, refetch: refetchByType } = useQuery(BY_TYPE, { fetchPolicy: 'network-only' });
-  const [process, { loading: processing }] = useMutation(PROCESS);
-  const [retry, { loading: retrying }] = useMutation(RETRY);
+  const { data: byType, loading: loadingByType, error: errorByType, refetch: refetchByType } = useOutboxStatusByTypeQuery({ fetchPolicy: 'network-only' as any });
+  const [process, { loading: processing }] = useProcessOutboxMutation();
+  const [retry, { loading: retrying }] = useRetryOutboxFailedMutation();
   const [msg, setMsg] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [intervalSec, setIntervalSec] = useState(10);
@@ -72,7 +39,9 @@ export default function Outbox() {
     if (!rowsToUse?.length) return;
     const header = ['id','type','createdAt','lastError'];
     const rows = rowsToUse.map((e: any) => [e.id, e.type, e.createdAt, (e.lastError || '').toString().slice(0, 400)]);
-    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const csv = [header, ...rows]
+      .map((r: any[]) => r.map((v: any) => JSON.stringify(v ?? '')).join(','))
+      .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `outbox-failed.csv`; a.click(); URL.revokeObjectURL(url);

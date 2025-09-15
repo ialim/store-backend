@@ -1,19 +1,12 @@
-import { gql, useLazyQuery } from '@apollo/client';
+import { useSupplierStatementDataLazyQuery } from '../generated/graphql';
 import { Alert, Button, Card, CardContent, Stack, TextField, Typography } from '@mui/material';
 import React from 'react';
 import TableList from '../shared/TableList';
 import { formatMoney } from '../shared/format';
 
-const BY_SUPPLIER = gql`
-  query SupplierStatementData($supplierId: String!) {
-    purchaseOrdersBySupplier(supplierId: $supplierId) { id totalAmount createdAt }
-    supplierPaymentsBySupplier(supplierId: $supplierId) { id amount paymentDate method }
-  }
-`;
-
 export default function SupplierStatement() {
   const [supplierId, setSupplierId] = React.useState('');
-  const [load, { data, loading, error }] = useLazyQuery(BY_SUPPLIER);
+  const [load, { data, loading, error }] = useSupplierStatementDataLazyQuery();
   const pos = data?.purchaseOrdersBySupplier ?? [];
   const pays = data?.supplierPaymentsBySupplier ?? [];
   const entries = React.useMemo(() => {
@@ -76,4 +69,3 @@ export default function SupplierStatement() {
     </Stack>
   );
 }
-

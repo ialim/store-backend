@@ -1,22 +1,9 @@
-import { gql, useMutation, useQuery } from '@apollo/client';
+import { useCreateSupplierPaymentMutation, useSupplierPaymentsByPoQuery } from '../generated/graphql';
 import { Alert, Button, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography } from '@mui/material';
 import React from 'react';
 import { notify } from '../shared/notify';
 import TableList from '../shared/TableList';
 import { formatMoney } from '../shared/format';
-
-const BY_PO = gql`
-  query SupplierPaymentsByPO($purchaseOrderId: String!) {
-    supplierPaymentsByPO(purchaseOrderId: $purchaseOrderId) { id amount paymentDate method notes }
-    purchaseOrder(id: $purchaseOrderId) { id totalAmount supplier { id name } createdAt }
-  }
-`;
-
-const CREATE = gql`
-  mutation CreateSupplierPayment($input: CreateSupplierPaymentInput!) {
-    createSupplierPayment(input: $input) { id amount paymentDate method }
-  }
-`;
 
 export default function SupplierPayments() {
   const [purchaseOrderId, setPurchaseOrderId] = React.useState('');
@@ -26,8 +13,8 @@ export default function SupplierPayments() {
   const [method, setMethod] = React.useState('TRANSFER');
   const [notes, setNotes] = React.useState('');
 
-  const { data, loading, error, refetch } = useQuery(BY_PO, { variables: { purchaseOrderId }, skip: !purchaseOrderId, fetchPolicy: 'cache-and-network' });
-  const [create, { loading: creating, error: createErr }] = useMutation(CREATE);
+  const { data, loading, error, refetch } = useSupplierPaymentsByPoQuery({ variables: { purchaseOrderId }, skip: !purchaseOrderId, fetchPolicy: 'cache-and-network' });
+  const [create, { loading: creating, error: createErr }] = useCreateSupplierPaymentMutation();
   const list = data?.supplierPaymentsByPO ?? [];
   const poTotal = data?.purchaseOrder?.totalAmount ?? 0;
   const sortedAsc = React.useMemo(() => (list || []).slice().sort((a: any, b: any) => new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime()), [list]);
@@ -47,7 +34,9 @@ export default function SupplierPayments() {
       const remaining = Math.max(0, (poTotal || 0) - running);
       return [p.id, new Date(p.paymentDate).toISOString(), p.method, p.amount, running, remaining, p.notes || ''];
     });
-    const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
+    const csv = [header, ...rows]
+      .map((r: any[]) => r.map((v: any) => JSON.stringify(v ?? '')).join(','))
+      .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

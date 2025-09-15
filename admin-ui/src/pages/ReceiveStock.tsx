@@ -1,19 +1,9 @@
-import { gql, useMutation, useLazyQuery } from '@apollo/client';
+import { usePurchaseOrderLazyQuery, useReceiveStockBatchMutation } from '../generated/graphql';
 import { Alert, Button, Card, CardContent, Grid, IconButton, Stack, TextField, Typography } from '@mui/material';
 import React from 'react';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { StoreSelect, UserSelect, VariantSelect } from '../shared/IdSelects';
 import { notify } from '../shared/notify';
-
-const PO = gql`
-  query PurchaseOrder($id: String!) { purchaseOrder(id: $id) { id items { productVariantId quantity } } }
-`;
-
-const RECEIVE = gql`
-  mutation ReceiveStock($input: ReceiveStockBatchInput!) {
-    receiveStockBatch(input: $input) { id storeId }
-  }
-`;
 
 export default function ReceiveStock() {
   const [purchaseOrderId, setPurchaseOrderId] = React.useState('');
@@ -22,8 +12,8 @@ export default function ReceiveStock() {
   const [confirmedById, setConfirmedById] = React.useState('');
   const [waybillUrl, setWaybillUrl] = React.useState('');
   const [items, setItems] = React.useState<Array<{ productVariantId: string; quantity: number }>>([{ productVariantId: '', quantity: 0 }]);
-  const [receive, { loading, error, data }] = useMutation(RECEIVE);
-  const [loadPO, { loading: loadingPO }] = useLazyQuery(PO);
+  const [receive, { loading, error, data }] = useReceiveStockBatchMutation();
+  const [loadPO, { loading: loadingPO }] = usePurchaseOrderLazyQuery();
 
   const setItem = (idx: number, patch: Partial<{ productVariantId: string; quantity: number }>) => {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
