@@ -8,6 +8,7 @@ import { formatMoney } from '../shared/format';
 const BY_PO = gql`
   query SupplierPaymentsByPO($purchaseOrderId: String!) {
     supplierPaymentsByPO(purchaseOrderId: $purchaseOrderId) { id amount paymentDate method notes }
+    purchaseOrder(id: $purchaseOrderId) { id totalAmount supplier { id name } createdAt }
   }
 `;
 
@@ -28,11 +29,24 @@ export default function SupplierPayments() {
   const { data, loading, error, refetch } = useQuery(BY_PO, { variables: { purchaseOrderId }, skip: !purchaseOrderId, fetchPolicy: 'cache-and-network' });
   const [create, { loading: creating, error: createErr }] = useMutation(CREATE);
   const list = data?.supplierPaymentsByPO ?? [];
+  const poTotal = data?.purchaseOrder?.totalAmount ?? 0;
+  const sortedAsc = React.useMemo(() => (list || []).slice().sort((a: any, b: any) => new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime()), [list]);
+  const runningMap = React.useMemo(() => {
+    let sum = 0;
+    const m = new Map<string, number>();
+    for (const p of sortedAsc) { sum += p.amount || 0; m.set(p.id, sum); }
+    return m;
+  }, [sortedAsc]);
   const exportCsv = ({ sorted }: { sorted: any[] }) => {
     const rowsToUse = sorted?.length ? sorted : list;
     if (!rowsToUse?.length) return;
-    const header = ['id','paymentDate','method','amount','notes'];
-    const rows = rowsToUse.map((p: any) => [p.id, new Date(p.paymentDate).toISOString(), p.method, p.amount, p.notes || '']);
+    const header = ['id','paymentDate','method','amount','runningPaid','remaining','notes'];
+    const rmap = runningMap;
+    const rows = rowsToUse.map((p: any) => {
+      const running = rmap.get(p.id) ?? 0;
+      const remaining = Math.max(0, (poTotal || 0) - running);
+      return [p.id, new Date(p.paymentDate).toISOString(), p.method, p.amount, running, remaining, p.notes || ''];
+    });
     const csv = [header, ...rows].map((r) => r.map((v) => JSON.stringify(v ?? '')).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -70,6 +84,8 @@ export default function SupplierPayments() {
                   { key: 'paymentDate', label: 'Date', render: (p: any) => new Date(p.paymentDate).toLocaleDateString(), sort: true, accessor: (p: any) => new Date(p.paymentDate) },
                   { key: 'method', label: 'Method', render: (p: any) => p.method, sort: true, filter: true },
                   { key: 'amount', label: 'Amount', render: (p: any) => formatMoney(p.amount), sort: true, accessor: (p: any) => p.amount },
+                  { key: 'running', label: 'Running Paid', render: (p: any) => formatMoney(runningMap.get(p.id) ?? 0), sort: true, accessor: (p: any) => runningMap.get(p.id) ?? 0 },
+                  { key: 'remaining', label: 'Remaining', render: (p: any) => formatMoney(Math.max(0, (poTotal || 0) - (runningMap.get(p.id) ?? 0))), sort: true, accessor: (p: any) => (poTotal || 0) - (runningMap.get(p.id) ?? 0) },
                   { key: 'notes', label: 'Notes', render: (p: any) => p.notes || '', filter: true },
                 ] as any}
                 rows={list}
@@ -86,6 +102,13 @@ export default function SupplierPayments() {
                 onExport={exportCsv}
                 exportScopeControl
               />
+              {purchaseOrderId && (
+                <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+                  <Typography color="text.secondary">PO Total: {formatMoney(poTotal)}</Typography>
+                  <Typography color="text.secondary">Paid So Far: {formatMoney(sortedAsc.reduce((s: number, p: any) => s + (p.amount || 0), 0))}</Typography>
+                  <Typography color="text.secondary">Remaining: {formatMoney(Math.max(0, (poTotal || 0) - sortedAsc.reduce((s: number, p: any) => s + (p.amount || 0), 0)))}</Typography>
+                </Stack>
+              )}
             </CardContent>
           </Card>
         </Grid>

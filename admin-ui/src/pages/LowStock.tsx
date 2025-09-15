@@ -1,4 +1,5 @@
 import { gql, useMutation, useQuery } from '@apollo/client';
+import { useNavigate } from 'react-router-dom';
 import { Alert, Button, CircularProgress, Stack, TextField, Typography, FormControlLabel, Switch } from '@mui/material';
 import { useEffect, useState } from 'react';
 import TableList from '../shared/TableList';
@@ -41,6 +42,8 @@ export default function LowStock() {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [intervalSec, setIntervalSec] = useState(15);
   const [requestedById, setRequestedById] = useState<string>('');
+  const [lastReqId, setLastReqId] = useState<string>('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -83,7 +86,7 @@ export default function LowStock() {
           try {
             const { data } = await createReq({ variables: { storeId, requestedById } });
             const reqId = data?.createRequisitionFromLowStock as string | null;
-            if (reqId) notify(`Requisition created: ${reqId}`, 'success');
+            if (reqId) { notify(`Requisition created: ${reqId}`, 'success'); setLastReqId(reqId); }
             else notify('No items qualified for requisition', 'info');
           } catch (e: any) {
             notify(e?.message || 'Failed to create requisition', 'error');
@@ -93,7 +96,7 @@ export default function LowStock() {
           try {
             const { data } = await createAndIssue({ variables: { storeId, requestedById } });
             const reqId = data?.createLowStockRequisitionAndIssuePreferred as string | null;
-            if (reqId) notify(`Req created and RFQ issued: ${reqId}`, 'success');
+            if (reqId) { notify(`Req created and RFQ issued: ${reqId}`, 'success'); setLastReqId(reqId); }
             else notify('No items qualified for requisition', 'info');
           } catch (e: any) {
             notify(e?.message || 'Failed to create and issue RFQ', 'error');
@@ -121,6 +124,12 @@ export default function LowStock() {
         emptyMessage="No low-stock candidates"
         getRowKey={(c: any) => `${c.storeId}:${c.productVariantId}`}
       />
+      {lastReqId && (
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography color="text.secondary">Last requisition: {lastReqId}</Typography>
+          <Button size="small" onClick={() => navigate(`/requisitions/${lastReqId}`)}>Open Requisition</Button>
+        </Stack>
+      )}
     </Stack>
   );
 }
