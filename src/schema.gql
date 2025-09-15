@@ -2293,9 +2293,11 @@ type Query {
   purchaseOrders(take: Int, skip: Int): [PurchaseOrder!]!
   purchaseOrder(id: String!): PurchaseOrder!
   supplierPayments: [SupplierPayment!]!
+  supplierPaymentsBySupplier(supplierId: String!): [SupplierPayment!]!
   purchaseOrdersByStatus(status: String!, take: Int, skip: Int): [PurchaseOrder!]!
   purchaseOrdersByStatusEnum(status: PurchaseOrderStatus!): [PurchaseOrder!]!
   purchaseOrdersByPhase(phase: String!, take: Int, skip: Int): [PurchaseOrder!]!
+  purchaseOrdersBySupplier(supplierId: String!, take: Int, skip: Int): [PurchaseOrder!]!
   purchaseOrdersCount(status: String, phase: String): Int!
   purchaseOrdersByPhaseEnum(phase: PurchasePhase!): [PurchaseOrder!]!
   purchaseOrdersOverdue: [PurchaseOrder!]!
@@ -5588,6 +5590,7 @@ type Mutation {
   updateSupplier(input: UpdateSupplierInput!): Supplier!
   createPurchaseOrder(input: CreatePurchaseOrderInput!): PurchaseOrder!
   updatePurchaseOrderStatus(input: UpdatePurchaseOrderStatusInput!): PurchaseOrder!
+  issueRFQPreferred(requisitionId: String!): Boolean!
   upsertSupplierCatalog(input: UpsertSupplierCatalogInput!): SupplierCatalogEntry!
   upsertSupplierCatalogBulk(input: UpsertSupplierCatalogBulkInput!): [String!]!
   selectSupplierQuote(input: SelectSupplierQuoteInput!): Boolean!

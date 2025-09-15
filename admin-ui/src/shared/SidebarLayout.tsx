@@ -96,6 +96,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       items: [
         { label: 'Payments', to: '/payments', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'), icon: <PaidIcon /> },
         { label: 'Supplier Payments', to: '/supplier-payments', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'), icon: <PaidIcon /> },
+        { label: 'Supplier Statements', to: '/supplier-statements', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'), icon: <PaidIcon /> },
         { label: 'Analytics', to: '/analytics', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT') || hasPermission('VIEW_REPORTS'), icon: <InsightsIcon /> },
       ],
     },

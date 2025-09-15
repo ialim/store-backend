@@ -150,6 +150,15 @@ export class PurchaseService {
     });
   }
 
+  async purchaseOrdersBySupplier(supplierId: string, take?: number, skip?: number) {
+    return this.prisma.purchaseOrder.findMany({
+      where: { supplierId },
+      orderBy: { createdAt: 'asc' },
+      take: take ?? undefined,
+      skip: skip ?? undefined,
+    });
+  }
+
   async purchaseOrdersCount(status?: string, phase?: string) {
     const where: any = {};
     if (status) where.status = status as any;
@@ -1123,6 +1132,10 @@ export class PurchaseService {
   // Supplier Payments
   async supplierPayments() {
     return this.prisma.supplierPayment.findMany();
+  }
+
+  async supplierPaymentsBySupplier(supplierId: string) {
+    return this.prisma.supplierPayment.findMany({ where: { supplierId }, orderBy: { paymentDate: 'asc' } });
   }
 
   async createSupplierPayment(data: CreateSupplierPaymentInput) {

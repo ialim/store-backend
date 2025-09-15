@@ -117,6 +117,12 @@ export class PurchaseResolver {
     return this.purchaseService.supplierPayments();
   }
 
+  @Query(() => [SupplierPayment])
+  @UseGuards(GqlAuthGuard)
+  supplierPaymentsBySupplier(@Args('supplierId') supplierId: string) {
+    return this.purchaseService.supplierPaymentsBySupplier(supplierId);
+  }
+
   @Query(() => [PurchaseOrder])
   @UseGuards(GqlAuthGuard)
   purchaseOrdersByStatus(
@@ -146,6 +152,23 @@ export class PurchaseResolver {
     @Args('skip', { type: () => Int, nullable: true }) skip?: number,
   ) {
     return this.purchaseService.purchaseOrdersByPhase(phase, take, skip);
+  }
+
+  @Query(() => [PurchaseOrder])
+  @UseGuards(GqlAuthGuard)
+  purchaseOrdersBySupplier(
+    @Args('supplierId') supplierId: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    return this.purchaseService.purchaseOrdersBySupplier(supplierId, take, skip);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  issueRFQPreferred(@Args('requisitionId') requisitionId: string) {
+    return this.purchaseService.issueRFQPreferred(requisitionId);
   }
 
   @Query(() => Int)
