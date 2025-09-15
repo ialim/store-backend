@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PRODUCT_VARIANT_SUMMARY_SELECT } from '../../common/prisma/selects';
 
 @Injectable()
 export class AnalyticsService {
@@ -206,7 +207,7 @@ export class AnalyticsReadService {
     if (!ids.length) return [] as any;
     const variants = await this.prisma.productVariant.findMany({
       where: { id: { in: ids } },
-      select: { id: true, size: true, concentration: true, packaging: true, barcode: true, product: { select: { id: true, name: true } } },
+      select: PRODUCT_VARIANT_SUMMARY_SELECT,
     });
     const map = new Map(variants.map((v) => [v.id, v] as const));
     return list.map((e) => {

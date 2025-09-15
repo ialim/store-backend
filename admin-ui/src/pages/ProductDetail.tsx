@@ -253,6 +253,7 @@ export default function ProductDetail() {
         <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
           {productAssignments.map((a, i) => (
             <Chip key={`${a.facet?.id}_${a.value}_${i}`} label={`${a.facet?.name || a.facet?.code}: ${a.value}`} onDelete={async () => {
+              if (!window.confirm(`Remove facet \"${a.facet?.name || a.facet?.code}\": ${a.value}?`)) return;
               try {
                 await removeProductFacet({ variables: { productId: id, facetId: a.facet?.id, value: a.value } });
                 notify('Facet removed', 'info');

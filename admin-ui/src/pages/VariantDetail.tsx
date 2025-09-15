@@ -184,6 +184,7 @@ export default function VariantDetail() {
                 key={`${f.facet.id}_${i}`}
                 label={`${f.facet.name || f.facet.code}: ${f.value}`}
                 onDelete={async () => {
+                  if (!window.confirm(`Remove facet \"${f.facet.name || f.facet.code}\": ${f.value}?`)) return;
                   try {
                     await removeFacet({
                       variables: {

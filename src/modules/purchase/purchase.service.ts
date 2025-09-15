@@ -1449,14 +1449,7 @@ export class PurchaseService {
     const [variants, stores, catalogs] = await Promise.all([
       this.prisma.productVariant.findMany({
         where: { id: { in: variantIds } },
-        select: {
-          id: true,
-          size: true,
-          concentration: true,
-          packaging: true,
-          barcode: true,
-          product: { select: { id: true, name: true } },
-        },
+        select: PRODUCT_VARIANT_SUMMARY_SELECT,
       }),
       this.prisma.store.findMany({
         where: { id: { in: storeIds } },
