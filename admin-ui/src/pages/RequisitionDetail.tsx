@@ -4,6 +4,7 @@ import { notify } from '../shared/notify';
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import TableList from '../shared/TableList';
+import { Switch, FormControlLabel } from '@mui/material';
 
 const RFQ_DASH = gql`
   query RfqDashboard($id: String!) {
@@ -48,6 +49,8 @@ export default function RequisitionDetail() {
   const [selectQuote] = useMutation(SELECT_QUOTE);
   const [rejectQuote] = useMutation(REJECT_QUOTE);
   const [rejectReq, { loading: rejectingReq }] = useMutation(REJECT_REQ);
+  const hasSelected = quotes.some((q: any) => q.status === 'SELECTED');
+  const [nonExclusive, setNonExclusive] = React.useState(false);
   const exportCsv = ({ sorted }: { sorted: any[] }) => {
     const rows = (sorted?.length ? sorted : quotes).map((q: any) => [q.id, q.supplierId, q.status, q.validUntil || '', q.createdAt || '']);
     if (!rows.length) return;
@@ -98,16 +101,17 @@ export default function RequisitionDetail() {
               const reason = window.prompt('Reason for rejection (optional):') || undefined;
               try { await rejectReq({ variables: { id, reason } }); notify('Requisition rejected','info'); refetchDash(); refetchQuotes(); } catch (e: any) { notify(e?.message || 'Failed to reject requisition','error'); }
             }}>{rejectingReq ? 'Rejecting…' : 'Reject Requisition'}</Button>
+            <FormControlLabel control={<Switch checked={nonExclusive} onChange={(e) => setNonExclusive(e.target.checked)} />} label="Allow multiple (non-exclusive)" />
           </Stack>
           <TableList
             columns={[
               { key: 'supplierId', label: 'Supplier', render: (r: any) => r.supplierId, sort: true, filter: true },
-              { key: 'status', label: 'Status', render: (r: any) => r.status, sort: true, filter: true },
+              { key: 'status', label: 'Status', render: (r: any) => (r.status === 'SELECTED' ? <Chip size="small" color="success" label="SELECTED" /> : r.status), sort: true, filter: true },
               { key: 'validUntil', label: 'Valid Until', render: (r: any) => r.validUntil ? new Date(r.validUntil).toLocaleDateString() : '—', sort: true, accessor: (r: any) => new Date(r.validUntil || 0) },
               { key: 'createdAt', label: 'Created', render: (r: any) => new Date(r.createdAt).toLocaleString(), sort: true, accessor: (r: any) => new Date(r.createdAt || 0) },
               { key: 'actions', label: 'Actions', render: (r: any) => (
                 <Stack direction="row" spacing={1}>
-                  <Button size="small" disabled={r.status === 'SELECTED'} onClick={async () => { try { await selectQuote({ variables: { quoteId: r.id, exclusive: true } }); notify('Quote selected','success'); refetchDash(); refetchQuotes(); } catch (e: any) { notify(e?.message || 'Failed to select quote','error'); } }}>Select</Button>
+                  <Button size="small" disabled={r.status === 'SELECTED' || (hasSelected && !nonExclusive)} onClick={async () => { try { await selectQuote({ variables: { quoteId: r.id, exclusive: !nonExclusive } }); notify('Quote selected','success'); refetchDash(); refetchQuotes(); } catch (e: any) { notify(e?.message || 'Failed to select quote','error'); } }}>Select</Button>
                   <Button size="small" color="error" disabled={r.status === 'REJECTED'} onClick={async () => {
                     const reason = window.prompt('Reason for rejection (optional):') || undefined;
                     try { await rejectQuote({ variables: { quoteId: r.id, reason } }); notify('Quote rejected','info'); refetchDash(); refetchQuotes(); } catch (e: any) { notify(e?.message || 'Failed to reject quote','error'); }

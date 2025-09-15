@@ -12,6 +12,7 @@ const Signup = lazy(() => import('./pages/Signup'));
 const CompleteProfile = lazy(() => import('./pages/CompleteProfile'));
 const ApplyReseller = lazy(() => import('./pages/ApplyReseller'));
 const Suppliers = lazy(() => import('./pages/Suppliers'));
+const Requisitions = lazy(() => import('./pages/Requisitions'));
 const PurchaseOrders = lazy(() => import('./pages/PurchaseOrders'));
 const PurchaseOrderDetail = lazy(() => import('./pages/PurchaseOrderDetail'));
 const Products = lazy(() => import('./pages/Products'));
@@ -98,6 +99,15 @@ export default function App() {
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
                   element={<Suppliers />}
+                />
+              }
+            />
+            <Route
+              path="/requisitions"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<Requisitions />}
                 />
               }
             />
