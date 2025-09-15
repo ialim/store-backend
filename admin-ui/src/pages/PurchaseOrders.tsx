@@ -23,6 +23,10 @@ const POS_SEARCH = gql`
   query PurchaseOrdersSearch($q: String!) { purchaseOrdersSearch(q: $q) { id invoiceNumber status phase createdAt supplier { id name } } }
 `;
 
+const POS_COUNT = gql`
+  query PurchaseOrdersCount($status: String, $phase: String) { purchaseOrdersCount(status: $status, phase: $phase) }
+`;
+
 const UPDATE_STATUS = gql`
   mutation UpdatePOStatus($input: UpdatePurchaseOrderStatusInput!) {
     updatePurchaseOrderStatus(input: $input) { id status phase }
@@ -40,10 +44,12 @@ export default function PurchaseOrders() {
   const [query, setQuery] = React.useState<string>('');
   const [loadByStatus, byStatus] = useLazyQuery(POS_BY_STATUS);
   const [loadByPhase, byPhase] = useLazyQuery(POS_BY_PHASE);
+  const { data: countData, refetch: refetchCount } = useQuery(POS_COUNT, { variables: { status: status || null, phase: phase || null }, fetchPolicy: 'cache-and-network' });
   const [loadSearch, bySearch] = useLazyQuery(POS_SEARCH);
   const list = (bySearch.data?.purchaseOrdersSearch ?? byStatus.data?.purchaseOrdersByStatus ?? byPhase.data?.purchaseOrdersByPhase ?? data?.purchaseOrders) ?? [];
+  const total = countData?.purchaseOrdersCount ?? 0;
   const canPrev = page > 1 && !bySearch.data; // disable paging on search results for now
-  const canNext = !bySearch.data && list.length === take;
+  const canNext = !bySearch.data && skip + list.length < total;
   const navigate = useNavigate();
   return (
     <Stack spacing={2}>
@@ -70,10 +76,13 @@ export default function PurchaseOrders() {
             await loadSearch({ variables: { q: query.trim() } });
           } else if (status) {
             await loadByStatus({ variables: { status, take, skip } });
+            await refetchCount({ status, phase: null });
           } else if (phase) {
             await loadByPhase({ variables: { phase, take, skip } });
+            await refetchCount({ status: null, phase });
           } else {
             await refetch({ take, skip });
+            await refetchCount({ status: null, phase: null });
           }
         }}>Filter</Button>
         {(bySearch.error || byStatus.error || byPhase.error) && (

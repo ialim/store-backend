@@ -2270,6 +2270,7 @@ type Query {
   aggregateProductVariant(where: ProductVariantWhereInput, orderBy: [ProductVariantOrderByWithRelationInput!], cursor: ProductVariantWhereUniqueInput, take: Int, skip: Int, _count: ProductVariantCountAggregateInput, _avg: ProductVariantAvgAggregateInput, _sum: ProductVariantSumAggregateInput, _min: ProductVariantMinAggregateInput, _max: ProductVariantMaxAggregateInput): AggregateProductVariant!
   variantsByStore(storeId: String!, search: String): [ProductVariant!]!
   lowStockByStore(storeId: String!): [ProductVariant!]!
+  productVariantsCount(where: ProductVariantWhereInput): Int!
   suppliersForVariant(productVariantId: String!): [SupplierCatalogEntry!]!
   tierPricesForVariant(productVariantId: String!): [VariantTierPrice!]!
 
@@ -2295,6 +2296,7 @@ type Query {
   purchaseOrdersByStatus(status: String!, take: Int, skip: Int): [PurchaseOrder!]!
   purchaseOrdersByStatusEnum(status: PurchaseOrderStatus!): [PurchaseOrder!]!
   purchaseOrdersByPhase(phase: String!, take: Int, skip: Int): [PurchaseOrder!]!
+  purchaseOrdersCount(status: String, phase: String): Int!
   purchaseOrdersByPhaseEnum(phase: PurchasePhase!): [PurchaseOrder!]!
   purchaseOrdersOverdue: [PurchaseOrder!]!
   requisitionsByStatus(status: String!): [RequisitionSummary!]!

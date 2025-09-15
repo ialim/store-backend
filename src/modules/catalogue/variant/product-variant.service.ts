@@ -175,4 +175,8 @@ export class ProductVariantService extends BaseCrudService<
       data: { productId: null },
     });
   }
+
+  async count(where?: any) {
+    return (this.prisma as any).productVariant.count({ where });
+  }
 }

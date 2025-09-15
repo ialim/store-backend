@@ -148,6 +148,15 @@ export class PurchaseResolver {
     return this.purchaseService.purchaseOrdersByPhase(phase, take, skip);
   }
 
+  @Query(() => Int)
+  @UseGuards(GqlAuthGuard)
+  purchaseOrdersCount(
+    @Args('status', { nullable: true }) status?: string,
+    @Args('phase', { nullable: true }) phase?: string,
+  ) {
+    return this.purchaseService.purchaseOrdersCount(status, phase);
+  }
+
   @Query(() => [PurchaseOrder])
   @UseGuards(GqlAuthGuard)
   purchaseOrdersByPhaseEnum(

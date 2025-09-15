@@ -150,6 +150,13 @@ export class PurchaseService {
     });
   }
 
+  async purchaseOrdersCount(status?: string, phase?: string) {
+    const where: any = {};
+    if (status) where.status = status as any;
+    if (phase) where.phase = phase as any;
+    return this.prisma.purchaseOrder.count({ where });
+  }
+
   async purchaseOrdersOverdue() {
     const now = new Date();
     return this.prisma.purchaseOrder.findMany({

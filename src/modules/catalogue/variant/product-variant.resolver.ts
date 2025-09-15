@@ -15,7 +15,7 @@ import {
   DeleteManyProductVariantArgs,
 } from '../../../shared/prismagraphql/product-variant';
 import { AffectedRows } from '../../../shared/prismagraphql/prisma';
-import { Resolver, Query, Args, Mutation } from '@nestjs/graphql';
+import { Resolver, Query, Args, Mutation, Int } from '@nestjs/graphql';
 import { ProductVariantService } from './product-variant.service';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../../auth/guards/gql-auth.guard';
@@ -24,6 +24,7 @@ import { SupplierCatalogEntry } from '../../purchase/types/supplier-catalog-entr
 import { VariantTierPrice } from '../types/variant-tier-price.type';
 import { UpsertVariantTierPriceInput } from '../dto/upsert-variant-tier-price.input';
 import { LooseProductVariantInput, LinkVariantToProductInput, UnlinkVariantFromProductInput } from '../dto/loose-product-variant.input';
+import { ProductVariantWhereInput } from '../../../shared/prismagraphql/product-variant';
 @Resolver(() => ProductVariant)
 export class ProductVariantsResolver {
   constructor(private readonly ProductVariantService: ProductVariantService) {}
@@ -98,6 +99,12 @@ export class ProductVariantsResolver {
   @UseGuards(GqlAuthGuard)
   lowStockByStore(@Args('storeId') storeId: string) {
     return this.ProductVariantService.lowStockByStore(storeId);
+  }
+
+  @Query(() => Int)
+  @UseGuards(GqlAuthGuard)
+  productVariantsCount(@Args('where', { nullable: true }) where?: ProductVariantWhereInput) {
+    return this.ProductVariantService.count(where as any);
   }
 
   @Mutation(() => SupplierCatalogEntry)

@@ -45,6 +45,10 @@ const REMOVE_VARIANT_FACET = gql`
   }
 `;
 
+const VARIANTS_COUNT = gql`
+  query VariantsCount($where: ProductVariantWhereInput) { productVariantsCount(where: $where) }
+`;
+
 export default function Variants() {
   const auth = useAuth();
   const isManager = auth.hasRole('SUPERADMIN','ADMIN','MANAGER') || auth.hasPermission('MANAGE_PRODUCTS');
@@ -97,15 +101,17 @@ export default function Variants() {
   }, [q, filterFacetId, filterFacetValue, allFacets, gender, brand]);
   const skip = Math.max(0, (page - 1) * take);
   const { data, loading, error, refetch } = useQuery(VARIANTS, { variables: { take, skip, where }, fetchPolicy: 'cache-and-network' });
+  const { data: countData, refetch: refetchVariantCount } = useQuery(VARIANTS_COUNT, { variables: { where }, fetchPolicy: 'cache-and-network' });
   const list = data?.listProductVariants ?? [];
+  const total = countData?.productVariantsCount ?? 0;
   const canPrev = page > 1;
-  const canNext = list.length === take;
+  const canNext = skip + list.length < total;
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Variants</Typography>
       {error && <Alert severity="error" onClick={() => refetch()} sx={{ cursor: 'pointer' }}>{error.message} (click to retry)</Alert>}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-        <TextField label="Page size" type="number" size="small" value={take} onChange={(e) => { const v = Math.max(1, Number(e.target.value) || 50); setPage(1); setTake(v); }} sx={{ width: 120 }} />
+        <TextField label="Page size" type="number" size="small" value={take} onChange={(e) => { const v = Math.max(1, Number(e.target.value) || 50); setPage(1); setTake(v); refetch(); refetchVariantCount(); }} sx={{ width: 120 }} />
         <TextField label="Search (name/sku/barcode/product)" size="small" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') refetch(); }} />
         {(() => {
           const genderFacet = allFacets.find((f) => f.code.toLowerCase() === 'gender');
