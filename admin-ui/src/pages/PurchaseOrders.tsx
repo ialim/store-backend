@@ -5,13 +5,19 @@ import { Link, useNavigate } from 'react-router-dom';
 import TableList from '../shared/TableList';
 
 const POS = gql`
-  query PurchaseOrders { purchaseOrders { id invoiceNumber status phase createdAt supplier { id name } } }
+  query PurchaseOrders($take: Int, $skip: Int) {
+    purchaseOrders(take: $take, skip: $skip) { id invoiceNumber status phase createdAt supplier { id name } }
+  }
 `;
 const POS_BY_STATUS = gql`
-  query PurchaseOrdersByStatus($status: String!) { purchaseOrdersByStatus(status: $status) { id invoiceNumber status phase createdAt supplier { id name } } }
+  query PurchaseOrdersByStatus($status: String!, $take: Int, $skip: Int) {
+    purchaseOrdersByStatus(status: $status, take: $take, skip: $skip) { id invoiceNumber status phase createdAt supplier { id name } }
+  }
 `;
 const POS_BY_PHASE = gql`
-  query PurchaseOrdersByPhase($phase: String!) { purchaseOrdersByPhase(phase: $phase) { id invoiceNumber status phase createdAt supplier { id name } } }
+  query PurchaseOrdersByPhase($phase: String!, $take: Int, $skip: Int) {
+    purchaseOrdersByPhase(phase: $phase, take: $take, skip: $skip) { id invoiceNumber status phase createdAt supplier { id name } }
+  }
 `;
 const POS_SEARCH = gql`
   query PurchaseOrdersSearch($q: String!) { purchaseOrdersSearch(q: $q) { id invoiceNumber status phase createdAt supplier { id name } } }
@@ -24,7 +30,10 @@ const UPDATE_STATUS = gql`
 `;
 
 export default function PurchaseOrders() {
-  const { data, loading, error, refetch } = useQuery(POS, { fetchPolicy: 'cache-and-network' });
+  const [take, setTake] = React.useState(25);
+  const [page, setPage] = React.useState(1);
+  const skip = Math.max(0, (page - 1) * take);
+  const { data, loading, error, refetch } = useQuery(POS, { variables: { take, skip }, fetchPolicy: 'cache-and-network' });
   const [updateStatus] = useMutation(UPDATE_STATUS);
   const [status, setStatus] = React.useState<string>('');
   const [phase, setPhase] = React.useState<string>('');
@@ -33,6 +42,8 @@ export default function PurchaseOrders() {
   const [loadByPhase, byPhase] = useLazyQuery(POS_BY_PHASE);
   const [loadSearch, bySearch] = useLazyQuery(POS_SEARCH);
   const list = (bySearch.data?.purchaseOrdersSearch ?? byStatus.data?.purchaseOrdersByStatus ?? byPhase.data?.purchaseOrdersByPhase ?? data?.purchaseOrders) ?? [];
+  const canPrev = page > 1 && !bySearch.data; // disable paging on search results for now
+  const canNext = !bySearch.data && list.length === take;
   const navigate = useNavigate();
   return (
     <Stack spacing={2}>
@@ -58,16 +69,22 @@ export default function PurchaseOrders() {
           if (query.trim().length >= 2) {
             await loadSearch({ variables: { q: query.trim() } });
           } else if (status) {
-            await loadByStatus({ variables: { status } });
+            await loadByStatus({ variables: { status, take, skip } });
           } else if (phase) {
-            await loadByPhase({ variables: { phase } });
+            await loadByPhase({ variables: { phase, take, skip } });
           } else {
-            await refetch();
+            await refetch({ take, skip });
           }
         }}>Filter</Button>
         {(bySearch.error || byStatus.error || byPhase.error) && (
           <Alert severity="error">{bySearch.error?.message || byStatus.error?.message || byPhase.error?.message}</Alert>
         )}
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
+          <TextField size="small" label="Page size" type="number" value={take} onChange={(e) => { const v = Math.max(1, Number(e.target.value) || 25); setPage(1); setTake(v); }} sx={{ width: 120 }} />
+          <Button size="small" disabled={!canPrev} onClick={async () => { if (!canPrev) return; const p = Math.max(1, page - 1); setPage(p); const s = (p - 1) * take; if (status) await loadByStatus({ variables: { status, take, skip: s } }); else if (phase) await loadByPhase({ variables: { phase, take, skip: s } }); else await refetch({ take, skip: s }); }}>Prev</Button>
+          <Typography variant="body2">Page {page}</Typography>
+          <Button size="small" disabled={!canNext} onClick={async () => { if (!canNext) return; const p = page + 1; setPage(p); const s = (p - 1) * take; if (status) await loadByStatus({ variables: { status, take, skip: s } }); else if (phase) await loadByPhase({ variables: { phase, take, skip: s } }); else await refetch({ take, skip: s }); }}>Next</Button>
+        </Stack>
       </Stack>
       <TableList
         columns={React.useMemo(() => ([

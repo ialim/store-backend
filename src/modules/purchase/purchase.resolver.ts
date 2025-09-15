@@ -82,8 +82,11 @@ export class PurchaseResolver {
 
   @Query(() => [PurchaseOrder])
   @UseGuards(GqlAuthGuard)
-  purchaseOrders() {
-    return this.purchaseService.purchaseOrders();
+  purchaseOrders(
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    return this.purchaseService.purchaseOrders(take, skip);
   }
 
   @Query(() => PurchaseOrder)
@@ -116,8 +119,12 @@ export class PurchaseResolver {
 
   @Query(() => [PurchaseOrder])
   @UseGuards(GqlAuthGuard)
-  purchaseOrdersByStatus(@Args('status') status: string) {
-    return this.purchaseService.purchaseOrdersByStatus(status);
+  purchaseOrdersByStatus(
+    @Args('status') status: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    return this.purchaseService.purchaseOrdersByStatus(status, take, skip);
   }
 
   @Query(() => [PurchaseOrder])
@@ -133,8 +140,12 @@ export class PurchaseResolver {
 
   @Query(() => [PurchaseOrder])
   @UseGuards(GqlAuthGuard)
-  purchaseOrdersByPhase(@Args('phase') phase: string) {
-    return this.purchaseService.purchaseOrdersByPhase(phase);
+  purchaseOrdersByPhase(
+    @Args('phase') phase: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    return this.purchaseService.purchaseOrdersByPhase(phase, take, skip);
   }
 
   @Query(() => [PurchaseOrder])

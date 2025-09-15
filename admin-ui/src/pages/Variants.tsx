@@ -6,8 +6,8 @@ import React from 'react';
 import TableList from '../shared/TableList';
 
 const VARIANTS = gql`
-  query Variants($take: Int, $where: ProductVariantWhereInput) {
-    listProductVariants(take: $take, where: $where) {
+  query Variants($take: Int, $skip: Int, $where: ProductVariantWhereInput) {
+    listProductVariants(take: $take, skip: $skip, where: $where) {
       id
       name
       size
@@ -50,6 +50,7 @@ export default function Variants() {
   const isManager = auth.hasRole('SUPERADMIN','ADMIN','MANAGER') || auth.hasPermission('MANAGE_PRODUCTS');
   const navigate = useNavigate();
   const [take, setTake] = React.useState(50);
+  const [page, setPage] = React.useState(1);
   const [q, setQ] = React.useState('');
   // Facet filters
   const { data: facetsData } = useQuery(FACETS, { fetchPolicy: 'cache-first' });
@@ -94,14 +95,17 @@ export default function Variants() {
     }
     return Object.keys(w).length ? w : undefined;
   }, [q, filterFacetId, filterFacetValue, allFacets, gender, brand]);
-  const { data, loading, error, refetch } = useQuery(VARIANTS, { variables: { take, where }, fetchPolicy: 'cache-and-network' });
+  const skip = Math.max(0, (page - 1) * take);
+  const { data, loading, error, refetch } = useQuery(VARIANTS, { variables: { take, skip, where }, fetchPolicy: 'cache-and-network' });
   const list = data?.listProductVariants ?? [];
+  const canPrev = page > 1;
+  const canNext = list.length === take;
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Variants</Typography>
       {error && <Alert severity="error" onClick={() => refetch()} sx={{ cursor: 'pointer' }}>{error.message} (click to retry)</Alert>}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-        <TextField label="Take" type="number" size="small" value={take} onChange={(e) => setTake(Number(e.target.value) || 50)} sx={{ width: 120 }} />
+        <TextField label="Page size" type="number" size="small" value={take} onChange={(e) => { const v = Math.max(1, Number(e.target.value) || 50); setPage(1); setTake(v); }} sx={{ width: 120 }} />
         <TextField label="Search (name/sku/barcode/product)" size="small" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') refetch(); }} />
         {(() => {
           const genderFacet = allFacets.find((f) => f.code.toLowerCase() === 'gender');
@@ -137,6 +141,11 @@ export default function Variants() {
             <TextField size="small" label="Value" value={filterFacetValue} onChange={(e) => setFilterFacetValue(e.target.value)} />
           );
         })()}
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
+          <Button size="small" disabled={!canPrev} onClick={async () => { if (!canPrev) return; const p = Math.max(1, page - 1); setPage(p); await refetch({ take, skip: (p - 1) * take, where }); }}>Prev</Button>
+          <Typography variant="body2">Page {page}</Typography>
+          <Button size="small" disabled={!canNext} onClick={async () => { if (!canNext) return; const p = page + 1; setPage(p); await refetch({ take, skip: (p - 1) * take, where }); }}>Next</Button>
+        </Stack>
       </Stack>
       <TableList
         columns={[

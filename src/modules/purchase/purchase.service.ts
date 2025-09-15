@@ -118,29 +118,35 @@ export class PurchaseService {
   }
 
   // Purchase Orders
-  async purchaseOrders() {
+  async purchaseOrders(take?: number, skip?: number) {
     return this.prisma.purchaseOrder.findMany({
       include: {
         items: true,
         supplier: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
+      take: take ?? undefined,
+      skip: skip ?? undefined,
     });
   }
 
-  async purchaseOrdersByStatus(status: string) {
+  async purchaseOrdersByStatus(status: string, take?: number, skip?: number) {
     return this.prisma.purchaseOrder.findMany({
       where: { status: status as any },
       include: { items: true, supplier: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
+      take: take ?? undefined,
+      skip: skip ?? undefined,
     });
   }
 
-  async purchaseOrdersByPhase(phase: string) {
+  async purchaseOrdersByPhase(phase: string, take?: number, skip?: number) {
     return this.prisma.purchaseOrder.findMany({
       where: { phase: phase as any },
       include: { items: true, supplier: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
+      take: take ?? undefined,
+      skip: skip ?? undefined,
     });
   }
 

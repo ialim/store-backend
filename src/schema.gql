@@ -2289,12 +2289,12 @@ type Query {
   resellerProfile(userId: String!): ResellerProfile
   suppliers: [Supplier!]!
   supplier(id: String!): Supplier!
-  purchaseOrders: [PurchaseOrder!]!
+  purchaseOrders(take: Int, skip: Int): [PurchaseOrder!]!
   purchaseOrder(id: String!): PurchaseOrder!
   supplierPayments: [SupplierPayment!]!
-  purchaseOrdersByStatus(status: String!): [PurchaseOrder!]!
+  purchaseOrdersByStatus(status: String!, take: Int, skip: Int): [PurchaseOrder!]!
   purchaseOrdersByStatusEnum(status: PurchaseOrderStatus!): [PurchaseOrder!]!
-  purchaseOrdersByPhase(phase: String!): [PurchaseOrder!]!
+  purchaseOrdersByPhase(phase: String!, take: Int, skip: Int): [PurchaseOrder!]!
   purchaseOrdersByPhaseEnum(phase: PurchasePhase!): [PurchaseOrder!]!
   purchaseOrdersOverdue: [PurchaseOrder!]!
   requisitionsByStatus(status: String!): [RequisitionSummary!]!
