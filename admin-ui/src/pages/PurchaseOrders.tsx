@@ -59,6 +59,27 @@ export default function PurchaseOrders() {
   const rangeStart = total > 0 ? Math.min(total, skip + 1) : 0;
   const rangeEnd = total > 0 ? Math.min(total, skip + list.length) : 0;
   const navigate = useNavigate();
+  // Debounced search when only query is used (no status/phase active)
+  React.useEffect(() => {
+    const q = query.trim();
+    if (!status && !phase) {
+      const h = setTimeout(async () => {
+        if (q.length >= 2) {
+          setMode('search');
+          setPage(1);
+          await loadSearch({ variables: { q, take, skip: 0 } });
+          await loadSearchCount({ variables: { q } });
+        } else if (mode === 'search') {
+          setMode('all');
+          setPage(1);
+          await refetch({ take, skip: 0 });
+          await refetchCount({ status: null, phase: null });
+        }
+      }, 300);
+      return () => clearTimeout(h);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, status, phase, take]);
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Purchase Orders</Typography>
@@ -101,6 +122,11 @@ export default function PurchaseOrders() {
         {(bySearch.error || byStatus.error || byPhase.error) && (
           <Alert severity="error">{bySearch.error?.message || byStatus.error?.message || byPhase.error?.message}</Alert>
         )}
+        <Button variant="text" onClick={async () => {
+          setQuery(''); setStatus(''); setPhase(''); setPage(1); setMode('all');
+          await refetch({ take, skip: 0 });
+          await refetchCount({ status: null, phase: null });
+        }}>Clear</Button>
         <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
           <TextField size="small" label="Page size" type="number" value={take} onChange={(e) => { const v = Math.max(1, Number(e.target.value) || 25); setPage(1); setTake(v); }} sx={{ width: 120 }} />
           <Button size="small" disabled={!canPrev} onClick={async () => {

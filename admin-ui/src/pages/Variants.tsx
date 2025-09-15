@@ -108,6 +108,16 @@ export default function Variants() {
   const canNext = skip + list.length < total;
   const rangeStart = total > 0 ? Math.min(total, skip + 1) : 0;
   const rangeEnd = total > 0 ? Math.min(total, skip + list.length) : 0;
+  // Debounced search on text input; rely on where dependency
+  React.useEffect(() => {
+    const h = setTimeout(async () => {
+      setPage(1);
+      await refetch({ take, skip: 0, where });
+      await refetchVariantCount({ where });
+    }, 300);
+    return () => clearTimeout(h);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, filterFacetId, filterFacetValue, gender, brand, take]);
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Variants</Typography>
@@ -149,6 +159,11 @@ export default function Variants() {
             <TextField size="small" label="Value" value={filterFacetValue} onChange={(e) => setFilterFacetValue(e.target.value)} />
           );
         })()}
+        <Button variant="text" onClick={async () => {
+          setQ(''); setFilterFacetId(''); setFilterFacetValue(''); setGender(''); setBrand(''); setPage(1);
+          await refetch({ take, skip: 0, where: undefined });
+          await refetchVariantCount({ where: undefined });
+        }}>Clear</Button>
         <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
           <Button size="small" disabled={!canPrev} onClick={async () => { if (!canPrev) return; const p = Math.max(1, page - 1); setPage(p); await refetch({ take, skip: (p - 1) * take, where }); }}>Prev</Button>
           <Typography variant="body2">Page {page}</Typography>
