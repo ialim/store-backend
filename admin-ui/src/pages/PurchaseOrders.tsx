@@ -56,6 +56,8 @@ export default function PurchaseOrders() {
   const total = mode === 'search' ? searchTotal : baseTotal;
   const canPrev = page > 1;
   const canNext = skip + list.length < total;
+  const rangeStart = total > 0 ? Math.min(total, skip + 1) : 0;
+  const rangeEnd = total > 0 ? Math.min(total, skip + list.length) : 0;
   const navigate = useNavigate();
   return (
     <Stack spacing={2}>
@@ -122,6 +124,7 @@ export default function PurchaseOrders() {
             else if (mode === 'phase') await loadByPhase({ variables: { phase, take, skip: s } });
             else await refetch({ take, skip: s });
           }}>Next</Button>
+          <Typography variant="body2" sx={{ ml: 1, minWidth: 110, textAlign: 'right' }}>{total ? `${rangeStart}–${rangeEnd} of ${total}` : '0 of 0'}</Typography>
         </Stack>
       </Stack>
       <TableList

@@ -106,6 +106,8 @@ export default function Variants() {
   const total = countData?.productVariantsCount ?? 0;
   const canPrev = page > 1;
   const canNext = skip + list.length < total;
+  const rangeStart = total > 0 ? Math.min(total, skip + 1) : 0;
+  const rangeEnd = total > 0 ? Math.min(total, skip + list.length) : 0;
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Variants</Typography>
@@ -151,6 +153,7 @@ export default function Variants() {
           <Button size="small" disabled={!canPrev} onClick={async () => { if (!canPrev) return; const p = Math.max(1, page - 1); setPage(p); await refetch({ take, skip: (p - 1) * take, where }); }}>Prev</Button>
           <Typography variant="body2">Page {page}</Typography>
           <Button size="small" disabled={!canNext} onClick={async () => { if (!canNext) return; const p = page + 1; setPage(p); await refetch({ take, skip: (p - 1) * take, where }); }}>Next</Button>
+          <Typography variant="body2" sx={{ ml: 1, minWidth: 110, textAlign: 'right' }}>{total ? `${rangeStart}–${rangeEnd} of ${total}` : '0 of 0'}</Typography>
         </Stack>
       </Stack>
       <TableList
