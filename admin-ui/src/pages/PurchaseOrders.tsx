@@ -29,6 +29,10 @@ const POS_COUNT = gql`
   query PurchaseOrdersCount($status: String, $phase: String) { purchaseOrdersCount(status: $status, phase: $phase) }
 `;
 
+const POS_SEARCH_COUNT = gql`
+  query PurchaseOrdersSearchCount($q: String!) { purchaseOrdersSearchCount(q: $q) }
+`;
+
 const UPDATE_STATUS = gql`
   mutation UpdatePOStatus($input: UpdatePurchaseOrderStatusInput!) {
     updatePurchaseOrderStatus(input: $input) { id status phase }
@@ -191,9 +195,6 @@ export default function PurchaseOrders() {
                   try { await updateStatus({ variables: { input: { id: po.id, status } } }); await refetch(); } catch {}
                 }}
               >
-const POS_SEARCH_COUNT = gql`
-  query PurchaseOrdersSearchCount($q: String!) { purchaseOrdersSearchCount(q: $q) }
-`;
                 {['DRAFT','APPROVED','SENT','RECEIVED','CANCELLED'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
               </Select>
             </FormControl>

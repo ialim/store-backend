@@ -27,6 +27,7 @@ const Support = lazy(() => import('./pages/Support'));
 const Staff = lazy(() => import('./pages/Staff'));
 const ReceiveStock = lazy(() => import('./pages/ReceiveStock'));
 const SupplierPayments = lazy(() => import('./pages/SupplierPayments'));
+const SupplierAging = lazy(() => import('./pages/SupplierAging'));
 const SupplierStatement = lazy(() => import('./pages/SupplierStatement'));
 import NotFound from './pages/NotFound';
 const Forbidden = lazy(() => import('./pages/Forbidden'));
@@ -331,6 +332,15 @@ export default function App() {
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT']}
                   element={<SupplierPayments />}
+                />
+              }
+            />
+            <Route
+              path="/supplier-aging"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT']}
+                  element={<SupplierAging />}
                 />
               }
             />

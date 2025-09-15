@@ -154,6 +154,7 @@ export class PurchaseService {
     return this.prisma.purchaseOrder.findMany({
       where: { supplierId },
       orderBy: { createdAt: 'asc' },
+      include: { payments: { select: { id: true, amount: true, paymentDate: true, method: true } } },
       take: take ?? undefined,
       skip: skip ?? undefined,
     });
