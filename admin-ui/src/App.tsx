@@ -43,6 +43,7 @@ const Variants = lazy(() => import('./pages/Variants'));
 const VariantDetail = lazy(() => import('./pages/VariantDetail'));
 const DevDbTools = lazy(() => import('./pages/DevDbTools'));
 const Facets = lazy(() => import('./pages/Facets'));
+const RequisitionDetail = lazy(() => import('./pages/RequisitionDetail'));
 
 export default function App() {
   return (
@@ -172,6 +173,15 @@ export default function App() {
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
                   element={<InvoiceImportDetail />}
+                />
+              }
+            />
+            <Route
+              path="/requisitions/:id"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<RequisitionDetail />}
                 />
               }
             />
