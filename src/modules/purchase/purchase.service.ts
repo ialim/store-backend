@@ -209,6 +209,13 @@ export class PurchaseService {
     });
   }
 
+  async requisitionSummary(id: string) {
+    return this.prisma.purchaseRequisition.findUnique({
+      where: { id },
+      select: { id: true, storeId: true, requestedById: true, status: true, createdAt: true },
+    });
+  }
+
   async supplierQuotesByRequisition(requisitionId: string) {
     return this.prisma.supplierQuote.findMany({
       where: { requisitionId },

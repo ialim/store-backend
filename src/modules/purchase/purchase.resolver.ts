@@ -210,6 +210,13 @@ export class PurchaseResolver {
     return this.purchaseService.supplierQuotesByRequisition(requisitionId);
   }
 
+  @Query(() => RequisitionSummary, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  purchaseRequisitionSummary(@Args('id') id: string) {
+    return this.purchaseService.requisitionSummary(id);
+  }
+
   // Supplier Catalog
   @Mutation(() => SupplierCatalogEntry)
   @UseGuards(GqlAuthGuard, RolesGuard)

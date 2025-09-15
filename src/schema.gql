@@ -2303,6 +2303,7 @@ type Query {
   purchaseOrdersOverdue: [PurchaseOrder!]!
   requisitionsByStatus(status: String!): [RequisitionSummary!]!
   supplierQuotesByRequisition(requisitionId: String!): [SupplierQuoteSummary!]!
+  purchaseRequisitionSummary(id: String!): RequisitionSummary
   supplierCatalogBySupplier(supplierId: String!): [SupplierCatalogEntry!]!
   supplierCatalogByVariant(productVariantId: String!): [SupplierCatalogEntry!]!
   requisitionsWithNoSubmittedQuotes: [RequisitionSummary!]!

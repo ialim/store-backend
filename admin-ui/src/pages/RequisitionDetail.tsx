@@ -15,6 +15,7 @@ const RFQ_DASH = gql`
       total
       pendingQuotes { id requisitionId supplierId status validUntil createdAt }
     }
+    purchaseRequisitionSummary(id: $id) { id status createdAt }
   }
 `;
 
@@ -40,6 +41,7 @@ export default function RequisitionDetail() {
   const { data: dashData, loading: dashLoading, error: dashError, refetch: refetchDash } = useQuery(RFQ_DASH, { variables: { id }, skip: !id, fetchPolicy: 'cache-and-network' });
   const { data: qData, loading: qLoading, error: qError, refetch: refetchQuotes } = useQuery(QUOTES, { variables: { id }, skip: !id, fetchPolicy: 'cache-and-network' });
   const dash = dashData?.rfqDashboard;
+  const reqSummary = dashData?.purchaseRequisitionSummary;
   const quotes = qData?.supplierQuotesByRequisition ?? [];
   const [issuePref, { loading: issuing }] = useMutation(ISSUE_PREF);
   const [selectQuote] = useMutation(SELECT_QUOTE);
@@ -59,7 +61,7 @@ export default function RequisitionDetail() {
       {(dashError || qError) && <Alert severity="error">{dashError?.message || qError?.message}</Alert>}
       <Card>
         <CardContent>
-          <Typography variant="subtitle1">RFQ Status</Typography>
+          <Typography variant="subtitle1">RFQ Status {reqSummary?.status ? `• ${reqSummary.status}` : ''}</Typography>
           {dashLoading ? (
             <Typography color="text.secondary">Loading…</Typography>
           ) : dash ? (
@@ -83,6 +85,14 @@ export default function RequisitionDetail() {
       <Card>
         <CardContent>
           <Typography variant="subtitle1">Supplier Quotes</Typography>
+          <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+            <Button size="small" variant="outlined" disabled={reqSummary?.status !== 'DRAFT'} onClick={async () => {
+              try { await (refetchDash as any).client.mutate({ mutation: gql`mutation($id: String!) { submitPurchaseRequisition(input: { id: $id }) }`, variables: { id } }); notify('Requisition submitted','success'); refetchDash(); } catch (e: any) { notify(e?.message || 'Failed to submit requisition','error'); }
+            }}>Submit Requisition</Button>
+            <Button size="small" variant="outlined" disabled={reqSummary?.status !== 'SUBMITTED'} onClick={async () => {
+              try { await (refetchDash as any).client.mutate({ mutation: gql`mutation($id: String!) { approvePurchaseRequisition(input: { id: $id }) }`, variables: { id } }); notify('Requisition approved','success'); refetchDash(); } catch (e: any) { notify(e?.message || 'Failed to approve requisition','error'); }
+            }}>Approve Requisition</Button>
+          </Stack>
           <TableList
             columns={[
               { key: 'supplierId', label: 'Supplier', render: (r: any) => r.supplierId, sort: true, filter: true },
