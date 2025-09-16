@@ -5673,7 +5673,7 @@ type Mutation {
   updateCollection(input: UpdateCollectionInput!): CollectionGQL!
   deleteCollection(id: String!): Boolean!
   markAsRead(id: String!): Notification!
-  processOutbox(limit: Int, type: String, status: String): Int!
+  processOutbox(limit: Int, type: String, status: OutboxStatus): Int!
   retryOutboxFailed(limit: Int, type: String): Int!
   signupCustomer(input: CreateUserInput!): AuthResponse!
   completeCustomerProfile(input: UpdateCustomerProfileInput!): CustomerProfile!

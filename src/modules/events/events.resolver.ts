@@ -1,11 +1,4 @@
-import {
-  Resolver,
-  Mutation,
-  Args,
-  Query,
-  Int,
-  registerEnumType,
-} from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Query, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -17,9 +10,8 @@ import { OutboxTypeCount } from './types/outbox-type-count.type';
 import { OutboxDayStatus } from './types/outbox-day-status.type';
 import { GraphQLISODateTime } from '@nestjs/graphql';
 import { OutboxEvent } from '../../shared/prismagraphql/outbox-event/outbox-event.model';
-import { OutboxStatus, Prisma } from '@prisma/client';
-
-registerEnumType(OutboxStatus, { name: 'OutboxStatus' });
+import { OutboxStatus as PrismaOutboxStatus, Prisma } from '@prisma/client';
+import { OutboxStatus as GqlOutboxStatus } from '../../shared/prismagraphql/prisma/outbox-status.enum';
 
 @Resolver()
 export class EventsResolver {
@@ -34,8 +26,8 @@ export class EventsResolver {
   processOutbox(
     @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     @Args('type', { nullable: true }) type?: string,
-    @Args('status', { type: () => OutboxStatus, nullable: true })
-    status?: OutboxStatus,
+    @Args('status', { type: () => GqlOutboxStatus, nullable: true })
+    status?: PrismaOutboxStatus,
   ) {
     return this.dispatcher.runOnce({ limit, type, status });
   }
@@ -45,9 +37,15 @@ export class EventsResolver {
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
   async outboxStatus() {
     const [pending, failed, published] = await Promise.all([
-      this.prisma.outboxEvent.count({ where: { status: OutboxStatus.PENDING } }),
-      this.prisma.outboxEvent.count({ where: { status: OutboxStatus.FAILED } }),
-      this.prisma.outboxEvent.count({ where: { status: OutboxStatus.PUBLISHED } }),
+      this.prisma.outboxEvent.count({
+        where: { status: PrismaOutboxStatus.PENDING },
+      }),
+      this.prisma.outboxEvent.count({
+        where: { status: PrismaOutboxStatus.FAILED },
+      }),
+      this.prisma.outboxEvent.count({
+        where: { status: PrismaOutboxStatus.PUBLISHED },
+      }),
     ]);
     return { pending, failed, published } as OutboxStatusCounts;
   }
@@ -67,19 +65,19 @@ export class EventsResolver {
         orderBy: { type: 'asc' },
         take: 50,
       });
-      list = distinct.map((d) => d.type).filter(Boolean) as string[];
+      list = distinct.map((d) => d.type).filter((v): v is string => Boolean(v));
     }
     const results: OutboxTypeCount[] = [];
     for (const t of list) {
       const [pending, failed, published] = await Promise.all([
         this.prisma.outboxEvent.count({
-          where: { type: t, status: OutboxStatus.PENDING },
+          where: { type: t, status: PrismaOutboxStatus.PENDING },
         }),
         this.prisma.outboxEvent.count({
-          where: { type: t, status: OutboxStatus.FAILED },
+          where: { type: t, status: PrismaOutboxStatus.FAILED },
         }),
         this.prisma.outboxEvent.count({
-          where: { type: t, status: OutboxStatus.PUBLISHED },
+          where: { type: t, status: PrismaOutboxStatus.PUBLISHED },
         }),
       ]);
       results.push({ type: t, pending, failed, published });
@@ -130,7 +128,7 @@ export class EventsResolver {
     @Args('type', { nullable: true }) type?: string,
   ) {
     const where: Prisma.OutboxEventWhereInput = {
-      status: OutboxStatus.FAILED,
+      status: PrismaOutboxStatus.FAILED,
       ...(type ? { type } : {}),
     };
     return this.prisma.outboxEvent.findMany({
@@ -148,7 +146,7 @@ export class EventsResolver {
     @Args('type', { nullable: true }) type?: string,
   ) {
     const where: Prisma.OutboxEventWhereInput = {
-      status: OutboxStatus.FAILED,
+      status: PrismaOutboxStatus.FAILED,
       ...(type ? { type } : {}),
     };
     const failed = await this.prisma.outboxEvent.findMany({
@@ -161,7 +159,7 @@ export class EventsResolver {
     const results = await this.prisma.outboxEvent.updateMany({
       where: { id: { in: ids } },
       data: {
-        status: OutboxStatus.PENDING,
+        status: PrismaOutboxStatus.PENDING,
         lastError: null,
         deliverAfter: null,
       },
