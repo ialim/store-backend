@@ -1,5 +1,5 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { GraphQLISODateTime } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
@@ -82,11 +82,11 @@ export class PaymentResolver {
     const [cAgg, rAgg] = await Promise.all([
       this.prisma.consumerPayment.aggregate({
         _sum: { amount: true },
-        where: { saleOrderId, status: Prisma.$Enums.PaymentStatus.CONFIRMED },
+        where: { saleOrderId, status: Prisma.PaymentStatus.CONFIRMED },
       }),
       this.prisma.resellerPayment.aggregate({
         _sum: { amount: true },
-        where: { saleOrderId, status: Prisma.$Enums.PaymentStatus.CONFIRMED },
+        where: { saleOrderId, status: Prisma.PaymentStatus.CONFIRMED },
       }),
     ]);
     const consumerPaid = cAgg._sum.amount || 0;
