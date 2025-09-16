@@ -123,3 +123,9 @@ export const ResellerProfile = gql`
     }
   }
 `;
+
+export const ApplyReseller = gql`
+  mutation ApplyReseller($input: ApplyResellerInput!) {
+    applyReseller(input: $input) { userId profileStatus }
+  }
+`;
