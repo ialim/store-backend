@@ -22,6 +22,7 @@ import { ReturnsModule } from './modules/returns/returns.module';
 import { SupportModule } from './modules/support/support.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { DevToolsModule } from './modules/devtools/devtools.module';
+import { HealthController } from './modules/health/health.controller';
 
 @Module({
   imports: [
@@ -52,5 +53,6 @@ import { DevToolsModule } from './modules/devtools/devtools.module';
     UploadsModule,
     DevToolsModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}
