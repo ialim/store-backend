@@ -1,4 +1,5 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
+import type { Prisma } from '@prisma/client';
 import { GraphQLISODateTime } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
