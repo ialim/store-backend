@@ -22,8 +22,10 @@ export default function Analytics() {
       : useTopSellingVariantsDetailedQuery({ variables: varsTop, fetchPolicy: 'cache-and-network' as any })
   );
 
-  const s = sum?.monthlySalesSummary || sum?.monthlySalesSummaryByStore;
-  const list = (top?.topSellingVariantsDetailed || top?.topSellingVariantsByStore) ?? [];
+  // TypeScript union from conditional hook makes `sum`/`top` a union of two result shapes.
+  // Cast to any for concise access to either field name.
+  const s = (sum as any)?.monthlySalesSummary ?? (sum as any)?.monthlySalesSummaryByStore;
+  const list = ((top as any)?.topSellingVariantsDetailed ?? (top as any)?.topSellingVariantsByStore) ?? [];
 
   return (
     <Stack spacing={2}>
