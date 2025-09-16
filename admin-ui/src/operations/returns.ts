@@ -5,9 +5,15 @@ export const SalesReturnsByStore = gql`
 `;
 
 export const PurchaseReturnsBySupplier = gql`
-  query PurchaseReturnsBySupplier($supplierId: String!) { purchaseReturnsBySupplier(supplierId: $supplierId) { id status createdAt purchaseOrderId supplierId } }
+  query PurchaseReturnsBySupplier($supplierId: String!) {
+    purchaseReturnsBySupplier(supplierId: $supplierId) {
+      id
+      status
+      createdAt
+      supplierId
+    }
+  }
 `;
 
 export const UpdateSalesReturn = gql`mutation UpdateSalesReturn($input: UpdateSalesReturnStatusInput!) { updateSalesReturnStatus(input: $input) }`;
 export const FulfillPurchaseReturn = gql`mutation FulfillPurchaseReturn($input: FulfillPurchaseReturnInput!) { fulfillPurchaseReturn(input: $input) }`;
-
