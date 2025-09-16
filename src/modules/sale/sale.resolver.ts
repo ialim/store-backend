@@ -30,10 +30,14 @@ import { BillerConvertQuotationInput } from './dto/biller-convert-quotation.inpu
 import { FulfillConsumerSaleInput } from './dto/fulfill-consumer-sale.input';
 import { SaleOrder } from '../../shared/prismagraphql/sale-order/sale-order.model';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Resolver()
 export class SalesResolver {
-  constructor(private readonly salesService: SalesService, private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly salesService: SalesService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   // Quotation flow
   // NOTE: Quotation/order mutations are now available under OrderResolver as well.
@@ -139,14 +143,20 @@ export class SalesResolver {
     return this.salesService.confirmResellerPayment(paymentId);
   }
 
-  @Mutation(() => Fulfillment, { description: 'Assign delivery personnel to a fulfillment and set status to ASSIGNED' })
+  @Mutation(() => Fulfillment, {
+    description:
+      'Assign delivery personnel to a fulfillment and set status to ASSIGNED',
+  })
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   createFulfillment(@Args('input') input: CreateFulfillmentInput) {
     return this.salesService.createFulfillment(input);
   }
 
-  @Mutation(() => Fulfillment, { description: 'Update fulfillment status (ASSIGNED, IN_TRANSIT, DELIVERED, CANCELLED). If DELIVERED and a PIN is set, confirmationPin is required.' })
+  @Mutation(() => Fulfillment, {
+    description:
+      'Update fulfillment status (ASSIGNED, IN_TRANSIT, DELIVERED, CANCELLED). If DELIVERED and a PIN is set, confirmationPin is required.',
+  })
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('MANAGER', 'ADMIN', 'SUPERADMIN')
   assignFulfillmentPersonnel(
@@ -158,9 +168,7 @@ export class SalesResolver {
   @Mutation(() => Fulfillment)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('MANAGER', 'ADMIN', 'SUPERADMIN')
-  updateFulfillmentStatus(
-    @Args('input') input: UpdateFulfillmentStatusInput,
-  ) {
+  updateFulfillmentStatus(@Args('input') input: UpdateFulfillmentStatusInput) {
     return this.salesService.updateFulfillmentStatus(input);
   }
 
@@ -182,9 +190,13 @@ export class SalesResolver {
     @Args('order', { nullable: true }) order?: 'asc' | 'desc',
     @Args('cursorId', { nullable: true }) cursorId?: string,
   ) {
-    const where: any = { CustomerProfile: { some: { userId: customerId } } };
-    const orderBy: any = { createdAt: order === 'asc' ? 'asc' : 'desc' };
-    const args: any = {
+    const where: Prisma.ConsumerSaleWhereInput = {
+      CustomerProfile: { some: { userId: customerId } },
+    };
+    const orderBy: Prisma.ConsumerSaleOrderByWithRelationInput = {
+      createdAt: order === 'asc' ? 'asc' : 'desc',
+    };
+    const args: Prisma.ConsumerSaleFindManyArgs = {
       where,
       orderBy,
       take: take ?? 20,
@@ -196,7 +208,7 @@ export class SalesResolver {
       // When using cursor pagination, skip the cursor row itself by default
       if (!skip) args.skip = 1;
     }
-    return this.prisma.consumerSale.findMany(args) as any;
+    return this.prisma.consumerSale.findMany(args);
   }
 
   @Query(() => [ConsumerReceipt])
@@ -209,9 +221,13 @@ export class SalesResolver {
     @Args('order', { nullable: true }) order?: 'asc' | 'desc',
     @Args('cursorId', { nullable: true }) cursorId?: string,
   ) {
-    const where: any = { sale: { CustomerProfile: { some: { userId: customerId } } as any } };
-    const orderBy: any = { issuedAt: order === 'asc' ? 'asc' : 'desc' };
-    const args: any = {
+    const where: Prisma.ConsumerReceiptWhereInput = {
+      sale: { CustomerProfile: { some: { userId: customerId } } },
+    };
+    const orderBy: Prisma.ConsumerReceiptOrderByWithRelationInput = {
+      issuedAt: order === 'asc' ? 'asc' : 'desc',
+    };
+    const args: Prisma.ConsumerReceiptFindManyArgs = {
       where,
       orderBy,
       take: take ?? 20,
@@ -221,6 +237,6 @@ export class SalesResolver {
       args.cursor = { id: cursorId };
       if (!skip) args.skip = 1;
     }
-    return this.prisma.consumerReceipt.findMany(args) as any;
+    return this.prisma.consumerReceipt.findMany(args);
   }
 }

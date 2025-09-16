@@ -9,7 +9,13 @@ import { AnalyticsModule } from '../analytics/analytics.module';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 @Module({
-  imports: [NotificationModule, AuthModule, EventsModule, PaymentModule, AnalyticsModule],
+  imports: [
+    NotificationModule,
+    AuthModule,
+    EventsModule,
+    PaymentModule,
+    AnalyticsModule,
+  ],
   providers: [SalesResolver, SalesService, PrismaService],
   exports: [SalesService],
 })

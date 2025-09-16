@@ -8,4 +8,3 @@ import { EventsModule } from '../events/events.module';
   providers: [SupportService, SupportResolver],
 })
 export class SupportModule {}
-

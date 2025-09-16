@@ -14,4 +14,3 @@ export class RejectRequisitionInput {
   @Field({ nullable: true })
   reason?: string;
 }
-

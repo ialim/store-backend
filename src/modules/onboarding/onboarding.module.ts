@@ -12,10 +12,6 @@ import { AuthModule } from '../auth/auth.module';
     NotificationModule,
     AuthModule,
   ],
-  providers: [
-    OnboardingService,
-    OnboardingResolver,
-    PrismaService,
-  ],
+  providers: [OnboardingService, OnboardingResolver, PrismaService],
 })
 export class OnboardingModule {}

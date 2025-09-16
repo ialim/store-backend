@@ -14,4 +14,3 @@ export class SetReorderSettingsInput {
   @Field(() => Int, { nullable: true })
   reorderQty?: number | null;
 }
-

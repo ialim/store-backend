@@ -11,4 +11,3 @@ export class CloseRfqInput {
   @Field({ nullable: true, defaultValue: true })
   rejectUnsubmitted?: boolean;
 }
-

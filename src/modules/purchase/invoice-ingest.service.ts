@@ -1,9 +1,30 @@
 import { Injectable } from '@nestjs/common';
 
+type InvoiceLine = {
+  description: string;
+  qty: number;
+  unitPrice: number;
+  discountPct?: number;
+  discountedUnitPrice?: number;
+  lineTotal: number;
+  barcode?: string | null;
+};
+
+type ParsedInvoice = {
+  supplierName?: string;
+  invoiceNumber?: string;
+  date?: Date;
+  total?: number;
+  lines: InvoiceLine[];
+};
+
 @Injectable()
 export class InvoiceIngestService {
-  async fetchBuffer(url: string): Promise<{ buffer: Buffer; contentType: string | null }> {
-    const f = (global as any).fetch as any;
+  async fetchBuffer(
+    url: string,
+  ): Promise<{ buffer: Buffer; contentType: string | null }> {
+    const g = globalThis as unknown as { fetch?: typeof fetch };
+    const f = g.fetch;
     if (!f) throw new Error('fetch not available in runtime');
     const res = await f(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -17,25 +38,41 @@ export class InvoiceIngestService {
     return this.parseTextFromBuffer(buffer, contentType);
   }
 
-  async parseTextFromBuffer(buffer: Buffer, contentType: string | null): Promise<string> {
+  async parseTextFromBuffer(
+    buffer: Buffer,
+    contentType: string | null,
+  ): Promise<string> {
     // Attempt PDF text extraction
     if (contentType?.includes('pdf')) {
       try {
-        const pdfParse = (await import('pdf-parse')).default as any;
+        const pdfParseMod = await import('pdf-parse');
+        const pdfParse = (pdfParseMod as { default: (b: Buffer) => Promise<{ text?: string }> }).default;
         const data = await pdfParse(buffer);
-        if (data?.text && String(data.text).trim().length > 10) return String(data.text);
+        if (data?.text && String(data.text).trim().length > 10)
+          return String(data.text);
         // Fallback: try extracting text with PDF.js (helps some PDFs that pdf-parse struggles with)
         try {
-          const req: any = (global as any).require || eval('require');
-          const pdfjs: any = req('pdfjs-dist');
-          const loadingTask = pdfjs.getDocument({ data: buffer, isEvalSupported: false, disableFontFace: true, verbosity: 0 });
+          let reqFn: NodeJS.Require | null = null;
+          try {
+            // eslint-disable-next-line no-eval
+            reqFn = eval('require');
+          } catch {}
+          const pdfjs = reqFn ? (reqFn('pdfjs-dist') as { getDocument: (p: any) => { promise: Promise<any> } }) : null;
+          const loadingTask = pdfjs!.getDocument({
+            data: buffer,
+            isEvalSupported: false,
+            disableFontFace: true,
+            verbosity: 0,
+          });
           const doc = await loadingTask.promise;
           let text = '';
           const pageCount = doc.numPages || 0;
           for (let i = 1; i <= pageCount; i++) {
             const page = await doc.getPage(i);
             const content = await page.getTextContent();
-            const pageText = (content.items || []).map((it: any) => (it?.str ?? '')).join(' ');
+            const pageText = (content.items || [])
+              .map((it: { str?: string }) => it?.str ?? '')
+              .join(' ');
             text += pageText + '\n\n';
           }
           if (text.trim().length > 10) return text;
@@ -50,8 +87,18 @@ export class InvoiceIngestService {
     // Attempt OCR for images
     if (contentType?.startsWith('image/')) {
       try {
-        const tesseract: any = await import('tesseract.js');
-        const { data } = await tesseract.recognize(buffer, 'eng', { psm: 6, tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,:%-()[] ' });
+        const tesseract = (await import('tesseract.js')) as unknown as {
+          recognize: (
+            b: Buffer,
+            lang: string,
+            opts?: Record<string, unknown>,
+          ) => Promise<{ data?: { text?: string } }>;
+        };
+        const { data } = await tesseract.recognize(buffer, 'eng', {
+          psm: 6,
+          tessedit_char_whitelist:
+            '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,:%-()[] ',
+        });
         if (data?.text) return String(data.text);
       } catch {
         // ignore, fallback below
@@ -65,7 +112,7 @@ export class InvoiceIngestService {
    * High-accuracy path using a managed OCR/understanding provider.
    * Currently supports AWS Textract AnalyzeExpense if available and enabled.
    */
-  async parseInvoiceFromUrl(url: string): Promise<{ parsed: { supplierName?: string; invoiceNumber?: string; date?: Date; total?: number; lines: Array<{ description: string; qty: number; unitPrice: number; discountPct?: number; discountedUnitPrice?: number; lineTotal: number }> }; rawText?: string }> {
+  async parseInvoiceFromUrl(url: string): Promise<{ parsed: ParsedInvoice; rawText?: string }> {
     const { buffer, contentType } = await this.fetchBuffer(url);
     // Try AWS Textract if configured
     const provider = (process.env.INVOICE_OCR_PROVIDER || 'auto').toLowerCase();
@@ -86,7 +133,9 @@ export class InvoiceIngestService {
       }
       if (provider === 'auto') {
         // try python as secondary
-        const py = await this.tryPythonOcr(buffer, contentType).catch(() => null);
+        const py = await this.tryPythonOcr(buffer, contentType).catch(
+          () => null,
+        );
         if (py && py.lines?.length) return { parsed: py };
       }
     }
@@ -96,18 +145,29 @@ export class InvoiceIngestService {
     return { parsed, rawText: text };
   }
 
-  private async tryPythonOcr(buffer: Buffer, contentType: string | null): Promise<{ supplierName?: string; invoiceNumber?: string; date?: Date; total?: number; lines: Array<{ description: string; qty: number; unitPrice: number; discountPct?: number; discountedUnitPrice?: number; lineTotal: number }> } | null> {
+  private async tryPythonOcr(
+    buffer: Buffer,
+    contentType: string | null,
+  ): Promise<ParsedInvoice | null> {
     const endpoint = process.env.INVOICE_OCR_URL;
     if (!endpoint) return null;
-    const f = (global as any).fetch as any;
+    const g = globalThis as unknown as { fetch?: typeof fetch };
+    const f = g.fetch;
     if (!f) return null;
-    const payload = JSON.stringify({ contentType: contentType || 'application/octet-stream', data: buffer.toString('base64') });
-    const headers = { 'content-type': 'application/json' } as any;
+    const payload = JSON.stringify({
+      contentType: contentType || 'application/octet-stream',
+      data: buffer.toString('base64'),
+    });
+    const headers: Record<string, string> = { 'content-type': 'application/json' };
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-    let lastErr: any = null;
+    let lastErr: unknown = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const res = await f(endpoint, { method: 'POST', headers, body: payload });
+        const res = await f(endpoint, {
+          method: 'POST',
+          headers,
+          body: payload,
+        });
         if (res.ok) {
           const json = await res.json();
           if (json && Array.isArray(json.lines)) return json;
@@ -122,24 +182,50 @@ export class InvoiceIngestService {
     return null;
   }
 
-  private async tryTextract(buffer: Buffer): Promise<{ supplierName?: string; invoiceNumber?: string; date?: Date; total?: number; lines: Array<{ description: string; qty: number; unitPrice: number; discountPct?: number; discountedUnitPrice?: number; lineTotal: number }> } | null> {
+  private async tryTextract(buffer: Buffer): Promise<ParsedInvoice | null> {
     try {
-      const req: any = (global as any).require || eval('require');
-      const mod: any = req('@aws-sdk/client-textract');
+      let reqFn: NodeJS.Require | null = null;
+      try {
+        // eslint-disable-next-line no-eval
+        reqFn = eval('require');
+      } catch {}
+      const mod = reqFn
+        ? (reqFn('@aws-sdk/client-textract') as unknown as {
+            TextractClient: new (opts: Record<string, unknown>) => any;
+            AnalyzeExpenseCommand: new (opts: Record<string, unknown>) => any;
+          })
+        : null;
+      if (!mod) return null;
       const { TextractClient, AnalyzeExpenseCommand } = mod;
-      const client = new TextractClient({ region: process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1' });
-      const out = await client.send(new AnalyzeExpenseCommand({ Document: { Bytes: buffer } }));
+      const client = new TextractClient({
+        region:
+          process.env.AWS_REGION ||
+          process.env.AWS_DEFAULT_REGION ||
+          'us-east-1',
+      });
+      const out = await client.send(
+        new AnalyzeExpenseCommand({ Document: { Bytes: buffer } }),
+      );
       const toNum = (s?: string) => {
         if (!s) return undefined as number | undefined;
         const n = parseFloat(String(s).replace(/,/g, ''));
         return isFinite(n) ? n : undefined;
       };
-      const parsed = { supplierName: undefined as string | undefined, invoiceNumber: undefined as string | undefined, date: undefined as Date | undefined, total: undefined as number | undefined, lines: [] as any[] };
+      const parsed: ParsedInvoice = {
+        supplierName: undefined,
+        invoiceNumber: undefined,
+        date: undefined,
+        total: undefined,
+        lines: [],
+      };
       const doc = out?.ExpenseDocuments?.[0];
       if (!doc) return null;
       for (const sf of doc.SummaryFields || []) {
         const t = sf.Type?.Text || '';
-        const v = sf.ValueDetection?.Text || sf.ValueDetection?.NormalizedValue?.Value || '';
+        const v =
+          sf.ValueDetection?.Text ||
+          sf.ValueDetection?.NormalizedValue?.Value ||
+          '';
         switch (t) {
           case 'VENDOR_NAME':
             parsed.supplierName = v || parsed.supplierName;
@@ -163,18 +249,48 @@ export class InvoiceIngestService {
       for (const group of doc.LineItemGroups || []) {
         for (const li of group.LineItems || []) {
           const fields = li.LineItemExpenseFields || [];
-          const grab = (type: string) => fields.find((f: any) => f.Type?.Text === type)?.ValueDetection?.Text || '';
-          const desc = grab('ITEM') || grab('DESCRIPTION') || grab('PRODUCT_CODE') || grab('OTHER') || '';
+          type TextractField = {
+            Type?: { Text?: string };
+            ValueDetection?: { Text?: string };
+          };
+          const grab = (type: string) => {
+            const found = fields.find(
+              (f) => (f as TextractField).Type?.Text === type,
+            ) as unknown as TextractField | undefined;
+            return found?.ValueDetection?.Text || '';
+          };
+          const desc =
+            grab('ITEM') ||
+            grab('DESCRIPTION') ||
+            grab('PRODUCT_CODE') ||
+            grab('OTHER') ||
+            '';
           const qty = toNum(grab('QUANTITY')) || 1;
-          const unitPrice = toNum(grab('UNIT_PRICE')) ?? toNum(grab('PRICE')) ?? undefined;
-          const total = toNum(grab('NET_PRICE')) ?? toNum(grab('TOTAL')) ?? (unitPrice != null ? +(unitPrice * qty) : undefined);
+          const unitPrice =
+            toNum(grab('UNIT_PRICE')) ?? toNum(grab('PRICE')) ?? undefined;
+          const total =
+            toNum(grab('NET_PRICE')) ??
+            toNum(grab('TOTAL')) ??
+            (unitPrice != null ? +(unitPrice * qty) : undefined);
           // discount percent may appear as field or label; best effort
           const discStr = grab('DISCOUNT') || '';
           const discPctMatch = /(\d+(?:\.\d+)?)\s*%/.exec(discStr);
-          const discountPct = discPctMatch ? parseFloat(discPctMatch[1]) : undefined;
-          const discountedUnit = discountPct != null && unitPrice != null ? +(unitPrice * (1 - discountPct / 100)).toFixed(2) : undefined;
+          const discountPct = discPctMatch
+            ? parseFloat(discPctMatch[1])
+            : undefined;
+          const discountedUnit =
+            discountPct != null && unitPrice != null
+              ? +(unitPrice * (1 - discountPct / 100)).toFixed(2)
+              : undefined;
           if (desc && qty && (unitPrice != null || total != null)) {
-            parsed.lines.push({ description: desc, qty, unitPrice: unitPrice ?? +(total! / qty).toFixed(2), discountPct, discountedUnitPrice: discountedUnit, lineTotal: total ?? +(qty * (unitPrice ?? 0)).toFixed(2) });
+            parsed.lines.push({
+              description: desc,
+              qty,
+              unitPrice: unitPrice ?? +(total! / qty).toFixed(2),
+              discountPct,
+              discountedUnitPrice: discountedUnit,
+              lineTotal: total ?? +(qty * (unitPrice ?? 0)).toFixed(2),
+            });
           }
         }
       }
@@ -184,61 +300,139 @@ export class InvoiceIngestService {
     }
   }
 
-  parseInvoiceText(text: string): { supplierName?: string; invoiceNumber?: string; date?: Date; total?: number; lines: Array<{ description: string; qty: number; unitPrice: number; discountPct?: number; discountedUnitPrice?: number; lineTotal: number }> } {
-    const out = { supplierName: undefined as string | undefined, invoiceNumber: undefined as string | undefined, date: undefined as Date | undefined, total: undefined as number | undefined, lines: [] as any[] };
+  parseInvoiceText(text: string): ParsedInvoice {
+    const out: ParsedInvoice = {
+      supplierName: undefined,
+      invoiceNumber: undefined,
+      date: undefined,
+      total: undefined,
+      lines: [],
+    };
     const norm = text.replace(/\r/g, '');
 
     // Basic metadata extraction (best-effort)
-    const invMatch = /(Invoice|Invoice\s*#|Invoice\s*No\.?):\s*([A-Z0-9-]+)/i.exec(norm);
+    const invMatch =
+      /(Invoice|Invoice\s*#|Invoice\s*No\.?):\s*([A-Z0-9-]+)/i.exec(norm);
     if (invMatch) out.invoiceNumber = invMatch[2];
-    const dateMatch = /(Date|Invoice\s*Date):\s*(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})/i.exec(norm);
+    const dateMatch =
+      /(Date|Invoice\s*Date):\s*(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})/i.exec(norm);
     if (dateMatch) {
-      const parts = dateMatch[2].replace(/-/g, '.').replace(/\//g, '.').split('.').map((x) => parseInt(x, 10));
+      const parts = dateMatch[2]
+        .replace(/-/g, '.')
+        .replace(/\//g, '.')
+        .split('.')
+        .map((x) => parseInt(x, 10));
       if (parts.length >= 3) {
-        const [d, m, y] = parts.length === 3 ? parts : [parts[0], parts[1], parts[2]];
-        if (!isNaN(d) && !isNaN(m) && !isNaN(y)) out.date = new Date(y < 100 ? 2000 + y : y, m - 1, d);
+        const [d, m, y] =
+          parts.length === 3 ? parts : [parts[0], parts[1], parts[2]];
+        if (!isNaN(d) && !isNaN(m) && !isNaN(y))
+          out.date = new Date(y < 100 ? 2000 + y : y, m - 1, d);
       }
     }
-    const supplierMatch = /(Seinde\s+Signature\s+Ltd|Seinde\s+Signature|Supplier:\s*([\w .&-]+))/i.exec(norm);
+    const supplierMatch =
+      /(Seinde\s+Signature\s+Ltd|Seinde\s+Signature|Supplier:\s*([\w .&-]+))/i.exec(
+        norm,
+      );
     if (supplierMatch) out.supplierName = supplierMatch[2] || supplierMatch[1];
 
-    const toNumber = (s: string) => parseFloat(String(s).replace(/,/g, '').replace(/[^0-9.\-]/g, ''));
-    const pushLine = (desc: string, qty: number, unit: number, amount?: number, discountPct?: number, discountedUnit?: number) => {
+    const toNumber = (s: string) =>
+      parseFloat(
+        String(s)
+          .replace(/,/g, '')
+          .replace(/[^0-9.\-]/g, ''),
+      );
+    const pushLine = (
+      desc: string,
+      qty: number,
+      unit: number,
+      amount?: number,
+      discountPct?: number,
+      discountedUnit?: number,
+    ) => {
       if (!desc || !qty) return;
-      const total = typeof amount === 'number' && !isNaN(amount) ? amount : qty * unit;
-      out.lines.push({ description: desc.trim(), qty, unitPrice: unit, discountPct, discountedUnitPrice: discountedUnit, lineTotal: total });
+      const total =
+        typeof amount === 'number' && !isNaN(amount) ? amount : qty * unit;
+      out.lines.push({
+        description: desc.trim(),
+        qty,
+        unitPrice: unit,
+        discountPct,
+        discountedUnitPrice: discountedUnit,
+        lineTotal: total,
+      });
     };
 
     // Try structured table parsing first (common layouts)
-    const lines = norm.split(/\n+/).map((l) => l.trim()).filter(Boolean);
-    const startIdx = Math.max(0, lines.findIndex((l) => /\b(qty|quantity)\b/i.test(l)));
+    const lines = norm
+      .split(/\n+/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const startIdx = Math.max(
+      0,
+      lines.findIndex((l) => /\b(qty|quantity)\b/i.test(l)),
+    );
     for (let i = startIdx; i < lines.length; i++) {
       const l = lines[i];
-      const cleaned = l.replace(/[\[\]\(\)\|]/g, ' ').replace(/\s+/g, ' ').trim();
+      const cleaned = l
+        .replace(/[\[\]\(\)\|]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
       // Pattern A: qty desc unit disc% discounted amount
       let m: RegExpExecArray | null;
-      m = /^\s*(\d{1,5})\s+(.+?)\s+([\d,.]+)\s+(\d{1,2})%\s+([\d,.]+)\s+([\d,.]+)\s*$/.exec(cleaned) ||
-          /^\s*(\d{1,5})\s+(.+?)\s+([\d,.]+)\s+(\d{1,2})%\s+([\d,.]+)\s+([\d,.]+)\s*$/.exec(l);
-      if (m) { pushLine(m[2], parseInt(m[1], 10), toNumber(m[3]), toNumber(m[6]), parseFloat(m[4]), toNumber(m[5])); continue; }
+      m =
+        /^\s*(\d{1,5})\s+(.+?)\s+([\d,.]+)\s+(\d{1,2})%\s+([\d,.]+)\s+([\d,.]+)\s*$/.exec(
+          cleaned,
+        ) ||
+        /^\s*(\d{1,5})\s+(.+?)\s+([\d,.]+)\s+(\d{1,2})%\s+([\d,.]+)\s+([\d,.]+)\s*$/.exec(
+          l,
+        );
+      if (m) {
+        pushLine(
+          m[2],
+          parseInt(m[1], 10),
+          toNumber(m[3]),
+          toNumber(m[6]),
+          parseFloat(m[4]),
+          toNumber(m[5]),
+        );
+        continue;
+      }
 
       // Pattern B: qty desc unit amount (no discount column)
-      m = /^\s*(\d{1,5})\s+(.+?)\s+([\d,.]+)\s+([\d,.]+)\s*$/.exec(cleaned) ||
-          /^\s*(\d{1,5})\s+(.+?)\s+([\d,.]+)\s+([\d,.]+)\s*$/.exec(l);
-      if (m) { pushLine(m[2], parseInt(m[1], 10), toNumber(m[3]), toNumber(m[4])); continue; }
+      m =
+        /^\s*(\d{1,5})\s+(.+?)\s+([\d,.]+)\s+([\d,.]+)\s*$/.exec(cleaned) ||
+        /^\s*(\d{1,5})\s+(.+?)\s+([\d,.]+)\s+([\d,.]+)\s*$/.exec(l);
+      if (m) {
+        pushLine(m[2], parseInt(m[1], 10), toNumber(m[3]), toNumber(m[4]));
+        continue;
+      }
 
       // Pattern C: desc qty unit amount (desc first)
-      m = /^\s*(.+?)\s+(\d{1,5})\s+([\d,.]+)\s+([\d,.]+)\s*$/.exec(cleaned) ||
-          /^\s*(.+?)\s+(\d{1,5})\s+([\d,.]+)\s+([\d,.]+)\s*$/.exec(l);
-      if (m) { pushLine(m[1], parseInt(m[2], 10), toNumber(m[3]), toNumber(m[4])); continue; }
+      m =
+        /^\s*(.+?)\s+(\d{1,5})\s+([\d,.]+)\s+([\d,.]+)\s*$/.exec(cleaned) ||
+        /^\s*(.+?)\s+(\d{1,5})\s+([\d,.]+)\s+([\d,.]+)\s*$/.exec(l);
+      if (m) {
+        pushLine(m[1], parseInt(m[2], 10), toNumber(m[3]), toNumber(m[4]));
+        continue;
+      }
 
       // Pattern D: qty x desc @ unit = amount
-      m = /^\s*(\d{1,5})\s*[xX]\s*(.+?)\s*@\s*([\d,.]+)\s*=\s*([\d,.]+)\s*$/.exec(cleaned) ||
-          /^\s*(\d{1,5})\s*[xX]\s*(.+?)\s*@\s*([\d,.]+)\s*=\s*([\d,.]+)\s*$/.exec(l);
-      if (m) { pushLine(m[2], parseInt(m[1], 10), toNumber(m[3]), toNumber(m[4])); continue; }
+      m =
+        /^\s*(\d{1,5})\s*[xX]\s*(.+?)\s*@\s*([\d,.]+)\s*=\s*([\d,.]+)\s*$/.exec(
+          cleaned,
+        ) ||
+        /^\s*(\d{1,5})\s*[xX]\s*(.+?)\s*@\s*([\d,.]+)\s*=\s*([\d,.]+)\s*$/.exec(
+          l,
+        );
+      if (m) {
+        pushLine(m[2], parseInt(m[1], 10), toNumber(m[3]), toNumber(m[4]));
+        continue;
+      }
 
       // Pattern E: qty desc amount (compute unit)
-      m = /^\s*(\d{1,5})\s+(.+?)\s+([\d,.]+)\s*$/.exec(cleaned) ||
-          /^\s*(\d{1,5})\s+(.+?)\s+([\d,.]+)\s*$/.exec(l);
+      m =
+        /^\s*(\d{1,5})\s+(.+?)\s+([\d,.]+)\s*$/.exec(cleaned) ||
+        /^\s*(\d{1,5})\s+(.+?)\s+([\d,.]+)\s*$/.exec(l);
       if (m) {
         const qty = parseInt(m[1], 10);
         const amt = toNumber(m[3]);
@@ -251,14 +445,21 @@ export class InvoiceIngestService {
       if (!/[0-9]/.test(cleaned)) continue;
       // Extract numeric-like tokens (including OCR mistakes) and normalize them
       const rawTokens = cleaned.split(/\s+/);
-      const numeric: Array<{ raw: string; value: number; isPercent?: boolean; idx: number; isInt: boolean }> = [];
-      const normToken = (s: string) => s
-        .replace(/[Oo]/g, '0')
-        .replace(/[lI]/g, '1')
-        .replace(/[Ss]/g, '5')
-        .replace(/[Bb]/g, '8')
-        .replace(/[Ee]/g, '6')
-        .replace(/[Aa]/g, '4');
+      const numeric: Array<{
+        raw: string;
+        value: number;
+        isPercent?: boolean;
+        idx: number;
+        isInt: boolean;
+      }> = [];
+      const normToken = (s: string) =>
+        s
+          .replace(/[Oo]/g, '0')
+          .replace(/[lI]/g, '1')
+          .replace(/[Ss]/g, '5')
+          .replace(/[Bb]/g, '8')
+          .replace(/[Ee]/g, '6')
+          .replace(/[Aa]/g, '4');
       for (let ti = 0; ti < rawTokens.length; ti++) {
         const t = rawTokens[ti];
         const hasDigit = /[0-9]/.test(t);
@@ -279,37 +480,57 @@ export class InvoiceIngestService {
           else val = parseFloat(digits);
         }
         if (!isFinite(val)) continue;
-        numeric.push({ raw: t, value: val, isPercent: isPct, idx: ti, isInt: Number.isInteger(val) });
+        numeric.push({
+          raw: t,
+          value: val,
+          isPercent: isPct,
+          idx: ti,
+          isInt: Number.isInteger(val),
+        });
       }
       if (!numeric.length) continue;
 
       // Heuristics: qty = first small integer; total = last numeric (when percent or multiple numbers), else max
-      const smallInts = numeric.filter(n => !n.isPercent && n.isInt && n.value > 0 && n.value <= 500).sort((a,b) => a.idx - b.idx);
+      const smallInts = numeric
+        .filter((n) => !n.isPercent && n.isInt && n.value > 0 && n.value <= 500)
+        .sort((a, b) => a.idx - b.idx);
       const qty = (smallInts.length ? smallInts[0].value : null) || null;
       if (!qty) continue;
-      const candidates = numeric.filter(n => !n.isPercent && n.value >= 0.01).sort((a,b) => a.idx - b.idx);
+      const candidates = numeric
+        .filter((n) => !n.isPercent && n.value >= 0.01)
+        .sort((a, b) => a.idx - b.idx);
       if (!candidates.length) continue;
-      const hasPct = numeric.some(n => n.isPercent);
-      const totalTok = (hasPct || candidates.length >= 3)
-        ? candidates[candidates.length - 1]
-        : candidates.reduce((a, b) => (b.value > a.value ? b : a));
+      const hasPct = numeric.some((n) => n.isPercent);
+      const totalTok =
+        hasPct || candidates.length >= 3
+          ? candidates[candidates.length - 1]
+          : candidates.reduce((a, b) => (b.value > a.value ? b : a));
       let unit = +(totalTok.value / qty).toFixed(2);
       // Try to use an explicit unit token right after qty if close
       const qtyIdx = smallInts[0].idx;
-      const afterQty = candidates.find(n => n.idx > qtyIdx && Math.abs(n.value - unit) / (unit || 1) < 0.2);
+      const afterQty = candidates.find(
+        (n) => n.idx > qtyIdx && Math.abs(n.value - unit) / (unit || 1) < 0.2,
+      );
       if (afterQty) unit = afterQty.value;
       // Optional discount percent if present
-      const pctTok = numeric.find(n => n.isPercent);
-      const discountPct = pctTok ? Math.min(100, Math.max(0, pctTok.value)) : undefined;
-      const discountedUnit = discountPct != null ? +(unit * (1 - discountPct / 100)).toFixed(2) : undefined;
+      const pctTok = numeric.find((n) => n.isPercent);
+      const discountPct = pctTok
+        ? Math.min(100, Math.max(0, pctTok.value))
+        : undefined;
+      const discountedUnit =
+        discountPct != null
+          ? +(unit * (1 - discountPct / 100)).toFixed(2)
+          : undefined;
       // Description = tokens before first numeric token
-      const firstNumIdx = Math.min(...numeric.map(n => n.idx));
+      const firstNumIdx = Math.min(...numeric.map((n) => n.idx));
       const desc = rawTokens.slice(0, firstNumIdx).join(' ').trim();
-      if (desc) pushLine(desc, qty, unit, totalTok.value, discountPct, discountedUnit);
+      if (desc)
+        pushLine(desc, qty, unit, totalTok.value, discountPct, discountedUnit);
     }
 
     // Parse total amount if present
-    const totMatch = /\b(total|amount\s*due)\b\s*[:\-]?\s*([\d,]+(?:\.\d{2})?)/i.exec(norm);
+    const totMatch =
+      /\b(total|amount\s*due)\b\s*[:\-]?\s*([\d,]+(?:\.\d{2})?)/i.exec(norm);
     if (totMatch) out.total = toNumber(totMatch[2]);
 
     return out;

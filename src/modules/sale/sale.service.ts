@@ -547,7 +547,14 @@ export class SalesService {
       data: { status: SaleStatus.FULFILLED },
     });
     // Analytics: record fulfilled sale for stats and preferences
-    await this.analytics.recordConsumerSaleFulfilled({ id: updated.id, customerId: updated.customerId, items: sale.items.map(i => ({ productVariantId: i.productVariantId, quantity: i.quantity })) });
+    await this.analytics.recordConsumerSaleFulfilled({
+      id: updated.id,
+      customerId: updated.customerId,
+      items: sale.items.map((i) => ({
+        productVariantId: i.productVariantId,
+        quantity: i.quantity,
+      })),
+    });
     await this.prisma.saleOrder.update({
       where: { id: sale.saleOrderId },
       data: { status: SaleStatus.FULFILLED, phase: 'FULFILLMENT' },
@@ -798,10 +805,16 @@ export class SalesService {
   }
 
   // Assign delivery personnel
-  async assignFulfillmentPersonnel(params: { saleOrderId: string; deliveryPersonnelId: string }) {
+  async assignFulfillmentPersonnel(params: {
+    saleOrderId: string;
+    deliveryPersonnelId: string;
+  }) {
     const f = await this.prisma.fulfillment.update({
       where: { saleOrderId: params.saleOrderId },
-      data: { deliveryPersonnelId: params.deliveryPersonnelId, status: FulfillmentStatus.ASSIGNED },
+      data: {
+        deliveryPersonnelId: params.deliveryPersonnelId,
+        status: FulfillmentStatus.ASSIGNED,
+      },
     });
     await this.notificationService.createNotification(
       params.deliveryPersonnelId,
@@ -812,8 +825,14 @@ export class SalesService {
   }
 
   // Update fulfillment status with simple transition enforcement; on DELIVERED apply stock and close order
-  async updateFulfillmentStatus(params: { saleOrderId: string; status: FulfillmentStatus; confirmationPin?: string }) {
-    const f = await this.prisma.fulfillment.findUnique({ where: { saleOrderId: params.saleOrderId } });
+  async updateFulfillmentStatus(params: {
+    saleOrderId: string;
+    status: FulfillmentStatus;
+    confirmationPin?: string;
+  }) {
+    const f = await this.prisma.fulfillment.findUnique({
+      where: { saleOrderId: params.saleOrderId },
+    });
     if (!f) throw new NotFoundException('Fulfillment not found');
     const from = String(f.status) as keyof typeof FulfillmentStatus;
     const to = String(params.status) as keyof typeof FulfillmentStatus;
@@ -825,12 +844,17 @@ export class SalesService {
       CANCELLED: [],
     };
     if (from in allowed && !allowed[from].includes(to)) {
-      throw new BadRequestException(`Invalid fulfillment transition ${from} -> ${to}`);
+      throw new BadRequestException(
+        `Invalid fulfillment transition ${from} -> ${to}`,
+      );
     }
 
     // On DELIVERED: if PIN set, require match
     if (to === 'DELIVERED' && f.confirmationPin) {
-      if (!params.confirmationPin || params.confirmationPin !== f.confirmationPin) {
+      if (
+        !params.confirmationPin ||
+        params.confirmationPin !== f.confirmationPin
+      ) {
         throw new BadRequestException('Invalid or missing confirmation PIN');
       }
     }
@@ -842,9 +866,14 @@ export class SalesService {
 
     if (to === 'DELIVERED') {
       // Apply stock deduction (and reserved release) similar to fulfillConsumerSale
-      const order = await this.prisma.saleOrder.findUnique({ where: { id: params.saleOrderId } });
+      const order = await this.prisma.saleOrder.findUnique({
+        where: { id: params.saleOrderId },
+      });
       if (order) {
-        const cSale = await this.prisma.consumerSale.findFirst({ where: { saleOrderId: order.id }, include: { items: true } });
+        const cSale = await this.prisma.consumerSale.findFirst({
+          where: { saleOrderId: order.id },
+          include: { items: true },
+        });
         if (cSale) {
           await this.prisma.stockMovement.create({
             data: {
@@ -853,18 +882,43 @@ export class SalesService {
               movementType: MovementType.SALE,
               referenceEntity: 'ConsumerSale',
               referenceId: cSale.id,
-              items: { create: cSale.items.map(i => ({ productVariantId: i.productVariantId, quantity: i.quantity })) },
+              items: {
+                create: cSale.items.map((i) => ({
+                  productVariantId: i.productVariantId,
+                  quantity: i.quantity,
+                })),
+              },
             },
           });
           for (const item of cSale.items) {
-            const existing = await this.prisma.stock.findFirst({ where: { storeId: cSale.storeId, productVariantId: item.productVariantId } });
+            const existing = await this.prisma.stock.findFirst({
+              where: {
+                storeId: cSale.storeId,
+                productVariantId: item.productVariantId,
+              },
+            });
             if (existing) {
-              await this.prisma.stock.update({ where: { id: existing.id }, data: { quantity: { decrement: item.quantity }, reserved: { decrement: item.quantity } } });
+              await this.prisma.stock.update({
+                where: { id: existing.id },
+                data: {
+                  quantity: { decrement: item.quantity },
+                  reserved: { decrement: item.quantity },
+                },
+              });
             }
           }
-          await this.prisma.saleOrder.update({ where: { id: order.id }, data: { status: SaleStatus.FULFILLED, phase: OrderPhase.FULFILLMENT } });
+          await this.prisma.saleOrder.update({
+            where: { id: order.id },
+            data: {
+              status: SaleStatus.FULFILLED,
+              phase: OrderPhase.FULFILLMENT,
+            },
+          });
         } else {
-          const rSale = await this.prisma.resellerSale.findFirst({ where: { SaleOrderid: order.id }, include: { items: true } });
+          const rSale = await this.prisma.resellerSale.findFirst({
+            where: { SaleOrderid: order.id },
+            include: { items: true },
+          });
           if (rSale) {
             await this.prisma.stockMovement.create({
               data: {
@@ -873,16 +927,38 @@ export class SalesService {
                 movementType: MovementType.SALE,
                 referenceEntity: 'ResellerSale',
                 referenceId: rSale.id,
-                items: { create: rSale.items.map(i => ({ productVariantId: i.productVariantId, quantity: i.quantity })) },
+                items: {
+                  create: rSale.items.map((i) => ({
+                    productVariantId: i.productVariantId,
+                    quantity: i.quantity,
+                  })),
+                },
               },
             });
             for (const item of rSale.items) {
-              const existing = await this.prisma.stock.findFirst({ where: { storeId: rSale.storeId, productVariantId: item.productVariantId } });
+              const existing = await this.prisma.stock.findFirst({
+                where: {
+                  storeId: rSale.storeId,
+                  productVariantId: item.productVariantId,
+                },
+              });
               if (existing) {
-                await this.prisma.stock.update({ where: { id: existing.id }, data: { quantity: { decrement: item.quantity }, reserved: { decrement: item.quantity } } });
+                await this.prisma.stock.update({
+                  where: { id: existing.id },
+                  data: {
+                    quantity: { decrement: item.quantity },
+                    reserved: { decrement: item.quantity },
+                  },
+                });
               }
             }
-            await this.prisma.saleOrder.update({ where: { id: order.id }, data: { status: SaleStatus.FULFILLED, phase: OrderPhase.FULFILLMENT } });
+            await this.prisma.saleOrder.update({
+              where: { id: order.id },
+              data: {
+                status: SaleStatus.FULFILLED,
+                phase: OrderPhase.FULFILLMENT,
+              },
+            });
           }
         }
       }

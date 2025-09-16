@@ -6,4 +6,3 @@ export class AdminUpdateCustomerProfileInput extends UpdateCustomerProfileInput 
   @Field({ nullable: true })
   profileStatus?: 'PENDING' | 'ACTIVE' | 'REJECTED';
 }
-

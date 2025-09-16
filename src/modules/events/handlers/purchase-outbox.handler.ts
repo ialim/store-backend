@@ -6,7 +6,11 @@ export class PurchaseOutboxHandler {
   private readonly logger = new Logger(PurchaseOutboxHandler.name);
   constructor(private prisma: PrismaService) {}
 
-  async tryHandle(event: { id: string; type: string; payload: any }): Promise<boolean> {
+  async tryHandle(event: {
+    id: string;
+    type: string;
+    payload: any;
+  }): Promise<boolean> {
     const t = event.type || '';
     if (
       t.startsWith('PURCHASE_') ||

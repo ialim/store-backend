@@ -61,7 +61,10 @@ export class AnalyticsResolver {
   ) {
     const m = month || currentMonth();
     const lim = limit ?? 10;
-    const basic = await this.read.topSellingVariantsDetailed({ month: m, limit: lim });
+    const basic = await this.read.topSellingVariantsDetailed({
+      month: m,
+      limit: lim,
+    });
     return this.read.enrichVariantDetails(basic);
   }
 
@@ -74,7 +77,11 @@ export class AnalyticsResolver {
   ) {
     const m = month || currentMonth();
     const lim = limit ?? 10;
-    const basic = await this.read.topSellingVariantsByStore({ storeId, month: m, limit: lim });
+    const basic = await this.read.topSellingVariantsByStore({
+      storeId,
+      month: m,
+      limit: lim,
+    });
     return this.read.enrichVariantDetails(basic);
   }
 

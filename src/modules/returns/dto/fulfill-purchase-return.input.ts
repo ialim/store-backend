@@ -5,4 +5,3 @@ export class FulfillPurchaseReturnInput {
   @Field()
   id!: string; // PurchaseReturn.id
 }
-

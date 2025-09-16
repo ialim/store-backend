@@ -1,4 +1,14 @@
-import { Resolver, Query, Mutation, Args, Field, ObjectType, ID, InputType, Int } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  Field,
+  ObjectType,
+  ID,
+  InputType,
+  Int,
+} from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -71,7 +81,7 @@ export class FacetResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
   updateFacet(@Args('input') input: UpdateFacetInput) {
-    const { id, ...patch } = input as any;
+    const { id, ...patch } = input;
     return this.service.update(id, patch);
   }
 
@@ -90,7 +100,9 @@ export class FacetResolver {
     @Args('facetId') facetId: string,
     @Args('value') value: string,
   ) {
-    return this.service.assignToProduct(productId, facetId, value).then(() => 'OK');
+    return this.service
+      .assignToProduct(productId, facetId, value)
+      .then(() => 'OK');
   }
 
   @Mutation(() => String)
@@ -101,7 +113,9 @@ export class FacetResolver {
     @Args('facetId') facetId: string,
     @Args('value') value: string,
   ) {
-    return this.service.removeFromProduct(productId, facetId, value).then(() => 'OK');
+    return this.service
+      .removeFromProduct(productId, facetId, value)
+      .then(() => 'OK');
   }
 
   @Mutation(() => String)
@@ -112,7 +126,9 @@ export class FacetResolver {
     @Args('facetId') facetId: string,
     @Args('value') value: string,
   ) {
-    return this.service.assignToVariant(productVariantId, facetId, value).then(() => 'OK');
+    return this.service
+      .assignToVariant(productVariantId, facetId, value)
+      .then(() => 'OK');
   }
 
   @Mutation(() => String)
@@ -123,17 +139,27 @@ export class FacetResolver {
     @Args('facetId') facetId: string,
     @Args('value') value: string,
   ) {
-    return this.service.removeFromVariant(productVariantId, facetId, value).then(() => 'OK');
+    return this.service
+      .removeFromVariant(productVariantId, facetId, value)
+      .then(() => 'OK');
   }
 
   @Query(() => [FacetAssignment])
   productFacets(@Args('productId') productId: string) {
-    return this.service.listProductAssignments(productId).then((rows: any[]) => rows.map((r) => ({ facet: r.facet, value: r.value })));
+    return this.service
+      .listProductAssignments(productId)
+      .then((rows: any[]) =>
+        rows.map((r) => ({ facet: r.facet, value: r.value })),
+      );
   }
 
   @Query(() => [FacetAssignment])
   variantFacets(@Args('productVariantId') productVariantId: string) {
-    return this.service.listVariantAssignments(productVariantId).then((rows: any[]) => rows.map((r) => ({ facet: r.facet, value: r.value })));
+    return this.service
+      .listVariantAssignments(productVariantId)
+      .then((rows: any[]) =>
+        rows.map((r) => ({ facet: r.facet, value: r.value })),
+      );
   }
 
   @Mutation(() => Int)

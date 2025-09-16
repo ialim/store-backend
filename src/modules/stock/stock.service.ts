@@ -5,7 +5,11 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { PRODUCT_VARIANT_SUMMARY_SELECT } from '../../common/prisma/selects';
 import { ReceiveStockBatchInput } from './dto/receive-stock-batch.input';
 import { TransferStockInput } from './dto/transfer-stock.input';
-import { MovementDirection } from '../../shared/prismagraphql/prisma/movement-direction.enum';
+import {
+  MovementDirection as PrismaMovementDirection,
+  PurchasePhase as PrismaPurchasePhase,
+  PurchaseOrderStatus as PrismaPurchaseOrderStatus,
+} from '@prisma/client';
 import { NotificationService } from '../notification/notification.service';
 import { SetReorderSettingsInput } from './dto/set-reorder-settings.input';
 import { DomainEventsService } from '../events/services/domain-events.service';
@@ -83,7 +87,7 @@ export class StockService {
 
   // Helper to apply stock changes after creating a movement record
   private async applyStockMovement(
-    direction: MovementDirection,
+    direction: PrismaMovementDirection,
     storeId: string,
     items: { productVariantId: string; quantity: number }[],
   ) {
@@ -94,14 +98,14 @@ export class StockService {
         },
         update: {
           quantity:
-            direction === MovementDirection.IN
+            direction === PrismaMovementDirection.IN
               ? { increment: quantity }
               : { decrement: quantity },
         },
         create: {
           storeId,
           productVariantId,
-          quantity: direction === MovementDirection.IN ? quantity : -quantity,
+          quantity: direction === PrismaMovementDirection.IN ? quantity : -quantity,
           reserved: 0,
         },
       });
@@ -193,7 +197,7 @@ export class StockService {
       const movement = await tx.stockMovement.create({
         data: {
           storeId: batch.storeId,
-          direction: MovementDirection.IN,
+          direction: PrismaMovementDirection.IN,
           movementType: 'PURCHASE',
           referenceEntity: 'StockReceiptBatch',
           referenceId: batch.id,
@@ -209,7 +213,7 @@ export class StockService {
 
       // Apply to stock
       await this.applyStockMovement(
-        MovementDirection.IN,
+        PrismaMovementDirection.IN,
         movement.storeId,
         movement.items.map((i) => ({
           productVariantId: i.productVariantId,
@@ -250,17 +254,17 @@ export class StockService {
           );
 
           // Set phase to RECEIVING on first receipt
-          if (po.phase !== ('RECEIVING' as any)) {
+          if (po.phase !== PrismaPurchasePhase.RECEIVING) {
             await tx.purchaseOrder.update({
               where: { id: po.id },
-              data: { phase: 'RECEIVING' as any },
+              data: { phase: PrismaPurchasePhase.RECEIVING },
             });
           }
 
-          if (fullyReceived && po.status !== ('RECEIVED' as any)) {
+          if (fullyReceived && po.status !== PrismaPurchaseOrderStatus.RECEIVED) {
             await tx.purchaseOrder.update({
               where: { id: po.id },
-              data: { status: 'RECEIVED' as any },
+              data: { status: PrismaPurchaseOrderStatus.RECEIVED },
             });
             await this.domainEvents.publish(
               'PURCHASE_ORDER_RECEIVED',
@@ -277,7 +281,7 @@ export class StockService {
             if (paid >= po.totalAmount) {
               await tx.purchaseOrder.update({
                 where: { id: po.id },
-                data: { phase: 'COMPLETED' as any },
+                data: { phase: PrismaPurchasePhase.COMPLETED },
               });
               await this.domainEvents.publish(
                 'PURCHASE_COMPLETED',
@@ -285,7 +289,10 @@ export class StockService {
                 { aggregateType: 'PurchaseOrder', aggregateId: po.id },
               );
               try {
-                const supplier = await tx.supplier.findUnique({ where: { id: po.supplierId }, select: { userId: true } });
+                const supplier = await tx.supplier.findUnique({
+                  where: { id: po.supplierId },
+                  select: { userId: true },
+                });
                 if (supplier?.userId) {
                   await this.notificationService.createNotification(
                     supplier.userId,
@@ -331,7 +338,7 @@ export class StockService {
       const outMovement = await tx.stockMovement.create({
         data: {
           storeId: transfer.fromStoreId,
-          direction: MovementDirection.OUT,
+          direction: PrismaMovementDirection.OUT,
           movementType: 'TRANSFER',
           referenceEntity: 'StockTransfer',
           referenceId: transfer.id,
@@ -349,7 +356,7 @@ export class StockService {
       const inMovement = await tx.stockMovement.create({
         data: {
           storeId: transfer.toStoreId,
-          direction: MovementDirection.IN,
+          direction: PrismaMovementDirection.IN,
           movementType: 'TRANSFER',
           referenceEntity: 'StockTransfer',
           referenceId: transfer.id,
@@ -365,7 +372,7 @@ export class StockService {
 
       // Apply both movements
       await this.applyStockMovement(
-        MovementDirection.OUT,
+        PrismaMovementDirection.OUT,
         outMovement.storeId,
         outMovement.items.map((i) => ({
           productVariantId: i.productVariantId,
@@ -373,7 +380,7 @@ export class StockService {
         })),
       );
       await this.applyStockMovement(
-        MovementDirection.IN,
+        PrismaMovementDirection.IN,
         inMovement.storeId,
         inMovement.items.map((i) => ({
           productVariantId: i.productVariantId,

@@ -21,16 +21,19 @@ export class BaseCrudService<
   async findFirst(args: FindFirstArg): Promise<T | null> {
     try {
       const a: any = args ?? {};
-      if (Object.prototype.hasOwnProperty.call(a, 'where') && a.where === null) {
+      if (
+        Object.prototype.hasOwnProperty.call(a, 'where') &&
+        a.where === null
+      ) {
         delete a.where;
       }
-      return await (this.getDelegate()).findFirst(a);
+      return await this.getDelegate().findFirst(a);
     } catch (e) {
       return null;
     }
   }
   findUnique(args: FindUniqueArg): Promise<T | null> {
-    return (this.getDelegate()).findUnique(args as any);
+    return this.getDelegate().findUnique(args as any);
   }
 
   findMany(args: FindManyArg): Promise<T[]> {
@@ -38,7 +41,7 @@ export class BaseCrudService<
     if (Object.prototype.hasOwnProperty.call(a, 'where') && a.where === null) {
       delete a.where;
     }
-    return (this.getDelegate()).findMany(a);
+    return this.getDelegate().findMany(a);
   }
 
   groupBy(args: GroupByArg) {
@@ -46,7 +49,7 @@ export class BaseCrudService<
     if (Object.prototype.hasOwnProperty.call(a, 'where') && a.where === null) {
       delete a.where;
     }
-    return (this.getDelegate()).groupBy(a);
+    return this.getDelegate().groupBy(a);
   }
 
   aggregate(args: AggregateArg) {
@@ -54,31 +57,31 @@ export class BaseCrudService<
     if (Object.prototype.hasOwnProperty.call(a, 'where') && a.where === null) {
       delete a.where;
     }
-    return (this.getDelegate()).aggregate(a);
+    return this.getDelegate().aggregate(a);
   }
 
   create(args: CreateArg): Promise<T> {
-    return (this.getDelegate()).create(args as any);
+    return this.getDelegate().create(args as any);
   }
 
   createMany(args: CreateManyArg) {
-    return (this.getDelegate()).createMany(args as any);
+    return this.getDelegate().createMany(args as any);
   }
 
   update(args: UpdateArg): Promise<T> {
-    return (this.getDelegate()).update(args as any);
+    return this.getDelegate().update(args as any);
   }
 
   updateMany(args: UpdatedManyArg): Promise<T[]> {
-    return (this.getDelegate()).updateMany(args as any);
+    return this.getDelegate().updateMany(args as any);
   }
 
   delete(args: DeleteArg): Promise<T> {
-    return (this.getDelegate()).delete(args as any);
+    return this.getDelegate().delete(args as any);
   }
 
   deleteMany(args: DeleteManyArg): Promise<T[]> {
-    return (this.getDelegate()).deleteMany(args as any);
+    return this.getDelegate().deleteMany(args as any);
   }
   private getModelKey(): string {
     const name = this.constructor.name.replace('Service', '');

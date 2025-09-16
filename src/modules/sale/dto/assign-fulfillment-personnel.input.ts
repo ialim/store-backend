@@ -8,4 +8,3 @@ export class AssignFulfillmentPersonnelInput {
   @Field()
   deliveryPersonnelId!: string;
 }
-

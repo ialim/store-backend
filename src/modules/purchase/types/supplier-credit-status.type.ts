@@ -14,4 +14,3 @@ export class SupplierCreditStatus {
   @Field(() => Float)
   currentBalance!: number;
 }
-

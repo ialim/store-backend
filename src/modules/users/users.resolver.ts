@@ -15,7 +15,14 @@ import {
   DeleteManyUserArgs,
 } from '../../shared/prismagraphql/user';
 import { AffectedRows } from '../../shared/prismagraphql/prisma';
-import { Resolver, Query, Args, Mutation, ResolveField, Parent } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Args,
+  Mutation,
+  ResolveField,
+  Parent,
+} from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -108,21 +115,28 @@ export class UsersResolver {
   // Field resolvers to ensure nested data resolves without explicit include
   @ResolveField(() => Role, { name: 'role' })
   @UseGuards(GqlAuthGuard)
-  role(@Parent() user: any) {
-    return (this.userService.prisma as any).role.findUnique({ where: { id: user.roleId } });
+  role(@Parent() user: { roleId: string }) {
+    return this.userService.prisma.role.findUnique({
+      where: { id: user.roleId },
+    });
   }
 
-  @ResolveField(() => CustomerProfile, { name: 'customerProfile', nullable: true })
+  @ResolveField(() => CustomerProfile, {
+    name: 'customerProfile',
+    nullable: true,
+  })
   @UseGuards(GqlAuthGuard)
-  customerProfile(@Parent() user: any) {
-    return (this.userService.prisma as any).customerProfile.findUnique({ where: { userId: user.id } });
+  customerProfile(@Parent() user: { id: string }) {
+    return this.userService.prisma.customerProfile.findUnique({
+      where: { userId: user.id },
+    });
   }
 
   @Query(() => [UserModel])
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPERADMIN')
   listManagers() {
-    return (this.userService.prisma as any).user.findMany({
+    return this.userService.prisma.user.findMany({
       where: { role: { name: 'MANAGER' } },
       orderBy: { email: 'asc' },
       take: 500,

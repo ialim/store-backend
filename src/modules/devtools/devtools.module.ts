@@ -6,4 +6,3 @@ import { DevToolsResolver } from './devtools.resolver';
   providers: [PrismaService, DevToolsResolver],
 })
 export class DevToolsModule {}
-

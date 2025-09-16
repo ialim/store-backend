@@ -12,4 +12,3 @@ export class UpdateSalesReturnStatusInput {
   @Field({ nullable: true })
   approvedById?: string; // when needed for auditing
 }
-

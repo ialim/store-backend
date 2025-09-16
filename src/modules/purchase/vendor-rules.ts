@@ -27,9 +27,22 @@ const seindeSignatureRule: VendorRule = {
       const qty = Number(ln.qty || 0);
       const unit = Number(ln.unitPrice || 0);
       const disc = ln.discountPct != null ? Number(ln.discountPct) : null;
-      const discUnit = disc != null ? +(unit * (1 - disc / 100)).toFixed(2) : ln.discountedUnitPrice ?? undefined;
-      const total = discUnit != null && qty ? +(discUnit * qty).toFixed(2) : (ln.lineTotal != null ? Number(ln.lineTotal) : +(qty * unit).toFixed(2));
-      return { ...ln, unitPrice: unit, discountedUnitPrice: discUnit ?? undefined, lineTotal: total };
+      const discUnit =
+        disc != null
+          ? +(unit * (1 - disc / 100)).toFixed(2)
+          : (ln.discountedUnitPrice ?? undefined);
+      const total =
+        discUnit != null && qty
+          ? +(discUnit * qty).toFixed(2)
+          : ln.lineTotal != null
+            ? Number(ln.lineTotal)
+            : +(qty * unit).toFixed(2);
+      return {
+        ...ln,
+        unitPrice: unit,
+        discountedUnitPrice: discUnit ?? undefined,
+        lineTotal: total,
+      };
     });
     return { ...parsed, lines };
   },
@@ -47,4 +60,3 @@ export function normalizeParsedByVendor(parsed: ParsedInvoice): ParsedInvoice {
     return parsed;
   }
 }
-

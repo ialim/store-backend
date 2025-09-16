@@ -48,10 +48,15 @@ export class AuthService {
       throw new UnauthorizedException('Current password is incorrect');
     }
     if (!input.newPassword || input.newPassword.length < 8) {
-      throw new UnauthorizedException('New password must be at least 8 characters');
+      throw new UnauthorizedException(
+        'New password must be at least 8 characters',
+      );
     }
     const newHash = await bcrypt.hash(input.newPassword, 10);
-    await this.prisma.user.update({ where: { id: userId }, data: { passwordHash: newHash } });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newHash },
+    });
     return true;
   }
 }

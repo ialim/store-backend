@@ -10,10 +10,18 @@ import { CreateSalesReturnInput } from './dto/create-sales-return.input';
 import { UpdateSalesReturnStatusInput } from './dto/update-sales-return-status.input';
 import { CreatePurchaseReturnInput } from './dto/create-purchase-return.input';
 import { FulfillPurchaseReturnInput } from './dto/fulfill-purchase-return.input';
-import { MovementDirection } from '../../shared/prismagraphql/prisma/movement-direction.enum';
+import {
+  MovementDirection as PrismaMovementDirection,
+  MovementType as PrismaMovementType,
+  ReturnStatus as PrismaReturnStatus,
+  ReturnLocation as PrismaReturnLocation,
+  SaleType as PrismaSaleType,
+} from '@prisma/client';
 import { CreateOrderReturnInput } from './dto/create-order-return.input';
 import { PaymentService } from '../payment/payment.service';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { SaleType as GqlSaleType } from '../../shared/prismagraphql/prisma/sale-type.enum';
+import { ReturnStatus as GqlReturnStatus } from '../../shared/prismagraphql/prisma/return-status.enum';
 
 @Injectable()
 export class ReturnsService {
@@ -59,23 +67,23 @@ export class ReturnsService {
     }
 
     return this.createSalesReturn({
-      type: (consumerSale ? 'CONSUMER' : 'RESELLER') as any,
+      type: consumerSale ? GqlSaleType.CONSUMER : GqlSaleType.RESELLER,
       consumerSaleId: consumerSale?.id,
       resellerSaleId: resellerSale?.id ?? undefined,
       returnedById: input.returnedById,
       receivedById: input.receivedById,
-      returnLocation: input.returnLocation as any,
+      returnLocation: input.returnLocation,
       items: input.items,
     });
   }
 
   async createSalesReturn(input: CreateSalesReturnInput) {
-    if (input.type === ('CONSUMER' as any) && !input.consumerSaleId) {
+    if (input.type === GqlSaleType.CONSUMER && !input.consumerSaleId) {
       throw new BadRequestException(
         'consumerSaleId is required for CONSUMER returns',
       );
     }
-    if (input.type === ('RESELLER' as any) && !input.resellerSaleId) {
+    if (input.type === GqlSaleType.RESELLER && !input.resellerSaleId) {
       throw new BadRequestException(
         'resellerSaleId is required for RESELLER returns',
       );
@@ -83,7 +91,7 @@ export class ReturnsService {
 
     // Load the sale and items
     const sale =
-      input.type === ('CONSUMER' as any)
+      input.type === GqlSaleType.CONSUMER
         ? await this.prisma.consumerSale.findUnique({
             where: { id: input.consumerSaleId! },
             include: { items: true },
@@ -105,10 +113,10 @@ export class ReturnsService {
         where: {
           productVariantId: it.productVariantId,
           return:
-            input.type === ('CONSUMER' as any)
-              ? { consumerSaleId: input.consumerSaleId! }
-              : { resellerSaleId: input.resellerSaleId! },
-        } as any,
+            input.type === GqlSaleType.CONSUMER
+              ? { is: { consumerSaleId: input.consumerSaleId! } }
+              : { is: { resellerSaleId: input.resellerSaleId! } },
+        },
       });
       const alreadyReturned = prevReturns._sum.quantity || 0;
       if (it.quantity <= 0)
@@ -122,14 +130,17 @@ export class ReturnsService {
 
     const sr = await this.prisma.salesReturn.create({
       data: {
-        type: input.type as any,
+        type:
+          input.type === GqlSaleType.CONSUMER
+            ? PrismaSaleType.CONSUMER
+            : PrismaSaleType.RESELLER,
         consumerSaleId: input.consumerSaleId ?? null,
         resellerSaleId: input.resellerSaleId ?? null,
         returnedById: input.returnedById,
         receivedById: input.receivedById,
-        storeId: (sale as any).storeId,
-        status: 'PENDING' as any,
-        returnLocation: input.returnLocation as any,
+        storeId: (sale as { storeId: string }).storeId,
+        status: PrismaReturnStatus.PENDING,
+        returnLocation: input.returnLocation as unknown as PrismaReturnLocation,
         items: {
           create: input.items.map((i) => ({
             productVariantId: i.productVariantId,
@@ -161,13 +172,13 @@ export class ReturnsService {
     if (!sr) throw new NotFoundException('Sales return not found');
 
     // Apply stock only when accepting the return
-    if (input.status === ('ACCEPTED' as any)) {
+    if (input.status === GqlReturnStatus.ACCEPTED) {
       // Create stock movement IN
       const movement = await this.prisma.stockMovement.create({
         data: {
           storeId: sr.storeId,
-          direction: 'IN' as any,
-          movementType: 'RETURN_SALE' as any,
+          direction: PrismaMovementDirection.IN,
+          movementType: PrismaMovementType.RETURN_SALE,
           referenceEntity: 'SalesReturn',
           referenceId: sr.id,
           items: {
@@ -289,7 +300,7 @@ export class ReturnsService {
     const updated = await this.prisma.salesReturn.update({
       where: { id: sr.id },
       data: {
-        status: input.status as any,
+        status: input.status as unknown as PrismaReturnStatus,
         approvedById: input.approvedById ?? undefined,
       },
     });
@@ -298,8 +309,13 @@ export class ReturnsService {
       { salesReturnId: updated.id, status: input.status },
       { aggregateType: 'SalesReturn', aggregateId: updated.id },
     );
-    if (input.status === ('ACCEPTED' as any)) {
-      await this.analytics.recordSalesReturnAccepted({ items: sr.items.map(i => ({ productVariantId: i.productVariantId, quantity: i.quantity })) });
+    if (input.status === GqlReturnStatus.ACCEPTED) {
+      await this.analytics.recordSalesReturnAccepted({
+        items: sr.items.map((i) => ({
+          productVariantId: i.productVariantId,
+          quantity: i.quantity,
+        })),
+      });
     }
     return true;
   }
@@ -338,7 +354,7 @@ export class ReturnsService {
         supplierId: input.supplierId,
         initiatedById: input.initiatedById,
         approvedById: input.approvedById,
-        status: 'PENDING' as any,
+        status: PrismaReturnStatus.PENDING,
         reason: input.reason ?? null,
         items: {
           create: input.items.map((i) => ({
@@ -401,8 +417,8 @@ export class ReturnsService {
       const movement = await this.prisma.stockMovement.create({
         data: {
           storeId,
-          direction: MovementDirection.OUT as any,
-          movementType: 'RETURN_PURCHASE' as any,
+          direction: PrismaMovementDirection.OUT,
+          movementType: PrismaMovementType.RETURN_PURCHASE,
           referenceEntity: 'PurchaseReturn',
           referenceId: pr.id,
           items: { create: items },
@@ -451,7 +467,7 @@ export class ReturnsService {
         const newBal = Math.max(0, (supplier.currentBalance || 0) - creditBack);
         await this.prisma.supplier.update({
           where: { id: pr.supplierId },
-          data: { currentBalance: newBal } as any,
+          data: { currentBalance: newBal },
         });
         await this.payments.recordSupplierCreditNote({
           supplierId: pr.supplierId,
@@ -474,7 +490,7 @@ export class ReturnsService {
 
     await this.prisma.purchaseReturn.update({
       where: { id: pr.id },
-      data: { status: 'FULFILLED' as any },
+      data: { status: PrismaReturnStatus.FULFILLED },
     });
     await this.domainEvents.publish(
       'PURCHASE_RETURN_FULFILLED',

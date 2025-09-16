@@ -11,4 +11,3 @@ export class PurchaseOrderReceiptProgress {
   @Field(() => Int)
   receivedQty!: number;
 }
-

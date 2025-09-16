@@ -8,4 +8,3 @@ export class ChangePasswordInput {
   @Field()
   newPassword!: string;
 }
-

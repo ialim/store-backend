@@ -9,6 +9,11 @@ import {
   Resolver,
 } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
+import {
+  Prisma,
+  InvoiceImportStatus as PrismaInvoiceImportStatus,
+  PurchaseOrderStatus as PrismaPurchaseOrderStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -56,9 +61,9 @@ export class DevToolsResolver {
   async devCounts(): Promise<DevCounts> {
     ensureDev();
     const [invoiceImports, purchaseOrders, orphanVariants] = await Promise.all([
-      (this.prisma as any).invoiceImport.count(),
-      (this.prisma as any).purchaseOrder.count(),
-      (this.prisma as any).productVariant.count({ where: { productId: null } }),
+      this.prisma.invoiceImport.count(),
+      this.prisma.purchaseOrder.count(),
+      this.prisma.productVariant.count({ where: { productId: null } }),
     ]);
     return { invoiceImports, purchaseOrders, orphanVariants };
   }
@@ -70,13 +75,13 @@ export class DevToolsResolver {
     @Args('filter', { nullable: true }) filter?: DevPurgeFilter,
   ): Promise<number> {
     ensureDev();
-    const where: any = {};
+    const where: Prisma.InvoiceImportWhereInput = {};
     if (filter?.beforeDate)
       where.createdAt = { lt: new Date(filter.beforeDate) };
     if (filter?.dryRun) {
-      return (await (this.prisma as any).invoiceImport.count({ where })) || 0;
+      return (await this.prisma.invoiceImport.count({ where })) || 0;
     }
-    const res = await (this.prisma as any).invoiceImport.deleteMany({ where });
+    const res = await this.prisma.invoiceImport.deleteMany({ where });
     return res?.count || 0;
   }
 
@@ -87,23 +92,34 @@ export class DevToolsResolver {
     @Args('filter', { nullable: true }) filter?: DevPurgeFilter,
   ): Promise<number> {
     ensureDev();
-    const where: any = {};
+    const where: Prisma.PurchaseOrderWhereInput = {};
     if (filter?.beforeDate)
       where.createdAt = { lt: new Date(filter.beforeDate) };
-    if (filter?.status) where.status = filter.status as any;
+    if (filter?.status) {
+      const s = filter.status.toUpperCase();
+      const allowed: Array<PrismaPurchaseOrderStatus> = [
+        PrismaPurchaseOrderStatus.PENDING,
+        PrismaPurchaseOrderStatus.RECEIVED,
+        PrismaPurchaseOrderStatus.PARTIALLY_PAID,
+        PrismaPurchaseOrderStatus.PAID,
+        PrismaPurchaseOrderStatus.CANCELLED,
+      ];
+      const maybe = allowed.find((x) => x === (s as PrismaPurchaseOrderStatus));
+      if (maybe) where.status = maybe;
+    }
     if (filter?.storeId) where.storeId = filter.storeId;
     if (filter?.supplierId) where.supplierId = filter.supplierId;
-    const found = await (this.prisma as any).purchaseOrder.findMany({
+    const found = await this.prisma.purchaseOrder.findMany({
       where,
       select: { id: true },
     });
-    const ids = found.map((p: any) => p.id);
+    const ids = found.map((p) => p.id);
     if (!ids.length) return 0;
     if (filter?.dryRun) return ids.length;
-    await (this.prisma as any).purchaseOrderItem.deleteMany({
+    await this.prisma.purchaseOrderItem.deleteMany({
       where: { purchaseOrderId: { in: ids } },
     });
-    const res = await (this.prisma as any).purchaseOrder.deleteMany({
+    const res = await this.prisma.purchaseOrder.deleteMany({
       where: { id: { in: ids } },
     });
     return res?.count || 0;
@@ -120,33 +136,45 @@ export class DevToolsResolver {
     const out: Record<string, any[]> = {};
     for (const t of tables) {
       if (t === 'invoiceImport') {
-        const where: any = {};
+        const where: Prisma.InvoiceImportWhereInput = {};
         if (filter?.beforeDate)
           where.createdAt = { lt: new Date(filter.beforeDate) };
-        out.invoiceImport = await (this.prisma as any).invoiceImport.findMany({
+        out.invoiceImport = await this.prisma.invoiceImport.findMany({
           where,
           take: 1000,
         });
       }
       if (t === 'purchaseOrder') {
-        const where: any = {};
+        const where: Prisma.PurchaseOrderWhereInput = {};
         if (filter?.beforeDate)
           where.createdAt = { lt: new Date(filter.beforeDate) };
-        if (filter?.status) where.status = filter.status as any;
+        if (filter?.status) {
+          const s = filter.status.toUpperCase();
+          const allowed: Array<PrismaPurchaseOrderStatus> = [
+            PrismaPurchaseOrderStatus.PENDING,
+            PrismaPurchaseOrderStatus.RECEIVED,
+            PrismaPurchaseOrderStatus.PARTIALLY_PAID,
+            PrismaPurchaseOrderStatus.PAID,
+            PrismaPurchaseOrderStatus.CANCELLED,
+          ];
+          const maybe = allowed.find((x) => x === (s as PrismaPurchaseOrderStatus));
+          if (maybe) where.status = maybe;
+        }
         if (filter?.storeId) where.storeId = filter.storeId;
         if (filter?.supplierId) where.supplierId = filter.supplierId;
-        out.purchaseOrder = await (this.prisma as any).purchaseOrder.findMany({
+        out.purchaseOrder = await this.prisma.purchaseOrder.findMany({
           where,
           take: 1000,
           include: { items: true },
         });
       }
       if (t === 'productVariant') {
-        const where: any = {};
+        const where: Prisma.ProductVariantWhereInput = {};
         if (filter?.orphanOnly) where.productId = null;
-        out.productVariant = await (this.prisma as any).productVariant.findMany(
-          { where, take: 1000 },
-        );
+        out.productVariant = await this.prisma.productVariant.findMany({
+          where,
+          take: 1000,
+        });
       }
     }
     return JSON.stringify(out, null, 2);
@@ -166,7 +194,7 @@ export class DevToolsResolver {
     } catch (e: any) {
       throw new Error('Invalid JSON');
     }
-    const summary: any = { productVariant: 0, invoiceImport: 0 };
+    const summary: Record<string, number> = { productVariant: 0, invoiceImport: 0 };
     if (Array.isArray(obj?.productVariant))
       summary.productVariant = obj.productVariant.length;
     if (Array.isArray(obj?.invoiceImport))
@@ -176,7 +204,7 @@ export class DevToolsResolver {
     if (Array.isArray(obj?.productVariant)) {
       for (const r of obj.productVariant) {
         if (!r?.id) continue;
-        const data: any = {
+        const data: Prisma.ProductVariantUncheckedCreateInput = {
           name: r.name ?? null,
           size: r.size ?? null,
           concentration: r.concentration ?? null,
@@ -186,7 +214,7 @@ export class DevToolsResolver {
           resellerPrice: r.resellerPrice ?? 0,
           productId: r.productId ?? null,
         };
-        await (this.prisma as any).productVariant.upsert({
+        await this.prisma.productVariant.upsert({
           where: { id: r.id },
           update: data,
           create: { id: r.id, ...data },
@@ -197,15 +225,17 @@ export class DevToolsResolver {
     if (Array.isArray(obj?.invoiceImport)) {
       for (const r of obj.invoiceImport) {
         if (!r?.id) continue;
-        const data: any = {
+        const data: Prisma.InvoiceImportUncheckedCreateInput = {
           url: r.url ?? '',
           supplierName: r.supplierName ?? null,
           storeId: r.storeId ?? null,
-          status: r.status ?? 'PENDING',
+          status:
+            (r.status as PrismaInvoiceImportStatus | undefined) ??
+            PrismaInvoiceImportStatus.PENDING,
           message: r.message ?? null,
           parsed: r.parsed ?? null,
         };
-        await (this.prisma as any).invoiceImport.upsert({
+        await this.prisma.invoiceImport.upsert({
           where: { id: r.id },
           update: data,
           create: { id: r.id, ...data },
@@ -222,7 +252,7 @@ export class DevToolsResolver {
     @Args('kind', { nullable: true }) kind?: string,
   ): Promise<string> {
     ensureDev();
-    const pv1 = await (this.prisma as any).productVariant.create({
+    const pv1 = await this.prisma.productVariant.create({
       data: {
         name: 'Demo 50ml EDP',
         size: '50ml',
@@ -232,7 +262,7 @@ export class DevToolsResolver {
         resellerPrice: 9000,
       },
     });
-    const pv2 = await (this.prisma as any).productVariant.create({
+    const pv2 = await this.prisma.productVariant.create({
       data: {
         name: 'Demo 100ml EDP',
         size: '100ml',
@@ -242,17 +272,21 @@ export class DevToolsResolver {
         resellerPrice: 16000,
       },
     });
-    const supplier = await (this.prisma as any).supplier.upsert({
+    const existingSupplier = await this.prisma.supplier.findFirst({
       where: { name: 'Demo Supplier' },
-      update: {},
-      create: { name: 'Demo Supplier', creditLimit: 0 },
     });
-    await (this.prisma as any).purchaseOrder.create({
+    const supplier =
+      existingSupplier ||
+      (await this.prisma.supplier.create({
+        data: { name: 'Demo Supplier', creditLimit: 0 },
+      }));
+    await this.prisma.purchaseOrder.create({
       data: {
         supplierId: supplier.id,
         invoiceNumber: `INV-${Date.now()}`,
-        status: 'APPROVED' as any,
-        phase: 'ORDERED' as any,
+        status: PrismaPurchaseOrderStatus.PENDING,
+        phase: 'ORDERED',
+        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         totalAmount: 28000,
         items: {
           create: [
@@ -273,38 +307,72 @@ export class DevToolsResolver {
   ): Promise<number> {
     ensureDev();
     // Find orphan variants first
-    const found = await (this.prisma as any).productVariant.findMany({
+    const found = await this.prisma.productVariant.findMany({
       where: { productId: null },
       select: { id: true },
     });
-    const ids = found.map((v: any) => v.id);
+    const ids = found.map((v) => v.id);
     if (!ids.length) return 0;
     if (filter?.dryRun) return ids.length;
     // Cascade delete dependent records that reference the variants
-    await (this.prisma as any).$transaction([
+    await this.prisma.$transaction([
       // Product analytics
-      (this.prisma as any).productSalesStats.deleteMany({ where: { productVariantId: { in: ids } } }),
+      this.prisma.productSalesStats.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
       // Facet assignments and tier prices
-      (this.prisma as any).variantFacetValue.deleteMany({ where: { productVariantId: { in: ids } } }),
-      (this.prisma as any).productVariantTierPrice.deleteMany({ where: { productVariantId: { in: ids } } }),
+      this.prisma.variantFacetValue.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
+      this.prisma.productVariantTierPrice.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
       // Procurement references
-      (this.prisma as any).purchaseRequisitionItem.deleteMany({ where: { productVariantId: { in: ids } } }),
-      (this.prisma as any).supplierCatalog.deleteMany({ where: { productVariantId: { in: ids } } }),
-      (this.prisma as any).supplierQuoteItem.deleteMany({ where: { productVariantId: { in: ids } } }),
-      (this.prisma as any).purchaseOrderItem.deleteMany({ where: { productVariantId: { in: ids } } }),
+      this.prisma.purchaseRequisitionItem.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
+      this.prisma.supplierCatalog.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
+      this.prisma.supplierQuoteItem.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
+      this.prisma.purchaseOrderItem.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
       // Stock domain
-      (this.prisma as any).stockReceiptBatchItem.deleteMany({ where: { productVariantId: { in: ids } } }),
-      (this.prisma as any).stockTransferItem.deleteMany({ where: { productVariantId: { in: ids } } }),
-      (this.prisma as any).stockMovementItem.deleteMany({ where: { productVariantId: { in: ids } } }),
-      (this.prisma as any).stock.deleteMany({ where: { productVariantId: { in: ids } } }),
+      this.prisma.stockReceiptBatchItem.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
+      this.prisma.stockTransferItem.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
+      this.prisma.stockMovementItem.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
+      this.prisma.stock.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
       // Sales domain
-      (this.prisma as any).quotationItem.deleteMany({ where: { productVariantId: { in: ids } } }),
-      (this.prisma as any).resellerSaleItem.deleteMany({ where: { productVariantId: { in: ids } } }),
-      (this.prisma as any).consumerSaleItem.deleteMany({ where: { productVariantId: { in: ids } } }),
-      (this.prisma as any).salesReturnItem.deleteMany({ where: { productVariantId: { in: ids } } }),
-      (this.prisma as any).purchaseReturnItem.deleteMany({ where: { productVariantId: { in: ids } } }),
+      this.prisma.quotationItem.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
+      this.prisma.resellerSaleItem.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
+      this.prisma.consumerSaleItem.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
+      this.prisma.salesReturnItem.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
+      this.prisma.purchaseReturnItem.deleteMany({
+        where: { productVariantId: { in: ids } },
+      }),
       // Finally remove the variants themselves
-      (this.prisma as any).productVariant.deleteMany({ where: { id: { in: ids } } }),
+      this.prisma.productVariant.deleteMany({
+        where: { id: { in: ids } },
+      }),
     ]);
     return ids.length;
   }
@@ -316,22 +384,23 @@ export class DevToolsResolver {
     @Args('filter', { nullable: true }) filter?: DevPurgeFilter,
   ): Promise<number> {
     ensureDev();
-    const where: any = {};
-    if (filter?.beforeDate) where.createdAt = { lt: new Date(filter.beforeDate) };
+    const where: Prisma.ProductWhereInput = {};
+    if (filter?.beforeDate)
+      where.createdAt = { lt: new Date(filter.beforeDate) };
     // Find target products first
-    const found = await (this.prisma as any).product.findMany({
+    const found = await this.prisma.product.findMany({
       where,
       select: { id: true },
     });
-    const ids = found.map((p: any) => p.id);
+    const ids = found.map((p) => p.id);
     if (!ids.length) return 0;
     if (filter?.dryRun) return ids.length;
     // Remove product-level facet assignments
-    await (this.prisma as any).productFacetValue.deleteMany({
+    await this.prisma.productFacetValue.deleteMany({
       where: { productId: { in: ids } },
     });
     // Delete products; variants will be left orphaned and can be purged separately
-    const res = await (this.prisma as any).product.deleteMany({
+    const res = await this.prisma.product.deleteMany({
       where: { id: { in: ids } },
     });
     return res?.count || 0;

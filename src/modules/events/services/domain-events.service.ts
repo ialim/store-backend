@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 
 export type DomainEventPayload = Record<string, any>;
@@ -15,7 +16,7 @@ export class DomainEventsService {
       aggregateType?: string;
       aggregateId?: string;
       deliverAfter?: Date | null;
-      tx?: Parameters<PrismaService['$transaction']>[0];
+      tx?: Prisma.TransactionClient;
     },
   ) {
     const data = {
@@ -27,17 +28,12 @@ export class DomainEventsService {
     };
     // If a transaction client is provided, use it
     try {
-      if (options?.tx && typeof options.tx === 'function') {
-        // Not using function variant; fall back to default client
-        return await this.prisma.outboxEvent.create({ data });
-      } else if ((options as any)?.tx?.outboxEvent) {
-        return await (options as any).tx.outboxEvent.create({ data });
+      if (options?.tx) {
+        return await options.tx.outboxEvent.create({ data });
       }
     } catch (e) {
-      this.logger.warn(
-        'Falling back to default prisma client for outbox insert',
-      );
+      this.logger.warn('Falling back to default prisma client for outbox insert');
     }
-    return this.prisma.outboxEvent.create({ data });
+    return await this.prisma.outboxEvent.create({ data });
   }
 }

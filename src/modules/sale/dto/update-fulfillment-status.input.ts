@@ -12,4 +12,3 @@ export class UpdateFulfillmentStatusInput {
   @Field({ nullable: true })
   confirmationPin?: string;
 }
-

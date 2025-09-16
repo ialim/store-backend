@@ -35,7 +35,6 @@ export class ProductVariantService extends BaseCrudService<
     super(prisma);
   }
 
-
   async variantsByStore(storeId: string, search?: string) {
     const where: any = {};
     if (search) {
@@ -62,7 +61,12 @@ export class ProductVariantService extends BaseCrudService<
   async lowStockByStore(storeId: string) {
     const stocks = await this.prisma.stock.findMany({
       where: { storeId, reorderPoint: { not: null } },
-      select: { productVariantId: true, quantity: true, reserved: true, reorderPoint: true },
+      select: {
+        productVariantId: true,
+        quantity: true,
+        reserved: true,
+        reorderPoint: true,
+      },
     });
     const variantIds: string[] = [];
     for (const s of stocks) {
@@ -77,7 +81,6 @@ export class ProductVariantService extends BaseCrudService<
       include: { product: true, stockItems: { where: { storeId } } },
     });
   }
-
 
   async upsertVariantSupplierCatalog(input: {
     productVariantId: string;
@@ -129,12 +132,24 @@ export class ProductVariantService extends BaseCrudService<
     });
   }
 
-
-  async upsertVariantTierPrice(input: { productVariantId: string; tier: any; price: number }) {
+  async upsertVariantTierPrice(input: {
+    productVariantId: string;
+    tier: any;
+    price: number;
+  }) {
     return this.prisma.productVariantTierPrice.upsert({
-      where: { productVariantId_tier: { productVariantId: input.productVariantId, tier: input.tier } },
+      where: {
+        productVariantId_tier: {
+          productVariantId: input.productVariantId,
+          tier: input.tier,
+        },
+      },
       update: { price: input.price },
-      create: { productVariantId: input.productVariantId, tier: input.tier, price: input.price },
+      create: {
+        productVariantId: input.productVariantId,
+        tier: input.tier,
+        price: input.price,
+      },
       select: { productVariantId: true, tier: true, price: true },
     });
   }

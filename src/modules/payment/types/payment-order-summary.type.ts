@@ -23,4 +23,3 @@ export class PaymentOrderSummary {
   @Field()
   fullyPaid!: boolean;
 }
-

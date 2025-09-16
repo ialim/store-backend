@@ -5,4 +5,3 @@ export class FulfillConsumerSaleInput {
   @Field(() => ID)
   id: string;
 }
-

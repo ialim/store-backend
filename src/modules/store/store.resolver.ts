@@ -15,7 +15,14 @@ import {
   DeleteManyStoreArgs,
 } from '../../shared/prismagraphql/store';
 import { AffectedRows } from '../../shared/prismagraphql/prisma';
-import { Resolver, Query, Args, Mutation, ResolveField, Parent } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Args,
+  Mutation,
+  ResolveField,
+  Parent,
+} from '@nestjs/graphql';
 import { ObjectType, Field } from '@nestjs/graphql';
 import { StoreService } from './store.service';
 import { User } from '../../shared/prismagraphql/user/user.model';
@@ -112,10 +119,15 @@ export class StoreFieldsResolver {
   constructor(private readonly storeService: StoreService) {}
 
   @ResolveField(() => User)
-  async manager(@Parent() store: any): Promise<User> {
+  async manager(@Parent() store: { managerId: string }): Promise<User> {
     // Ensure we resolve the required relation to avoid null for non-null field
-    const managerId = store.managerId;
-    return this.storeService.prisma.user.findUnique({ where: { id: managerId } }) as any;
+    const manager = await this.storeService.prisma.user.findUnique({
+      where: { id: store.managerId },
+    });
+    if (!manager) {
+      throw new Error('Manager not found');
+    }
+    return manager;
   }
 }
 
@@ -169,7 +181,10 @@ export class StoreDiagnosticsResolver {
     @Args('storeId') storeId: string,
     @Args('managerId') managerId: string,
   ) {
-    await this.storeService.prisma.store.update({ where: { id: storeId }, data: { managerId } });
+    await this.storeService.prisma.store.update({
+      where: { id: storeId },
+      data: { managerId },
+    });
     return true;
   }
 
@@ -181,7 +196,10 @@ export class StoreDiagnosticsResolver {
     @Args('managerId') managerId: string,
   ) {
     if (!storeIds?.length) return 0;
-    const res = await this.storeService.prisma.store.updateMany({ where: { id: { in: storeIds } }, data: { managerId } });
+    const res = await this.storeService.prisma.store.updateMany({
+      where: { id: { in: storeIds } },
+      data: { managerId },
+    });
     return res.count || 0;
   }
 }

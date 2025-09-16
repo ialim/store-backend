@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, ProfileStatus as PrismaProfileStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -34,7 +35,7 @@ export class OnboardingService {
           create: {
             fullName: '',
             email: input.email,
-            profileStatus: 'PENDING',
+            profileStatus: PrismaProfileStatus.PENDING,
           },
         },
       },
@@ -99,7 +100,7 @@ export class OnboardingService {
             requestedBillerId: input.requestedBillerId ?? null,
             tier: input.tier,
             creditLimit: input.creditLimit,
-            profileStatus: 'PENDING',
+            profileStatus: PrismaProfileStatus.PENDING,
           },
         },
       },
@@ -116,14 +117,15 @@ export class OnboardingService {
   }
 
   async approveReseller(resellerId: string, input: ApproveResellerInput) {
-    const data: any = {
+    const data: Prisma.ResellerProfileUpdateInput = {
       tier: input.tier,
       creditLimit: input.creditLimit,
-      profileStatus: 'ACTIVE',
+      profileStatus: PrismaProfileStatus.ACTIVE,
       activatedAt: new Date(),
     };
     if (input.billerId) {
-      data.billerId = input.billerId;
+      (data as Prisma.ResellerProfileUncheckedUpdateInput).billerId =
+        input.billerId;
     }
     const profile = await this.prisma.resellerProfile.update({
       where: { userId: resellerId },
@@ -140,8 +142,14 @@ export class OnboardingService {
     return profile;
   }
 
-  async listPendingResellerApplications(take?: number, skip?: number, q?: string) {
-    const where: any = { profileStatus: 'PENDING' as any };
+  async listPendingResellerApplications(
+    take?: number,
+    skip?: number,
+    q?: string,
+  ) {
+    const where: Prisma.ResellerProfileWhereInput = {
+      profileStatus: PrismaProfileStatus.PENDING,
+    };
     if (q) {
       where.user = { email: { contains: q, mode: 'insensitive' } };
     }
@@ -156,7 +164,7 @@ export class OnboardingService {
 
   async listBillers() {
     return this.prisma.user.findMany({
-      where: { role: { name: 'BILLER' } as any },
+      where: { role: { is: { name: 'BILLER' } } },
       select: { id: true, email: true },
       orderBy: { email: 'asc' },
       take: 200,
@@ -164,15 +172,16 @@ export class OnboardingService {
   }
 
   async activateReseller(resellerId: string, billerId?: string) {
-    const data: any = {
-      profileStatus: 'ACTIVE',
+    const data: Prisma.ResellerProfileUpdateInput = {
+      profileStatus: PrismaProfileStatus.ACTIVE,
       isActive: true,
       activatedAt: new Date(),
       // clear prior rejection data if any
       rejectedAt: null,
       rejectionReason: null,
     };
-    if (billerId) data.billerId = billerId;
+    if (billerId)
+      (data as Prisma.ResellerProfileUncheckedUpdateInput).billerId = billerId;
     const profile = await this.prisma.resellerProfile.update({
       where: { userId: resellerId },
       data,
@@ -190,7 +199,7 @@ export class OnboardingService {
     const profile = await this.prisma.resellerProfile.update({
       where: { userId: resellerId },
       data: {
-        profileStatus: 'REJECTED' as any,
+        profileStatus: PrismaProfileStatus.REJECTED,
         isActive: false,
         rejectedAt: new Date(),
         rejectionReason: reason || 'Application rejected',
@@ -205,8 +214,11 @@ export class OnboardingService {
     return profile;
   }
 
-  async adminUpdateCustomerProfile(userId: string, input: AdminUpdateCustomerProfileInput) {
-    const update: any = {
+  async adminUpdateCustomerProfile(
+    userId: string,
+    input: AdminUpdateCustomerProfileInput,
+  ) {
+    const update: Prisma.CustomerProfileUncheckedUpdateInput = {
       fullName: input.fullName,
       phone: input.phone,
       email: input.email,
@@ -215,15 +227,24 @@ export class OnboardingService {
       preferredStoreId: input.preferredStoreId,
     };
     if (input.profileStatus) {
-      update.profileStatus = input.profileStatus as any;
+      update.profileStatus =
+        PrismaProfileStatus[
+          input.profileStatus as keyof typeof PrismaProfileStatus
+        ];
       if (input.profileStatus === 'ACTIVE') update.activatedAt = new Date();
     }
-    const profile = await this.prisma.customerProfile.update({ where: { userId }, data: update, include: { preferredStore: true, user: true } });
+    const profile = await this.prisma.customerProfile.update({
+      where: { userId },
+      data: update,
+      include: { preferredStore: true, user: true },
+    });
     return profile;
   }
 
   async adminCreateCustomer(input: AdminCreateCustomerInput) {
-    const role = await this.prisma.role.findUnique({ where: { name: 'CUSTOMER' } });
+    const role = await this.prisma.role.findUnique({
+      where: { name: 'CUSTOMER' },
+    });
     if (!role) throw new NotFoundException('Customer role not found');
     const user = await this.prisma.user.create({
       data: {
@@ -236,15 +257,27 @@ export class OnboardingService {
             phone: input.phone || null,
             email: input.email,
             preferredStoreId: input.preferredStoreId || null,
-            profileStatus: (input.profileStatus as any) || 'ACTIVE',
-            activatedAt: (input.profileStatus || 'ACTIVE') === 'ACTIVE' ? new Date() : null,
+            profileStatus:
+              input.profileStatus
+                ? PrismaProfileStatus[
+                    input.profileStatus as keyof typeof PrismaProfileStatus
+                  ]
+                : PrismaProfileStatus.ACTIVE,
+            activatedAt:
+              (input.profileStatus ?? 'ACTIVE') === 'ACTIVE'
+                ? new Date()
+                : null,
           },
         },
       },
       include: { customerProfile: { include: { preferredStore: true } } },
     });
     try {
-      await this.notificationService.createNotification(user.id, 'CUSTOMER_CREATED', 'Your account has been created by an admin.');
+      await this.notificationService.createNotification(
+        user.id,
+        'CUSTOMER_CREATED',
+        'Your account has been created by an admin.',
+      );
     } catch {}
     return user;
   }
@@ -255,9 +288,9 @@ export class OnboardingService {
     skip?: number;
     q?: string;
   }) {
-    const { status, take, skip, q } = params || {} as any;
-    const where: any = {};
-    if (status) where.profileStatus = status as any;
+    const { status, take, skip, q } = params || {};
+    const where: Prisma.ResellerProfileWhereInput = {};
+    if (status) where.profileStatus = PrismaProfileStatus[status];
     if (q) where.user = { email: { contains: q, mode: 'insensitive' } };
     return this.prisma.resellerProfile.findMany({
       where,

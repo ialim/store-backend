@@ -41,4 +41,3 @@ export class UnlinkVariantFromProductInput {
   @Field(() => ID)
   variantId!: string;
 }
-

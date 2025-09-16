@@ -12,4 +12,3 @@ export class OutboxSchedulerService {
     await this.dispatcher.runOnce({ limit: 20 });
   }
 }
-

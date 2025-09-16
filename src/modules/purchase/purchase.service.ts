@@ -36,6 +36,12 @@ import {
 } from './dto/select-reject-supplier-quote.input';
 import { CloseRfqInput } from './dto/close-rfq.input';
 import { CreateRequisitionFromLowStockInput } from './dto/create-requisition-from-low-stock.input';
+import {
+  PurchaseOrderStatus as PrismaPurchaseOrderStatus,
+  PurchasePhase as PrismaPurchasePhase,
+  PurchaseRequisitionStatus as PrismaPurchaseRequisitionStatus,
+  SupplierQuoteStatus as PrismaSupplierQuoteStatus,
+} from '@prisma/client';
 
 @Injectable()
 export class PurchaseService {
@@ -132,7 +138,12 @@ export class PurchaseService {
 
   async purchaseOrdersByStatus(status: string, take?: number, skip?: number) {
     return this.prisma.purchaseOrder.findMany({
-      where: { status: status as any },
+      where: {
+        status:
+          PrismaPurchaseOrderStatus[
+            status as keyof typeof PrismaPurchaseOrderStatus
+          ],
+      },
       include: { items: true, supplier: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
       take: take ?? undefined,
@@ -142,7 +153,9 @@ export class PurchaseService {
 
   async purchaseOrdersByPhase(phase: string, take?: number, skip?: number) {
     return this.prisma.purchaseOrder.findMany({
-      where: { phase: phase as any },
+      where: {
+        phase: PrismaPurchasePhase[phase as keyof typeof PrismaPurchasePhase],
+      },
       include: { items: true, supplier: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
       take: take ?? undefined,
@@ -150,11 +163,19 @@ export class PurchaseService {
     });
   }
 
-  async purchaseOrdersBySupplier(supplierId: string, take?: number, skip?: number) {
+  async purchaseOrdersBySupplier(
+    supplierId: string,
+    take?: number,
+    skip?: number,
+  ) {
     return this.prisma.purchaseOrder.findMany({
       where: { supplierId },
       orderBy: { createdAt: 'asc' },
-      include: { payments: { select: { id: true, amount: true, paymentDate: true, method: true } } },
+      include: {
+        payments: {
+          select: { id: true, amount: true, paymentDate: true, method: true },
+        },
+      },
       take: take ?? undefined,
       skip: skip ?? undefined,
     });
@@ -162,8 +183,14 @@ export class PurchaseService {
 
   async purchaseOrdersCount(status?: string, phase?: string) {
     const where: any = {};
-    if (status) where.status = status as any;
-    if (phase) where.phase = phase as any;
+    if (status)
+      where.status =
+        PrismaPurchaseOrderStatus[
+          status as keyof typeof PrismaPurchaseOrderStatus
+        ];
+    if (phase)
+      where.phase =
+        PrismaPurchasePhase[phase as keyof typeof PrismaPurchasePhase];
     return this.prisma.purchaseOrder.count({ where });
   }
 
@@ -172,7 +199,12 @@ export class PurchaseService {
     return this.prisma.purchaseOrder.findMany({
       where: {
         dueDate: { lt: now },
-        status: { in: ['PENDING', 'PARTIALLY_PAID'] as any },
+        status: {
+          in: [
+            PrismaPurchaseOrderStatus.PENDING,
+            PrismaPurchaseOrderStatus.PARTIALLY_PAID,
+          ],
+        },
       },
       include: { items: true },
       orderBy: { dueDate: 'asc' },
@@ -184,7 +216,12 @@ export class PurchaseService {
     return this.prisma.purchaseOrder.findMany({
       where: {
         dueDate: { lt: now },
-        status: { in: ['PENDING', 'PARTIALLY_PAID'] as any },
+        status: {
+          in: [
+            PrismaPurchaseOrderStatus.PENDING,
+            PrismaPurchaseOrderStatus.PARTIALLY_PAID,
+          ],
+        },
         OR: [
           { storeId },
           { receipts: { some: { storeId } } }, // fallback for historical POs
@@ -196,9 +233,20 @@ export class PurchaseService {
   }
 
   // Requisition and quotes listings for dashboards
-  async requisitionsByStatus(status: string, storeId?: string, take?: number, skip?: number) {
+  async requisitionsByStatus(
+    status: string,
+    storeId?: string,
+    take?: number,
+    skip?: number,
+  ) {
     return this.prisma.purchaseRequisition.findMany({
-      where: { status: status as any, ...(storeId ? { storeId } : {}) },
+      where: {
+        status:
+          PrismaPurchaseRequisitionStatus[
+            status as keyof typeof PrismaPurchaseRequisitionStatus
+          ],
+        ...(storeId ? { storeId } : {}),
+      },
       select: {
         id: true,
         storeId: true,
@@ -213,15 +261,38 @@ export class PurchaseService {
   }
 
   async requisitionsCountByStatus(status: string, storeId?: string) {
-    return this.prisma.purchaseRequisition.count({ where: { status: status as any, ...(storeId ? { storeId } : {}) } });
+    return this.prisma.purchaseRequisition.count({
+      where: {
+        status:
+          PrismaPurchaseRequisitionStatus[
+            status as keyof typeof PrismaPurchaseRequisitionStatus
+          ],
+        ...(storeId ? { storeId } : {}),
+      },
+    });
   }
 
-  async requisitionsByStore(storeId: string, status?: string, take?: number, skip?: number) {
+  async requisitionsByStore(
+    storeId: string,
+    status?: string,
+    take?: number,
+    skip?: number,
+  ) {
     const where: any = { storeId };
-    if (status) where.status = status as any;
+    if (status)
+      where.status =
+        PrismaPurchaseRequisitionStatus[
+          status as keyof typeof PrismaPurchaseRequisitionStatus
+        ];
     return this.prisma.purchaseRequisition.findMany({
       where,
-      select: { id: true, storeId: true, requestedById: true, status: true, createdAt: true },
+      select: {
+        id: true,
+        storeId: true,
+        requestedById: true,
+        status: true,
+        createdAt: true,
+      },
       orderBy: { createdAt: 'desc' },
       take: take ?? undefined,
       skip: skip ?? undefined,
@@ -230,14 +301,24 @@ export class PurchaseService {
 
   async requisitionsCountByStore(storeId: string, status?: string) {
     const where: any = { storeId };
-    if (status) where.status = status as any;
+    if (status)
+      where.status =
+        PrismaPurchaseRequisitionStatus[
+          status as keyof typeof PrismaPurchaseRequisitionStatus
+        ];
     return this.prisma.purchaseRequisition.count({ where });
   }
 
   async requisitionSummary(id: string) {
     return this.prisma.purchaseRequisition.findUnique({
       where: { id },
-      select: { id: true, storeId: true, requestedById: true, status: true, createdAt: true },
+      select: {
+        id: true,
+        storeId: true,
+        requestedById: true,
+        status: true,
+        createdAt: true,
+      },
     });
   }
 
@@ -263,7 +344,7 @@ export class PurchaseService {
     if (!quote) throw new NotFoundException('Supplier quote not found');
     const updated = await this.prisma.supplierQuote.update({
       where: { id: quote.id },
-      data: { status: 'SELECTED' as any },
+      data: { status: PrismaSupplierQuoteStatus.SELECTED },
     });
     if (input.exclusive ?? true) {
       await this.prisma.supplierQuote.updateMany({
@@ -271,7 +352,7 @@ export class PurchaseService {
           requisitionId: updated.requisitionId,
           id: { not: updated.id },
         },
-        data: { status: 'REJECTED' as any },
+        data: { status: PrismaSupplierQuoteStatus.REJECTED },
       });
     }
     await this.domainEvents.publish(
@@ -310,7 +391,7 @@ export class PurchaseService {
     if (!quote) throw new NotFoundException('Supplier quote not found');
     await this.prisma.supplierQuote.update({
       where: { id: quote.id },
-      data: { status: 'REJECTED' as any },
+      data: { status: PrismaSupplierQuoteStatus.REJECTED },
     });
     await this.domainEvents.publish(
       'SUPPLIER_QUOTE_REJECTED',
@@ -426,7 +507,10 @@ export class PurchaseService {
     const results: typeof reqs = [];
     for (const r of reqs) {
       const submitted = await this.prisma.supplierQuote.count({
-        where: { requisitionId: r.id, status: 'SUBMITTED' as any },
+        where: {
+          requisitionId: r.id,
+          status: PrismaSupplierQuoteStatus.SUBMITTED,
+        },
       });
       if (submitted === 0) results.push(r);
     }
@@ -447,7 +531,10 @@ export class PurchaseService {
     const results: typeof reqs = [];
     for (const r of reqs) {
       const submitted = await this.prisma.supplierQuote.count({
-        where: { requisitionId: r.id, status: 'SUBMITTED' as any },
+        where: {
+          requisitionId: r.id,
+          status: PrismaSupplierQuoteStatus.SUBMITTED,
+        },
       });
       if (submitted === 0) results.push(r);
     }
@@ -456,7 +543,10 @@ export class PurchaseService {
 
   async rfqPendingSuppliers(requisitionId: string) {
     return this.prisma.supplierQuote.findMany({
-      where: { requisitionId, NOT: { status: 'SUBMITTED' as any } },
+      where: {
+        requisitionId,
+        NOT: { status: PrismaSupplierQuoteStatus.SUBMITTED },
+      },
       select: {
         id: true,
         requisitionId: true,
@@ -475,8 +565,8 @@ export class PurchaseService {
       where: { requisitionId },
     });
     const map = new Map<string, number>();
-    for (const r of rows as any[]) {
-      map.set(r.status, r._count?._all ?? r._count);
+    for (const r of rows as Array<{ status: unknown; _count: { _all: number } }>) {
+      map.set(String(r.status || ''), r._count?._all ?? 0);
     }
     const draft = map.get('DRAFT') || 0;
     const submitted = map.get('SUBMITTED') || 0;
@@ -498,8 +588,8 @@ export class PurchaseService {
       _count: { _all: true },
     });
     const map = new Map<string, number>();
-    for (const r of rows as any[]) {
-      map.set(r.status, r._count?._all ?? r._count);
+    for (const r of rows) {
+      map.set((r.status as unknown as string) || '', (r as any)._count?._all ?? (r as any)._count);
     }
     const draft = map.get('DRAFT') || 0;
     const submitted = map.get('SUBMITTED') || 0;
@@ -518,7 +608,9 @@ export class PurchaseService {
   async rfqDashboard(requisitionId: string) {
     const counts = await this.rfqStatusCounts(requisitionId);
     const pending = await this.supplierQuotesByRequisition(requisitionId);
-    const pendingQuotes = pending.filter((q: any) => q.status !== 'SUBMITTED');
+    const pendingQuotes = pending.filter(
+      (q) => q.status !== PrismaSupplierQuoteStatus.SUBMITTED,
+    );
     return { ...counts, pendingQuotes } as any;
   }
 
@@ -622,16 +714,21 @@ export class PurchaseService {
   }
 
   async rfqStatusCountsByStore(storeId: string) {
-    const statuses = ['DRAFT', 'SUBMITTED', 'SELECTED', 'REJECTED'];
-    const counts: any = { draft: 0, submitted: 0, selected: 0, rejected: 0 };
+    const statuses = [
+      PrismaSupplierQuoteStatus.DRAFT,
+      PrismaSupplierQuoteStatus.SUBMITTED,
+      PrismaSupplierQuoteStatus.SELECTED,
+      PrismaSupplierQuoteStatus.REJECTED,
+    ];
+    const counts = { draft: 0, submitted: 0, selected: 0, rejected: 0 };
     for (const st of statuses) {
       const c = await this.prisma.supplierQuote.count({
-        where: { status: st as any, requisition: { storeId } },
+        where: { status: st, requisition: { storeId } },
       });
-      if (st === 'DRAFT') counts.draft = c;
-      if (st === 'SUBMITTED') counts.submitted = c;
-      if (st === 'SELECTED') counts.selected = c;
-      if (st === 'REJECTED') counts.rejected = c;
+      if (st === PrismaSupplierQuoteStatus.DRAFT) counts.draft = c;
+      if (st === PrismaSupplierQuoteStatus.SUBMITTED) counts.submitted = c;
+      if (st === PrismaSupplierQuoteStatus.SELECTED) counts.selected = c;
+      if (st === PrismaSupplierQuoteStatus.REJECTED) counts.rejected = c;
     }
     return {
       requisitionId: null,
@@ -647,7 +744,10 @@ export class PurchaseService {
   async rfqDashboardByStore(storeId: string) {
     const counts = await this.rfqStatusCountsByStore(storeId);
     const pendingQuotes = await this.prisma.supplierQuote.findMany({
-      where: { requisition: { storeId }, NOT: { status: 'SUBMITTED' as any } },
+      where: {
+        requisition: { storeId },
+        NOT: { status: PrismaSupplierQuoteStatus.SUBMITTED },
+      },
       select: {
         id: true,
         requisitionId: true,
@@ -664,7 +764,7 @@ export class PurchaseService {
   async rfqDashboardAll() {
     const counts = await this.rfqCountsAll();
     const pendingQuotes = await this.prisma.supplierQuote.findMany({
-      where: { NOT: { status: 'SUBMITTED' as any } },
+      where: { NOT: { status: PrismaSupplierQuoteStatus.SUBMITTED } },
       select: {
         id: true,
         requisitionId: true,
@@ -683,8 +783,12 @@ export class PurchaseService {
     return this.prisma.purchaseRequisition.findMany({
       where: {
         AND: [
-          { quotes: { some: { status: 'SUBMITTED' as any } } },
-          { quotes: { some: { NOT: { status: 'SUBMITTED' as any } } } },
+          { quotes: { some: { status: PrismaSupplierQuoteStatus.SUBMITTED } } },
+          {
+            quotes: {
+              some: { NOT: { status: PrismaSupplierQuoteStatus.SUBMITTED } },
+            },
+          },
         ],
       },
       select: {
@@ -703,8 +807,12 @@ export class PurchaseService {
       where: {
         storeId,
         AND: [
-          { quotes: { some: { status: 'SUBMITTED' as any } } },
-          { quotes: { some: { NOT: { status: 'SUBMITTED' as any } } } },
+          { quotes: { some: { status: PrismaSupplierQuoteStatus.SUBMITTED } } },
+          {
+            quotes: {
+              some: { NOT: { status: PrismaSupplierQuoteStatus.SUBMITTED } },
+            },
+          },
         ],
       },
       select: {
@@ -840,7 +948,7 @@ export class PurchaseService {
         create: {
           requisitionId: req.id,
           supplierId,
-          status: 'DRAFT',
+          status: PrismaSupplierQuoteStatus.DRAFT,
         },
       });
     }
@@ -953,7 +1061,11 @@ export class PurchaseService {
     const po = await this.prisma.purchaseOrder.findUnique({
       where: { id },
       include: {
-        items: { include: { productVariant: { select: PRODUCT_VARIANT_SUMMARY_SELECT } } },
+        items: {
+          include: {
+            productVariant: { select: PRODUCT_VARIANT_SUMMARY_SELECT },
+          },
+        },
         supplier: { select: { id: true, name: true } },
       },
     });
@@ -962,17 +1074,23 @@ export class PurchaseService {
   }
 
   async purchaseOrderReceiptProgress(purchaseOrderId: string) {
-    const po = await this.prisma.purchaseOrder.findUnique({ where: { id: purchaseOrderId }, include: { items: true } });
+    const po = await this.prisma.purchaseOrder.findUnique({
+      where: { id: purchaseOrderId },
+      include: { items: true },
+    });
     if (!po) throw new NotFoundException('Purchase order not found');
     const items = po.items || [];
     if (!items.length) return [];
     const batchItems = await this.prisma.stockReceiptBatchItem.findMany({
-      where: { batch: { purchaseOrderId } as any },
+      where: { batch: { is: { purchaseOrderId } } },
       select: { productVariantId: true, quantity: true },
     });
     const receivedMap = new Map<string, number>();
     for (const bi of batchItems) {
-      receivedMap.set(bi.productVariantId, (receivedMap.get(bi.productVariantId) || 0) + (bi.quantity || 0));
+      receivedMap.set(
+        bi.productVariantId,
+        (receivedMap.get(bi.productVariantId) || 0) + (bi.quantity || 0),
+      );
     }
     return items.map((it) => ({
       productVariantId: it.productVariantId,
@@ -992,9 +1110,9 @@ export class PurchaseService {
     return this.prisma.purchaseOrder.findMany({
       where: {
         OR: [
-          { id: { contains: query, mode: 'insensitive' } as any },
-          { supplierId: { contains: query, mode: 'insensitive' } as any },
-          { invoiceNumber: { contains: query, mode: 'insensitive' } as any },
+          { id: { contains: query, mode: 'insensitive' as const } },
+          { supplierId: { contains: query, mode: 'insensitive' as const } },
+          { invoiceNumber: { contains: query, mode: 'insensitive' as const } },
         ],
       },
       orderBy: { createdAt: 'desc' },
@@ -1006,11 +1124,11 @@ export class PurchaseService {
   async purchaseOrdersSearchCount(q: string) {
     const query = q.trim();
     if (!query) return this.prisma.purchaseOrder.count();
-    const where: any = {
+    const where = {
       OR: [
-        { id: { contains: query, mode: 'insensitive' } as any },
-        { supplierId: { contains: query, mode: 'insensitive' } as any },
-        { invoiceNumber: { contains: query, mode: 'insensitive' } as any },
+        { id: { contains: query, mode: 'insensitive' as const } },
+        { supplierId: { contains: query, mode: 'insensitive' as const } },
+        { invoiceNumber: { contains: query, mode: 'insensitive' as const } },
       ],
     };
     return this.prisma.purchaseOrder.count({ where });
@@ -1167,7 +1285,10 @@ export class PurchaseService {
   }
 
   async supplierPaymentsBySupplier(supplierId: string) {
-    return this.prisma.supplierPayment.findMany({ where: { supplierId }, orderBy: { paymentDate: 'asc' } });
+    return this.prisma.supplierPayment.findMany({
+      where: { supplierId },
+      orderBy: { paymentDate: 'asc' },
+    });
   }
 
   async createSupplierPayment(data: CreateSupplierPaymentInput) {
@@ -1429,7 +1550,10 @@ export class PurchaseService {
       { aggregateType: 'PurchaseOrder', aggregateId: po.id },
     );
     try {
-      const supplier = await this.prisma.supplier.findUnique({ where: { id: po.supplierId }, select: { userId: true } });
+      const supplier = await this.prisma.supplier.findUnique({
+        where: { id: po.supplierId },
+        select: { userId: true },
+      });
       if (supplier?.userId) {
         await this.notificationService.createNotification(
           supplier.userId,
@@ -1516,12 +1640,11 @@ export class PurchaseService {
       take: limit,
     });
     const list = candidates.filter(
-      (s) => (s.reorderPoint ?? 0) > 0 && (s.quantity ?? 0) <= (s.reorderPoint ?? 0),
+      (s) =>
+        (s.reorderPoint ?? 0) > 0 && (s.quantity ?? 0) <= (s.reorderPoint ?? 0),
     );
     if (!list.length) return [] as any;
-    const variantIds = Array.from(
-      new Set(list.map((x) => x.productVariantId)),
-    );
+    const variantIds = Array.from(new Set(list.map((x) => x.productVariantId)));
     const storeIds = Array.from(new Set(list.map((x) => x.storeId)));
     const [variants, stores, catalogs] = await Promise.all([
       this.prisma.productVariant.findMany({
@@ -1561,9 +1684,11 @@ export class PurchaseService {
       // Pick primary: preferred first; otherwise lowest defaultCost
       let primary = cats.find((x: any) => x.isPreferred) as any;
       if (!primary && cats.length) {
-        primary = cats.reduce((min: any, cur: any) =>
-          min && min.defaultCost <= cur.defaultCost ? min : cur,
-        null as any);
+        primary = cats.reduce(
+          (min: any, cur: any) =>
+            min && min.defaultCost <= cur.defaultCost ? min : cur,
+          null as any,
+        );
       }
       return {
         ...e,

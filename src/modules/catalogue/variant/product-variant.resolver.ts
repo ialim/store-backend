@@ -23,7 +23,11 @@ import { UpsertVariantSupplierCatalogInput } from '../dto/upsert-variant-supplie
 import { SupplierCatalogEntry } from '../../purchase/types/supplier-catalog-entry.type';
 import { VariantTierPrice } from '../types/variant-tier-price.type';
 import { UpsertVariantTierPriceInput } from '../dto/upsert-variant-tier-price.input';
-import { LooseProductVariantInput, LinkVariantToProductInput, UnlinkVariantFromProductInput } from '../dto/loose-product-variant.input';
+import {
+  LooseProductVariantInput,
+  LinkVariantToProductInput,
+  UnlinkVariantFromProductInput,
+} from '../dto/loose-product-variant.input';
 import { ProductVariantWhereInput } from '../../../shared/prismagraphql/product-variant';
 @Resolver(() => ProductVariant)
 export class ProductVariantsResolver {
@@ -84,7 +88,6 @@ export class ProductVariantsResolver {
     return this.ProductVariantService.deleteMany(args);
   }
 
-
   // Custom catalogue queries
   @Query(() => [ProductVariant])
   @UseGuards(GqlAuthGuard)
@@ -103,8 +106,10 @@ export class ProductVariantsResolver {
 
   @Query(() => Int)
   @UseGuards(GqlAuthGuard)
-  productVariantsCount(@Args('where', { nullable: true }) where?: ProductVariantWhereInput) {
-    return this.ProductVariantService.count(where as any);
+  productVariantsCount(
+    @Args('where', { nullable: true }) where?: ProductVariantWhereInput,
+  ) {
+    return this.ProductVariantService.count(where);
   }
 
   @Mutation(() => SupplierCatalogEntry)
@@ -147,13 +152,17 @@ export class ProductVariantsResolver {
   @Mutation(() => ProductVariant)
   @UseGuards(GqlAuthGuard)
   linkVariantToProduct(@Args('input') input: LinkVariantToProductInput) {
-    return this.ProductVariantService.linkToProduct(input.variantId, input.productId);
+    return this.ProductVariantService.linkToProduct(
+      input.variantId,
+      input.productId,
+    );
   }
 
   @Mutation(() => ProductVariant)
   @UseGuards(GqlAuthGuard)
-  unlinkVariantFromProduct(@Args('input') input: UnlinkVariantFromProductInput) {
+  unlinkVariantFromProduct(
+    @Args('input') input: UnlinkVariantFromProductInput,
+  ) {
     return this.ProductVariantService.unlinkFromProduct(input.variantId);
   }
-
 }

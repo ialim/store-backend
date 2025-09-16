@@ -11,4 +11,3 @@ export class MonthlySalesSummary {
   @Field(() => Int)
   totalReturned!: number;
 }
-

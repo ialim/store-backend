@@ -1,5 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import {
+  Prisma,
+  PaymentStatus as PrismaPaymentStatus,
+  PaymentMethod as PrismaPaymentMethod,
+  PaymentType as PrismaPaymentType,
+  PurchaseOrderStatus as PrismaPurchaseOrderStatus,
+  PurchasePhase as PrismaPurchasePhase,
+} from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { DomainEventsService } from '../events/services/domain-events.service';
@@ -23,8 +30,8 @@ export class PaymentService {
         saleOrderId: data.saleOrderId,
         consumerSaleId: data.consumerSaleId,
         amount: data.amount,
-        method: data.method as Prisma.PaymentMethod,
-        status: Prisma.PaymentStatus.PENDING,
+        method: data.method as PrismaPaymentMethod,
+        status: PrismaPaymentStatus.PENDING,
         reference: data.reference || undefined,
       },
     });
@@ -39,7 +46,7 @@ export class PaymentService {
   async confirmConsumerPayment(input: ConfirmConsumerPaymentInput) {
     const payment = await this.prisma.consumerPayment.update({
       where: { id: input.paymentId },
-      data: { status: Prisma.PaymentStatus.CONFIRMED },
+      data: { status: PrismaPaymentStatus.CONFIRMED },
     });
     await this.domainEvents.publish(
       'PAYMENT_CONFIRMED',
@@ -61,8 +68,8 @@ export class PaymentService {
         resellerId: data.resellerId,
         resellerSaleId: data.resellerSaleId,
         amount: data.amount,
-        method: data.method as Prisma.PaymentMethod,
-        status: Prisma.PaymentStatus.PENDING,
+        method: data.method as PrismaPaymentMethod,
+        status: PrismaPaymentStatus.PENDING,
         reference: data.reference || undefined,
         receivedById: data.receivedById,
       },
@@ -78,7 +85,7 @@ export class PaymentService {
   async confirmResellerPayment(paymentId: string) {
     const payment = await this.prisma.resellerPayment.update({
       where: { id: paymentId },
-      data: { status: Prisma.PaymentStatus.CONFIRMED },
+      data: { status: PrismaPaymentStatus.CONFIRMED },
     });
     await this.domainEvents.publish(
       'PAYMENT_CONFIRMED',
@@ -111,18 +118,18 @@ export class PaymentService {
           where: { purchaseOrderId: po.id },
         });
         const paid = paidAgg._sum.amount || 0;
-        const newStatus: Prisma.PurchaseOrderStatus =
+        const newStatus: PrismaPurchaseOrderStatus =
           paid >= po.totalAmount
-            ? Prisma.PurchaseOrderStatus.PAID
-            : Prisma.PurchaseOrderStatus.PARTIALLY_PAID;
+            ? PrismaPurchaseOrderStatus.PAID
+            : PrismaPurchaseOrderStatus.PARTIALLY_PAID;
         await this.prisma.purchaseOrder.update({
           where: { id: po.id },
           data: {
             status: newStatus,
             phase:
-              newStatus === Prisma.PurchaseOrderStatus.PAID
-                ? Prisma.PurchasePhase.INVOICING
-                : (po.phase as Prisma.PurchasePhase),
+              newStatus === PrismaPurchaseOrderStatus.PAID
+                ? PrismaPurchasePhase.INVOICING
+                : (po.phase as PrismaPurchasePhase),
           },
         });
         await this.domainEvents.publish(
@@ -142,11 +149,11 @@ export class PaymentService {
           const paid2 = paidAgg2._sum.amount || 0;
           const isPaid = paid2 >= fresh.totalAmount;
           const isReceived =
-            fresh.status === Prisma.PurchaseOrderStatus.RECEIVED;
+            fresh.status === PrismaPurchaseOrderStatus.RECEIVED;
           if (isPaid && isReceived) {
             await this.prisma.purchaseOrder.update({
               where: { id: fresh.id },
-              data: { phase: Prisma.PurchasePhase.COMPLETED },
+              data: { phase: PrismaPurchasePhase.COMPLETED },
             });
             await this.domainEvents.publish(
               'PURCHASE_COMPLETED',
@@ -154,7 +161,10 @@ export class PaymentService {
               { aggregateType: 'PurchaseOrder', aggregateId: fresh.id },
             );
             try {
-              const supplier = await this.prisma.supplier.findUnique({ where: { id: fresh.supplierId }, select: { userId: true } });
+              const supplier = await this.prisma.supplier.findUnique({
+                where: { id: fresh.supplierId },
+                select: { userId: true },
+              });
               if (supplier?.userId) {
                 await this.notifications.createNotification(
                   supplier.userId,
@@ -168,7 +178,10 @@ export class PaymentService {
       }
     }
     try {
-      const supplier = await this.prisma.supplier.findUnique({ where: { id: payment.supplierId }, select: { userId: true } });
+      const supplier = await this.prisma.supplier.findUnique({
+        where: { id: payment.supplierId },
+        select: { userId: true },
+      });
       if (supplier?.userId) {
         await this.notifications.createNotification(
           supplier.userId,
@@ -192,8 +205,8 @@ export class PaymentService {
         saleOrderId: params.saleOrderId,
         consumerSaleId: params.consumerSaleId,
         amount: -Math.abs(params.amount),
-        method: Prisma.PaymentMethod.TRANSFER,
-        status: Prisma.PaymentStatus.CONFIRMED,
+        method: PrismaPaymentMethod.TRANSFER,
+        status: PrismaPaymentStatus.CONFIRMED,
         reference: params.reference || undefined,
       },
     });
@@ -207,12 +220,12 @@ export class PaymentService {
   }) {
     return this.prisma.payment.create({
       data: {
-        type: Prisma.PaymentType.SUPPLIER,
+        type: PrismaPaymentType.SUPPLIER,
         sourceId: params.supplierId,
         referenceEntity: 'PurchaseReturn',
         referenceId: params.purchaseReturnId,
         amount: params.amount,
-        method: Prisma.PaymentMethod.BANK,
+        method: PrismaPaymentMethod.BANK,
         receivedById: params.receivedById,
       },
     });

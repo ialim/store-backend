@@ -32,7 +32,10 @@ import { HealthController } from './modules/health/health.controller';
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
       graphiql: process.env.ENV === 'dev',
-      context: ({ req, res }: { req: Request; res: Response }) => ({ req, res }),
+      context: ({ req, res }: { req: Request; res: Response }) => ({
+        req,
+        res,
+      }),
     }),
     AuthModule,
     CatalogueModule,

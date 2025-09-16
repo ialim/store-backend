@@ -19,4 +19,3 @@ export class CreateOrderReturnInput {
   @Field(() => [CreateSalesReturnItemInput])
   items!: CreateSalesReturnItemInput[];
 }
-

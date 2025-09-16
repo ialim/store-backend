@@ -1,4 +1,15 @@
-import { Resolver, Query, Mutation, Args, Field, ObjectType, ID, InputType, Int, registerEnumType } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  Field,
+  ObjectType,
+  ID,
+  InputType,
+  Int,
+  registerEnumType,
+} from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -84,14 +95,14 @@ export class CollectionResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
   createCollection(@Args('input') input: CreateCollectionInput) {
-    return this.service.create({ ...input, filters: input.filters as any });
+    return this.service.create({ ...input, filters: input.filters });
   }
 
   @Mutation(() => CollectionGQL)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
   updateCollection(@Args('input') input: UpdateCollectionInput) {
-    return this.service.update(input as any);
+    return this.service.update(input);
   }
 
   @Mutation(() => Boolean)
@@ -127,4 +138,3 @@ export class CollectionResolver {
     return this.service.productMembers(id, take, skip);
   }
 }
-

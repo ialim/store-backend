@@ -13,11 +13,14 @@ export class HealthController {
   @Get('/ready')
   async ready() {
     try {
-      await (this.prisma as any).$queryRaw`SELECT 1`;
+      await this.prisma.$queryRaw`SELECT 1`;
       return { status: 'ready', ts: new Date().toISOString() };
-    } catch (e: any) {
-      return { status: 'degraded', error: e?.message || String(e), ts: new Date().toISOString() };
+    } catch (e: unknown) {
+      return {
+        status: 'degraded',
+        error: (e as { message?: string })?.message || String(e),
+        ts: new Date().toISOString(),
+      };
     }
   }
 }
-

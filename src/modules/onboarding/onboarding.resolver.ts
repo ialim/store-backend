@@ -58,7 +58,11 @@ export class OnboardingResolver {
     @Args('skip', { type: () => Int, nullable: true }) skip?: number,
     @Args('q', { nullable: true }) q?: string,
   ) {
-    return this.onboardingService.listPendingResellerApplications(take, skip, q);
+    return this.onboardingService.listPendingResellerApplications(
+      take,
+      skip,
+      q,
+    );
   }
 
   @Query(() => [User])
@@ -72,7 +76,8 @@ export class OnboardingResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   resellers(
-    @Args('status', { nullable: true }) status?: 'PENDING' | 'ACTIVE' | 'REJECTED',
+    @Args('status', { nullable: true })
+    status?: 'PENDING' | 'ACTIVE' | 'REJECTED',
     @Args('take', { type: () => Int, nullable: true }) take?: number,
     @Args('skip', { type: () => Int, nullable: true }) skip?: number,
     @Args('q', { nullable: true }) q?: string,

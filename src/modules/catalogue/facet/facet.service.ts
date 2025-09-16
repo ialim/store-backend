@@ -9,11 +9,26 @@ export class FacetService {
     return this.prisma.facet.findMany({ orderBy: { name: 'asc' } });
   }
 
-  create(input: { name: string; code: string; isPrivate?: boolean; values: string[] }) {
-    return this.prisma.facet.create({ data: { name: input.name, code: input.code, isPrivate: !!input.isPrivate, values: input.values } });
+  create(input: {
+    name: string;
+    code: string;
+    isPrivate?: boolean;
+    values: string[];
+  }) {
+    return this.prisma.facet.create({
+      data: {
+        name: input.name,
+        code: input.code,
+        isPrivate: !!input.isPrivate,
+        values: input.values,
+      },
+    });
   }
 
-  update(id: string, patch: Partial<{ name: string; isPrivate: boolean; values: string[] }>) {
+  update(
+    id: string,
+    patch: Partial<{ name: string; isPrivate: boolean; values: string[] }>,
+  ) {
     return this.prisma.facet.update({ where: { id }, data: patch });
   }
 
@@ -30,34 +45,54 @@ export class FacetService {
   }
 
   removeFromProduct(productId: string, facetId: string, value: string) {
-    return this.prisma.productFacetValue.delete({ where: { product_facet_value_unique: { productId, facetId, value } } });
+    return this.prisma.productFacetValue.delete({
+      where: { product_facet_value_unique: { productId, facetId, value } },
+    });
   }
 
   assignToVariant(productVariantId: string, facetId: string, value: string) {
     return this.prisma.variantFacetValue.upsert({
-      where: { variant_facet_value_unique: { productVariantId, facetId, value } },
+      where: {
+        variant_facet_value_unique: { productVariantId, facetId, value },
+      },
       update: {},
       create: { productVariantId, facetId, value },
     });
   }
 
   removeFromVariant(productVariantId: string, facetId: string, value: string) {
-    return this.prisma.variantFacetValue.delete({ where: { variant_facet_value_unique: { productVariantId, facetId, value } } });
+    return this.prisma.variantFacetValue.delete({
+      where: {
+        variant_facet_value_unique: { productVariantId, facetId, value },
+      },
+    });
   }
 
   async listProductAssignments(productId: string) {
-    return this.prisma.productFacetValue.findMany({ where: { productId }, include: { facet: true } });
+    return this.prisma.productFacetValue.findMany({
+      where: { productId },
+      include: { facet: true },
+    });
   }
 
   async listVariantAssignments(productVariantId: string) {
-    return this.prisma.variantFacetValue.findMany({ where: { productVariantId }, include: { facet: true } });
+    return this.prisma.variantFacetValue.findMany({
+      where: { productVariantId },
+      include: { facet: true },
+    });
   }
 
-  async bulkAssignToVariants(variantIds: string[], facetId: string, value: string) {
+  async bulkAssignToVariants(
+    variantIds: string[],
+    facetId: string,
+    value: string,
+  ) {
     let count = 0;
     for (const id of variantIds) {
       await this.prisma.variantFacetValue.upsert({
-        where: { variant_facet_value_unique: { productVariantId: id, facetId, value } },
+        where: {
+          variant_facet_value_unique: { productVariantId: id, facetId, value },
+        },
         update: {},
         create: { productVariantId: id, facetId, value },
       });
@@ -66,11 +101,17 @@ export class FacetService {
     return count;
   }
 
-  async bulkAssignToProducts(productIds: string[], facetId: string, value: string) {
+  async bulkAssignToProducts(
+    productIds: string[],
+    facetId: string,
+    value: string,
+  ) {
     let count = 0;
     for (const id of productIds) {
       await this.prisma.productFacetValue.upsert({
-        where: { product_facet_value_unique: { productId: id, facetId, value } },
+        where: {
+          product_facet_value_unique: { productId: id, facetId, value },
+        },
         update: {},
         create: { productId: id, facetId, value },
       });
@@ -79,7 +120,11 @@ export class FacetService {
     return count;
   }
 
-  async bulkRemoveFromVariants(variantIds: string[], facetId: string, value: string) {
+  async bulkRemoveFromVariants(
+    variantIds: string[],
+    facetId: string,
+    value: string,
+  ) {
     let removed = 0;
     for (const id of variantIds) {
       const res = await this.prisma.variantFacetValue.deleteMany({
@@ -90,7 +135,11 @@ export class FacetService {
     return removed;
   }
 
-  async bulkRemoveFromProducts(productIds: string[], facetId: string, value: string) {
+  async bulkRemoveFromProducts(
+    productIds: string[],
+    facetId: string,
+    value: string,
+  ) {
     let removed = 0;
     for (const id of productIds) {
       const res = await this.prisma.productFacetValue.deleteMany({

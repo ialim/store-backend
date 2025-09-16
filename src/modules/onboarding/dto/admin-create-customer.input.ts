@@ -20,4 +20,3 @@ export class AdminCreateCustomerInput {
   @Field({ nullable: true })
   profileStatus?: 'PENDING' | 'ACTIVE' | 'REJECTED';
 }
-
