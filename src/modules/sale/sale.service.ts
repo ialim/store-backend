@@ -11,6 +11,7 @@ import { SaleStatus } from '../../shared/prismagraphql/prisma/sale-status.enum';
 import { UpdateQuotationStatusInput } from './dto/update-quotation-status.input';
 // import { QuotationCreateInput } from '../../shared/prismagraphql/quotation';
 import { SaleType } from 'src/shared/prismagraphql/prisma/sale-type.enum';
+import { OrderPhase } from 'src/shared/prismagraphql/prisma/order-phase.enum';
 // After prisma generate, prefer importing OrderPhase enum
 import { CreateConsumerPaymentInput } from './dto/create-consumer-payment.input';
 import { PaymentStatus } from '../../shared/prismagraphql/prisma/payment-status.enum';
@@ -100,7 +101,7 @@ export class SalesService {
         billerId: input.billerId || input.resellerId || input.consumerId || '',
         type: input.type,
         status: SaleStatus.PENDING,
-        phase: 'QUOTATION',
+        phase: OrderPhase.QUOTATION,
         totalAmount: total,
       },
     });
@@ -186,7 +187,7 @@ export class SalesService {
             billerId: q.billerId || '',
             type: q.type,
             status: SaleStatus.PENDING,
-            phase: 'SALE',
+            phase: OrderPhase.SALE,
             totalAmount: total,
           },
         });
@@ -198,7 +199,7 @@ export class SalesService {
       } else {
         await this.prisma.saleOrder.update({
           where: { id: orderId },
-          data: { phase: 'SALE' },
+          data: { phase: OrderPhase.SALE },
         });
       }
 
@@ -800,7 +801,7 @@ export class SalesService {
   async assignFulfillmentPersonnel(params: { saleOrderId: string; deliveryPersonnelId: string }) {
     const f = await this.prisma.fulfillment.update({
       where: { saleOrderId: params.saleOrderId },
-      data: { deliveryPersonnelId: params.deliveryPersonnelId, status: 'ASSIGNED' as any },
+      data: { deliveryPersonnelId: params.deliveryPersonnelId, status: FulfillmentStatus.ASSIGNED },
     });
     await this.notificationService.createNotification(
       params.deliveryPersonnelId,
@@ -836,7 +837,7 @@ export class SalesService {
 
     const updated = await this.prisma.fulfillment.update({
       where: { saleOrderId: params.saleOrderId },
-      data: { status: params.status as any },
+      data: { status: params.status },
     });
 
     if (to === 'DELIVERED') {
@@ -861,7 +862,7 @@ export class SalesService {
               await this.prisma.stock.update({ where: { id: existing.id }, data: { quantity: { decrement: item.quantity }, reserved: { decrement: item.quantity } } });
             }
           }
-          await this.prisma.saleOrder.update({ where: { id: order.id }, data: { status: 'FULFILLED' as any, phase: 'FULFILLMENT' as any } });
+          await this.prisma.saleOrder.update({ where: { id: order.id }, data: { status: SaleStatus.FULFILLED, phase: OrderPhase.FULFILLMENT } });
         } else {
           const rSale = await this.prisma.resellerSale.findFirst({ where: { SaleOrderid: order.id }, include: { items: true } });
           if (rSale) {
@@ -881,7 +882,7 @@ export class SalesService {
                 await this.prisma.stock.update({ where: { id: existing.id }, data: { quantity: { decrement: item.quantity }, reserved: { decrement: item.quantity } } });
               }
             }
-            await this.prisma.saleOrder.update({ where: { id: order.id }, data: { status: 'FULFILLED' as any, phase: 'FULFILLMENT' as any } });
+            await this.prisma.saleOrder.update({ where: { id: order.id }, data: { status: SaleStatus.FULFILLED, phase: OrderPhase.FULFILLMENT } });
           }
         }
       }
@@ -946,14 +947,14 @@ export class SalesService {
 
   private async getEffectiveUnitPrice(
     variantId: string,
-    saleType: any,
+    saleType: SaleType,
     resellerId?: string,
   ) {
     const variant = await this.prisma.productVariant.findUnique({
       where: { id: variantId },
     });
     if (!variant) throw new BadRequestException('Product variant not found');
-    if (saleType === (SaleType.CONSUMER as any)) {
+    if (saleType === SaleType.CONSUMER) {
       return variant.price;
     }
     // reseller pricing
