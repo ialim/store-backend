@@ -29,7 +29,10 @@ export class AnalyticsResolver {
   ) {
     const m = month || currentMonth();
     const lim = limit ?? 10;
-    return this.read.topSellingVariants({ month: m, limit: lim });
+    return this.read.topSellingVariants({
+      month: m,
+      limit: lim,
+    });
   }
 
   @Query(() => [CustomerAffinityEntry])
@@ -59,7 +62,7 @@ export class AnalyticsResolver {
     const m = month || currentMonth();
     const lim = limit ?? 10;
     const basic = await this.read.topSellingVariantsDetailed({ month: m, limit: lim });
-    return this.read.enrichVariantDetails(basic) as any;
+    return this.read.enrichVariantDetails(basic);
   }
 
   @Query(() => [VariantSalesWithDetails])
@@ -72,7 +75,7 @@ export class AnalyticsResolver {
     const m = month || currentMonth();
     const lim = limit ?? 10;
     const basic = await this.read.topSellingVariantsByStore({ storeId, month: m, limit: lim });
-    return this.read.enrichVariantDetails(basic) as any;
+    return this.read.enrichVariantDetails(basic);
   }
 
   @Query(() => MonthlySalesSummary)

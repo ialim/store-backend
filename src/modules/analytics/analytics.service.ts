@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PRODUCT_VARIANT_SUMMARY_SELECT } from '../../common/prisma/selects';
 
@@ -19,23 +20,23 @@ export class AnalyticsService {
       const existing = await this.prisma.productSalesStats.findUnique({
         where: { productVariantId: it.productVariantId },
       });
-      const monthly = existing?.monthlySales
-        ? (existing.monthlySales as any)
-        : {};
+      const msVal = existing?.monthlySales as unknown;
+      const monthly: Record<string, number> =
+        msVal && typeof msVal === 'object' ? (msVal as Record<string, number>) : {};
       monthly[ym] = (monthly[ym] || 0) + it.quantity;
       await this.prisma.productSalesStats.upsert({
         where: { productVariantId: it.productVariantId },
         update: {
-          totalSold: { increment: it.quantity } as any,
+          totalSold: { increment: it.quantity },
           lastSoldAt: now,
-          monthlySales: monthly as any,
+          monthlySales: monthly as Prisma.InputJsonValue,
         },
         create: {
           productVariantId: it.productVariantId,
           totalSold: it.quantity,
           totalReturned: 0,
           lastSoldAt: now,
-          monthlySales: { [ym]: it.quantity } as any,
+          monthlySales: { [ym]: it.quantity } as Prisma.InputJsonValue,
         },
       });
     }
@@ -45,27 +46,24 @@ export class AnalyticsService {
       const cpp = await this.prisma.customerPreferenceProfile.findUnique({
         where: { customerId: sale.customerId },
       });
-      const freq = cpp?.frequentlyBoughtVariants
-        ? (cpp.frequentlyBoughtVariants as any)
-        : {};
+      const fbv = cpp?.frequentlyBoughtVariants as unknown;
+      const freq: Record<string, number> =
+        fbv && typeof fbv === 'object' ? (fbv as Record<string, number>) : {};
       for (const it of sale.items) {
         freq[it.productVariantId] =
           (freq[it.productVariantId] || 0) + it.quantity;
       }
-      const totalCount: number = (Object.values(freq) as any[]).reduce(
-        (s: number, v: any) => s + (typeof v === 'number' ? v : 0),
-        0,
-      );
+      const totalCount = Object.values(freq).reduce((s, v) => s + Number(v || 0), 0);
       await this.prisma.customerPreferenceProfile.upsert({
         where: { customerId: sale.customerId },
         update: {
-          frequentlyBoughtVariants: freq as any,
+          frequentlyBoughtVariants: freq as Prisma.InputJsonValue,
           lastPurchaseDate: now,
           eligibleForDiscounts: totalCount >= 5,
         },
         create: {
           customerId: sale.customerId,
-          frequentlyBoughtVariants: freq as any,
+          frequentlyBoughtVariants: freq as Prisma.InputJsonValue,
           lastPurchaseDate: now,
           eligibleForDiscounts: totalCount >= 5,
         },
@@ -84,12 +82,12 @@ export class AnalyticsService {
       const base = existing ? 0 : 0;
       await this.prisma.productSalesStats.upsert({
         where: { productVariantId: it.productVariantId },
-        update: { totalReturned: { increment: it.quantity } as any },
+        update: { totalReturned: { increment: it.quantity } },
         create: {
           productVariantId: it.productVariantId,
           totalSold: base,
           totalReturned: it.quantity,
-          monthlySales: {} as any,
+          monthlySales: {} as Prisma.InputJsonValue,
         },
       });
     }
@@ -111,7 +109,8 @@ export class AnalyticsReadService {
     const stats = await this.prisma.productSalesStats.findMany({ select: { productVariantId: true, monthlySales: true } });
     const list: VariantQty[] = [];
     for (const s of stats) {
-      const m = (s.monthlySales as any) || {};
+      const mv = s.monthlySales as unknown;
+      const m: Record<string, number> = mv && typeof mv === 'object' ? (mv as Record<string, number>) : {};
       const qty = Number(m[month] || 0);
       if (qty > 0) list.push({ productVariantId: s.productVariantId, quantity: qty });
     }
@@ -121,7 +120,8 @@ export class AnalyticsReadService {
 
   async customerAffinity({ customerId, limit }: CustomerAffinityParams): Promise<AffinityEntry[]> {
     const cpp = await this.prisma.customerPreferenceProfile.findUnique({ where: { customerId } });
-    const freq = (cpp?.frequentlyBoughtVariants as any) || {};
+    const fbv = cpp?.frequentlyBoughtVariants as unknown;
+    const freq: Record<string, number> = fbv && typeof fbv === 'object' ? (fbv as Record<string, number>) : {};
     const entries = Object.entries(freq).map(([productVariantId, count]) => ({ productVariantId, count: Number(count) })) as AffinityEntry[];
     entries.sort((a, b) => b.count - a.count);
     return entries.slice(0, limit);
@@ -131,7 +131,8 @@ export class AnalyticsReadService {
     const stats = await this.prisma.productSalesStats.findMany({ select: { monthlySales: true } });
     let totalSold = 0;
     for (const s of stats) {
-      const m = (s.monthlySales as any) || {};
+      const mv = s.monthlySales as unknown;
+      const m: Record<string, number> = mv && typeof mv === 'object' ? (mv as Record<string, number>) : {};
       totalSold += Number(m[month] || 0);
     }
     // Returns for month = sum of SalesReturnItem quantities where parent return is ACCEPTED and createdAt in month
@@ -204,7 +205,7 @@ export class AnalyticsReadService {
 
   async enrichVariantDetails(list: VariantQty[]): Promise<Array<VariantQty & { productId?: string | null; productName?: string | null; size?: string | null; concentration?: string | null; packaging?: string | null; barcode?: string | null }>> {
     const ids = list.map((v) => v.productVariantId);
-    if (!ids.length) return [] as any;
+    if (!ids.length) return [];
     const variants = await this.prisma.productVariant.findMany({
       where: { id: { in: ids } },
       select: PRODUCT_VARIANT_SUMMARY_SELECT,
@@ -220,7 +221,7 @@ export class AnalyticsReadService {
         concentration: v?.concentration ?? null,
         packaging: v?.packaging ?? null,
         barcode: v?.barcode ?? null,
-      } as any;
+      };
     });
   }
 }

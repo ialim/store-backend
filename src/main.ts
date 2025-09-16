@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { join } from 'path';
+import express from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -14,8 +15,6 @@ async function bootstrap() {
     credentials: true,
   });
   // Serve uploaded files under /uploads
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const express = require('express');
   app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
   await app.listen(process.env.PORT ?? 3000);
 }
