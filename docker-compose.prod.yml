@@ -1,0 +1,53 @@
+version: '3.9'
+name: store-backend-prod
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-store}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    # Use published image (preferred in prod); set GHCR_OWNER in .env
+    image: ghcr.io/${GHCR_OWNER:-your-github-username}/store-backend:latest
+    # Alternatively, build locally:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile.backend
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-store}?schema=public}
+      # Optional controls
+      SKIP_PRISMA_GENERATE: ${SKIP_PRISMA_GENERATE:-false}
+      SKIP_PRISMA_MIGRATE: ${SKIP_PRISMA_MIGRATE:-false}
+      # Add other secrets like JWT, SMTP, etc.
+      # JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "3000:3000"
+
+  invoice-ocr:
+    image: ghcr.io/${GHCR_OWNER:-your-github-username}/invoice-ocr:latest
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+      BARCODE_MIN_LENGTH: 7
+      BARCODE_MAX_LENGTH: 14
+      OCR_RASTER_DPI: 400
+      OCR_REMOVE_LINES: 1
+      OCR_PSMS: "6,4,12,11,3"
+    ports:
+      - "8000:8000"
+
+volumes:
+  db_data:
+

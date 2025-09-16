@@ -30,6 +30,10 @@ RUN npx prisma generate
 
 COPY --from=build /app/dist ./dist
 
-# Default command (consider running migrations before starting in your entrypoint)
-CMD ["node", "dist/main.js"]
+COPY scripts/entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
 
+EXPOSE 3000
+
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["node", "dist/main.js"]
