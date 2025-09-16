@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { DomainEventsService } from '../events/services/domain-events.service';
@@ -22,8 +23,8 @@ export class PaymentService {
         saleOrderId: data.saleOrderId,
         consumerSaleId: data.consumerSaleId,
         amount: data.amount,
-        method: data.method as any,
-        status: 'PENDING' as any,
+        method: data.method as Prisma.$Enums.PaymentMethod,
+        status: Prisma.$Enums.PaymentStatus.PENDING,
         reference: data.reference || undefined,
       },
     });
@@ -38,7 +39,7 @@ export class PaymentService {
   async confirmConsumerPayment(input: ConfirmConsumerPaymentInput) {
     const payment = await this.prisma.consumerPayment.update({
       where: { id: input.paymentId },
-      data: { status: 'CONFIRMED' as any },
+      data: { status: Prisma.$Enums.PaymentStatus.CONFIRMED },
     });
     await this.domainEvents.publish(
       'PAYMENT_CONFIRMED',
@@ -60,8 +61,8 @@ export class PaymentService {
         resellerId: data.resellerId,
         resellerSaleId: data.resellerSaleId,
         amount: data.amount,
-        method: data.method as any,
-        status: 'PENDING' as any,
+        method: data.method as Prisma.$Enums.PaymentMethod,
+        status: Prisma.$Enums.PaymentStatus.PENDING,
         reference: data.reference || undefined,
         receivedById: data.receivedById,
       },
@@ -77,7 +78,7 @@ export class PaymentService {
   async confirmResellerPayment(paymentId: string) {
     const payment = await this.prisma.resellerPayment.update({
       where: { id: paymentId },
-      data: { status: 'CONFIRMED' as any },
+      data: { status: Prisma.$Enums.PaymentStatus.CONFIRMED },
     });
     await this.domainEvents.publish(
       'PAYMENT_CONFIRMED',
@@ -97,7 +98,7 @@ export class PaymentService {
     // Reduce supplier current balance
     await this.prisma.supplier.update({
       where: { id: payment.supplierId },
-      data: { currentBalance: { decrement: payment.amount } as any },
+      data: { currentBalance: { decrement: payment.amount } },
     });
     // If applied to a PO, update its payment status
     if (payment.purchaseOrderId) {
@@ -110,12 +111,18 @@ export class PaymentService {
           where: { purchaseOrderId: po.id },
         });
         const paid = paidAgg._sum.amount || 0;
-        const newStatus = paid >= po.totalAmount ? 'PAID' : 'PARTIALLY_PAID';
+        const newStatus: Prisma.$Enums.PurchaseOrderStatus =
+          paid >= po.totalAmount
+            ? Prisma.$Enums.PurchaseOrderStatus.PAID
+            : Prisma.$Enums.PurchaseOrderStatus.PARTIALLY_PAID;
         await this.prisma.purchaseOrder.update({
           where: { id: po.id },
           data: {
-            status: newStatus as any,
-            phase: (newStatus === 'PAID' ? 'INVOICING' : po.phase) as any,
+            status: newStatus,
+            phase:
+              newStatus === Prisma.$Enums.PurchaseOrderStatus.PAID
+                ? Prisma.$Enums.PurchasePhase.INVOICING
+                : (po.phase as Prisma.$Enums.PurchasePhase),
           },
         });
         await this.domainEvents.publish(
@@ -134,11 +141,12 @@ export class PaymentService {
           });
           const paid2 = paidAgg2._sum.amount || 0;
           const isPaid = paid2 >= fresh.totalAmount;
-          const isReceived = fresh.status === ('RECEIVED' as any);
+          const isReceived =
+            fresh.status === Prisma.$Enums.PurchaseOrderStatus.RECEIVED;
           if (isPaid && isReceived) {
             await this.prisma.purchaseOrder.update({
               where: { id: fresh.id },
-              data: { phase: 'COMPLETED' as any },
+              data: { phase: Prisma.$Enums.PurchasePhase.COMPLETED },
             });
             await this.domainEvents.publish(
               'PURCHASE_COMPLETED',
@@ -184,8 +192,8 @@ export class PaymentService {
         saleOrderId: params.saleOrderId,
         consumerSaleId: params.consumerSaleId,
         amount: -Math.abs(params.amount),
-        method: 'TRANSFER' as any,
-        status: 'CONFIRMED' as any,
+        method: Prisma.$Enums.PaymentMethod.TRANSFER,
+        status: Prisma.$Enums.PaymentStatus.CONFIRMED,
         reference: params.reference || undefined,
       },
     });
@@ -199,12 +207,12 @@ export class PaymentService {
   }) {
     return this.prisma.payment.create({
       data: {
-        type: 'SUPPLIER' as any,
+        type: Prisma.$Enums.PaymentType.SUPPLIER,
         sourceId: params.supplierId,
         referenceEntity: 'PurchaseReturn',
         referenceId: params.purchaseReturnId,
         amount: params.amount,
-        method: 'BANK' as any,
+        method: Prisma.$Enums.PaymentMethod.BANK,
         receivedById: params.receivedById,
       },
     });

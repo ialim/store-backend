@@ -81,11 +81,11 @@ export class PaymentResolver {
     const [cAgg, rAgg] = await Promise.all([
       this.prisma.consumerPayment.aggregate({
         _sum: { amount: true },
-        where: { saleOrderId, status: 'CONFIRMED' as any },
+        where: { saleOrderId, status: Prisma.$Enums.PaymentStatus.CONFIRMED },
       }),
       this.prisma.resellerPayment.aggregate({
         _sum: { amount: true },
-        where: { saleOrderId, status: 'CONFIRMED' as any },
+        where: { saleOrderId, status: Prisma.$Enums.PaymentStatus.CONFIRMED },
       }),
     ]);
     const consumerPaid = cAgg._sum.amount || 0;
@@ -117,17 +117,17 @@ export class PaymentResolver {
       this.prisma.consumerPayment.aggregate({
         _sum: { amount: true },
         where: {
-          status: 'CONFIRMED' as any,
+          status: Prisma.$Enums.PaymentStatus.CONFIRMED,
           saleOrder: { storeId },
-          receivedAt: { gte: start, lt: end } as any,
+          receivedAt: { gte: start, lt: end },
         } as any,
       }),
       this.prisma.resellerPayment.aggregate({
         _sum: { amount: true },
         where: {
-          status: 'CONFIRMED' as any,
+          status: Prisma.$Enums.PaymentStatus.CONFIRMED,
           saleOrder: { storeId },
-          receivedAt: { gte: start, lt: end } as any,
+          receivedAt: { gte: start, lt: end },
         } as any,
       }),
     ]);
@@ -144,7 +144,7 @@ export class PaymentResolver {
     @Args('supplierId') supplierId: string,
     @Args('month', { nullable: true }) month?: string,
   ) {
-    const where: any = { supplierId };
+    const where: Prisma.SupplierPaymentWhereInput = { supplierId };
     if (month) {
       const { start, end } = monthWindow(month);
       where.paymentDate = { gte: start, lt: end };
@@ -177,12 +177,12 @@ export class PaymentResolver {
     @Args('storeId', { nullable: true }) storeId?: string,
     @Args('month', { nullable: true }) month?: string,
   ) {
-    const whereConsumer: any = {
-      status: 'CONFIRMED' as any,
+    const whereConsumer: Prisma.ConsumerPaymentWhereInput = {
+      status: Prisma.$Enums.PaymentStatus.CONFIRMED,
       saleOrder: { billerId },
     };
-    const whereReseller: any = {
-      status: 'CONFIRMED' as any,
+    const whereReseller: Prisma.ResellerPaymentWhereInput = {
+      status: Prisma.$Enums.PaymentStatus.CONFIRMED,
       saleOrder: { billerId },
     };
     if (storeId) {
@@ -231,12 +231,12 @@ export class PaymentResolver {
   ) {
     const m = month || currentMonth();
     const { start, end } = monthWindow(m);
-    const whereConsumer: any = {
-      status: 'CONFIRMED' as any,
+    const whereConsumer: Prisma.ConsumerPaymentWhereInput = {
+      status: Prisma.$Enums.PaymentStatus.CONFIRMED,
       receivedAt: { gte: start, lt: end },
     };
-    const whereReseller: any = {
-      status: 'CONFIRMED' as any,
+    const whereReseller: Prisma.ResellerPaymentWhereInput = {
+      status: Prisma.$Enums.PaymentStatus.CONFIRMED,
       receivedAt: { gte: start, lt: end },
     };
     if (storeId) {
@@ -300,17 +300,17 @@ export class PaymentResolver {
     const [cList, rList] = await Promise.all([
       this.prisma.consumerPayment.findMany({
         where: {
-          status: 'CONFIRMED' as any,
+          status: Prisma.$Enums.PaymentStatus.CONFIRMED,
           saleOrder: { storeId },
-          receivedAt: { gte: start, lt: end } as any,
+          receivedAt: { gte: start, lt: end },
         },
         select: { amount: true, saleOrder: { select: { billerId: true } } },
       }),
       this.prisma.resellerPayment.findMany({
         where: {
-          status: 'CONFIRMED' as any,
+          status: Prisma.$Enums.PaymentStatus.CONFIRMED,
           saleOrder: { storeId },
-          receivedAt: { gte: start, lt: end } as any,
+          receivedAt: { gte: start, lt: end },
         },
         select: { amount: true, saleOrder: { select: { billerId: true } } },
       }),
@@ -368,12 +368,12 @@ export class PaymentResolver {
   ) {
     const m = month || currentMonth();
     const { start, end } = monthWindow(m);
-    const whereConsumer: any = {
-      status: 'CONFIRMED' as any,
+    const whereConsumer: Prisma.ConsumerPaymentWhereInput = {
+      status: Prisma.$Enums.PaymentStatus.CONFIRMED,
       receivedAt: { gte: start, lt: end },
     };
-    const whereReseller: any = {
-      status: 'CONFIRMED' as any,
+    const whereReseller: Prisma.ResellerPaymentWhereInput = {
+      status: Prisma.$Enums.PaymentStatus.CONFIRMED,
       receivedAt: { gte: start, lt: end },
     };
     if (storeId) {
