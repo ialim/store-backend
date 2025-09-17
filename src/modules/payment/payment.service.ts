@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
-  Prisma,
   PaymentStatus as PrismaPaymentStatus,
   PaymentMethod as PrismaPaymentMethod,
   PaymentType as PrismaPaymentType,

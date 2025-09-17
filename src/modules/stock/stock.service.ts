@@ -1,6 +1,6 @@
 // src/stock/stock.service.ts
 
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PRODUCT_VARIANT_SUMMARY_SELECT } from '../../common/prisma/selects';
 import { ReceiveStockBatchInput } from './dto/receive-stock-batch.input';
@@ -14,8 +14,19 @@ import { NotificationService } from '../notification/notification.service';
 import { SetReorderSettingsInput } from './dto/set-reorder-settings.input';
 import { DomainEventsService } from '../events/services/domain-events.service';
 
+const toErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+};
+
 @Injectable()
 export class StockService {
+  private readonly logger = new Logger(StockService.name);
   constructor(
     private prisma: PrismaService,
     private notificationService: NotificationService,
@@ -105,7 +116,8 @@ export class StockService {
         create: {
           storeId,
           productVariantId,
-          quantity: direction === PrismaMovementDirection.IN ? quantity : -quantity,
+          quantity:
+            direction === PrismaMovementDirection.IN ? quantity : -quantity,
           reserved: 0,
         },
       });
@@ -261,7 +273,10 @@ export class StockService {
             });
           }
 
-          if (fullyReceived && po.status !== PrismaPurchaseOrderStatus.RECEIVED) {
+          if (
+            fullyReceived &&
+            po.status !== PrismaPurchaseOrderStatus.RECEIVED
+          ) {
             await tx.purchaseOrder.update({
               where: { id: po.id },
               data: { status: PrismaPurchaseOrderStatus.RECEIVED },
@@ -300,14 +315,20 @@ export class StockService {
                     `PO ${po.invoiceNumber} completed.`,
                   );
                 }
-              } catch {}
+              } catch (error) {
+                this.logger.warn(
+                  `Failed to notify supplier about completed PO: ${toErrorMessage(
+                    error,
+                  )}`,
+                );
+              }
             }
           }
         }
-      } catch (e) {
-        // Non-fatal; just log to console for now
-        // eslint-disable-next-line no-console
-        console.error('Failed to auto-update PO on receipt:', e);
+      } catch (error) {
+        this.logger.error(
+          `Failed to auto-update PO on receipt: ${toErrorMessage(error)}`,
+        );
       }
 
       return batch;

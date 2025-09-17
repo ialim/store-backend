@@ -103,10 +103,14 @@ export class ReturnsService {
     if (!sale) throw new NotFoundException('Sale not found');
 
     // Validate quantities: cannot exceed sold minus already returned
+    const saleItems = sale.items as Array<{
+      productVariantId: string;
+      quantity: number;
+    }>;
     for (const it of input.items) {
       const soldQty =
-        sale.items.find((i: any) => i.productVariantId === it.productVariantId)
-          ?.quantity || 0;
+        saleItems.find((i) => i.productVariantId === it.productVariantId)
+          ?.quantity ?? 0;
       // Sum previous returns for this sale and variant
       const prevReturns = await this.prisma.salesReturnItem.aggregate({
         _sum: { quantity: true },

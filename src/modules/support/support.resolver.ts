@@ -1,5 +1,6 @@
 import { Resolver, Query, Mutation, Args, Context, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
+import type { Request } from 'express';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -9,6 +10,9 @@ import {
   AdminSendSupportMessageInput,
 } from './dto/send-support-message.input';
 import { SupportMessage } from '../../shared/prismagraphql/support-message/support-message.model';
+import { AuthenticatedUser } from '../auth/auth.service';
+
+type RequestWithUser = Request & { user: AuthenticatedUser };
 
 @Resolver()
 export class SupportResolver {
@@ -16,7 +20,7 @@ export class SupportResolver {
 
   @Query(() => [SupportMessage])
   @UseGuards(GqlAuthGuard)
-  mySupportMessages(@Context('req') req: any) {
+  mySupportMessages(@Context('req') req: RequestWithUser) {
     return this.support.myMessages(req.user.id);
   }
 
@@ -39,7 +43,7 @@ export class SupportResolver {
   @Mutation(() => SupportMessage)
   @UseGuards(GqlAuthGuard)
   sendSupportMessage(
-    @Context('req') req: any,
+    @Context('req') req: RequestWithUser,
     @Args('input') input: SendSupportMessageInput,
   ) {
     return this.support.sendFromUser(req.user.id, input.message);
@@ -49,7 +53,7 @@ export class SupportResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   adminSendSupportMessage(
-    @Context('req') req: any,
+    @Context('req') req: RequestWithUser,
     @Args('input') input: AdminSendSupportMessageInput,
   ) {
     return this.support.sendFromAdmin(input.userId, req.user.id, input.message);

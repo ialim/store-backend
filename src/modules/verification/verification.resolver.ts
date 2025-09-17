@@ -3,6 +3,7 @@ import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { VerificationService } from './verification.service';
+import { AuthenticatedUser } from '../auth/auth.service';
 
 @Resolver()
 export class VerificationResolver {
@@ -10,7 +11,7 @@ export class VerificationResolver {
 
   @Mutation(() => Boolean)
   @UseGuards(GqlAuthGuard)
-  sendEmailVerification(@CurrentUser() user) {
+  sendEmailVerification(@CurrentUser() user: AuthenticatedUser) {
     return this.verificationService.sendEmailVerification(user.id);
   }
 
@@ -21,13 +22,16 @@ export class VerificationResolver {
 
   @Mutation(() => Boolean)
   @UseGuards(GqlAuthGuard)
-  sendPhoneVerification(@CurrentUser() user) {
+  sendPhoneVerification(@CurrentUser() user: AuthenticatedUser) {
     return this.verificationService.sendPhoneVerification(user.id);
   }
 
   @Mutation(() => Boolean)
   @UseGuards(GqlAuthGuard)
-  verifyPhone(@Args('code') code: string, @CurrentUser() user) {
+  verifyPhone(
+    @Args('code') code: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.verificationService.verifyPhone(user.id, code);
   }
 }

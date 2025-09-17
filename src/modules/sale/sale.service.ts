@@ -1039,7 +1039,7 @@ export class SalesService {
       where: { userId: resellerId },
     });
     if (!profile) return variant.resellerPrice;
-    const tier = profile.tier as any;
+    const { tier } = profile;
     const tierPrice = await this.prisma.productVariantTierPrice.findFirst({
       where: { productVariantId: variantId, tier },
     });

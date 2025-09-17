@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Prisma, InvoiceImportStatus as PrismaInvoiceImportStatus } from '@prisma/client';
+import {
+  Prisma,
+  InvoiceImportStatus as PrismaInvoiceImportStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { InvoiceIngestService } from './invoice-ingest.service';
 import { normalizeParsedByVendor } from './vendor-rules';
@@ -72,7 +75,11 @@ export class InvoiceImportQueue {
       );
       this.logger.log('BullMQ invoice-imports queue initialized');
     } catch (error) {
-      this.logger.log('BullMQ not available; falling back to in-process tasks');
+      this.logger.warn(
+        `BullMQ not available; falling back to in-process tasks: ${toErrorMessage(
+          error,
+        )}`,
+      );
     }
   }
 

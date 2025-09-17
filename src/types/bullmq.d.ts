@@ -15,7 +15,7 @@ declare module 'bullmq' {
 
   export class Queue<T = unknown, R = unknown, N extends string = string> {
     constructor(name: N, opts?: QueueOptions);
-    add(name: N, data: T, opts?: AddJobOptions): Promise<void>;
+    add(name: N, data: T, opts?: AddJobOptions): Promise<R | void>;
   }
 
   export class QueueScheduler {
@@ -31,6 +31,10 @@ declare module 'bullmq' {
   }
 
   export class Worker<T = unknown, R = unknown, N extends string = string> {
-    constructor(name: N, processor: (job: Job<T>) => Promise<R>, opts?: WorkerOptions);
+    constructor(
+      name: N,
+      processor: (job: Job<T>) => Promise<R>,
+      opts?: WorkerOptions,
+    );
   }
 }

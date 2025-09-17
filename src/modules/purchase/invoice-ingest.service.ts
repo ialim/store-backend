@@ -2,9 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ParsedInvoice as VendorParsedInvoice } from './vendor-rules';
 
 type ParsedInvoice = VendorParsedInvoice;
-type InvoiceLine = ParsedInvoice['lines'][number];
 
-type PdfParseModule = typeof import('pdf-parse');
 type PdfJsModule = typeof import('pdfjs-dist');
 type TesseractModule = typeof import('tesseract.js');
 type TextractModule = typeof import('@aws-sdk/client-textract');
@@ -77,7 +75,7 @@ export class InvoiceIngestService {
 
   private async tryPdfExtraction(buffer: Buffer): Promise<string | null> {
     try {
-      const pdfModule = (await import('pdf-parse')) as PdfParseModule;
+      const pdfModule = await import('pdf-parse');
       const pdfParse = pdfModule.default;
       const result = await pdfParse(buffer);
       const text = result?.text?.trim();
@@ -133,7 +131,6 @@ export class InvoiceIngestService {
       return (await import('pdfjs-dist')) as PdfJsModule;
     } catch {
       try {
-        // eslint-disable-next-line no-eval
         const req = eval('require') as NodeRequire;
         return req('pdfjs-dist') as PdfJsModule;
       } catch {
@@ -147,7 +144,6 @@ export class InvoiceIngestService {
       return (await import('@aws-sdk/client-textract')) as TextractModule;
     } catch {
       try {
-        // eslint-disable-next-line no-eval
         const req = eval('require') as NodeRequire;
         return req('@aws-sdk/client-textract') as TextractModule;
       } catch {
@@ -160,7 +156,9 @@ export class InvoiceIngestService {
    * High-accuracy path using a managed OCR/understanding provider.
    * Currently supports AWS Textract AnalyzeExpense if available and enabled.
    */
-  async parseInvoiceFromUrl(url: string): Promise<{ parsed: ParsedInvoice; rawText?: string }> {
+  async parseInvoiceFromUrl(
+    url: string,
+  ): Promise<{ parsed: ParsedInvoice; rawText?: string }> {
     const { buffer, contentType } = await this.fetchBuffer(url);
     // Try AWS Textract if configured
     const provider = (process.env.INVOICE_OCR_PROVIDER || 'auto').toLowerCase();
@@ -204,8 +202,11 @@ export class InvoiceIngestService {
       contentType: contentType || 'application/octet-stream',
       data: buffer.toString('base64'),
     });
-    const headers: Record<string, string> = { 'content-type': 'application/json' };
-    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const headers: Record<string, string> = {
+      'content-type': 'application/json',
+    };
+    const sleep = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const res = await f(endpoint, {

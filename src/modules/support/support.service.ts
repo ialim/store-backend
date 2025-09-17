@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma, SupportMessage } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { DomainEventsService } from '../events/services/domain-events.service';
 
@@ -50,15 +51,17 @@ export class SupportService {
       },
       { aggregateType: 'Notification' },
     );
+    const afterChange: Prisma.JsonObject = { message };
+    const beforeChange: Prisma.NullableJsonNullValueInput = Prisma.JsonNull;
     await this.prisma.adminActionLog.create({
       data: {
         adminId,
         action: 'SUPPORT_REPLY',
         entityType: 'SupportMessage',
         entityId: msg.id,
-        beforeChange: null,
-        afterChange: { message },
-      } as any,
+        beforeChange,
+        afterChange,
+      },
     });
     return msg;
   }
@@ -77,22 +80,25 @@ export class SupportService {
     });
   }
 
-  async recentThreads(limit = 20) {
-    const latest = await (this.prisma as any).supportMessage.groupBy({
+  async recentThreads(limit = 20): Promise<SupportMessage[]> {
+    const latest = await this.prisma.supportMessage.groupBy({
       by: ['userId'],
       _max: { createdAt: true },
       orderBy: { _max: { createdAt: 'desc' } },
       take: limit,
     });
-    const users = latest.map((l: any) => l.userId);
+    const users = latest.map((entry) => entry.userId);
+    if (!users.length) return [];
     const messages = await this.prisma.supportMessage.findMany({
       where: { userId: { in: users } },
       orderBy: { createdAt: 'desc' },
     });
-    const byUser = new Map<string, any>();
-    for (const m of messages) {
-      if (!byUser.has(m.userId)) byUser.set(m.userId, m);
+    const byUser = new Map<string, SupportMessage>();
+    for (const message of messages) {
+      if (!byUser.has(message.userId)) byUser.set(message.userId, message);
     }
-    return users.map((u: string) => byUser.get(u)).filter(Boolean);
+    return users
+      .map((userId) => byUser.get(userId))
+      .filter((message): message is SupportMessage => Boolean(message));
   }
 }

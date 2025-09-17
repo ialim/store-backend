@@ -71,7 +71,7 @@ export class PurchaseResolver {
   listSuppliers(@Args() args: FindManySupplierArgs) {
     // Mirror of listUsers/listStores pattern for server-side search
     return this.prisma.supplier.findMany(
-      (args as unknown) as Prisma.SupplierFindManyArgs,
+      args as unknown as Prisma.SupplierFindManyArgs,
     );
   }
 

@@ -85,7 +85,9 @@ declare module '@aws-sdk/client-textract' {
 
   export class TextractClient {
     constructor(config: Record<string, unknown>);
-    send<T = AnalyzeExpenseResponse>(command: AnalyzeExpenseCommand): Promise<T>;
+    send<T = AnalyzeExpenseResponse>(
+      command: AnalyzeExpenseCommand,
+    ): Promise<T>;
   }
 
   export class AnalyzeExpenseCommand {

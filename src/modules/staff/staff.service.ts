@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import bcrypt from 'bcrypt';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateStaffInput } from './dto/create-staff.input';
 import { AssignStoreManagerInput } from './dto/assign-store-manager.input';
