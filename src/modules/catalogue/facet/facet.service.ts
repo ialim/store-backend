@@ -1,5 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+
+type ProductFacetAssignment = Prisma.ProductFacetValueGetPayload<{
+  include: { facet: true };
+}>;
+
+type VariantFacetAssignment = Prisma.VariantFacetValueGetPayload<{
+  include: { facet: true };
+}>;
 
 @Injectable()
 export class FacetService {
@@ -68,14 +77,18 @@ export class FacetService {
     });
   }
 
-  async listProductAssignments(productId: string) {
+  async listProductAssignments(
+    productId: string,
+  ): Promise<ProductFacetAssignment[]> {
     return this.prisma.productFacetValue.findMany({
       where: { productId },
       include: { facet: true },
     });
   }
 
-  async listVariantAssignments(productVariantId: string) {
+  async listVariantAssignments(
+    productVariantId: string,
+  ): Promise<VariantFacetAssignment[]> {
     return this.prisma.variantFacetValue.findMany({
       where: { productVariantId },
       include: { facet: true },

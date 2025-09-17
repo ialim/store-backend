@@ -61,6 +61,21 @@ class FacetAssignment {
   value!: string;
 }
 
+type ProductAssignmentRow = Awaited<
+  ReturnType<FacetService['listProductAssignments']>
+>[number];
+
+type VariantAssignmentRow = Awaited<
+  ReturnType<FacetService['listVariantAssignments']>
+>[number];
+
+const mapAssignment = (
+  row: ProductAssignmentRow | VariantAssignmentRow,
+): FacetAssignment => ({
+  facet: row.facet as unknown as FacetGQL,
+  value: row.value,
+});
+
 @Resolver(() => FacetGQL)
 export class FacetResolver {
   constructor(private readonly service: FacetService) {}
@@ -88,78 +103,73 @@ export class FacetResolver {
   @Mutation(() => String)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
-  deleteFacet(@Args('id') id: string) {
-    return this.service.delete(id).then(() => 'OK');
+  async deleteFacet(@Args('id') id: string): Promise<string> {
+    await this.service.delete(id);
+    return 'OK';
   }
 
   @Mutation(() => String)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
-  assignFacetToProduct(
+  async assignFacetToProduct(
     @Args('productId') productId: string,
     @Args('facetId') facetId: string,
     @Args('value') value: string,
-  ) {
-    return this.service
-      .assignToProduct(productId, facetId, value)
-      .then(() => 'OK');
+  ): Promise<string> {
+    await this.service.assignToProduct(productId, facetId, value);
+    return 'OK';
   }
 
   @Mutation(() => String)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
-  removeFacetFromProduct(
+  async removeFacetFromProduct(
     @Args('productId') productId: string,
     @Args('facetId') facetId: string,
     @Args('value') value: string,
-  ) {
-    return this.service
-      .removeFromProduct(productId, facetId, value)
-      .then(() => 'OK');
+  ): Promise<string> {
+    await this.service.removeFromProduct(productId, facetId, value);
+    return 'OK';
   }
 
   @Mutation(() => String)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
-  assignFacetToVariant(
+  async assignFacetToVariant(
     @Args('productVariantId') productVariantId: string,
     @Args('facetId') facetId: string,
     @Args('value') value: string,
-  ) {
-    return this.service
-      .assignToVariant(productVariantId, facetId, value)
-      .then(() => 'OK');
+  ): Promise<string> {
+    await this.service.assignToVariant(productVariantId, facetId, value);
+    return 'OK';
   }
 
   @Mutation(() => String)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
-  removeFacetFromVariant(
+  async removeFacetFromVariant(
     @Args('productVariantId') productVariantId: string,
     @Args('facetId') facetId: string,
     @Args('value') value: string,
-  ) {
-    return this.service
-      .removeFromVariant(productVariantId, facetId, value)
-      .then(() => 'OK');
+  ): Promise<string> {
+    await this.service.removeFromVariant(productVariantId, facetId, value);
+    return 'OK';
   }
 
   @Query(() => [FacetAssignment])
-  productFacets(@Args('productId') productId: string) {
-    return this.service
-      .listProductAssignments(productId)
-      .then((rows: any[]) =>
-        rows.map((r) => ({ facet: r.facet, value: r.value })),
-      );
+  async productFacets(
+    @Args('productId') productId: string,
+  ): Promise<FacetAssignment[]> {
+    const rows = await this.service.listProductAssignments(productId);
+    return rows.map((r) => mapAssignment(r));
   }
 
   @Query(() => [FacetAssignment])
-  variantFacets(@Args('productVariantId') productVariantId: string) {
-    return this.service
-      .listVariantAssignments(productVariantId)
-      .then((rows: any[]) =>
-        rows.map((r) => ({ facet: r.facet, value: r.value })),
-      );
+  async variantFacets(
+    @Args('productVariantId') productVariantId: string,
+  ): Promise<FacetAssignment[]> {
+    const rows = await this.service.listVariantAssignments(productVariantId);
+    return rows.map((r) => mapAssignment(r));
   }
 
   @Mutation(() => Int)

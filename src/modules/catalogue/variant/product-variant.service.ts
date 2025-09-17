@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma, UserTier } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { BaseCrudService } from '../../base.services';
 import {
@@ -16,6 +17,24 @@ import {
   ProductVariantGroupByArgs,
 } from '../../../shared/prismagraphql/product-variant';
 import { LooseProductVariantInput } from '../dto/loose-product-variant.input';
+
+type VariantWithDetails = Prisma.ProductVariantGetPayload<{
+  include: { product: true; stockItems: true };
+}>;
+
+type SupplierCatalogEntry = Prisma.SupplierCatalogGetPayload<{
+  select: {
+    supplierId: true;
+    productVariantId: true;
+    defaultCost: true;
+    leadTimeDays: true;
+    isPreferred: true;
+  };
+}>;
+
+type VariantTierPriceEntry = Prisma.ProductVariantTierPriceGetPayload<{
+  select: { productVariantId: true; tier: true; price: true };
+}>;
 @Injectable()
 export class ProductVariantService extends BaseCrudService<
   ProductVariant,
@@ -35,15 +54,19 @@ export class ProductVariantService extends BaseCrudService<
     super(prisma);
   }
 
-  async variantsByStore(storeId: string, search?: string) {
-    const where: any = {};
+  async variantsByStore(
+    storeId: string,
+    search?: string,
+  ): Promise<VariantWithDetails[]> {
+    const where: Prisma.ProductVariantWhereInput = {};
     if (search) {
+      const containsFilter = { contains: search, mode: 'insensitive' as const };
       where.OR = [
-        { product: { name: { contains: search, mode: 'insensitive' } } },
-        { size: { contains: search, mode: 'insensitive' } },
-        { concentration: { contains: search, mode: 'insensitive' } },
-        { packaging: { contains: search, mode: 'insensitive' } },
-        { barcode: { contains: search, mode: 'insensitive' } },
+        { product: { name: containsFilter } },
+        { size: containsFilter },
+        { concentration: containsFilter },
+        { packaging: containsFilter },
+        { barcode: containsFilter },
       ];
     }
     const variants = await this.prisma.productVariant.findMany({
@@ -58,7 +81,7 @@ export class ProductVariantService extends BaseCrudService<
     return variants;
   }
 
-  async lowStockByStore(storeId: string) {
+  async lowStockByStore(storeId: string): Promise<VariantWithDetails[]> {
     const stocks = await this.prisma.stock.findMany({
       where: { storeId, reorderPoint: { not: null } },
       select: {
@@ -88,7 +111,7 @@ export class ProductVariantService extends BaseCrudService<
     defaultCost: number;
     leadTimeDays?: number;
     isPreferred?: boolean;
-  }) {
+  }): Promise<SupplierCatalogEntry> {
     return this.prisma.supplierCatalog.upsert({
       where: {
         supplierId_productVariantId: {
@@ -118,7 +141,9 @@ export class ProductVariantService extends BaseCrudService<
     });
   }
 
-  async suppliersForVariant(productVariantId: string) {
+  async suppliersForVariant(
+    productVariantId: string,
+  ): Promise<SupplierCatalogEntry[]> {
     return this.prisma.supplierCatalog.findMany({
       where: { productVariantId },
       select: {
@@ -134,9 +159,9 @@ export class ProductVariantService extends BaseCrudService<
 
   async upsertVariantTierPrice(input: {
     productVariantId: string;
-    tier: any;
+    tier: UserTier;
     price: number;
-  }) {
+  }): Promise<VariantTierPriceEntry> {
     return this.prisma.productVariantTierPrice.upsert({
       where: {
         productVariantId_tier: {
@@ -154,7 +179,9 @@ export class ProductVariantService extends BaseCrudService<
     });
   }
 
-  async tierPricesForVariant(productVariantId: string) {
+  async tierPricesForVariant(
+    productVariantId: string,
+  ): Promise<VariantTierPriceEntry[]> {
     return this.prisma.productVariantTierPrice.findMany({
       where: { productVariantId },
       select: { productVariantId: true, tier: true, price: true },
@@ -162,7 +189,9 @@ export class ProductVariantService extends BaseCrudService<
     });
   }
 
-  async createLoose(input: LooseProductVariantInput) {
+  async createLoose(
+    input: LooseProductVariantInput,
+  ): Promise<VariantWithDetails> {
     return this.prisma.productVariant.create({
       data: {
         productId: input.productId ?? null,
@@ -174,24 +203,39 @@ export class ProductVariantService extends BaseCrudService<
         price: input.price,
         resellerPrice: input.resellerPrice,
       },
+      include: {
+        product: true,
+        stockItems: true,
+      },
     });
   }
 
-  async linkToProduct(variantId: string, productId: string) {
+  async linkToProduct(
+    variantId: string,
+    productId: string,
+  ): Promise<VariantWithDetails> {
     return this.prisma.productVariant.update({
       where: { id: variantId },
       data: { productId },
+      include: {
+        product: true,
+        stockItems: true,
+      },
     });
   }
 
-  async unlinkFromProduct(variantId: string) {
+  async unlinkFromProduct(variantId: string): Promise<VariantWithDetails> {
     return this.prisma.productVariant.update({
       where: { id: variantId },
       data: { productId: null },
+      include: {
+        product: true,
+        stockItems: true,
+      },
     });
   }
 
-  async count(where?: any) {
+  async count(where?: Prisma.ProductVariantWhereInput): Promise<number> {
     return this.prisma.productVariant.count({ where });
   }
 }

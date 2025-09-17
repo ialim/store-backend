@@ -2273,13 +2273,13 @@ type DevCounts {
 
 type Query {
   me: User!
-  findFirstProduct(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, distinct: [ProductScalarFieldEnum!]): Product!
-  findUniqueProduct(where: ProductWhereUniqueInput!): Product!
+  findFirstProduct(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, distinct: [ProductScalarFieldEnum!]): Product
+  findUniqueProduct(where: ProductWhereUniqueInput!): Product
   listProducts(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, distinct: [ProductScalarFieldEnum!]): [Product!]!
   groupByProduct(where: ProductWhereInput, orderBy: [ProductOrderByWithAggregationInput!], by: [ProductScalarFieldEnum!]!, having: ProductScalarWhereWithAggregatesInput, take: Int, skip: Int, _count: ProductCountAggregateInput, _min: ProductMinAggregateInput, _max: ProductMaxAggregateInput): [ProductGroupBy!]!
   aggregateProduct(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, _count: ProductCountAggregateInput, _min: ProductMinAggregateInput, _max: ProductMaxAggregateInput): AggregateProduct!
-  findFirstProductVariant(where: ProductVariantWhereInput, orderBy: [ProductVariantOrderByWithRelationInput!], cursor: ProductVariantWhereUniqueInput, take: Int, skip: Int, distinct: [ProductVariantScalarFieldEnum!]): ProductVariant!
-  findUniqueProductVariant(where: ProductVariantWhereUniqueInput!): ProductVariant!
+  findFirstProductVariant(where: ProductVariantWhereInput, orderBy: [ProductVariantOrderByWithRelationInput!], cursor: ProductVariantWhereUniqueInput, take: Int, skip: Int, distinct: [ProductVariantScalarFieldEnum!]): ProductVariant
+  findUniqueProductVariant(where: ProductVariantWhereUniqueInput!): ProductVariant
   listProductVariants(where: ProductVariantWhereInput, orderBy: [ProductVariantOrderByWithRelationInput!], cursor: ProductVariantWhereUniqueInput, take: Int, skip: Int, distinct: [ProductVariantScalarFieldEnum!]): [ProductVariant!]!
   groupByProductVariant(where: ProductVariantWhereInput, orderBy: [ProductVariantOrderByWithAggregationInput!], by: [ProductVariantScalarFieldEnum!]!, having: ProductVariantScalarWhereWithAggregatesInput, take: Int, skip: Int, _count: ProductVariantCountAggregateInput, _avg: ProductVariantAvgAggregateInput, _sum: ProductVariantSumAggregateInput, _min: ProductVariantMinAggregateInput, _max: ProductVariantMaxAggregateInput): [ProductVariantGroupBy!]!
   aggregateProductVariant(where: ProductVariantWhereInput, orderBy: [ProductVariantOrderByWithRelationInput!], cursor: ProductVariantWhereUniqueInput, take: Int, skip: Int, _count: ProductVariantCountAggregateInput, _avg: ProductVariantAvgAggregateInput, _sum: ProductVariantSumAggregateInput, _min: ProductVariantMinAggregateInput, _max: ProductVariantMaxAggregateInput): AggregateProductVariant!
