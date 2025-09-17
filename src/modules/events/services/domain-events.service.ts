@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 
-export type DomainEventPayload = Record<string, any>;
+export type DomainEventPayload = Prisma.InputJsonValue;
 
 @Injectable()
 export class DomainEventsService {
@@ -31,8 +31,10 @@ export class DomainEventsService {
       if (options?.tx) {
         return await options.tx.outboxEvent.create({ data });
       }
-    } catch (e) {
-      this.logger.warn('Falling back to default prisma client for outbox insert');
+    } catch {
+      this.logger.warn(
+        'Falling back to default prisma client for outbox insert',
+      );
     }
     return await this.prisma.outboxEvent.create({ data });
   }

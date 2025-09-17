@@ -5769,7 +5769,7 @@ type Mutation {
   devPurgeInvoiceImports(filter: DevPurgeFilter): Int!
   devPurgePurchaseOrders(filter: DevPurgeFilter): Int!
   devImportSnapshot(json: String!, preview: Boolean): String!
-  devSeedFixtures(kind: String): String!
+  devSeedFixtures: String!
   devPurgeOrphanVariants(filter: DevPurgeFilter): Int!
   devPurgeProducts(filter: DevPurgeFilter): Int!
 }

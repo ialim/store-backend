@@ -16,6 +16,7 @@ import { SupplierPaymentMethodBreakdownEntry } from './types/supplier-payment-me
 import { ConsumerPayment } from '../../shared/prismagraphql/consumer-payment/consumer-payment.model';
 import { ResellerPayment } from '../../shared/prismagraphql/reseller-payment/reseller-payment.model';
 import { SupplierPayment } from '../../shared/prismagraphql/supplier-payment/supplier-payment.model';
+import { PaymentMethod } from '../../shared/prismagraphql/prisma/payment-method.enum';
 
 function monthWindow(month: string) {
   const [year, mm] = month.split('-').map((x) => Number(x));
@@ -28,6 +29,15 @@ function currentMonth(): string {
   const now = new Date();
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
 }
+
+const normalizePaymentMethod = (
+  value: string | null | undefined,
+): keyof typeof PaymentMethod => {
+  const upper = String(value ?? PaymentMethod.CASH).toUpperCase();
+  return upper in PaymentMethod
+    ? (upper as keyof typeof PaymentMethod)
+    : 'CASH';
+};
 
 @Resolver()
 export class PaymentResolver {
@@ -440,17 +450,14 @@ export class PaymentResolver {
       entry.rCnt += 1;
       map.set(key, entry);
     }
-    return Array.from(map.entries()).map(
-      ([method, v]) =>
-        ({
-          method: method as any,
-          consumerPaid: v.cAmt,
-          resellerPaid: v.rAmt,
-          totalPaid: v.cAmt + v.rAmt,
-          consumerCount: v.cCnt,
-          resellerCount: v.rCnt,
-        }) as PaymentMethodBreakdownEntry,
-    );
+    return Array.from(map.entries()).map(([method, v]) => ({
+      method: normalizePaymentMethod(method),
+      consumerPaid: v.cAmt,
+      resellerPaid: v.rAmt,
+      totalPaid: v.cAmt + v.rAmt,
+      consumerCount: v.cCnt,
+      resellerCount: v.rCnt,
+    }));
   }
 
   // Supplier payment methods
@@ -461,8 +468,9 @@ export class PaymentResolver {
     @Args('month', { nullable: true }) month?: string,
     @Args('supplierId', { nullable: true }) supplierId?: string,
   ) {
-    const where: any = {};
-    if (supplierId) where.supplierId = supplierId;
+    const where: Prisma.SupplierPaymentWhereInput = {
+      ...(supplierId ? { supplierId } : {}),
+    };
     if (month) {
       const { start, end } = monthWindow(month);
       where.paymentDate = { gte: start, lt: end };
@@ -640,17 +648,14 @@ export class PaymentResolver {
       entry.rCnt += 1;
       map.set(key, entry);
     }
-    return Array.from(map.entries()).map(
-      ([method, v]) =>
-        ({
-          method: method as any,
-          consumerPaid: v.cAmt,
-          resellerPaid: v.rAmt,
-          totalPaid: v.cAmt + v.rAmt,
-          consumerCount: v.cCnt,
-          resellerCount: v.rCnt,
-        }) as PaymentMethodBreakdownEntry,
-    );
+    return Array.from(map.entries()).map(([method, v]) => ({
+      method: normalizePaymentMethod(method),
+      consumerPaid: v.cAmt,
+      resellerPaid: v.rAmt,
+      totalPaid: v.cAmt + v.rAmt,
+      consumerCount: v.cCnt,
+      resellerCount: v.rCnt,
+    }));
   }
 
   @Query(() => [PaymentDaySeries])

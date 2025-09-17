@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { DomainEventsService } from '../services/domain-events.service';
 import {
@@ -9,6 +10,18 @@ import {
   FulfillmentType as PrismaFulfillmentType,
   FulfillmentStatus as PrismaFulfillmentStatus,
 } from '@prisma/client';
+
+type PaymentConfirmedPayload = {
+  saleOrderId?: string | null;
+  [key: string]: unknown;
+};
+
+const parsePaymentPayload = (
+  payload: Prisma.JsonValue | null | undefined,
+): PaymentConfirmedPayload => {
+  if (!payload || typeof payload !== 'object') return {};
+  return payload as PaymentConfirmedPayload;
+};
 
 @Injectable()
 export class PaymentsOutboxHandler {
@@ -21,10 +34,12 @@ export class PaymentsOutboxHandler {
   async tryHandle(event: {
     id: string;
     type: string;
-    payload: any;
+    payload: Prisma.JsonValue | null | undefined;
   }): Promise<boolean> {
     if (event.type !== 'PAYMENT_CONFIRMED') return false;
-    const orderId = event.payload?.saleOrderId as string | undefined;
+    const payload = parsePaymentPayload(event.payload);
+    const orderId =
+      typeof payload.saleOrderId === 'string' ? payload.saleOrderId : undefined;
     if (!orderId) return true; // malformed but considered handled
     try {
       const order = await this.prisma.saleOrder.findUnique({
@@ -37,11 +52,17 @@ export class PaymentsOutboxHandler {
       const [consumerPaidAgg, resellerPaidAgg] = await Promise.all([
         this.prisma.consumerPayment.aggregate({
           _sum: { amount: true },
-          where: { saleOrderId: orderId, status: PrismaPaymentStatus.CONFIRMED },
+          where: {
+            saleOrderId: orderId,
+            status: PrismaPaymentStatus.CONFIRMED,
+          },
         }),
         this.prisma.resellerPayment.aggregate({
           _sum: { amount: true },
-          where: { saleOrderId: orderId, status: PrismaPaymentStatus.CONFIRMED },
+          where: {
+            saleOrderId: orderId,
+            status: PrismaPaymentStatus.CONFIRMED,
+          },
         }),
       ]);
       const paid =
@@ -187,7 +208,7 @@ export class PaymentsOutboxHandler {
       return true;
     } catch (e) {
       this.logger.error(
-        `Failed to handle payment confirmed for order ${event.payload?.saleOrderId}: ${e}`,
+        `Failed to handle payment confirmed for order ${orderId}: ${e}`,
       );
       return false;
     }

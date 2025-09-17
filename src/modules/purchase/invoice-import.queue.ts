@@ -1,39 +1,47 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InvoiceImportStatus as PrismaInvoiceImportStatus } from '@prisma/client';
+import { Prisma, InvoiceImportStatus as PrismaInvoiceImportStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { InvoiceIngestService } from './invoice-ingest.service';
 import { normalizeParsedByVendor } from './vendor-rules';
 
-type BullTypes = {
-  Queue: any;
-  Worker: any;
-  QueueScheduler: any;
-  JobsOptions: any;
+type InvoiceImportJobData = {
+  id: string;
+  url: string;
+  supplierName?: string | null;
+};
+type BullQueue<T> = import('bullmq').Queue<T, unknown, string>;
+type BullQueueScheduler = import('bullmq').QueueScheduler;
+type BullQueueModule = typeof import('bullmq');
+
+const toErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
 };
 
 @Injectable()
 export class InvoiceImportQueue {
   private logger = new Logger(InvoiceImportQueue.name);
-  private bull: BullTypes | null = null;
-  private queue: any | null = null;
-  private scheduler: any | null = null;
+  private queue: BullQueue<InvoiceImportJobData> | null = null;
+  private scheduler: BullQueueScheduler | null = null;
+  private static readonly controlCharPattern = new RegExp(
+    '[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]',
+    'g',
+  );
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly ingest: InvoiceIngestService,
   ) {
-    this.setup().catch(() => {});
+    void this.setup();
   }
 
   private async setup() {
     try {
-      let reqFn: NodeJS.Require | null = null;
-      try {
-        // eslint-disable-next-line no-eval
-        reqFn = eval('require');
-      } catch {}
-      const mod = reqFn ? (reqFn('bullmq') as any) : null;
-      const { Queue, Worker, QueueScheduler } = mod || {};
       const connection = process.env.REDIS_URL
         ? { url: process.env.REDIS_URL }
         : process.env.REDIS_HOST
@@ -48,36 +56,28 @@ export class InvoiceImportQueue {
         );
         return;
       }
-      this.bull = {
-        Queue,
-        Worker,
-        QueueScheduler,
-        JobsOptions: undefined,
-      };
-      this.queue = new Queue('invoice-imports', { connection });
+      const mod: BullQueueModule = await import('bullmq');
+      const { Queue, Worker, QueueScheduler } = mod;
+      this.queue = new Queue<InvoiceImportJobData>('invoice-imports', {
+        connection,
+      });
       this.scheduler = new QueueScheduler('invoice-imports', { connection });
-      // Worker
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      new Worker(
+      new Worker<InvoiceImportJobData>(
         'invoice-imports',
-        async (job: { data: { id: string; url: string; supplierName?: string | null } }) => {
-          const { id, url, supplierName } = job.data as {
-            id: string;
-            url: string;
-            supplierName?: string | null;
-          };
+        async ({ data }) => {
+          const { id, url, supplierName } = data;
           await this.processImport(id, url, supplierName ?? null);
         },
         { connection },
       );
       this.logger.log('BullMQ invoice-imports queue initialized');
-    } catch (e) {
+    } catch (error) {
       this.logger.log('BullMQ not available; falling back to in-process tasks');
     }
   }
 
   async enqueue(id: string, url: string, supplierName?: string | null) {
-    if (this.queue && this.bull) {
+    if (this.queue) {
       await this.queue.add(
         'process',
         { id, url, supplierName },
@@ -88,28 +88,36 @@ export class InvoiceImportQueue {
     // Fallback: run soon without durability
     setImmediate(() => {
       this.processImport(id, url, supplierName ?? null).catch((err) =>
-        this.logger.error(err?.message || String(err)),
+        this.logger.error(toErrorMessage(err)),
       );
     });
   }
 
-  private sanitizeRaw(text: string): string {
-    return text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+  private sanitizeString(value: string): string {
+    return value.replace(InvoiceImportQueue.controlCharPattern, '');
   }
-  private sanitizeDeep<T>(value: T): T {
-    const strip = (s: string) =>
-      s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
-    if (value == null) return value;
-    if (typeof value === 'string') return (strip(value) as unknown) as T;
-    if (Array.isArray(value))
-      return (value.map((v) => this.sanitizeDeep(v)) as unknown) as T;
-    if (typeof value === 'object') {
-      const out: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(value as Record<string, unknown>))
-        out[k] = this.sanitizeDeep(v);
-      return (out as unknown) as T;
+
+  private sanitizeJson(value: unknown): Prisma.JsonValue {
+    if (value === null) return null;
+    if (value === undefined) return null;
+    if (typeof value === 'string') return this.sanitizeString(value);
+    if (typeof value === 'number' || typeof value === 'boolean') return value;
+    if (value instanceof Date) return value.toISOString();
+    if (Array.isArray(value)) {
+      return value.map((v) => this.sanitizeJson(v)) as Prisma.JsonValue;
     }
-    return value;
+    if (typeof value === 'object') {
+      const out: Record<string, Prisma.JsonValue> = {};
+      for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+        const sanitized = this.sanitizeJson(v);
+        out[key] = sanitized;
+      }
+      return out;
+    }
+    if (typeof value === 'symbol') {
+      return this.sanitizeString(value.toString());
+    }
+    return this.sanitizeString(String(value));
   }
 
   private async processImport(
@@ -123,20 +131,23 @@ export class InvoiceImportQueue {
         data: { status: PrismaInvoiceImportStatus.PROCESSING },
       });
       const { parsed, rawText } = await this.ingest.parseInvoiceFromUrl(url);
-      const normalized = normalizeParsedByVendor(this.sanitizeDeep(parsed));
-      const raw = rawText ? this.sanitizeRaw(rawText) : undefined;
-      const parsedClean = this.sanitizeDeep(
-        raw ? { ...normalized, rawText: raw } : normalized,
-      );
+      const normalized = normalizeParsedByVendor(parsed);
+      const raw = rawText ? this.sanitizeString(rawText) : undefined;
+      const parsedPayload = raw ? { ...normalized, rawText: raw } : normalized;
+      const parsedClean = this.sanitizeJson(parsedPayload);
+      const parsedValue =
+        parsedClean === null
+          ? Prisma.DbNull
+          : (parsedClean as Prisma.InputJsonValue);
       const supplierName =
-        (existingSupplier ?? '').trim() || (normalized.supplierName ?? null);
+        (existingSupplier ?? '').trim() || normalized.supplierName || null;
       await this.prisma.invoiceImport.update({
         where: { id },
         data: {
           status: normalized.lines.length
             ? PrismaInvoiceImportStatus.READY
             : PrismaInvoiceImportStatus.NEEDS_REVIEW,
-          parsed: parsedClean,
+          parsed: parsedValue,
           supplierName,
           message: null,
         },
@@ -146,7 +157,7 @@ export class InvoiceImportQueue {
         where: { id },
         data: {
           status: PrismaInvoiceImportStatus.FAILED,
-          message: (err as { message?: string })?.message || String(err),
+          message: toErrorMessage(err),
         },
       });
     }

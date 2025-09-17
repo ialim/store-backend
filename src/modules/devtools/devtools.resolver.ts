@@ -51,6 +51,21 @@ class DevPurgeFilter {
   orphanOnly?: boolean;
 }
 
+type SnapshotProductVariantRow = Record<string, unknown> & { id?: unknown };
+type SnapshotInvoiceImportRow = Record<string, unknown> & { id?: unknown };
+
+const toOptionalString = (value: unknown): string | null =>
+  value == null || typeof value === 'string' ? (value as string | null) : null;
+
+const toRequiredString = (value: unknown, fallback = ''): string =>
+  typeof value === 'string' ? value : fallback;
+
+const toNumeric = (value: unknown, fallback = 0): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const coerced = Number(value);
+  return Number.isFinite(coerced) ? coerced : fallback;
+};
+
 @Resolver()
 export class DevToolsResolver {
   constructor(private readonly prisma: PrismaService) {}
@@ -157,7 +172,9 @@ export class DevToolsResolver {
             PrismaPurchaseOrderStatus.PAID,
             PrismaPurchaseOrderStatus.CANCELLED,
           ];
-          const maybe = allowed.find((x) => x === (s as PrismaPurchaseOrderStatus));
+          const maybe = allowed.find(
+            (x) => x === (s as PrismaPurchaseOrderStatus),
+          );
           if (maybe) where.status = maybe;
         }
         if (filter?.storeId) where.storeId = filter.storeId;
@@ -188,57 +205,77 @@ export class DevToolsResolver {
     @Args('preview', { nullable: true }) preview?: boolean,
   ): Promise<string> {
     ensureDev();
-    let obj: any;
+    let parsed: unknown;
     try {
-      obj = JSON.parse(json);
-    } catch (e: any) {
+      parsed = JSON.parse(json);
+    } catch {
       throw new Error('Invalid JSON');
     }
-    const summary: Record<string, number> = { productVariant: 0, invoiceImport: 0 };
-    if (Array.isArray(obj?.productVariant))
-      summary.productVariant = obj.productVariant.length;
-    if (Array.isArray(obj?.invoiceImport))
-      summary.invoiceImport = obj.invoiceImport.length;
+    const snapshot =
+      parsed && typeof parsed === 'object'
+        ? (parsed as {
+            productVariant?: SnapshotProductVariantRow[];
+            invoiceImport?: SnapshotInvoiceImportRow[];
+          })
+        : {};
+    const variantRows = Array.isArray(snapshot.productVariant)
+      ? snapshot.productVariant
+      : [];
+    const invoiceRows = Array.isArray(snapshot.invoiceImport)
+      ? snapshot.invoiceImport
+      : [];
+    const summary: Record<string, number> = {
+      productVariant: variantRows.length,
+      invoiceImport: invoiceRows.length,
+    };
     if (preview) return JSON.stringify({ preview: true, summary }, null, 2);
-    // Import product variants (upsert by id)
-    if (Array.isArray(obj?.productVariant)) {
-      for (const r of obj.productVariant) {
-        if (!r?.id) continue;
+    if (variantRows.length) {
+      for (const raw of variantRows) {
+        if (!raw || typeof raw !== 'object') continue;
+        const row = raw;
+        const id = typeof row.id === 'string' ? row.id : undefined;
+        if (!id) continue;
         const data: Prisma.ProductVariantUncheckedCreateInput = {
-          name: r.name ?? null,
-          size: r.size ?? null,
-          concentration: r.concentration ?? null,
-          packaging: r.packaging ?? null,
-          barcode: r.barcode ?? null,
-          price: r.price ?? 0,
-          resellerPrice: r.resellerPrice ?? 0,
-          productId: r.productId ?? null,
+          name: toOptionalString(row.name),
+          size: toRequiredString(row.size),
+          concentration: toRequiredString(row.concentration),
+          packaging: toRequiredString(row.packaging),
+          barcode: toOptionalString(row.barcode),
+          price: toNumeric(row.price),
+          resellerPrice: toNumeric(row.resellerPrice),
+          productId: toOptionalString(row.productId),
         };
         await this.prisma.productVariant.upsert({
-          where: { id: r.id },
+          where: { id },
           update: data,
-          create: { id: r.id, ...data },
+          create: { id, ...data },
         });
       }
     }
-    // Import invoice imports (upsert by id)
-    if (Array.isArray(obj?.invoiceImport)) {
-      for (const r of obj.invoiceImport) {
-        if (!r?.id) continue;
+    if (invoiceRows.length) {
+      for (const raw of invoiceRows) {
+        if (!raw || typeof raw !== 'object') continue;
+        const row = raw;
+        const id = typeof row.id === 'string' ? row.id : undefined;
+        if (!id) continue;
+        let parsedValue: Prisma.InvoiceImportUncheckedCreateInput['parsed'];
+        if (row.parsed === undefined) parsedValue = undefined;
+        else if (row.parsed === null) parsedValue = Prisma.JsonNull;
+        else parsedValue = row.parsed as Prisma.InputJsonValue;
         const data: Prisma.InvoiceImportUncheckedCreateInput = {
-          url: r.url ?? '',
-          supplierName: r.supplierName ?? null,
-          storeId: r.storeId ?? null,
+          url: typeof row.url === 'string' ? row.url : '',
+          supplierName: toOptionalString(row.supplierName),
+          storeId: toOptionalString(row.storeId),
           status:
-            (r.status as PrismaInvoiceImportStatus | undefined) ??
+            (row.status as PrismaInvoiceImportStatus | undefined) ??
             PrismaInvoiceImportStatus.PENDING,
-          message: r.message ?? null,
-          parsed: r.parsed ?? null,
+          message: toOptionalString(row.message),
+          parsed: parsedValue,
         };
         await this.prisma.invoiceImport.upsert({
-          where: { id: r.id },
+          where: { id },
           update: data,
-          create: { id: r.id, ...data },
+          create: { id, ...data },
         });
       }
     }
@@ -248,9 +285,7 @@ export class DevToolsResolver {
   @Mutation(() => String)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN')
-  async devSeedFixtures(
-    @Args('kind', { nullable: true }) kind?: string,
-  ): Promise<string> {
+  async devSeedFixtures(): Promise<string> {
     ensureDev();
     const pv1 = await this.prisma.productVariant.create({
       data: {

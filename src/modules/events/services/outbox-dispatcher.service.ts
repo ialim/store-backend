@@ -10,6 +10,16 @@ import { NotificationOutboxHandler } from '../handlers/notification-outbox.handl
 import { PurchaseOutboxHandler } from '../handlers/purchase-outbox.handler';
 import { PaymentsOutboxHandler } from '../handlers/payments-outbox.handler';
 
+const toErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+};
+
 @Injectable()
 export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OutboxDispatcherService.name);
@@ -36,10 +46,9 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
   start() {
     if (this.timer) return; // already running
     // Simple polling loop; replace with scheduler/queue as needed
-    this.timer = setInterval(
-      () => this.tick().catch(() => {}),
-      this.intervalMs,
-    );
+    this.timer = setInterval(() => {
+      void this.tick();
+    }, this.intervalMs);
     this.logger.log(`Outbox dispatcher started (every ${this.intervalMs}ms)`);
   }
 
@@ -118,16 +127,15 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
           data: { status: OutboxStatus.PUBLISHED, lastError: null },
         });
         processed += 1;
-      } catch (err: any) {
-        this.logger.error(
-          `Outbox event ${evt.id} failed: ${err?.message || err}`,
-        );
+      } catch (err: unknown) {
+        const message = toErrorMessage(err);
+        this.logger.error(`Outbox event ${evt.id} failed: ${message}`);
         await this.prisma.outboxEvent.update({
           where: { id: evt.id },
           data: {
             status: OutboxStatus.FAILED,
             retryCount: { increment: 1 },
-            lastError: String(err?.message || err),
+            lastError: message,
             deliverAfter: new Date(
               Date.now() + Math.min((evt.retryCount + 1) * 60_000, 600_000),
             ),

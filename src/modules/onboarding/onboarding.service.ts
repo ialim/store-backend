@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, ProfileStatus as PrismaProfileStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
+import { hashSync } from 'bcrypt';
 import { CreateUserInput } from '../users/dto/create-user.input';
 import { AuthResponse } from '../auth/dto/auth-response.output';
 import { UpdateCustomerProfileInput } from './dto/update-customer-profile.input';
@@ -12,13 +12,28 @@ import { NotificationService } from '../notification/notification.service';
 import { AdminUpdateCustomerProfileInput } from './dto/admin-update-customer-profile.input';
 import { AdminCreateCustomerInput } from './dto/admin-create-customer.input';
 
+const bcryptHash = hashSync as (data: string, saltOrRounds: number) => string;
+
 @Injectable()
 export class OnboardingService {
+  private readonly logger = new Logger(OnboardingService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
     private notificationService: NotificationService,
   ) {}
+
+  private static hashPassword(password: string): string {
+    return bcryptHash(password, 10);
+  }
+
+  private static resolveProfileStatus(
+    status?: 'PENDING' | 'ACTIVE' | 'REJECTED' | null,
+  ): PrismaProfileStatus | undefined {
+    if (!status) return undefined;
+    return PrismaProfileStatus[status];
+  }
 
   async signupCustomer(input: CreateUserInput): Promise<AuthResponse> {
     const customerRole = await this.prisma.role.findUnique({
@@ -29,7 +44,7 @@ export class OnboardingService {
     const user = await this.prisma.user.create({
       data: {
         email: input.email,
-        passwordHash: bcrypt.hashSync(input.password, 10), // hash in real use
+        passwordHash: OnboardingService.hashPassword(input.password),
         roleId: customerRole.id,
         customerProfile: {
           create: {
@@ -92,7 +107,7 @@ export class OnboardingService {
     const user = await this.prisma.user.create({
       data: {
         email: input.email,
-        passwordHash: bcrypt.hashSync(input.password, 10),
+        passwordHash: OnboardingService.hashPassword(input.password),
         roleId: resellerRole.id,
         resellerProfile: {
           create: {
@@ -226,12 +241,13 @@ export class OnboardingService {
       birthday: input.birthday,
       preferredStoreId: input.preferredStoreId,
     };
-    if (input.profileStatus) {
-      update.profileStatus =
-        PrismaProfileStatus[
-          input.profileStatus as keyof typeof PrismaProfileStatus
-        ];
-      if (input.profileStatus === 'ACTIVE') update.activatedAt = new Date();
+    const updatedStatus = OnboardingService.resolveProfileStatus(
+      input.profileStatus,
+    );
+    if (updatedStatus) {
+      update.profileStatus = updatedStatus;
+      if (updatedStatus === PrismaProfileStatus.ACTIVE)
+        update.activatedAt = new Date();
     }
     const profile = await this.prisma.customerProfile.update({
       where: { userId },
@@ -246,10 +262,13 @@ export class OnboardingService {
       where: { name: 'CUSTOMER' },
     });
     if (!role) throw new NotFoundException('Customer role not found');
+    const resolvedStatus =
+      OnboardingService.resolveProfileStatus(input.profileStatus) ??
+      PrismaProfileStatus.ACTIVE;
     const user = await this.prisma.user.create({
       data: {
         email: input.email,
-        passwordHash: bcrypt.hashSync(input.password, 10),
+        passwordHash: OnboardingService.hashPassword(input.password),
         roleId: role.id,
         customerProfile: {
           create: {
@@ -257,16 +276,9 @@ export class OnboardingService {
             phone: input.phone || null,
             email: input.email,
             preferredStoreId: input.preferredStoreId || null,
-            profileStatus:
-              input.profileStatus
-                ? PrismaProfileStatus[
-                    input.profileStatus as keyof typeof PrismaProfileStatus
-                  ]
-                : PrismaProfileStatus.ACTIVE,
+            profileStatus: resolvedStatus,
             activatedAt:
-              (input.profileStatus ?? 'ACTIVE') === 'ACTIVE'
-                ? new Date()
-                : null,
+              resolvedStatus === PrismaProfileStatus.ACTIVE ? new Date() : null,
           },
         },
       },
@@ -278,17 +290,25 @@ export class OnboardingService {
         'CUSTOMER_CREATED',
         'Your account has been created by an admin.',
       );
-    } catch {}
+    } catch (error) {
+      this.logger.warn(
+        `Failed to send admin-created notification for user ${user.id}: ${error}`,
+      );
+    }
     return user;
   }
 
-  async listResellers(params: {
+  async listResellers({
+    status,
+    take,
+    skip,
+    q,
+  }: {
     status?: 'PENDING' | 'ACTIVE' | 'REJECTED';
     take?: number;
     skip?: number;
     q?: string;
-  }) {
-    const { status, take, skip, q } = params || {};
+  } = {}) {
     const where: Prisma.ResellerProfileWhereInput = {};
     if (status) where.profileStatus = PrismaProfileStatus[status];
     if (q) where.user = { email: { contains: q, mode: 'insensitive' } };

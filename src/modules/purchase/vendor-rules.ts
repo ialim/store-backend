@@ -5,6 +5,7 @@ export type ParsedLine = {
   lineTotal: number;
   discountPct?: number;
   discountedUnitPrice?: number;
+  barcode?: string | null;
 };
 
 export type ParsedInvoice = {

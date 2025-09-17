@@ -1,25 +1,43 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ParsedInvoice as VendorParsedInvoice } from './vendor-rules';
 
-type InvoiceLine = {
-  description: string;
-  qty: number;
-  unitPrice: number;
-  discountPct?: number;
-  discountedUnitPrice?: number;
-  lineTotal: number;
-  barcode?: string | null;
+type ParsedInvoice = VendorParsedInvoice;
+type InvoiceLine = ParsedInvoice['lines'][number];
+
+type PdfParseModule = typeof import('pdf-parse');
+type PdfJsModule = typeof import('pdfjs-dist');
+type TesseractModule = typeof import('tesseract.js');
+type TextractModule = typeof import('@aws-sdk/client-textract');
+
+const isParsedInvoice = (value: unknown): value is ParsedInvoice => {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Record<string, unknown>;
+  return Array.isArray(candidate.lines);
 };
 
-type ParsedInvoice = {
-  supplierName?: string;
-  invoiceNumber?: string;
-  date?: Date;
-  total?: number;
-  lines: InvoiceLine[];
+const coerceParsedInvoice = (value: unknown): ParsedInvoice => {
+  if (isParsedInvoice(value)) return value;
+  return { lines: [] };
+};
+
+const toErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
 };
 
 @Injectable()
 export class InvoiceIngestService {
+  private readonly logger = new Logger(InvoiceIngestService.name);
+  private static readonly controlCharPattern = new RegExp(
+    '[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]',
+    'g',
+  );
+
   async fetchBuffer(
     url: string,
   ): Promise<{ buffer: Buffer; contentType: string | null }> {
@@ -42,70 +60,100 @@ export class InvoiceIngestService {
     buffer: Buffer,
     contentType: string | null,
   ): Promise<string> {
-    // Attempt PDF text extraction
     if (contentType?.includes('pdf')) {
-      try {
-        const pdfParseMod = await import('pdf-parse');
-        const pdfParse = (pdfParseMod as { default: (b: Buffer) => Promise<{ text?: string }> }).default;
-        const data = await pdfParse(buffer);
-        if (data?.text && String(data.text).trim().length > 10)
-          return String(data.text);
-        // Fallback: try extracting text with PDF.js (helps some PDFs that pdf-parse struggles with)
-        try {
-          let reqFn: NodeJS.Require | null = null;
-          try {
-            // eslint-disable-next-line no-eval
-            reqFn = eval('require');
-          } catch {}
-          const pdfjs = reqFn ? (reqFn('pdfjs-dist') as { getDocument: (p: any) => { promise: Promise<any> } }) : null;
-          const loadingTask = pdfjs!.getDocument({
-            data: buffer,
-            isEvalSupported: false,
-            disableFontFace: true,
-            verbosity: 0,
-          });
-          const doc = await loadingTask.promise;
-          let text = '';
-          const pageCount = doc.numPages || 0;
-          for (let i = 1; i <= pageCount; i++) {
-            const page = await doc.getPage(i);
-            const content = await page.getTextContent();
-            const pageText = (content.items || [])
-              .map((it: { str?: string }) => it?.str ?? '')
-              .join(' ');
-            text += pageText + '\n\n';
-          }
-          if (text.trim().length > 10) return text;
-        } catch {
-          // ignore, continue to OCR attempt
-        }
-        // Fallback: scanned PDFs (images) — advise to upload as image or enable PDF rasterization
-      } catch {
-        // ignore, fallback below
-      }
+      const pdfText = await this.tryPdfExtraction(buffer);
+      if (pdfText) return pdfText;
     }
-    // Attempt OCR for images
     if (contentType?.startsWith('image/')) {
+      const ocrText = await this.tryImageOcr(buffer);
+      if (ocrText) return ocrText;
+    }
+    return buffer.toString('utf8');
+  }
+
+  private sanitizeString(value: string): string {
+    return value.replace(InvoiceIngestService.controlCharPattern, '');
+  }
+
+  private async tryPdfExtraction(buffer: Buffer): Promise<string | null> {
+    try {
+      const pdfModule = (await import('pdf-parse')) as PdfParseModule;
+      const pdfParse = pdfModule.default;
+      const result = await pdfParse(buffer);
+      const text = result?.text?.trim();
+      if (text && text.length > 10) return text;
+    } catch (error) {
+      this.logger.debug(`pdf-parse failed: ${toErrorMessage(error)}`);
+    }
+
+    try {
+      const pdfjs = await this.loadPdfJs();
+      if (!pdfjs) return null;
+      const loadingTask = pdfjs.getDocument({
+        data: buffer,
+        isEvalSupported: false,
+        disableFontFace: true,
+        verbosity: 0,
+      });
+      const doc = await loadingTask.promise;
+      let text = '';
+      for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber++) {
+        const page = await doc.getPage(pageNumber);
+        const content = await page.getTextContent();
+        const pageText = content.items.map((item) => item.str ?? '').join(' ');
+        text += `${pageText}\n\n`;
+      }
+      const trimmed = text.trim();
+      return trimmed.length > 10 ? trimmed : null;
+    } catch (error) {
+      this.logger.debug(`pdfjs-dist failed: ${toErrorMessage(error)}`);
+    }
+
+    return null;
+  }
+
+  private async tryImageOcr(buffer: Buffer): Promise<string | null> {
+    try {
+      const tesseract = (await import('tesseract.js')) as TesseractModule;
+      const { data } = await tesseract.recognize(buffer, 'eng', {
+        psm: 6,
+        tessedit_char_whitelist:
+          '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,:%-()[] ',
+      });
+      const text = data?.text?.trim();
+      return text && text.length > 0 ? text : null;
+    } catch (error) {
+      this.logger.debug(`tesseract.js failed: ${toErrorMessage(error)}`);
+      return null;
+    }
+  }
+
+  private async loadPdfJs(): Promise<PdfJsModule | null> {
+    try {
+      return (await import('pdfjs-dist')) as PdfJsModule;
+    } catch {
       try {
-        const tesseract = (await import('tesseract.js')) as unknown as {
-          recognize: (
-            b: Buffer,
-            lang: string,
-            opts?: Record<string, unknown>,
-          ) => Promise<{ data?: { text?: string } }>;
-        };
-        const { data } = await tesseract.recognize(buffer, 'eng', {
-          psm: 6,
-          tessedit_char_whitelist:
-            '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,:%-()[] ',
-        });
-        if (data?.text) return String(data.text);
+        // eslint-disable-next-line no-eval
+        const req = eval('require') as NodeRequire;
+        return req('pdfjs-dist') as PdfJsModule;
       } catch {
-        // ignore, fallback below
+        return null;
       }
     }
-    // Fallback: treat as UTF-8 text
-    return buffer.toString('utf8');
+  }
+
+  private async loadTextract(): Promise<TextractModule | null> {
+    try {
+      return (await import('@aws-sdk/client-textract')) as TextractModule;
+    } catch {
+      try {
+        // eslint-disable-next-line no-eval
+        const req = eval('require') as NodeRequire;
+        return req('@aws-sdk/client-textract') as TextractModule;
+      } catch {
+        return null;
+      }
+    }
   }
 
   /**
@@ -117,25 +165,23 @@ export class InvoiceIngestService {
     // Try AWS Textract if configured
     const provider = (process.env.INVOICE_OCR_PROVIDER || 'auto').toLowerCase();
     if (provider === 'python' || provider === 'auto') {
-      const py = await this.tryPythonOcr(buffer, contentType).catch(() => null);
+      const py = await this.tryPythonOcr(buffer, contentType);
       if (py && py.lines?.length) return { parsed: py };
       if (provider === 'python') {
         // explicit python choice, don't cascade to textract
       } else {
         // auto mode → try textract next
-        const tex = await this.tryTextract(buffer).catch(() => null);
+        const tex = await this.tryTextract(buffer);
         if (tex && tex.lines?.length) return { parsed: tex };
       }
     } else if (provider === 'textract' || provider === 'auto') {
-      const tex = await this.tryTextract(buffer).catch(() => null);
+      const tex = await this.tryTextract(buffer);
       if (tex && tex.lines?.length) {
         return { parsed: tex };
       }
       if (provider === 'auto') {
         // try python as secondary
-        const py = await this.tryPythonOcr(buffer, contentType).catch(
-          () => null,
-        );
+        const py = await this.tryPythonOcr(buffer, contentType);
         if (py && py.lines?.length) return { parsed: py };
       }
     }
@@ -159,8 +205,7 @@ export class InvoiceIngestService {
       data: buffer.toString('base64'),
     });
     const headers: Record<string, string> = { 'content-type': 'application/json' };
-    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-    let lastErr: unknown = null;
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const res = await f(endpoint, {
@@ -169,13 +214,17 @@ export class InvoiceIngestService {
           body: payload,
         });
         if (res.ok) {
-          const json = await res.json();
-          if (json && Array.isArray(json.lines)) return json;
-          return null;
+          const json: unknown = await res.json();
+          const parsed = coerceParsedInvoice(json);
+          return parsed.lines.length ? parsed : null;
         }
-        lastErr = new Error(`HTTP ${res.status}`);
-      } catch (e) {
-        lastErr = e;
+        this.logger.warn(
+          `Python OCR request failed with status ${res.status} (attempt ${attempt + 1})`,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Python OCR request failed (attempt ${attempt + 1}): ${toErrorMessage(error)}`,
+        );
       }
       await sleep(250 * (attempt + 1));
     }
@@ -184,19 +233,9 @@ export class InvoiceIngestService {
 
   private async tryTextract(buffer: Buffer): Promise<ParsedInvoice | null> {
     try {
-      let reqFn: NodeJS.Require | null = null;
-      try {
-        // eslint-disable-next-line no-eval
-        reqFn = eval('require');
-      } catch {}
-      const mod = reqFn
-        ? (reqFn('@aws-sdk/client-textract') as unknown as {
-            TextractClient: new (opts: Record<string, unknown>) => any;
-            AnalyzeExpenseCommand: new (opts: Record<string, unknown>) => any;
-          })
-        : null;
-      if (!mod) return null;
-      const { TextractClient, AnalyzeExpenseCommand } = mod;
+      const textract = await this.loadTextract();
+      if (!textract) return null;
+      const { TextractClient, AnalyzeExpenseCommand } = textract;
       const client = new TextractClient({
         region:
           process.env.AWS_REGION ||
@@ -249,15 +288,13 @@ export class InvoiceIngestService {
       for (const group of doc.LineItemGroups || []) {
         for (const li of group.LineItems || []) {
           const fields = li.LineItemExpenseFields || [];
-          type TextractField = {
-            Type?: { Text?: string };
-            ValueDetection?: { Text?: string };
-          };
           const grab = (type: string) => {
-            const found = fields.find(
-              (f) => (f as TextractField).Type?.Text === type,
-            ) as unknown as TextractField | undefined;
-            return found?.ValueDetection?.Text || '';
+            const found = fields.find((f) => f.Type?.Text === type);
+            return (
+              found?.ValueDetection?.Text ||
+              found?.ValueDetection?.NormalizedValue?.Value ||
+              ''
+            );
           };
           const desc =
             grab('ITEM') ||
@@ -295,7 +332,8 @@ export class InvoiceIngestService {
         }
       }
       return parsed;
-    } catch {
+    } catch (error) {
+      this.logger.debug(`Textract analysis failed: ${toErrorMessage(error)}`);
       return null;
     }
   }

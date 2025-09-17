@@ -1,5 +1,5 @@
-import { Resolver, Mutation, Args, Context, Query, Int } from '@nestjs/graphql';
-import { UseGuards } from '@nestjs/common';
+import { Resolver, Mutation, Args, Query, Int } from '@nestjs/graphql';
+import { UseGuards, UnauthorizedException } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -16,6 +16,8 @@ import { User } from '../../shared/prismagraphql/user/user.model';
 import { CustomerProfile } from '../../shared/prismagraphql/customer-profile/customer-profile.model';
 import { AdminUpdateCustomerProfileInput } from './dto/admin-update-customer-profile.input';
 import { AdminCreateCustomerInput } from './dto/admin-create-customer.input';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../auth/auth.service';
 
 @Resolver()
 export class OnboardingResolver {
@@ -29,10 +31,13 @@ export class OnboardingResolver {
   @Mutation(() => CustomerProfile)
   @UseGuards(GqlAuthGuard)
   completeCustomerProfile(
-    @Context('req') req,
+    @CurrentUser() user: AuthenticatedUser | undefined,
     @Args('input') input: UpdateCustomerProfileInput,
   ) {
-    return this.onboardingService.completeCustomerProfile(req.user.id, input);
+    if (!user?.id) {
+      throw new UnauthorizedException('Missing authenticated user');
+    }
+    return this.onboardingService.completeCustomerProfile(user.id, input);
   }
 
   @Mutation(() => ResellerProfile)

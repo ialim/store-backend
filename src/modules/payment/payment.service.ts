@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   Prisma,
   PaymentStatus as PrismaPaymentStatus,
@@ -17,6 +17,7 @@ import { CreateSupplierPaymentInput } from '../purchase/dto/create-supplier-paym
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationService,
@@ -129,7 +130,7 @@ export class PaymentService {
             phase:
               newStatus === PrismaPurchaseOrderStatus.PAID
                 ? PrismaPurchasePhase.INVOICING
-                : (po.phase as PrismaPurchasePhase),
+                : po.phase,
           },
         });
         await this.domainEvents.publish(
@@ -172,7 +173,11 @@ export class PaymentService {
                   `PO ${fresh.invoiceNumber} completed.`,
                 );
               }
-            } catch {}
+            } catch (error) {
+              this.logger.warn(
+                `Failed to notify supplier ${fresh.supplierId} about PO ${fresh.id}: ${error}`,
+              );
+            }
           }
         }
       }
@@ -189,7 +194,11 @@ export class PaymentService {
           `Payment of ${payment.amount} recorded for your account`,
         );
       }
-    } catch {}
+    } catch (error) {
+      this.logger.warn(
+        `Failed to notify supplier ${payment.supplierId} about payment ${payment.id}: ${error}`,
+      );
+    }
     return payment;
   }
 
