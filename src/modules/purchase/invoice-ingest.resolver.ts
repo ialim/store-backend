@@ -14,7 +14,6 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { InvoiceIngestService } from './invoice-ingest.service';
 import { StockService } from '../stock/stock.service';
 import { ProductVariantService } from '../catalogue/variant/product-variant.service';
-import { LooseProductVariantInput } from '../catalogue/dto/loose-product-variant.input';
 import { PurchaseOrderStatus as PrismaPurchaseOrderStatus } from '@prisma/client';
 
 @InputType()
@@ -148,13 +147,10 @@ export class InvoiceIngestResolver {
         (await this.variants.createLoose({
           productId: null,
           name: ln.description,
-          size: 'STD',
-          concentration: 'STD',
-          packaging: 'STD',
-          barcode: ln.barcode ?? null,
+          barcode: ln.barcode ?? undefined,
           price: ln.unitPrice,
           resellerPrice: ln.discountedUnitPrice ?? ln.unitPrice,
-        } as LooseProductVariantInput));
+        }));
       const variantId = variant.id;
       poItems.push({
         productVariantId: variantId,

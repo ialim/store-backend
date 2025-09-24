@@ -1,6 +1,5 @@
 import React from 'react';
 import { gql, useLazyQuery } from '@apollo/client';
-import { useListSuppliersLazyQuery } from '../generated/graphql';
 import { Autocomplete, TextField } from '@mui/material';
 
 const SEARCH_USERS = gql`
@@ -73,7 +72,13 @@ export function StoreSelect({ value, onChange, label = 'Store', placeholder = 'S
 
 const SEARCH_VARIANTS = gql`
   query SearchVariants($where: ProductVariantWhereInput, $take: Int) {
-    listProductVariants(where: $where, take: $take) { id barcode size concentration packaging }
+    listProductVariants(where: $where, take: $take) { id name barcode }
+  }
+`;
+
+const SEARCH_SUPPLIERS = gql`
+  query SearchSuppliers($where: SupplierWhereInput, $take: Int) {
+    listSuppliers(where: $where, take: $take) { id name }
   }
 `;
 
@@ -88,7 +93,7 @@ export function VariantSelect({ value, onChange, label = 'Variant', placeholder 
     }, 250);
     return () => clearTimeout(h);
   }, [q, load]);
-  const options = (data?.listProductVariants ?? []).map((v: any) => ({ id: v.id, label: `${v.barcode || v.id} ${v.size || ''} ${v.concentration || ''} ${v.packaging || ''}`.trim() }));
+  const options = (data?.listProductVariants ?? []).map((v: any) => ({ id: v.id, label: v.name || v.barcode || v.id }));
   const current = options.find((o: any) => o.id === value) || (value ? { id: value, label: value } : null);
   return (
     <Autocomplete
@@ -107,7 +112,7 @@ export function VariantSelect({ value, onChange, label = 'Variant', placeholder 
 
 export function SupplierSelect({ value, onChange, label = 'Supplier', placeholder = 'Search supplier name' }: { value: string; onChange: (id: string) => void; label?: string; placeholder?: string }) {
   const [q, setQ] = React.useState('');
-  const [load, { data }] = useListSuppliersLazyQuery();
+  const [load, { data }] = useLazyQuery(SEARCH_SUPPLIERS);
   React.useEffect(() => {
     const h = setTimeout(() => {
       if (q.trim().length >= 2) {
@@ -135,7 +140,7 @@ export function SupplierSelect({ value, onChange, label = 'Supplier', placeholde
 
 export function SupplierNameSelect({ value, onChange, label = 'Supplier', placeholder = 'Search supplier name' }: { value: string; onChange: (name: string) => void; label?: string; placeholder?: string }) {
   const [q, setQ] = React.useState('');
-  const [load, { data }] = useListSuppliersLazyQuery();
+  const [load, { data }] = useLazyQuery(SEARCH_SUPPLIERS);
   React.useEffect(() => {
     const h = setTimeout(() => {
       if (q.trim().length >= 2) {

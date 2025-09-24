@@ -1,11 +1,15 @@
-import { useAssignFulfillmentPersonnelMutation, useUpdateFulfillmentStatusMutation } from '../generated/graphql';
-import { Alert, Button, Paper, Stack, TextField, Typography } from '@mui/material';
+import {
+  useAssignFulfillmentPersonnelMutation,
+  useUpdateFulfillmentStatusMutation,
+  FulfillmentStatus,
+} from '../generated/graphql';
+import { Alert, Button, MenuItem, Paper, Stack, TextField, Typography, Select } from '@mui/material';
 import { useState } from 'react';
 
 export default function Fulfillment() {
   const [orderId, setOrderId] = useState('');
   const [personId, setPersonId] = useState('');
-  const [status, setStatus] = useState('ASSIGNED');
+  const [status, setStatus] = useState<FulfillmentStatus>(FulfillmentStatus.Assigned);
   const [pin, setPin] = useState('');
   const [assign, { loading: assigning }] = useAssignFulfillmentPersonnelMutation();
   const [update, { loading: updating }] = useUpdateFulfillmentStatusMutation();
@@ -14,6 +18,10 @@ export default function Fulfillment() {
 
   const doAssign = async () => {
     setErr(null); setMsg(null);
+    if (!orderId || !personId) {
+      setErr('Order ID and delivery personnel ID are required');
+      return;
+    }
     try {
       await assign({ variables: { input: { saleOrderId: orderId, deliveryPersonnelId: personId } } });
       setMsg('Assigned delivery personnel');
@@ -21,6 +29,10 @@ export default function Fulfillment() {
   };
   const doUpdate = async () => {
     setErr(null); setMsg(null);
+    if (!orderId) {
+      setErr('Order ID is required');
+      return;
+    }
     try {
       await update({ variables: { input: { saleOrderId: orderId, status, confirmationPin: pin || null } } });
       setMsg('Updated fulfillment status');
@@ -38,7 +50,22 @@ export default function Fulfillment() {
         <Stack direction="row" spacing={2}>
           <Button variant="contained" onClick={doAssign} disabled={assigning || !orderId || !personId}>Assign</Button>
         </Stack>
-        <TextField label="Status (ASSIGNED/IN_TRANSIT/DELIVERED/CANCELLED)" value={status} onChange={e => setStatus(e.target.value)} />
+        <Select
+          value={status}
+          onChange={(e) => setStatus(e.target.value as FulfillmentStatus)}
+          size="small"
+          displayEmpty
+        >
+          {[
+            FulfillmentStatus.Assigned,
+            FulfillmentStatus.InTransit,
+            FulfillmentStatus.Delivered,
+            FulfillmentStatus.Cancelled,
+            FulfillmentStatus.Pending,
+          ].map((s) => (
+            <MenuItem key={s} value={s}>{s}</MenuItem>
+          ))}
+        </Select>
         <TextField label="Confirmation PIN (optional for DELIVERED)" value={pin} onChange={e => setPin(e.target.value)} />
         <Stack direction="row" spacing={2}>
           <Button variant="outlined" onClick={doUpdate} disabled={updating || !orderId}>Update Status</Button>

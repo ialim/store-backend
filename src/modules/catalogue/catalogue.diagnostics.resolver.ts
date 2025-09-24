@@ -22,12 +22,6 @@ export class OrphanVariantDiagnostic {
   productExists!: boolean;
   @Field(() => String, { nullable: true })
   barcode?: string | null;
-  @Field(() => String)
-  size!: string;
-  @Field(() => String)
-  concentration!: string;
-  @Field(() => String)
-  packaging!: string;
 }
 
 @Resolver()
@@ -47,9 +41,6 @@ export class CatalogueDiagnosticsResolver {
         id: true,
         productId: true,
         barcode: true,
-        size: true,
-        concentration: true,
-        packaging: true,
       },
     });
     const ids = Array.from(
@@ -68,9 +59,6 @@ export class CatalogueDiagnosticsResolver {
       productId: v.productId ?? null,
       productExists: Boolean(v.productId && existing.has(v.productId)),
       barcode: v.barcode ?? null,
-      size: v.size,
-      concentration: v.concentration,
-      packaging: v.packaging,
     }));
   }
 

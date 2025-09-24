@@ -5,7 +5,7 @@ import TableList from '../shared/TableList';
 
 export default function Suppliers() {
   const { data, loading, error, refetch } = useSuppliersQuery({ fetchPolicy: 'cache-and-network' as any });
-  const list = data?.suppliers ?? [];
+  const list = data?.listSuppliers ?? [];
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Suppliers</Typography>

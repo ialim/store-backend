@@ -16,9 +16,11 @@ import TableList from '../shared/TableList';
 import { Switch, FormControlLabel } from '@mui/material';
 
 export default function RequisitionDetail() {
-  const { id } = useParams();
-  const { data: dashData, loading: dashLoading, error: dashError, refetch: refetchDash } = useRfqDashboardQuery({ variables: { id: id as string }, skip: !id, fetchPolicy: 'cache-and-network' as any });
-  const { data: qData, loading: qLoading, error: qError, refetch: refetchQuotes } = useQuotesByReqQuery({ variables: { id: id as string }, skip: !id, fetchPolicy: 'cache-and-network' as any });
+  const params = useParams<{ id?: string }>();
+  const id = params.id ?? '';
+  const hasId = Boolean(params.id);
+  const { data: dashData, loading: dashLoading, error: dashError, refetch: refetchDash } = useRfqDashboardQuery({ variables: { id }, skip: !hasId, fetchPolicy: 'cache-and-network' as any });
+  const { data: qData, loading: qLoading, error: qError, refetch: refetchQuotes } = useQuotesByReqQuery({ variables: { id }, skip: !hasId, fetchPolicy: 'cache-and-network' as any });
   const dash = dashData?.rfqDashboard;
   const reqSummary = dashData?.purchaseRequisitionSummary;
   const quotes = qData?.supplierQuotesByRequisition ?? [];
@@ -41,6 +43,8 @@ export default function RequisitionDetail() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `requisition-${id}-quotes.csv`; a.click(); URL.revokeObjectURL(url);
   };
+  if (!hasId) return <Alert severity="error">Missing requisition id.</Alert>;
+
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Requisition {id}</Typography>
@@ -73,10 +77,10 @@ export default function RequisitionDetail() {
           <Typography variant="subtitle1">Supplier Quotes</Typography>
           <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
             <Button size="small" variant="outlined" disabled={reqSummary?.status !== 'DRAFT' || submittingReq} onClick={async () => {
-              try { await submitReq({ variables: { id: id as string } }); notify('Requisition submitted','success'); refetchDash(); } catch (e: any) { notify(e?.message || 'Failed to submit requisition','error'); }
+              try { await submitReq({ variables: { id } }); notify('Requisition submitted','success'); refetchDash(); } catch (e: any) { notify(e?.message || 'Failed to submit requisition','error'); }
             }}>{submittingReq ? 'Submitting…' : 'Submit Requisition'}</Button>
             <Button size="small" variant="outlined" disabled={reqSummary?.status !== 'SUBMITTED' || approvingReq} onClick={async () => {
-              try { await approveReq({ variables: { id: id as string } }); notify('Requisition approved','success'); refetchDash(); } catch (e: any) { notify(e?.message || 'Failed to approve requisition','error'); }
+              try { await approveReq({ variables: { id } }); notify('Requisition approved','success'); refetchDash(); } catch (e: any) { notify(e?.message || 'Failed to approve requisition','error'); }
             }}>{approvingReq ? 'Approving…' : 'Approve Requisition'}</Button>
             <Button size="small" color="error" variant="outlined" disabled={!(reqSummary?.status === 'DRAFT' || reqSummary?.status === 'SUBMITTED') || rejectingReq} onClick={async () => {
               const reason = window.prompt('Reason for rejection (optional):') || undefined;

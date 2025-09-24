@@ -138,15 +138,57 @@ export default function Customers() {
                 <Stack direction="row" spacing={1}>
                   <Button size="small" variant="contained" onClick={async () => {
                     if (!window.confirm('Activate this customer?')) return;
-                    try { await updateProfile({ variables: { userId: u.id, input: { profileStatus: 'ACTIVE' } } }); notify('Activated customer','success'); await refetch(); } catch (e: any) { notify(e?.message || 'Failed', 'error'); }
+                    try {
+                      await updateProfile({
+                        variables: {
+                          userId: u.id,
+                          input: {
+                            fullName: u.customerProfile?.fullName || u.email || 'Customer',
+                            profileStatus: 'ACTIVE',
+                          },
+                        },
+                      });
+                      notify('Activated customer', 'success');
+                      await refetch();
+                    } catch (e: any) {
+                      notify(e?.message || 'Failed', 'error');
+                    }
                   }}>Activate</Button>
                   <Button size="small" variant="outlined" onClick={async () => {
                     if (!window.confirm('Set this customer to PENDING?')) return;
-                    try { await updateProfile({ variables: { userId: u.id, input: { profileStatus: 'PENDING' } } }); notify('Set to pending','info'); await refetch(); } catch (e: any) { notify(e?.message || 'Failed', 'error'); }
+                    try {
+                      await updateProfile({
+                        variables: {
+                          userId: u.id,
+                          input: {
+                            fullName: u.customerProfile?.fullName || u.email || 'Customer',
+                            profileStatus: 'PENDING',
+                          },
+                        },
+                      });
+                      notify('Set to pending', 'info');
+                      await refetch();
+                    } catch (e: any) {
+                      notify(e?.message || 'Failed', 'error');
+                    }
                   }}>Set Pending</Button>
                   <Button size="small" color="error" onClick={async () => {
                     if (!window.confirm('Deactivate (REJECT) this customer?')) return;
-                    try { await updateProfile({ variables: { userId: u.id, input: { profileStatus: 'REJECTED' } } }); notify('Customer deactivated','warning'); await refetch(); } catch (e: any) { notify(e?.message || 'Failed', 'error'); }
+                    try {
+                      await updateProfile({
+                        variables: {
+                          userId: u.id,
+                          input: {
+                            fullName: u.customerProfile?.fullName || u.email || 'Customer',
+                            profileStatus: 'REJECTED',
+                          },
+                        },
+                      });
+                      notify('Customer deactivated', 'warning');
+                      await refetch();
+                    } catch (e: any) {
+                      notify(e?.message || 'Failed', 'error');
+                    }
                   }}>Deactivate</Button>
                   <Button size="small" onClick={() => navigate(`/customers/${u.id}`)}>View</Button>
                 </Stack>

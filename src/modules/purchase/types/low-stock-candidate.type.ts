@@ -28,15 +28,6 @@ export class LowStockCandidate {
   productName?: string | null;
 
   @Field(() => String, { nullable: true })
-  size?: string | null;
-
-  @Field(() => String, { nullable: true })
-  concentration?: string | null;
-
-  @Field(() => String, { nullable: true })
-  packaging?: string | null;
-
-  @Field(() => String, { nullable: true })
   barcode?: string | null;
 
   // Supplier catalog hints (best/primary supplier)

@@ -1,4 +1,4 @@
-import { usePurchaseOrderLazyQuery, useReceiveStockBatchMutation } from '../generated/graphql';
+import { usePurchaseOrderLazyQuery, useReceiveStockMutation } from '../generated/graphql';
 import { Alert, Button, Card, CardContent, Grid, IconButton, Stack, TextField, Typography } from '@mui/material';
 import React from 'react';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -12,7 +12,7 @@ export default function ReceiveStock() {
   const [confirmedById, setConfirmedById] = React.useState('');
   const [waybillUrl, setWaybillUrl] = React.useState('');
   const [items, setItems] = React.useState<Array<{ productVariantId: string; quantity: number }>>([{ productVariantId: '', quantity: 0 }]);
-  const [receive, { loading, error, data }] = useReceiveStockBatchMutation();
+  const [receive, { loading, error, data }] = useReceiveStockMutation();
   const [loadPO, { loading: loadingPO }] = usePurchaseOrderLazyQuery();
 
   const setItem = (idx: number, patch: Partial<{ productVariantId: string; quantity: number }>) => {

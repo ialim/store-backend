@@ -15,5 +15,9 @@ export const PurchaseReturnsBySupplier = gql`
   }
 `;
 
-export const UpdateSalesReturn = gql`mutation UpdateSalesReturn($input: UpdateSalesReturnStatusInput!) { updateSalesReturnStatus(input: $input) }`;
+export const UpdateSalesReturnStatus = gql`
+  mutation UpdateSalesReturnStatus($input: UpdateSalesReturnStatusInput!) {
+    updateSalesReturnStatus(input: $input)
+  }
+`;
 export const FulfillPurchaseReturn = gql`mutation FulfillPurchaseReturn($input: FulfillPurchaseReturnInput!) { fulfillPurchaseReturn(input: $input) }`;

@@ -1,17 +1,22 @@
 import { useState } from 'react';
-import { useApplyResellerMutation } from '../generated/graphql';
+import { useApplyResellerMutation, UserTier } from '../generated/graphql';
 import { Alert, Box, Button, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { notify } from '../shared/notify';
 
 
-const TIERS = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'];
+const TIERS: UserTier[] = [
+  UserTier.Bronze,
+  UserTier.Silver,
+  UserTier.Gold,
+  UserTier.Platinum,
+];
 
 export default function ApplyReseller() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [requestedBillerId, setRequestedBillerId] = useState('');
-  const [tier, setTier] = useState('BRONZE');
+  const [tier, setTier] = useState<UserTier>(UserTier.Bronze);
   const [creditLimit, setCreditLimit] = useState<number>(100000);
   const [error, setError] = useState<string | null>(null);
   const [apply, { loading }] = useApplyResellerMutation();
@@ -42,7 +47,12 @@ export default function ApplyReseller() {
           <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
           <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth />
           <TextField label="Requested Biller ID (optional)" value={requestedBillerId} onChange={(e) => setRequestedBillerId(e.target.value)} helperText="Optionally request a specific biller by user ID" fullWidth />
-          <TextField label="Tier" select value={tier} onChange={(e) => setTier(e.target.value)}>
+          <TextField
+            label="Tier"
+            select
+            value={tier}
+            onChange={(e) => setTier(e.target.value as UserTier)}
+          >
             {TIERS.map((t) => (
               <MenuItem key={t} value={t}>{t}</MenuItem>
             ))}

@@ -944,9 +944,6 @@ type ProductVariant {
   id: ID!
   productId: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -1293,18 +1290,12 @@ type OrphanVariantDiagnostic {
   productId: String
   productExists: Boolean!
   barcode: String
-  size: String!
-  concentration: String!
-  packaging: String!
 }
 
 type ProductVariantCountAggregate {
   id: Int!
   productId: Int!
   name: Int!
-  size: Int!
-  concentration: Int!
-  packaging: Int!
   barcode: Int!
   price: Int!
   resellerPrice: Int!
@@ -1327,9 +1318,6 @@ type ProductVariantMinAggregate {
   id: String
   productId: String
   name: String
-  size: String
-  concentration: String
-  packaging: String
   barcode: String
   price: Float
   resellerPrice: Float
@@ -1341,9 +1329,6 @@ type ProductVariantMaxAggregate {
   id: String
   productId: String
   name: String
-  size: String
-  concentration: String
-  packaging: String
   barcode: String
   price: Float
   resellerPrice: Float
@@ -1363,9 +1348,6 @@ type ProductVariantGroupBy {
   id: String!
   productId: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -1675,9 +1657,6 @@ type LowStockCandidate {
   storeName: String
   productId: String
   productName: String
-  size: String
-  concentration: String
-  packaging: String
   barcode: String
   supplierId: String
   supplierName: String
@@ -2259,9 +2238,6 @@ type VariantSalesWithDetails {
   quantity: Int!
   productId: String
   productName: String
-  size: String
-  concentration: String
-  packaging: String
   barcode: String
 }
 
@@ -2517,9 +2493,6 @@ input ProductVariantWhereInput {
   id: StringFilter
   productId: StringNullableFilter
   name: StringNullableFilter
-  size: StringFilter
-  concentration: StringFilter
-  packaging: StringFilter
   barcode: StringNullableFilter
   price: FloatFilter
   resellerPrice: FloatFilter
@@ -4599,9 +4572,6 @@ input ProductVariantOrderByWithRelationInput {
   id: SortOrder
   productId: SortOrderInput
   name: SortOrderInput
-  size: SortOrder
-  concentration: SortOrder
-  packaging: SortOrder
   barcode: SortOrderInput
   price: SortOrder
   resellerPrice: SortOrder
@@ -4704,9 +4674,6 @@ input ProductVariantWhereUniqueInput {
   NOT: [ProductVariantWhereInput!]
   productId: StringNullableFilter
   name: StringNullableFilter
-  size: StringFilter
-  concentration: StringFilter
-  packaging: StringFilter
   price: FloatFilter
   resellerPrice: FloatFilter
   createdAt: DateTimeFilter
@@ -4734,9 +4701,6 @@ enum ProductVariantScalarFieldEnum {
   id
   productId
   name
-  size
-  concentration
-  packaging
   barcode
   price
   resellerPrice
@@ -4748,9 +4712,6 @@ input ProductVariantOrderByWithAggregationInput {
   id: SortOrder
   productId: SortOrderInput
   name: SortOrderInput
-  size: SortOrder
-  concentration: SortOrder
-  packaging: SortOrder
   barcode: SortOrderInput
   price: SortOrder
   resellerPrice: SortOrder
@@ -4767,9 +4728,6 @@ input ProductVariantCountOrderByAggregateInput {
   id: SortOrder
   productId: SortOrder
   name: SortOrder
-  size: SortOrder
-  concentration: SortOrder
-  packaging: SortOrder
   barcode: SortOrder
   price: SortOrder
   resellerPrice: SortOrder
@@ -4786,9 +4744,6 @@ input ProductVariantMaxOrderByAggregateInput {
   id: SortOrder
   productId: SortOrder
   name: SortOrder
-  size: SortOrder
-  concentration: SortOrder
-  packaging: SortOrder
   barcode: SortOrder
   price: SortOrder
   resellerPrice: SortOrder
@@ -4800,9 +4755,6 @@ input ProductVariantMinOrderByAggregateInput {
   id: SortOrder
   productId: SortOrder
   name: SortOrder
-  size: SortOrder
-  concentration: SortOrder
-  packaging: SortOrder
   barcode: SortOrder
   price: SortOrder
   resellerPrice: SortOrder
@@ -4822,9 +4774,6 @@ input ProductVariantScalarWhereWithAggregatesInput {
   id: StringWithAggregatesFilter
   productId: StringNullableWithAggregatesFilter
   name: StringNullableWithAggregatesFilter
-  size: StringWithAggregatesFilter
-  concentration: StringWithAggregatesFilter
-  packaging: StringWithAggregatesFilter
   barcode: StringNullableWithAggregatesFilter
   price: FloatWithAggregatesFilter
   resellerPrice: FloatWithAggregatesFilter
@@ -4868,9 +4817,6 @@ input ProductVariantCountAggregateInput {
   id: Boolean
   productId: Boolean
   name: Boolean
-  size: Boolean
-  concentration: Boolean
-  packaging: Boolean
   barcode: Boolean
   price: Boolean
   resellerPrice: Boolean
@@ -4893,9 +4839,6 @@ input ProductVariantMinAggregateInput {
   id: Boolean
   productId: Boolean
   name: Boolean
-  size: Boolean
-  concentration: Boolean
-  packaging: Boolean
   barcode: Boolean
   price: Boolean
   resellerPrice: Boolean
@@ -4907,9 +4850,6 @@ input ProductVariantMaxAggregateInput {
   id: Boolean
   productId: Boolean
   name: Boolean
-  size: Boolean
-  concentration: Boolean
-  packaging: Boolean
   barcode: Boolean
   price: Boolean
   resellerPrice: Boolean
@@ -5805,9 +5745,6 @@ input ProductVariantCreateNestedManyWithoutProductInput {
 input ProductVariantCreateWithoutProductInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -6147,9 +6084,6 @@ input ProductVariantCreateNestedOneWithoutStockItemsInput {
 input ProductVariantCreateWithoutStockItemsInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -6245,9 +6179,6 @@ input ProductVariantCreateNestedOneWithoutFacetsInput {
 input ProductVariantCreateWithoutFacetsInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -7283,9 +7214,6 @@ input ProductVariantCreateNestedOneWithoutReceiptItemsInput {
 input ProductVariantCreateWithoutReceiptItemsInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -7538,9 +7466,6 @@ input ProductVariantCreateNestedOneWithoutStockMovementItemInput {
 input ProductVariantCreateWithoutStockMovementItemInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -7787,9 +7712,6 @@ input ProductVariantCreateNestedOneWithoutConsumerItemsInput {
 input ProductVariantCreateWithoutConsumerItemsInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -8266,9 +8188,6 @@ input ProductVariantCreateNestedOneWithoutResellerItemsInput {
 input ProductVariantCreateWithoutResellerItemsInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -9558,9 +9477,6 @@ input ProductVariantCreateNestedOneWithoutQuotationItemsInput {
 input ProductVariantCreateWithoutQuotationItemsInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -9761,9 +9677,6 @@ input ProductVariantCreateNestedOneWithoutReturnItemsInput {
 input ProductVariantCreateWithoutReturnItemsInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -10018,9 +9931,6 @@ input ProductVariantCreateNestedOneWithoutPurchaseOrderItemInput {
 input ProductVariantCreateWithoutPurchaseOrderItemInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -10400,9 +10310,6 @@ input ProductVariantCreateNestedOneWithoutPurchaseReturnItemsInput {
 input ProductVariantCreateWithoutPurchaseReturnItemsInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -10633,9 +10540,6 @@ input ProductVariantCreateNestedOneWithoutSupplierCatalogInput {
 input ProductVariantCreateWithoutSupplierCatalogInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -10730,9 +10634,6 @@ input ProductVariantCreateNestedOneWithoutPurchaseRequisitionItemInput {
 input ProductVariantCreateWithoutPurchaseRequisitionItemInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -10837,9 +10738,6 @@ input ProductVariantCreateNestedOneWithoutSupplierQuoteItemInput {
 input ProductVariantCreateWithoutSupplierQuoteItemInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -13551,9 +13449,6 @@ input ProductVariantCreateNestedOneWithoutTransferItemsInput {
 input ProductVariantCreateWithoutTransferItemsInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -14316,9 +14211,6 @@ input ProductVariantCreateManyProductInputEnvelope {
 input ProductVariantCreateManyProductInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -14381,9 +14273,6 @@ input ProductVariantUpsertWithWhereUniqueWithoutProductInput {
 input ProductVariantUpdateWithoutProductInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -14876,9 +14765,6 @@ input ProductVariantUpsertWithoutStockItemsInput {
 input ProductVariantUpdateWithoutStockItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -15027,9 +14913,6 @@ input ProductVariantUpsertWithoutFacetsInput {
 input ProductVariantUpdateWithoutFacetsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -16479,9 +16362,6 @@ input ProductVariantUpsertWithoutReceiptItemsInput {
 input ProductVariantUpdateWithoutReceiptItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -16841,9 +16721,6 @@ input ProductVariantUpsertWithoutStockMovementItemInput {
 input ProductVariantUpdateWithoutStockMovementItemInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -17182,9 +17059,6 @@ input ProductVariantUpsertWithoutConsumerItemsInput {
 input ProductVariantUpdateWithoutConsumerItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -17868,9 +17742,6 @@ input ProductVariantUpsertWithoutResellerItemsInput {
 input ProductVariantUpdateWithoutResellerItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -19633,9 +19504,6 @@ input ProductVariantUpsertWithoutQuotationItemsInput {
 input ProductVariantUpdateWithoutQuotationItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -19922,9 +19790,6 @@ input ProductVariantUpsertWithoutReturnItemsInput {
 input ProductVariantUpdateWithoutReturnItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -20249,9 +20114,6 @@ input ProductVariantUpsertWithoutPurchaseOrderItemInput {
 input ProductVariantUpdateWithoutPurchaseOrderItemInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -20796,9 +20658,6 @@ input ProductVariantUpsertWithoutPurchaseReturnItemsInput {
 input ProductVariantUpdateWithoutPurchaseReturnItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -21164,9 +21023,6 @@ input ProductVariantUpsertWithoutSupplierCatalogInput {
 input ProductVariantUpdateWithoutSupplierCatalogInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -21311,9 +21167,6 @@ input ProductVariantUpsertWithoutPurchaseRequisitionItemInput {
 input ProductVariantUpdateWithoutPurchaseRequisitionItemInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -21473,9 +21326,6 @@ input ProductVariantUpsertWithoutSupplierQuoteItemInput {
 input ProductVariantUpdateWithoutSupplierQuoteItemInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -23895,9 +23745,6 @@ input ProductVariantUpsertWithoutTransferItemsInput {
 input ProductVariantUpdateWithoutTransferItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -24476,9 +24323,6 @@ input ProductVariantScalarWhereInput {
   id: StringFilter
   productId: StringNullableFilter
   name: StringNullableFilter
-  size: StringFilter
-  concentration: StringFilter
-  packaging: StringFilter
   barcode: StringNullableFilter
   price: FloatFilter
   resellerPrice: FloatFilter
@@ -24489,9 +24333,6 @@ input ProductVariantScalarWhereInput {
 input ProductVariantUpdateManyMutationInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -24511,9 +24352,6 @@ input ProductUpdateManyMutationInput {
 input ProductVariantCreateInput {
   id: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -24542,9 +24380,6 @@ input ProductVariantCreateManyInput {
   id: String
   productId: String
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!
@@ -24555,9 +24390,6 @@ input ProductVariantCreateManyInput {
 input ProductVariantUpdateInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
-  size: StringFieldUpdateOperationsInput
-  concentration: StringFieldUpdateOperationsInput
-  packaging: StringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
@@ -24599,9 +24431,6 @@ input UpsertVariantTierPriceInput {
 input LooseProductVariantInput {
   productId: ID
   name: String
-  size: String!
-  concentration: String!
-  packaging: String!
   barcode: String
   price: Float!
   resellerPrice: Float!

@@ -3,6 +3,7 @@ import {
   useRequisitionsCountByStatusQuery,
   useRequisitionsByStoreQuery,
   useRequisitionsCountByStoreQuery,
+  PurchaseRequisitionStatus,
 } from '../generated/graphql';
 import { Alert, Button, Card, CardContent, Stack, Typography, Select, MenuItem, TextField } from '@mui/material';
 import React from 'react';
@@ -12,16 +13,16 @@ import { StoreSelect } from '../shared/IdSelects';
 
 
 export default function Requisitions() {
-  const [status, setStatus] = React.useState('DRAFT');
+  const [status, setStatus] = React.useState<PurchaseRequisitionStatus>(PurchaseRequisitionStatus.Draft);
   const [storeId, setStoreId] = React.useState('');
   const [take, setTake] = React.useState(25);
   const [page, setPage] = React.useState(1);
   const skip = Math.max(0, (page - 1) * take);
   const usingStore = Boolean(storeId && storeId.trim());
-  const qByStatus = useRequisitionsByStatusQuery({ variables: { status, storeId: storeId || null, take, skip }, skip: usingStore, fetchPolicy: 'cache-and-network' as any });
-  const qByStore = useRequisitionsByStoreQuery({ variables: { storeId, status: status || null, take, skip }, skip: !usingStore, fetchPolicy: 'cache-and-network' as any });
-  const cByStatus = useRequisitionsCountByStatusQuery({ variables: { status, storeId: storeId || null }, skip: usingStore, fetchPolicy: 'cache-and-network' as any });
-  const cByStore = useRequisitionsCountByStoreQuery({ variables: { storeId, status: status || null }, skip: !usingStore, fetchPolicy: 'cache-and-network' as any });
+  const qByStatus = useRequisitionsByStatusQuery({ variables: { status, storeId: storeId || undefined, take, skip }, skip: usingStore, fetchPolicy: 'cache-and-network' as any });
+  const qByStore = useRequisitionsByStoreQuery({ variables: { storeId, status, take, skip }, skip: !usingStore, fetchPolicy: 'cache-and-network' as any });
+  const cByStatus = useRequisitionsCountByStatusQuery({ variables: { status, storeId: storeId || undefined }, skip: usingStore, fetchPolicy: 'cache-and-network' as any });
+  const cByStore = useRequisitionsCountByStoreQuery({ variables: { storeId, status }, skip: !usingStore, fetchPolicy: 'cache-and-network' as any });
   const data = usingStore ? qByStore.data : qByStatus.data;
   const loading = usingStore ? qByStore.loading : qByStatus.loading;
   const error = usingStore ? qByStore.error : qByStatus.error;
@@ -48,27 +49,112 @@ export default function Requisitions() {
       <Typography variant="h5">Requisitions</Typography>
       {error && <Alert severity="error" onClick={() => refetch()}> {String(error.message)} </Alert>}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-        <Select size="small" value={status} onChange={(e) => {
-          const v = e.target.value as string; setStatus(v); setPage(1);
-          if (usingStore) { refetchCount({ storeId, status: v || null }); refetch({ storeId, status: v || null, take, skip: 0 }); }
-          else { refetchCount({ status: v, storeId: null }); refetch({ status: v, storeId: null, take, skip: 0 }); }
-        }} displayEmpty sx={{ minWidth: 160 }}>
-          {['DRAFT','SUBMITTED','APPROVED','REJECTED'].map((s) => (<MenuItem key={s} value={s}>{s}</MenuItem>))}
+        <Select
+          size="small"
+          value={status}
+          onChange={(e) => {
+            const v = e.target.value as PurchaseRequisitionStatus;
+            setStatus(v);
+            setPage(1);
+            if (usingStore) {
+              refetchCount({ storeId, status: v });
+              refetch({ storeId, status: v, take, skip: 0 });
+            } else {
+              refetchCount({ status: v, storeId: undefined });
+              refetch({ status: v, storeId: undefined, take, skip: 0 });
+            }
+          }}
+          sx={{ minWidth: 160 }}
+        >
+          {[PurchaseRequisitionStatus.Draft, PurchaseRequisitionStatus.Sent, PurchaseRequisitionStatus.Approved, PurchaseRequisitionStatus.Rejected].map((s) => (
+            <MenuItem key={s} value={s}>{s}</MenuItem>
+          ))}
         </Select>
-        <StoreSelect value={storeId} onChange={(id) => { setStoreId(id); setPage(1); if (id) { refetchCount({ storeId: id, status: status || null }); refetch({ storeId: id, status: status || null, take, skip: 0 }); } else { refetchCount({ status, storeId: null }); refetch({ status, storeId: null, take, skip: 0 }); } }} label="Store" />
-        <Button variant="outlined" onClick={() => { setPage(1); if (usingStore) { refetchCount({ storeId, status: status || null }); refetch({ storeId, status: status || null, take, skip: 0 }); } else { refetchCount({ status, storeId: null }); refetch({ status, storeId: null, take, skip: 0 }); } }}>Refresh</Button>
-        <Button variant="text" onClick={() => {
-          const v = 'DRAFT';
-          setStatus(v);
-          setStoreId('');
-          setPage(1);
-          refetchCount({ status: v, storeId: null });
-          refetch({ status: v, storeId: null, take, skip: 0 });
-        }}>Clear</Button>
-        <TextField label="Page size" type="number" size="small" value={take} onChange={(e) => { const v = Math.max(1, Number(e.target.value) || 25); setTake(v); setPage(1); refetch({ status, storeId: storeId || null, take: v, skip: 0 }); }} sx={{ width: 120 }} />
-        <Button size="small" disabled={!canPrev} onClick={() => { if (!canPrev) return; const p = Math.max(1, page - 1); setPage(p); if (usingStore) refetch({ storeId, status: status || null, take, skip: (p - 1) * take }); else refetch({ status, storeId: null, take, skip: (p - 1) * take }); }}>Prev</Button>
+        <StoreSelect
+          value={storeId}
+          onChange={(id) => {
+            setStoreId(id);
+            setPage(1);
+            if (id) {
+              refetchCount({ storeId: id, status });
+              refetch({ storeId: id, status, take, skip: 0 });
+            } else {
+              refetchCount({ status, storeId: undefined });
+              refetch({ status, storeId: undefined, take, skip: 0 });
+            }
+          }}
+          label="Store"
+        />
+        <Button
+          variant="outlined"
+          onClick={() => {
+            setPage(1);
+            if (usingStore) {
+              refetchCount({ storeId, status });
+              refetch({ storeId, status, take, skip: 0 });
+            } else {
+              refetchCount({ status, storeId: undefined });
+              refetch({ status, storeId: undefined, take, skip: 0 });
+            }
+          }}
+        >
+          Refresh
+        </Button>
+        <Button
+          variant="text"
+          onClick={() => {
+            const v = PurchaseRequisitionStatus.Draft;
+            setStatus(v);
+            setStoreId('');
+            setPage(1);
+            refetchCount({ status: v, storeId: undefined });
+            refetch({ status: v, storeId: undefined, take, skip: 0 });
+          }}
+        >
+          Clear
+        </Button>
+        <TextField
+          label="Page size"
+          type="number"
+          size="small"
+          value={take}
+          onChange={(e) => {
+            const v = Math.max(1, Number(e.target.value) || 25);
+            setTake(v);
+            setPage(1);
+            refetch({ status, storeId: usingStore ? storeId : undefined, take: v, skip: 0 });
+          }}
+          sx={{ width: 120 }}
+        />
+        <Button
+          size="small"
+          disabled={!canPrev}
+          onClick={() => {
+            if (!canPrev) return;
+            const p = Math.max(1, page - 1);
+            setPage(p);
+            const newSkip = (p - 1) * take;
+            if (usingStore) refetch({ storeId, status, take, skip: newSkip });
+            else refetch({ status, storeId: undefined, take, skip: newSkip });
+          }}
+        >
+          Prev
+        </Button>
         <Typography variant="body2">Page {page}</Typography>
-        <Button size="small" disabled={!canNext} onClick={() => { if (!canNext) return; const p = page + 1; setPage(p); if (usingStore) refetch({ storeId, status: status || null, take, skip: (p - 1) * take }); else refetch({ status, storeId: null, take, skip: (p - 1) * take }); }}>Next</Button>
+        <Button
+          size="small"
+          disabled={!canNext}
+          onClick={() => {
+            if (!canNext) return;
+            const p = page + 1;
+            setPage(p);
+            const newSkip = (p - 1) * take;
+            if (usingStore) refetch({ storeId, status, take, skip: newSkip });
+            else refetch({ status, storeId: undefined, take, skip: newSkip });
+          }}
+        >
+          Next
+        </Button>
         <Typography variant="body2" sx={{ ml: 1, minWidth: 110, textAlign: 'right' }}>{total ? `${rangeStart}–${rangeEnd} of ${total}` : '0 of 0'}</Typography>
       </Stack>
       <Card>

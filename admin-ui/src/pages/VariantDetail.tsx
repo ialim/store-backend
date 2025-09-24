@@ -1,4 +1,11 @@
-import { useAssignFacetToVariantMutation, useListFacetsQuery, useRemoveFacetFromVariantMutation, useVariantFacetsQuery, useVariantQuery, useVariantsQuery } from '../generated/graphql';
+import {
+  useAssignFacetToVariantMutation,
+  useListFacetsQuery,
+  useRemoveFacetFromVariantMutation,
+  useVariantFacetsQuery,
+  useVariantQuery,
+  useVariantsQuery,
+} from '../generated/graphql';
 import {
   Alert,
   Box,
@@ -21,14 +28,16 @@ import { notify } from '../shared/notify';
 import { useParams } from 'react-router-dom';
 
 export default function VariantDetail() {
-  const { id } = useParams();
+  const params = useParams<{ id?: string }>();
+  const id = params.id ?? '';
+  const hasId = Boolean(params.id);
   const navigate = useNavigate();
   const auth = useAuth();
   const [openCart, setOpenCart] = React.useState(false);
   const [qty, setQty] = React.useState<number>(1);
-  const { data, loading, error } = useVariantQuery({ variables: { id: id as string }, skip: !id, fetchPolicy: 'cache-and-network' as any });
+  const { data, loading, error } = useVariantQuery({ variables: { id }, skip: !hasId, fetchPolicy: 'cache-and-network' as any });
   const v = data?.findUniqueProductVariant;
-  const { data: facetsData, refetch: refetchFacets } = useVariantFacetsQuery({ variables: { productVariantId: id as string }, skip: !id, fetchPolicy: 'cache-first' as any });
+  const { data: facetsData, refetch: refetchFacets } = useVariantFacetsQuery({ variables: { productVariantId: id }, skip: !hasId, fetchPolicy: 'cache-first' as any });
   const facets: Array<{
     facet: { id: string; name: string; code: string };
     value: string;
@@ -47,13 +56,10 @@ export default function VariantDetail() {
 
   if (loading && !v) return null;
   if (error) return <Alert severity="error">{error.message}</Alert>;
+  if (!hasId) return <Alert severity="error">Missing variant id.</Alert>;
   if (!v) return <Alert severity="info">Variant not found.</Alert>;
 
-  const title =
-    v.name ||
-    `${v.size || ''} ${v.concentration || ''} ${v.packaging || ''}`.trim() ||
-    v.barcode ||
-    v.id;
+  const title = v.name || v.product?.name || v.barcode || v.id;
   const brand = facets.find(
     (f) => f.facet.code.toLowerCase() === 'brand',
   )?.value;
@@ -87,13 +93,6 @@ export default function VariantDetail() {
       <Box>
         <Typography color="text.secondary">
           Barcode: {v.barcode || '—'}
-        </Typography>
-        <Typography color="text.secondary">Size: {v.size || '—'}</Typography>
-        <Typography color="text.secondary">
-          Concentration: {v.concentration || '—'}
-        </Typography>
-        <Typography color="text.secondary">
-          Packaging: {v.packaging || '—'}
         </Typography>
         <Typography color="text.secondary">
           Price: {v.price != null ? v.price.toLocaleString() : '—'}
@@ -198,7 +197,7 @@ export default function VariantDetail() {
                 setSelValue('');
                 await refetchFacets();
               } catch (e: any) {
-                notify(e?.message || 'Failed to assign facet', 'error');
+                  notify(e?.message || 'Failed to assign facet', 'error');
               }
             }}
           >
@@ -206,7 +205,7 @@ export default function VariantDetail() {
           </Button>
         </Stack>
       </Box>
-      <RelatedVariants currentId={id as string} brand={brand} gender={gender} />
+      <RelatedVariants currentId={id} brand={brand} gender={gender} />
 
       <Drawer anchor="right" open={openCart} onClose={() => setOpenCart(false)}>
         <Box sx={{ width: 320, p: 2 }} role="presentation">
@@ -286,11 +285,8 @@ function RelatedVariants({
   const { data, loading, error } = useVariantsQuery({ variables: { take: 8, where }, skip: !where, fetchPolicy: 'cache-and-network' as any });
   const list: Array<{
     id: string;
-    name?: string;
-    size?: string;
-    concentration?: string;
-    packaging?: string;
-    product?: { name?: string };
+    name?: string | null;
+    product?: { name?: string | null } | null;
   }> = data?.listProductVariants ?? [];
   if (!where) return null;
   return (
@@ -302,13 +298,7 @@ function RelatedVariants({
         <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
           {list.length ? (
             list.map((rv) => {
-              const label =
-                rv.name ||
-                [rv.size, rv.concentration, rv.packaging]
-                  .filter(Boolean)
-                  .join(' ') ||
-                rv.product?.name ||
-                rv.id;
+              const label = rv.name || rv.product?.name || rv.id;
               return (
                 <Chip
                   key={rv.id}

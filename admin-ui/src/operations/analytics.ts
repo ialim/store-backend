@@ -14,13 +14,12 @@ export const MonthlySalesSummaryByStore = gql`
 
 export const TopSellingVariantsDetailed = gql`
   query TopSellingVariantsDetailed($month: String, $limit: Int) {
-    topSellingVariantsDetailed(month: $month, limit: $limit) { productVariantId productName size concentration packaging quantity }
+    topSellingVariantsDetailed(month: $month, limit: $limit) { productVariantId productName quantity }
   }
 `;
 
 export const TopSellingVariantsByStore = gql`
   query TopSellingVariantsByStore($storeId: String!, $month: String, $limit: Int) {
-    topSellingVariantsByStore(storeId: $storeId, month: $month, limit: $limit) { productVariantId productName size concentration packaging quantity }
+    topSellingVariantsByStore(storeId: $storeId, month: $month, limit: $limit) { productVariantId productName quantity }
   }
 `;
-

@@ -1,4 +1,10 @@
-import { useAdminUpdateCustomerProfileMutation, useConsumerReceiptsByCustomerQuery, useConsumerSalesByCustomerQuery, useCustomerQuery, useStoresForCustomerQuery } from '../generated/graphql';
+import {
+  useAdminUpdateCustomerProfileMutation,
+  useConsumerReceiptsByCustomerQuery,
+  useConsumerSalesByCustomerQuery,
+  useCustomerQuery,
+  useStoresForCustomersQuery,
+} from '../generated/graphql';
 import { Alert, Card, CardContent, Grid, Skeleton, Stack, Typography, TextField, MenuItem, Select, Button } from '@mui/material';
 import React from 'react';
 import { formatMoney } from '../shared/format';
@@ -6,12 +12,18 @@ import { useParams } from 'react-router-dom';
 import TableList from '../shared/TableList';
 
 export default function CustomerDetail() {
-  const { id } = useParams();
-  const { data, loading, error } = useCustomerQuery({ variables: { id: id as string }, fetchPolicy: 'cache-and-network' as any, errorPolicy: 'all' as any });
+  const params = useParams<{ id?: string }>();
+  const id = params.id ?? '';
+  const { data, loading, error } = useCustomerQuery({
+    variables: { id },
+    skip: !params.id,
+    fetchPolicy: 'cache-and-network' as any,
+    errorPolicy: 'all' as any,
+  });
   const profile = data?.findUniqueUser;
   const { data: sData, loading: sLoading, error: sError } = useConsumerSalesByCustomerQuery({ variables: { customerId: id as string, take: 20, skip: 0, order: 'desc' }, skip: !id, fetchPolicy: 'cache-and-network' as any });
   const { data: rData, loading: rLoading, error: rError } = useConsumerReceiptsByCustomerQuery({ variables: { customerId: id as string, take: 20, skip: 0, order: 'desc' }, skip: !id, fetchPolicy: 'cache-and-network' as any });
-  const { data: storesData } = useStoresForCustomerQuery({ fetchPolicy: 'cache-first' as any, errorPolicy: 'all' as any });
+  const { data: storesData } = useStoresForCustomersQuery({ fetchPolicy: 'cache-first' as any, errorPolicy: 'all' as any });
   const stores = storesData?.listStores ?? [];
   const sales = sData?.consumerSalesByCustomer ?? (profile?.customerProfile?.sales ?? []);
   const receipts = rData?.consumerReceiptsByCustomer ?? React.useMemo(
@@ -39,6 +51,7 @@ export default function CustomerDetail() {
     }
   }, [profile]);
 
+  if (!params.id) return <Alert severity="error">Missing customer id.</Alert>;
   if (loading && !profile) return <Skeleton variant="rectangular" height={160} />;
   if (error) return <Alert severity="error">{error.message}</Alert>;
   if (!profile) return <Alert severity="info">Customer not found.</Alert>;
@@ -66,8 +79,20 @@ export default function CustomerDetail() {
               </Select>
               <Typography variant="caption" color="text.secondary"><b>User ID:</b> {profile.id}</Typography>
               <Button variant="contained" size="small" onClick={async () => {
+                if (!id) return;
                 try {
-                  await updateProfile({ variables: { userId: id, input: { fullName, email, phone, preferredStoreId: storeId || null, profileStatus: status || null } } });
+                  await updateProfile({
+                    variables: {
+                      userId: id,
+                      input: {
+                        fullName: fullName || profile.customerProfile?.fullName || profile.email || 'Customer',
+                        email: email || profile.customerProfile?.email || profile.email || '',
+                        phone: phone || profile.customerProfile?.phone || null,
+                        preferredStoreId: storeId || null,
+                        profileStatus: status || null,
+                      },
+                    },
+                  });
                   window.location.reload();
                 } catch {}
               }}>Save</Button>

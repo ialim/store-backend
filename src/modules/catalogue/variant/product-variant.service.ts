@@ -63,9 +63,7 @@ export class ProductVariantService extends BaseCrudService<
       const containsFilter = { contains: search, mode: 'insensitive' as const };
       where.OR = [
         { product: { name: containsFilter } },
-        { size: containsFilter },
-        { concentration: containsFilter },
-        { packaging: containsFilter },
+        { name: containsFilter },
         { barcode: containsFilter },
       ];
     }
@@ -196,9 +194,6 @@ export class ProductVariantService extends BaseCrudService<
       data: {
         productId: input.productId ?? null,
         name: input.name ?? null,
-        size: input.size,
-        concentration: input.concentration,
-        packaging: input.packaging,
         barcode: input.barcode ?? null,
         price: input.price,
         resellerPrice: input.resellerPrice,

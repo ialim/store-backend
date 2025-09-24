@@ -1,4 +1,4 @@
-import { usePurchaseOrderQuery, useReceiveStockBatchMutation } from '../generated/graphql';
+import { usePurchaseOrderQuery, useReceiveStockMutation } from '../generated/graphql';
 import {
   Alert,
   Box,
@@ -25,7 +25,7 @@ import { formatMoney } from '../shared/format';
 export default function PurchaseOrderDetail() {
   const { id } = useParams();
   const { data, loading, error, refetch } = usePurchaseOrderQuery({ variables: { id: id as string }, fetchPolicy: 'network-only' as any });
-  const [receive, { loading: receiving }] = useReceiveStockBatchMutation();
+  const [receive, { loading: receiving }] = useReceiveStockMutation();
 
   const [storeId, setStoreId] = React.useState('');
   const [receivedById, setReceivedById] = React.useState('');
@@ -188,14 +188,8 @@ export default function PurchaseOrderDetail() {
                   </TableCell>
                   <TableCell>
                     {it.productVariant?.name ||
-                      [
-                        it.productVariant?.size,
-                        it.productVariant?.concentration,
-                        it.productVariant?.packaging,
-                      ]
-                        .filter(Boolean)
-                        .join(' ') ||
                       it.productVariant?.product?.name ||
+                      it.productVariant?.barcode ||
                       it.productVariantId}
                   </TableCell>
                   <TableCell>{rows[idx]?.ordered ?? it.quantity}</TableCell>

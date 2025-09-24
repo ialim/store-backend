@@ -1,4 +1,5 @@
-import { useAdminProcessInvoiceUrlMutation, useCreateInvoiceImportMutation, useStoresQuery } from '../generated/graphql';
+import { gql, useMutation } from '@apollo/client';
+import { useCreateInvoiceImportMutation, useStoresQuery } from '../generated/graphql';
 import { Alert, Box, Button, Card, CardContent, Stack, TextField, Typography, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -14,6 +15,29 @@ const API_BASE = (import.meta as any).env.VITE_API_BASE || (() => {
   }
 })();
 
+const AdminProcessInvoiceUrlDocument = gql`
+  mutation AdminProcessInvoiceUrl($input: ProcessInvoiceUrlInput!) {
+    adminProcessInvoiceUrl(input: $input) {
+      status
+      message
+      supplierId
+      supplierName
+      invoiceNumber
+      purchaseOrderId
+      totalAmount
+      lines {
+        description
+        qty
+        unitPrice
+        discountPct
+        discountedUnitPrice
+        lineTotal
+        variantId
+      }
+    }
+  }
+`;
+
 export default function InvoiceIngest() {
   const navigate = useNavigate();
   const [url, setUrl] = React.useState('');
@@ -25,7 +49,7 @@ export default function InvoiceIngest() {
   const [confirmedById, setConfirmedById] = React.useState('');
   const { data: storesData } = useStoresQuery({ variables: { take: 200 }, fetchPolicy: 'cache-first' as any });
   const stores = storesData?.listStores ?? [];
-  const [process, { data, loading, error }] = useAdminProcessInvoiceUrlMutation();
+  const [process, { data, loading, error }] = useMutation(AdminProcessInvoiceUrlDocument);
   const [createImport] = useCreateInvoiceImportMutation();
   const res = data?.adminProcessInvoiceUrl;
 

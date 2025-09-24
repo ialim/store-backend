@@ -47,7 +47,14 @@ export default function DevDbTools() {
             try {
               const confirmMsg = dryRunImports ? 'Preview delete invoice imports?' : 'Delete invoice imports? This cannot be undone.';
               if (!window.confirm(confirmMsg)) return;
-              const res = await purgeImports({ variables: { beforeDate: beforeDate || null, dryRun: dryRunImports || null } });
+              const res = await purgeImports({
+                variables: {
+                  filter: {
+                    beforeDate: beforeDate || undefined,
+                    dryRun: dryRunImports || undefined,
+                  },
+                },
+              });
               const n = res.data?.devPurgeInvoiceImports ?? 0;
               notify(dryRunImports ? `Would delete ${n} invoice import(s).` : `Deleted ${n} invoice import(s).`, dryRunImports ? 'info' : 'success');
               await refetch();
@@ -68,7 +75,15 @@ export default function DevDbTools() {
             try {
               const confirmMsg = dryRunPOs ? 'Preview delete purchase orders?' : 'Delete purchase orders (and items)? This cannot be undone.';
               if (!window.confirm(confirmMsg)) return;
-              const res = await purgePos({ variables: { beforeDate: beforeDate || null, status: status || null, dryRun: dryRunPOs || null } });
+              const res = await purgePos({
+                variables: {
+                  filter: {
+                    beforeDate: beforeDate || undefined,
+                    status: status || undefined,
+                    dryRun: dryRunPOs || undefined,
+                  },
+                },
+              });
               const n = res.data?.devPurgePurchaseOrders ?? 0;
               notify(dryRunPOs ? `Would delete ${n} purchase order(s).` : `Deleted ${n} purchase order(s).`, dryRunPOs ? 'info' : 'success');
               await refetch();
@@ -88,7 +103,14 @@ export default function DevDbTools() {
             try {
               const confirmMsg = dryRunProducts ? 'Preview delete products?' : 'Delete products? Variants will be left orphaned; purge them separately.';
               if (!window.confirm(confirmMsg)) return;
-              const res = await purgeProducts({ variables: { beforeDate: beforeProducts || null, dryRun: dryRunProducts || null } });
+              const res = await purgeProducts({
+                variables: {
+                  filter: {
+                    beforeDate: beforeProducts || undefined,
+                    dryRun: dryRunProducts || undefined,
+                  },
+                },
+              });
               const n = res.data?.devPurgeProducts ?? 0;
               notify(dryRunProducts ? `Would delete ${n} product(s).` : `Deleted ${n} product(s).`, dryRunProducts ? 'info' : 'success');
               await refetch();
@@ -108,7 +130,13 @@ export default function DevDbTools() {
             try {
               const confirmMsg = dryRunOrphans ? 'Preview delete orphan variants?' : 'Delete orphan variants (productId = null)?';
               if (!window.confirm(confirmMsg)) return;
-              const res = await purgeOrphans({ variables: { dryRun: dryRunOrphans || null } });
+              const res = await purgeOrphans({
+                variables: {
+                  filter: {
+                    dryRun: dryRunOrphans || undefined,
+                  },
+                },
+              });
               const n = res.data?.devPurgeOrphanVariants ?? 0;
               notify(dryRunOrphans ? `Would delete ${n} orphan variant(s).` : `Deleted ${n} orphan variant(s).`, dryRunOrphans ? 'info' : 'success');
               await refetch();

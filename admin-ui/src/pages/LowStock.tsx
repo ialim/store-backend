@@ -1,4 +1,4 @@
-import { useCreateLowStockRequisitionAndIssuePreferredMutation, useCreateRequisitionFromLowStockMutation, useLowStockCandidatesQuery, useRunLowStockScanNowMutation } from '../generated/graphql';
+import { useCreateAndIssuePreferredMutation, useCreateLowStockReqMutation, useLowStockQuery, useRunScanMutation } from '../generated/graphql';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Button, CircularProgress, Stack, TextField, Typography, FormControlLabel, Switch } from '@mui/material';
 import { useEffect, useState } from 'react';
@@ -7,11 +7,11 @@ import { UserSelect } from '../shared/IdSelects';
 import { notify } from '../shared/notify';
 
 export default function LowStock() {
-  const [storeId, setStoreId] = useState<string | undefined>(undefined);
-  const { data, loading, error, refetch } = useLowStockCandidatesQuery({ variables: { storeId, limit: 100 } });
-  const [runScan, { loading: scanning }] = useRunLowStockScanNowMutation();
-  const [createReq, { loading: creating }] = useCreateRequisitionFromLowStockMutation();
-  const [createAndIssue, { loading: creatingIssuing }] = useCreateLowStockRequisitionAndIssuePreferredMutation();
+  const [storeId, setStoreId] = useState('');
+  const { data, loading, error, refetch } = useLowStockQuery({ variables: { storeId: storeId || undefined, limit: 100 } });
+  const [runScan, { loading: scanning }] = useRunScanMutation();
+  const [createReq, { loading: creating }] = useCreateLowStockReqMutation();
+  const [createAndIssue, { loading: creatingIssuing }] = useCreateAndIssuePreferredMutation();
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -49,7 +49,7 @@ export default function LowStock() {
         <Alert severity="error">{error?.message || err}</Alert>
       )}
       <Stack direction="row" spacing={2} alignItems="center">
-        <TextField label="Store ID (optional)" value={storeId ?? ''} onChange={e => setStoreId(e.target.value || undefined)} size="small" />
+        <TextField label="Store ID (optional)" value={storeId} onChange={e => setStoreId(e.target.value)} size="small" />
         <UserSelect value={requestedById} onChange={setRequestedById} label="Requested By" />
         <Button variant="contained" onClick={() => refetch()} disabled={loading} startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}>
           {loading ? 'Refreshing…' : 'Refresh'}
@@ -58,6 +58,7 @@ export default function LowStock() {
           {scanning ? 'Scanning…' : 'Run Scan Now'}
         </Button>
         <Button variant="contained" disabled={!storeId || !requestedById || creating} onClick={async () => {
+          if (!storeId || !requestedById) return;
           try {
             const { data } = await createReq({ variables: { storeId, requestedById } });
             const reqId = data?.createRequisitionFromLowStock as string | null;
@@ -68,6 +69,7 @@ export default function LowStock() {
           }
         }}>{creating ? 'Creating…' : 'Create Requisition'}</Button>
         <Button variant="contained" color="secondary" disabled={!storeId || !requestedById || creatingIssuing} onClick={async () => {
+          if (!storeId || !requestedById) return;
           try {
             const { data } = await createAndIssue({ variables: { storeId, requestedById } });
             const reqId = data?.createLowStockRequisitionAndIssuePreferred as string | null;

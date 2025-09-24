@@ -20,7 +20,8 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 function ensureDev() {
-  if ((process.env.ENV || process.env.NODE_ENV) !== 'dev') {
+  const env = (process.env.ENV ?? process.env.NODE_ENV ?? '').toLowerCase();
+  if (!['dev', 'development'].includes(env)) {
     throw new Error('Dev tools are only available in development');
   }
 }
@@ -57,9 +58,6 @@ type SnapshotInvoiceImportRow = Record<string, unknown> & { id?: unknown };
 const toOptionalString = (value: unknown): string | null =>
   value == null || typeof value === 'string' ? (value as string | null) : null;
 
-const toRequiredString = (value: unknown, fallback = ''): string =>
-  typeof value === 'string' ? value : fallback;
-
 const toNumeric = (value: unknown, fallback = 0): number => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   const coerced = Number(value);
@@ -93,6 +91,16 @@ export class DevToolsResolver {
     const where: Prisma.InvoiceImportWhereInput = {};
     if (filter?.beforeDate)
       where.createdAt = { lt: new Date(filter.beforeDate) };
+    if (filter?.status) {
+      const normalizedStatus = filter.status.toUpperCase();
+      if (normalizedStatus in PrismaInvoiceImportStatus) {
+        where.status =
+          PrismaInvoiceImportStatus[
+            normalizedStatus as keyof typeof PrismaInvoiceImportStatus
+          ];
+      }
+    }
+    if (filter?.storeId) where.storeId = filter.storeId;
     if (filter?.dryRun) {
       return (await this.prisma.invoiceImport.count({ where })) || 0;
     }
@@ -154,6 +162,16 @@ export class DevToolsResolver {
         const where: Prisma.InvoiceImportWhereInput = {};
         if (filter?.beforeDate)
           where.createdAt = { lt: new Date(filter.beforeDate) };
+        if (filter?.status) {
+          const normalizedStatus = filter.status.toUpperCase();
+          if (normalizedStatus in PrismaInvoiceImportStatus) {
+            where.status =
+              PrismaInvoiceImportStatus[
+                normalizedStatus as keyof typeof PrismaInvoiceImportStatus
+              ];
+          }
+        }
+        if (filter?.storeId) where.storeId = filter.storeId;
         out.invoiceImport = await this.prisma.invoiceImport.findMany({
           where,
           take: 1000,
@@ -237,9 +255,6 @@ export class DevToolsResolver {
         if (!id) continue;
         const data: Prisma.ProductVariantUncheckedCreateInput = {
           name: toOptionalString(row.name),
-          size: toRequiredString(row.size),
-          concentration: toRequiredString(row.concentration),
-          packaging: toRequiredString(row.packaging),
           barcode: toOptionalString(row.barcode),
           price: toNumeric(row.price),
           resellerPrice: toNumeric(row.resellerPrice),
@@ -290,9 +305,6 @@ export class DevToolsResolver {
     const pv1 = await this.prisma.productVariant.create({
       data: {
         name: 'Demo 50ml EDP',
-        size: '50ml',
-        concentration: 'EDP',
-        packaging: 'Boxed',
         price: 10000,
         resellerPrice: 9000,
       },
@@ -300,9 +312,6 @@ export class DevToolsResolver {
     const pv2 = await this.prisma.productVariant.create({
       data: {
         name: 'Demo 100ml EDP',
-        size: '100ml',
-        concentration: 'EDP',
-        packaging: 'Boxed',
         price: 18000,
         resellerPrice: 16000,
       },

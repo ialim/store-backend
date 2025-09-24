@@ -1,4 +1,10 @@
-import { useFulfillPurchaseReturnMutation, usePurchaseReturnsBySupplierLazyQuery, useSalesReturnsByStoreLazyQuery, useUpdateSalesReturnStatusMutation } from '../generated/graphql';
+import {
+  useFulfillPurchaseReturnMutation,
+  usePurchaseReturnsBySupplierLazyQuery,
+  useSalesReturnsByStoreLazyQuery,
+  useUpdateSalesReturnStatusMutation,
+  ReturnStatus,
+} from '../generated/graphql';
 import { Alert, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography, Button } from '@mui/material';
 import { ConfirmButton } from '../shared/Confirm';
 import TableList from '../shared/TableList';
@@ -65,8 +71,29 @@ export default function Returns() {
                       { key: 'sale', label: 'Sale', render: (r: any) => r.consumerSaleId || r.resellerSaleId || '—' },
                       { key: 'actions', label: 'Actions', render: (r: any) => (
                         <Stack direction="row" spacing={1}>
-                          <ConfirmButton variant="outlined" disabled={updatingSales} onConfirm={async () => { await updateSalesReturn({ variables: { input: { id: r.id, status: 'ACCEPTED' } } }); await loadSales({ variables: { storeId } }); notify('Sales return accepted','success'); }}>Accept</ConfirmButton>
-                          <ConfirmButton color="error" variant="outlined" disabled={updatingSales} onConfirm={async () => { await updateSalesReturn({ variables: { input: { id: r.id, status: 'REJECTED' } } }); await loadSales({ variables: { storeId } }); notify('Sales return rejected','info'); }}>Reject</ConfirmButton>
+                          <ConfirmButton
+                            variant="outlined"
+                            disabled={updatingSales}
+                            onConfirm={async () => {
+                              await updateSalesReturn({ variables: { input: { id: r.id, status: ReturnStatus.Accepted } } });
+                              await loadSales({ variables: { storeId } });
+                              notify('Sales return accepted', 'success');
+                            }}
+                          >
+                            Accept
+                          </ConfirmButton>
+                          <ConfirmButton
+                            color="error"
+                            variant="outlined"
+                            disabled={updatingSales}
+                            onConfirm={async () => {
+                              await updateSalesReturn({ variables: { input: { id: r.id, status: ReturnStatus.Rejected } } });
+                              await loadSales({ variables: { storeId } });
+                              notify('Sales return rejected', 'info');
+                            }}
+                          >
+                            Reject
+                          </ConfirmButton>
                         </Stack>
                       ) },
                     ] as any}

@@ -288,9 +288,6 @@ export class InvoiceImportResolver {
         variant = await this.variants.createLoose({
           productId: null,
           name: desc,
-          size: 'STD',
-          concentration: 'STD',
-          packaging: 'STD',
           barcode: ln.barcode ?? undefined,
           price: ln.unitPrice || 0,
           resellerPrice: ln.discountedUnitPrice || ln.unitPrice || 0,

@@ -211,9 +211,7 @@ async function main() {
     update: {},
     create: {
       productId: product.id,
-      size: '100ml',
-      concentration: 'EDP',
-      packaging: 'Boxed',
+      name: '24 Gold Elixir EDP 100ml',
       barcode: 'GOLD-24-EDP-100ML',
       price: 20000,
       resellerPrice: 18000,

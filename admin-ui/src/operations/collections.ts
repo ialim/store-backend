@@ -22,7 +22,7 @@ export const CollectionMembersCount = gql`
 
 export const CollectionVariants = gql`
   query CollectionVariants($id: String!, $take: Int, $skip: Int) {
-    collectionVariants(id: $id, take: $take, skip: $skip) { id name barcode size concentration packaging product { id name } }
+    collectionVariants(id: $id, take: $take, skip: $skip) { id name barcode product { id name } }
   }
 `;
 
@@ -31,4 +31,3 @@ export const CollectionProducts = gql`
     collectionProducts(id: $id, take: $take, skip: $skip) { id name barcode }
   }
 `;
-

@@ -28,9 +28,6 @@ export default function Variants() {
     if (sq.length >= 2) {
       w.OR = [
         { name: { contains: sq, mode: 'insensitive' } },
-        { size: { contains: sq, mode: 'insensitive' } },
-        { concentration: { contains: sq, mode: 'insensitive' } },
-        { packaging: { contains: sq, mode: 'insensitive' } },
         { barcode: { contains: sq, mode: 'insensitive' } },
         { product: { is: { name: { contains: sq, mode: 'insensitive' } } } },
       ];
@@ -66,6 +63,17 @@ export default function Variants() {
   const canNext = skip + list.length < total;
   const rangeStart = total > 0 ? Math.min(total, skip + 1) : 0;
   const rangeEnd = total > 0 ? Math.min(total, skip + list.length) : 0;
+
+  React.useEffect(() => {
+    if (total === 0) {
+      if (page !== 1) setPage(1);
+      return;
+    }
+    const maxPage = Math.max(1, Math.ceil(total / take));
+    if (page > maxPage) {
+      setPage(maxPage);
+    }
+  }, [total, take, page]);
   // Debounced search on text input; rely on where dependency
   React.useEffect(() => {
     const h = setTimeout(async () => {
@@ -170,7 +178,7 @@ export default function Variants() {
       )}
       <TableList
         columns={[
-          { key: 'name', label: 'Name', render: (v: any) => v.name || `${v.size} ${v.concentration} ${v.packaging}`.trim(), sort: true, filter: true, accessor: (v: any) => (v.name || `${v.size || ''} ${v.concentration || ''} ${v.packaging || ''}`).trim() },
+          { key: 'name', label: 'Name', render: (v: any) => v.name || v.product?.name || v.barcode || '—', sort: true, filter: true, accessor: (v: any) => v.name || v.product?.name || v.barcode || '' },
           { key: 'product', label: 'Product', render: (v: any) => v.product?.name || '—', sort: true, accessor: (v: any) => v.product?.name || '', filter: true },
           { key: 'tags', label: 'Brand/Gender', render: (v: any) => (<BrandGenderChips variantId={v.id} />) },
           { key: 'barcode', label: 'Barcode', render: (v: any) => v.barcode || '—', sort: true, filter: true },

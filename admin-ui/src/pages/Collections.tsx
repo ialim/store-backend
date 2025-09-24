@@ -65,10 +65,10 @@ export default function Collections() {
       skip += pageSize;
     }
     const rows = previewTarget === 'VARIANT'
-      ? all.map((v) => [v.id, v.name || '', v.product?.name || '', v.barcode || '', v.size || '', v.concentration || '', v.packaging || ''])
+      ? all.map((v) => [v.id, v.name || '', v.product?.name || '', v.barcode || ''])
       : all.map((p) => [p.id, p.name || '', p.barcode || '']);
     const header = previewTarget === 'VARIANT'
-      ? ['id','variantName','productName','barcode','size','concentration','packaging']
+      ? ['id','variantName','productName','barcode']
       : ['id','name','barcode'];
     exportCsv(header, rows, `collection-${previewId}-${previewTarget.toLowerCase()}.csv`);
   };
@@ -141,9 +141,6 @@ export default function Collections() {
                 { key: 'name', label: 'Name', render: (v: any) => v.name || v.product?.name || '—', sort: true, accessor: (v: any) => v.name || v.product?.name || '' },
                 { key: 'barcode', label: 'Barcode', filter: true, sort: true },
                 { key: 'product', label: 'Product', render: (v: any) => v.product?.name || '—', sort: true, accessor: (v: any) => v.product?.name || '' },
-                { key: 'size', label: 'Size', filter: true, sort: true },
-                { key: 'concentration', label: 'Concentration', filter: true, sort: true },
-                { key: 'packaging', label: 'Packaging', filter: true, sort: true },
               ] as any}
               rows={variants}
               paginated={false}

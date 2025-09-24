@@ -7,3 +7,14 @@ export const SupplierStatementData = gql`
   }
 `;
 
+export const SupplierAgingData = gql`
+  query SupplierAgingData($supplierId: String!) {
+    purchaseOrdersBySupplier(supplierId: $supplierId) {
+      id
+      totalAmount
+      createdAt
+      dueDate
+      payments { id amount }
+    }
+  }
+`;

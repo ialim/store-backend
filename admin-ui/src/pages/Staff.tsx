@@ -1,4 +1,9 @@
-import { useAssignBillerMutation, useAssignStoreManagerMutation, useCreateStaffMutation } from '../generated/graphql';
+import {
+  useAssignBillerMutation,
+  useAssignStoreManagerMutation,
+  useCreateStaffMutation,
+  RoleName,
+} from '../generated/graphql';
 import { Alert, Card, CardContent, Grid, MenuItem, Stack, TextField, Typography, Button } from '@mui/material';
 import { UserSelect, StoreSelect } from '../shared/IdSelects';
 import React from 'react';
@@ -7,7 +12,7 @@ import React from 'react';
 export default function Staff() {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
-  const [role, setRole] = React.useState<'ADMIN'|'BILLER'|'MANAGER'>('MANAGER');
+  const [role, setRole] = React.useState<RoleName>(RoleName.Manager);
   const [createStaff, { loading: creating, error: createErr }] = useCreateStaffMutation();
 
   const [userId, setUserId] = React.useState('');
@@ -44,8 +49,16 @@ export default function Staff() {
               <Stack spacing={1}>
                 <TextField label="Email" size="small" value={email} onChange={(e) => setEmail(e.target.value)} />
                 <TextField label="Password" type="password" size="small" value={password} onChange={(e) => setPassword(e.target.value)} />
-                <TextField label="Role" size="small" select value={role} onChange={(e) => setRole(e.target.value as any)}>
-                  {['ADMIN','BILLER','MANAGER'].map((r) => (<MenuItem key={r} value={r}>{r}</MenuItem>))}
+                <TextField
+                  label="Role"
+                  size="small"
+                  select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as RoleName)}
+                >
+                  {[RoleName.Admin, RoleName.Biller, RoleName.Manager].map((r) => (
+                    <MenuItem key={r} value={r}>{r}</MenuItem>
+                  ))}
                 </TextField>
                 <Button type="submit" variant="contained" disabled={creating || !email || !password}>Create</Button>
               </Stack>

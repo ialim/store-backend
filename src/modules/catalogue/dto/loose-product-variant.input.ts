@@ -8,15 +8,6 @@ export class LooseProductVariantInput {
   @Field({ nullable: true })
   name?: string;
 
-  @Field()
-  size!: string;
-
-  @Field()
-  concentration!: string;
-
-  @Field()
-  packaging!: string;
-
   @Field({ nullable: true })
   barcode?: string;
 

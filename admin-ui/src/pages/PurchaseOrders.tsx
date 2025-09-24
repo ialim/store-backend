@@ -1,5 +1,15 @@
 import React from 'react';
-import { usePurchaseOrdersQuery, usePurchaseOrdersByStatusLazyQuery, usePurchaseOrdersByPhaseLazyQuery, usePurchaseOrdersCountQuery, usePurchaseOrdersSearchLazyQuery, usePurchaseOrdersSearchCountLazyQuery, useUpdatePoStatusMutation } from '../generated/graphql';
+import {
+  usePurchaseOrdersQuery,
+  usePurchaseOrdersByStatusLazyQuery,
+  usePurchaseOrdersByPhaseLazyQuery,
+  usePurchaseOrdersCountQuery,
+  usePurchaseOrdersSearchLazyQuery,
+  usePurchaseOrdersSearchCountLazyQuery,
+  useUpdatePoStatusMutation,
+  PurchaseOrderStatus,
+  PurchasePhase,
+} from '../generated/graphql';
 import { Alert, Button, Chip, FormControl, InputLabel, MenuItem, Select, Skeleton, Stack, TextField, Typography } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import TableList from '../shared/TableList';
@@ -9,14 +19,14 @@ export default function PurchaseOrders() {
   const [take, setTake] = React.useState(25);
   const [page, setPage] = React.useState(1);
   const skip = Math.max(0, (page - 1) * take);
-  const { data, loading, error, refetch } = usePurchaseOrdersQuery({ variables: { take, skip }, fetchPolicy: 'cache-and-network' as any });
+  const { data, loading, error, refetch: refetchBase } = usePurchaseOrdersQuery({ variables: { take, skip }, fetchPolicy: 'cache-and-network' as any });
   const [updateStatus] = useUpdatePoStatusMutation();
-  const [status, setStatus] = React.useState<string>('');
-  const [phase, setPhase] = React.useState<string>('');
+  const [status, setStatus] = React.useState<PurchaseOrderStatus | ''>('');
+  const [phase, setPhase] = React.useState<PurchasePhase | ''>('');
   const [query, setQuery] = React.useState<string>('');
   const [loadByStatus, byStatus] = usePurchaseOrdersByStatusLazyQuery();
   const [loadByPhase, byPhase] = usePurchaseOrdersByPhaseLazyQuery();
-  const { data: countData, refetch: refetchCount } = usePurchaseOrdersCountQuery({ variables: { status: status || null, phase: phase || null }, fetchPolicy: 'cache-and-network' as any });
+  const { data: countData, refetch: refetchCount } = usePurchaseOrdersCountQuery({ variables: { status: status || undefined, phase: phase || undefined }, fetchPolicy: 'cache-and-network' as any });
   const [loadSearch, bySearch] = usePurchaseOrdersSearchLazyQuery();
   const [loadSearchCount, bySearchCount] = usePurchaseOrdersSearchCountLazyQuery();
   const [mode, setMode] = React.useState<'all'|'status'|'phase'|'search'>('all');
@@ -61,8 +71,8 @@ export default function PurchaseOrders() {
         } else if (mode === 'search') {
           setMode('all');
           setPage(1);
-          await refetch({ take, skip: 0 });
-          await refetchCount({ status: null, phase: null });
+          await refetchBase({ take, skip: 0 });
+          await refetchCount({ status: undefined, phase: undefined });
         }
       }, 300);
       return () => clearTimeout(h);
@@ -72,74 +82,115 @@ export default function PurchaseOrders() {
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Purchase Orders</Typography>
-      {error && <Alert severity="error" onClick={() => refetch()} sx={{ cursor: 'pointer' }}>{error.message} (click to retry)</Alert>}
+      {error && <Alert severity="error" onClick={() => refetchBase()} sx={{ cursor: 'pointer' }}>{error.message} (click to retry)</Alert>}
       <Stack direction="row" spacing={2} alignItems="center">
         <TextField size="small" label="Search (ID/Invoice/Supplier)" value={query} onChange={(e) => setQuery(e.target.value)} />
         <FormControl size="small" sx={{ minWidth: 160 }}>
           <InputLabel id="filter-status">Status</InputLabel>
-          <Select labelId="filter-status" label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <MenuItem value="">All</MenuItem>
-            {['DRAFT','APPROVED','SENT','RECEIVED','CANCELLED'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+          <Select
+            labelId="filter-status"
+            label="Status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as PurchaseOrderStatus | '')}
+          >
+            <MenuItem value=""><em>All statuses</em></MenuItem>
+            {[PurchaseOrderStatus.Pending, PurchaseOrderStatus.Received, PurchaseOrderStatus.PartiallyPaid, PurchaseOrderStatus.Paid, PurchaseOrderStatus.Cancelled].map((s) => (
+              <MenuItem key={s} value={s}>{s}</MenuItem>
+            ))}
           </Select>
         </FormControl>
         <FormControl size="small" sx={{ minWidth: 160 }}>
           <InputLabel id="filter-phase">Phase</InputLabel>
-          <Select labelId="filter-phase" label="Phase" value={phase} onChange={(e) => setPhase(e.target.value)}>
-            <MenuItem value="">All</MenuItem>
-            {['ORDERED','RECEIVING','RECEIVED','CLOSED'].map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+          <Select
+            labelId="filter-phase"
+            label="Phase"
+            value={phase}
+            onChange={(e) => setPhase(e.target.value as PurchasePhase | '')}
+          >
+            <MenuItem value=""><em>All phases</em></MenuItem>
+            {[PurchasePhase.Requisition, PurchasePhase.Rfq, PurchasePhase.Negotiation, PurchasePhase.Approval, PurchasePhase.Ordered, PurchasePhase.Receiving, PurchasePhase.Invoicing, PurchasePhase.Completed].map((p) => (
+              <MenuItem key={p} value={p}>{p}</MenuItem>
+            ))}
           </Select>
         </FormControl>
-        <Button variant="contained" onClick={async () => {
-          if (query.trim().length >= 2) {
-            setMode('search');
-            await loadSearch({ variables: { q: query.trim(), take, skip } });
-            await loadSearchCount({ variables: { q: query.trim() } });
-          } else if (status) {
-            setMode('status');
-            await loadByStatus({ variables: { status, take, skip } });
-            await refetchCount({ status, phase: null });
-          } else if (phase) {
-            setMode('phase');
-            await loadByPhase({ variables: { phase, take, skip } });
-            await refetchCount({ status: null, phase });
-          } else {
-            setMode('all');
-            await refetch({ take, skip });
-            await refetchCount({ status: null, phase: null });
-          }
-        }}>Filter</Button>
+        <Button
+          variant="contained"
+          onClick={async () => {
+            const trimmed = query.trim();
+            if (trimmed.length >= 2) {
+              setMode('search');
+              await loadSearch({ variables: { q: trimmed, take, skip } });
+              await loadSearchCount({ variables: { q: trimmed } });
+            } else if (status) {
+              setMode('status');
+              await loadByStatus({ variables: { status, take, skip } });
+              await refetchCount({ status, phase: undefined });
+            } else if (phase) {
+              setMode('phase');
+              await loadByPhase({ variables: { phase, take, skip } });
+              await refetchCount({ status: undefined, phase });
+            } else {
+              setMode('all');
+              await refetchBase({ take, skip });
+              await refetchCount({ status: undefined, phase: undefined });
+            }
+          }}
+        >
+          Filter
+        </Button>
         {(bySearch.error || byStatus.error || byPhase.error) && (
           <Alert severity="error">{bySearch.error?.message || byStatus.error?.message || byPhase.error?.message}</Alert>
         )}
-        <Button variant="text" onClick={async () => {
-          setQuery(''); setStatus(''); setPhase(''); setPage(1); setMode('all');
-          await refetch({ take, skip: 0 });
-          await refetchCount({ status: null, phase: null });
-        }}>Clear</Button>
+        <Button
+          variant="text"
+          onClick={async () => {
+            setQuery('');
+            setStatus('');
+            setPhase('');
+            setPage(1);
+            setMode('all');
+            await refetchBase({ take, skip: 0 });
+            await refetchCount({ status: undefined, phase: undefined });
+          }}
+        >
+          Clear
+        </Button>
         <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
           <Button size="small" onClick={exportCsv}>Export CSV</Button>
           <TextField size="small" label="Page size" type="number" value={take} onChange={(e) => { const v = Math.max(1, Number(e.target.value) || 25); setPage(1); setTake(v); }} sx={{ width: 120 }} />
-          <Button size="small" disabled={!canPrev} onClick={async () => {
-            if (!canPrev) return;
-            const p = Math.max(1, page - 1);
-            setPage(p);
-            const s = (p - 1) * take;
-            if (mode === 'search') await loadSearch({ variables: { q: query.trim(), take, skip: s } });
-            else if (mode === 'status') await loadByStatus({ variables: { status, take, skip: s } });
-            else if (mode === 'phase') await loadByPhase({ variables: { phase, take, skip: s } });
-            else await refetch({ take, skip: s });
-          }}>Prev</Button>
+          <Button
+            size="small"
+            disabled={!canPrev}
+            onClick={async () => {
+              if (!canPrev) return;
+              const p = Math.max(1, page - 1);
+              setPage(p);
+              const newSkip = (p - 1) * take;
+              if (mode === 'search') await loadSearch({ variables: { q: query.trim(), take, skip: newSkip } });
+              else if (mode === 'status' && status) await loadByStatus({ variables: { status, take, skip: newSkip } });
+              else if (mode === 'phase' && phase) await loadByPhase({ variables: { phase, take, skip: newSkip } });
+              else await refetchBase({ take, skip: newSkip });
+            }}
+          >
+            Prev
+          </Button>
           <Typography variant="body2">Page {page}</Typography>
-          <Button size="small" disabled={!canNext} onClick={async () => {
-            if (!canNext) return;
-            const p = page + 1;
-            setPage(p);
-            const s = (p - 1) * take;
-            if (mode === 'search') await loadSearch({ variables: { q: query.trim(), take, skip: s } });
-            else if (mode === 'status') await loadByStatus({ variables: { status, take, skip: s } });
-            else if (mode === 'phase') await loadByPhase({ variables: { phase, take, skip: s } });
-            else await refetch({ take, skip: s });
-          }}>Next</Button>
+          <Button
+            size="small"
+            disabled={!canNext}
+            onClick={async () => {
+              if (!canNext) return;
+              const p = page + 1;
+              setPage(p);
+              const newSkip = (p - 1) * take;
+              if (mode === 'search') await loadSearch({ variables: { q: query.trim(), take, skip: newSkip } });
+              else if (mode === 'status' && status) await loadByStatus({ variables: { status, take, skip: newSkip } });
+              else if (mode === 'phase' && phase) await loadByPhase({ variables: { phase, take, skip: newSkip } });
+              else await refetchBase({ take, skip: newSkip });
+            }}
+          >
+            Next
+          </Button>
           <Typography variant="body2" sx={{ ml: 1, minWidth: 110, textAlign: 'right' }}>{total ? `${rangeStart}–${rangeEnd} of ${total}` : '0 of 0'}</Typography>
         </Stack>
       </Stack>
@@ -155,23 +206,33 @@ export default function PurchaseOrders() {
               <Select
                 labelId={`status-${po.id}`}
                 label="Status"
-                value={po.status}
+                value={po.status as PurchaseOrderStatus}
                 onChange={async (e) => {
-                  const status = e.target.value as string;
-                  try { await updateStatus({ variables: { input: { id: po.id, status } } }); await refetch(); } catch {}
+                  const nextStatus = e.target.value as PurchaseOrderStatus;
+                  try {
+                    await updateStatus({ variables: { input: { id: po.id, status: nextStatus } } });
+                    await refetchBase();
+                  } catch {}
                 }}
               >
-                {['DRAFT','APPROVED','SENT','RECEIVED','CANCELLED'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+                {[PurchaseOrderStatus.Pending, PurchaseOrderStatus.Received, PurchaseOrderStatus.PartiallyPaid, PurchaseOrderStatus.Paid, PurchaseOrderStatus.Cancelled].map((s) => (
+                  <MenuItem key={s} value={s}>{s}</MenuItem>
+                ))}
               </Select>
             </FormControl>
           ) },
           { key: 'phase', label: 'Phase', render: (po: any) => po.phase ? (
-            <Chip size="small" label={po.phase} color={po.phase === 'RECEIVED' ? 'success' : po.phase === 'RECEIVING' ? 'info' : 'default'} variant="outlined" />
+            <Chip
+              size="small"
+              label={po.phase}
+              color={po.phase === PurchasePhase.Receiving ? 'info' : po.phase === PurchasePhase.Invoicing || po.phase === PurchasePhase.Completed ? 'success' : 'default'}
+              variant="outlined"
+            />
           ) : '—' },
           { key: 'actions', label: 'Actions', render: (po: any) => (
             <Button component={Link} to={`/purchase-orders/${po.id}`} size="small">View</Button>
           ) },
-        ] as any), [updateStatus, refetch])}
+        ] as any), [updateStatus, refetchBase])}
         rows={list}
         loading={loading}
         emptyMessage="No purchase orders"

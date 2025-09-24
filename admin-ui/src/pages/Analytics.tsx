@@ -74,7 +74,7 @@ export default function Analytics() {
                 <Stack spacing={1}>
                   {list.map((v: any) => (
                     <Card key={v.productVariantId}><CardContent>
-                      <Typography variant="subtitle2">{v.productName || v.productVariantId} {v.size || ''} {v.concentration || ''} {v.packaging || ''}</Typography>
+                      <Typography variant="subtitle2">{v.productName || v.productVariantId}</Typography>
                       <Typography variant="caption" color="text.secondary">Units: {v.quantity}</Typography>
                     </CardContent></Card>
                   ))}

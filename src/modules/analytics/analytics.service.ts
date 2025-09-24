@@ -293,9 +293,6 @@ export class AnalyticsReadService {
       VariantQty & {
         productId?: string | null;
         productName?: string | null;
-        size?: string | null;
-        concentration?: string | null;
-        packaging?: string | null;
         barcode?: string | null;
       }
     >
@@ -313,9 +310,6 @@ export class AnalyticsReadService {
         ...e,
         productId: v?.product?.id ?? null,
         productName: v?.product?.name ?? null,
-        size: v?.size ?? null,
-        concentration: v?.concentration ?? null,
-        packaging: v?.packaging ?? null,
         barcode: v?.barcode ?? null,
       };
     });

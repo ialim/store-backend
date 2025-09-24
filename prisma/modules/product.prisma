@@ -20,9 +20,6 @@ model ProductVariant {
   productId        String?
   // Optional display name for standalone listing pages
   name             String?
-  size             String
-  concentration    String
-  packaging        String
   barcode          String?  @unique
   price            Float
   resellerPrice    Float

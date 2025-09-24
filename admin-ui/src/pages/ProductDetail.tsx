@@ -25,17 +25,19 @@ import { formatMoney } from '../shared/format';
 import { notify } from '../shared/notify';
 
 export default function ProductDetail() {
-  const { id } = useParams();
-  const { data, loading, error, refetch } = useProductQuery({ variables: { id: id as string }, skip: !id, fetchPolicy: 'cache-and-network' as any });
+  const params = useParams<{ id?: string }>();
+  const id = params.id ?? '';
+  const hasId = Boolean(params.id);
+  const { data, loading, error, refetch } = useProductQuery({ variables: { id }, skip: !hasId, fetchPolicy: 'cache-and-network' as any });
   const [createVariant, { loading: creating }] = useCreateProductVariantMutation();
   const p = data?.findUniqueProduct;
   // Categories removed; facets will be used for classification going forward.
-  const { data: vData, loading: vLoading, error: vError, refetch: refetchVariants } = useVariantsQuery({ variables: { where: { productId: { equals: id } } }, skip: !id, fetchPolicy: 'cache-and-network' as any });
+  const { data: vData, loading: vLoading, error: vError, refetch: refetchVariants } = useVariantsQuery({ variables: { where: { productId: { equals: id } } }, skip: !hasId, fetchPolicy: 'cache-and-network' as any });
   const [storeTotalsFilter, setStoreTotalsFilter] = React.useState<string>('');
   const { data: storesData } = useStoresQuery({ variables: { take: 200 }, fetchPolicy: 'cache-first' as any });
   const storeList = storesData?.listStores ?? [];
-  const { data: totalsDataAll, loading: loadingTotalsAll } = useStockTotalsByProductQuery({ variables: { productId: id! }, skip: !id || !!storeTotalsFilter, fetchPolicy: 'network-only' as any });
-  const { data: totalsDataStore, loading: loadingTotalsStore } = useStockTotalsByProductStoreQuery({ variables: { productId: id!, storeId: storeTotalsFilter }, skip: !id || !storeTotalsFilter, fetchPolicy: 'network-only' as any });
+  const { data: totalsDataAll, loading: loadingTotalsAll } = useStockTotalsByProductQuery({ variables: { productId: id }, skip: !hasId || !!storeTotalsFilter, fetchPolicy: 'network-only' as any });
+  const { data: totalsDataStore, loading: loadingTotalsStore } = useStockTotalsByProductStoreQuery({ variables: { productId: id, storeId: storeTotalsFilter }, skip: !hasId || !storeTotalsFilter, fetchPolicy: 'network-only' as any });
   const [updateProduct] = useUpdateProductMutation();
   const [updateVariant] = useUpdateProductVariantMutation();
   const [deleteVariant] = useDeleteProductVariantMutation();
@@ -43,20 +45,18 @@ export default function ProductDetail() {
   const { data: facetsData } = useListFacetsQuery({ fetchPolicy: 'cache-first' as any });
   const allFacets: Array<{ id: string; name: string; code: string; values?: string[]; isPrivate?: boolean }>
     = facetsData?.listFacets ?? [];
-  const { data: prodFacetsData, refetch: refetchProdFacets } = useProductFacetsQuery({ variables: { productId: id as string }, skip: !id, fetchPolicy: 'cache-and-network' as any });
+  const { data: prodFacetsData, refetch: refetchProdFacets } = useProductFacetsQuery({ variables: { productId: id }, skip: !hasId, fetchPolicy: 'cache-and-network' as any });
   const productAssignments: Array<{ facet: any; value: string }> = prodFacetsData?.productFacets ?? [];
   const [assignProductFacet] = useAssignFacetToProductMutation();
   const [removeProductFacet] = useRemoveFacetFromProductMutation();
   const [selFacetId, setSelFacetId] = React.useState('');
   const [selFacetValue, setSelFacetValue] = React.useState('');
 
-  const [size, setSize] = React.useState('');
-  const [concentration, setConcentration] = React.useState('');
-  const [packaging, setPackaging] = React.useState('');
+  const [variantName, setVariantName] = React.useState('');
   const [vBarcode, setVBarcode] = React.useState('');
   const [price, setPrice] = React.useState<number>(0);
   const [resellerPrice, setResellerPrice] = React.useState<number>(0);
-  const canAdd = !!size && !!concentration && !!packaging && price > 0 && resellerPrice > 0;
+  const canAdd = !!variantName && price > 0 && resellerPrice > 0 && hasId;
   const [editVariant, setEditVariant] = React.useState<Variant | null>(null);
   const [invVariant, setInvVariant] = React.useState<any | null>(null);
   // Hooks must not be conditional; keep before any early return
@@ -71,6 +71,7 @@ export default function ProductDetail() {
 
   if ((loading || vLoading) && !p) return <Skeleton variant="rectangular" height={200} />;
   if (error || vError) return <Alert severity="error">{error?.message || vError?.message}</Alert>;
+  if (!hasId) return <Alert severity="error">Missing product id.</Alert>;
   if (!p) return <Alert severity="info">Product not found.</Alert>;
 
   const totalsLoading = storeTotalsFilter ? loadingTotalsStore : loadingTotalsAll;
@@ -81,10 +82,10 @@ export default function ProductDetail() {
       const onHand = t?.onHand ?? (v.stockItems || []).reduce((a: number, s: any) => a + (s?.quantity || 0), 0);
       const reserved = t?.reserved ?? (v.stockItems || []).reduce((a: number, s: any) => a + (s?.reserved || 0), 0);
       const available = t?.available ?? (onHand - reserved);
-      return [v.id, v.size, v.concentration, v.packaging, v.barcode || '', v.price, v.resellerPrice, onHand, reserved, available, v.createdAt];
+      return [v.id, v.name || '', v.barcode || '', v.price, v.resellerPrice, onHand, reserved, available, v.createdAt];
     });
     if (!rows.length) return;
-    const header = ['id','size','concentration','packaging','barcode','price','resellerPrice','onHand','reserved','available','createdAt'];
+    const header = ['id','name','barcode','price','resellerPrice','onHand','reserved','available','createdAt'];
     const csv = [header, ...rows]
       .map((r: any[]) => r.map((x: any) => JSON.stringify(x ?? '')).join(','))
       .join('\n');
@@ -103,9 +104,43 @@ export default function ProductDetail() {
             <Stack spacing={0.5} sx={{ mt: 1 }}>
               <Typography color="text.secondary">Product ID: {p.id}</Typography>
               <Typography color="text.secondary">Created: {new Date(p.createdAt).toLocaleString()}</Typography>
-              <TextField label="Name" size="small" defaultValue={p.name} onBlur={async (e) => { const v = e.target.value.trim(); if (v && v !== p.name) { await updateProduct({ variables: { id, data: { name: { set: v } } } }); refetch(); } }} />
-              <TextField label="Barcode" size="small" defaultValue={p.barcode || ''} onBlur={async (e) => { const v = e.target.value.trim(); await updateProduct({ variables: { id, data: { barcode: { set: v || null } } } }); refetch(); }} />
-              <TextField label="Description" size="small" defaultValue={p.description || ''} onBlur={async (e) => { const v = e.target.value; await updateProduct({ variables: { id, data: { description: { set: v || null } } } }); refetch(); }} multiline minRows={2} />
+              <TextField
+                label="Name"
+                size="small"
+                defaultValue={p.name}
+                onBlur={async (e) => {
+                  if (!hasId) return;
+                  const v = e.target.value.trim();
+                  if (v && v !== p.name) {
+                    await updateProduct({ variables: { id, data: { name: { set: v } } } });
+                    refetch();
+                  }
+                }}
+              />
+              <TextField
+                label="Barcode"
+                size="small"
+                defaultValue={p.barcode || ''}
+                onBlur={async (e) => {
+                  if (!hasId) return;
+                  const v = e.target.value.trim();
+                  await updateProduct({ variables: { id, data: { barcode: { set: v || null } } } });
+                  refetch();
+                }}
+              />
+              <TextField
+                label="Description"
+                size="small"
+                defaultValue={p.description || ''}
+                onBlur={async (e) => {
+                  if (!hasId) return;
+                  const v = e.target.value;
+                  await updateProduct({ variables: { id, data: { description: { set: v || null } } } });
+                  refetch();
+                }}
+                multiline
+                minRows={2}
+              />
               {/* Category removed */}
             </Stack>
           </CardContent></Card>
@@ -114,9 +149,7 @@ export default function ProductDetail() {
           <Card><CardContent>
             <Typography variant="subtitle1">Add Variant</Typography>
             <Stack spacing={1} sx={{ mt: 1 }}>
-              <TextField label="Size" size="small" value={size} onChange={(e) => setSize(e.target.value)} />
-              <TextField label="Concentration" size="small" value={concentration} onChange={(e) => setConcentration(e.target.value)} />
-              <TextField label="Packaging" size="small" value={packaging} onChange={(e) => setPackaging(e.target.value)} />
+              <TextField label="Name" size="small" value={variantName} onChange={(e) => setVariantName(e.target.value)} />
               <TextField label="Barcode (optional)" size="small" value={vBarcode} onChange={(e) => setVBarcode(e.target.value)} />
               <Stack direction="row" spacing={1}>
                 <TextField label="Price" type="number" size="small" value={price} onChange={(e) => setPrice(Number(e.target.value) || 0)} />
@@ -124,13 +157,15 @@ export default function ProductDetail() {
               </Stack>
               <Box>
                 <Button variant="contained" disabled={creating || !canAdd} onClick={async () => {
-                  try {
-                    await createVariant({ variables: { data: {
-                      size, concentration, packaging, barcode: vBarcode || null,
-                      price, resellerPrice,
-                      product: { connect: { id } },
+                try {
+                  if (!hasId) return;
+                  await createVariant({ variables: { data: {
+                    name: variantName || null,
+                    barcode: vBarcode || null,
+                    price, resellerPrice,
+                    product: { connect: { id } },
                     } } });
-                    setSize(''); setConcentration(''); setPackaging(''); setVBarcode(''); setPrice(0); setResellerPrice(0);
+                    setVariantName(''); setVBarcode(''); setPrice(0); setResellerPrice(0);
                     await refetch();
                   } catch {}
                 }}>{creating ? 'Adding…' : 'Add Variant'}</Button>
@@ -168,6 +203,7 @@ export default function ProductDetail() {
           })()}
           <Button size="small" variant="contained" disabled={!selFacetId || !selFacetValue} onClick={async () => {
             try {
+              if (!hasId) return;
               await assignProductFacet({ variables: { productId: id, facetId: selFacetId, value: selFacetValue } });
               notify('Facet assigned', 'success');
               setSelFacetValue('');
@@ -182,6 +218,7 @@ export default function ProductDetail() {
             <Chip key={`${a.facet?.id}_${a.value}_${i}`} label={`${a.facet?.name || a.facet?.code}: ${a.value}`} onDelete={async () => {
               if (!window.confirm(`Remove facet \"${a.facet?.name || a.facet?.code}\": ${a.value}?`)) return;
               try {
+                if (!hasId || !a.facet?.id) return;
                 await removeProductFacet({ variables: { productId: id, facetId: a.facet?.id, value: a.value } });
                 notify('Facet removed', 'info');
                 await refetchProdFacets();
@@ -211,9 +248,7 @@ export default function ProductDetail() {
         </Stack>
         <TableList
           columns={[
-            { key: 'size', label: 'Size', sort: true, filter: true },
-            { key: 'concentration', label: 'Concentration', sort: true, filter: true },
-            { key: 'packaging', label: 'Packaging', sort: true, filter: true },
+            { key: 'name', label: 'Name', render: (v: any) => v.name || '—', sort: true, filter: true, accessor: (v: any) => v.name || '' },
             { key: 'barcode', label: 'Barcode', render: (v: any) => v.barcode || '—', sort: true, filter: true },
             { key: 'price', label: 'Price', render: (v: any) => formatMoney(v.price), sort: true, accessor: (v: any) => v.price || 0 },
             { key: 'resellerPrice', label: 'Reseller Price', render: (v: any) => formatMoney(v.resellerPrice), sort: true, accessor: (v: any) => v.resellerPrice || 0 },
@@ -254,7 +289,7 @@ export default function ProductDetail() {
   );
 }
 
-type Variant = { id: string; name?: string | null; size: string; concentration: string; packaging: string; barcode?: string | null; price: number; resellerPrice: number };
+type Variant = { id: string; name?: string | null; barcode?: string | null; price: number; resellerPrice: number };
 
 // variant facet helpers
 
@@ -340,18 +375,12 @@ function VariantFacetsDialog({ variantId, onClose }: { variantId: string; onClos
 
 function VariantDialog({ variant, onClose, onSave }: { variant: Variant | null; onClose: () => void; onSave: (data: any) => Promise<void> }) {
   const [name, setName] = React.useState('');
-  const [size, setSize] = React.useState('');
-  const [concentration, setConcentration] = React.useState('');
-  const [packaging, setPackaging] = React.useState('');
   const [barcode, setBarcode] = React.useState('');
   const [price, setPrice] = React.useState<number>(0);
   const [resellerPrice, setResellerPrice] = React.useState<number>(0);
   React.useEffect(() => {
     if (!variant) return;
     setName(variant.name || '');
-    setSize(variant.size || '');
-    setConcentration(variant.concentration || '');
-    setPackaging(variant.packaging || '');
     setBarcode(variant.barcode || '');
     setPrice(variant.price || 0);
     setResellerPrice(variant.resellerPrice || 0);
@@ -363,9 +392,6 @@ function VariantDialog({ variant, onClose, onSave }: { variant: Variant | null; 
       <DialogContent>
         <Stack spacing={1} sx={{ mt: 1 }}>
           <TextField label="Name" size="small" value={name} onChange={(e) => setName(e.target.value)} />
-          <TextField label="Size" size="small" value={size} onChange={(e) => setSize(e.target.value)} />
-          <TextField label="Concentration" size="small" value={concentration} onChange={(e) => setConcentration(e.target.value)} />
-          <TextField label="Packaging" size="small" value={packaging} onChange={(e) => setPackaging(e.target.value)} />
           <TextField label="Barcode" size="small" value={barcode} onChange={(e) => setBarcode(e.target.value)} />
           <Stack direction="row" spacing={1}>
             <TextField label="Price" type="number" size="small" value={price} onChange={(e) => setPrice(Number(e.target.value) || 0)} />
@@ -378,9 +404,6 @@ function VariantDialog({ variant, onClose, onSave }: { variant: Variant | null; 
         <Button variant="contained" onClick={async () => {
           await onSave({
             name: { set: name || null },
-            size: { set: size },
-            concentration: { set: concentration },
-            packaging: { set: packaging },
             barcode: { set: barcode || null },
             price: { set: price },
             resellerPrice: { set: resellerPrice },
