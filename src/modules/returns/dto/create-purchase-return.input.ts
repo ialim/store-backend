@@ -29,4 +29,3 @@ export class CreatePurchaseReturnInput {
   @Field(() => [CreatePurchaseReturnItemInput])
   items!: CreatePurchaseReturnItemInput[];
 }
-

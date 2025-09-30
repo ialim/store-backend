@@ -8,4 +8,8 @@ export class ApproveResellerInput {
 
   @Field()
   creditLimit: number;
+
+  // Assign biller at approval
+  @Field({ nullable: true })
+  billerId?: string;
 }

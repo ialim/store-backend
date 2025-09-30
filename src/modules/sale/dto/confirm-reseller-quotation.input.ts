@@ -8,4 +8,3 @@ export class ConfirmResellerQuotationInput {
   @Field(() => ID)
   billerId: string;
 }
-

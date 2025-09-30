@@ -14,4 +14,3 @@ export class MarkPurchaseOrderReceivedInput {
   @Field()
   id: string;
 }
-

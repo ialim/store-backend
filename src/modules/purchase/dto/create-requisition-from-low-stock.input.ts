@@ -8,4 +8,3 @@ export class CreateRequisitionFromLowStockInput {
   @Field()
   requestedById: string;
 }
-

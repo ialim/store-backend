@@ -20,4 +20,3 @@ export class RfqStatusCounts {
   @Field()
   total!: number;
 }
-

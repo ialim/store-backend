@@ -8,4 +8,3 @@ export class LinkSupplierUserInput {
   @Field(() => ID, { nullable: true })
   userId?: string | null; // null to unlink
 }
-

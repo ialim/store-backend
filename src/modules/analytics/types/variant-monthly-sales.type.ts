@@ -8,4 +8,3 @@ export class VariantMonthlySales {
   @Field(() => Int)
   quantity!: number;
 }
-

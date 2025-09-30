@@ -14,7 +14,11 @@ type NotificationPayload = {
 export class NotificationOutboxHandler {
   constructor(private prisma: PrismaService) {}
 
-  async tryHandle(event: { id: string; type: string; payload: any }): Promise<boolean> {
+  async tryHandle(event: {
+    id: string;
+    type: string;
+    payload: any;
+  }): Promise<boolean> {
     const payload = event.payload as NotificationPayload;
     if (!payload?.notifications?.length) return false;
     for (const n of payload.notifications) {
@@ -25,4 +29,3 @@ export class NotificationOutboxHandler {
     return true;
   }
 }
-

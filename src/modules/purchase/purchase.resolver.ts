@@ -1,12 +1,17 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { Supplier } from '../../shared/prismagraphql/supplier';
+import {
+  Supplier,
+  FindManySupplierArgs,
+} from '../../shared/prismagraphql/supplier';
 import { PurchaseOrder } from '../../shared/prismagraphql/purchase-order';
 import { SupplierPayment } from '../../shared/prismagraphql/supplier-payment';
 import { PurchaseService } from './purchase.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { CreateSupplierInput } from './dto/create-supplier.input';
 import { UpdateSupplierInput } from './dto/update-supplier.input';
 import { CreatePurchaseOrderInput } from './dto/create-purchase-order.input';
@@ -43,15 +48,31 @@ import { CloseRfqInput } from './dto/close-rfq.input';
 import { CreateRequisitionFromLowStockInput } from './dto/create-requisition-from-low-stock.input';
 import { PurchaseOrderStatus } from '../../shared/prismagraphql/prisma/purchase-order-status.enum';
 import { PurchasePhase } from '../../shared/prismagraphql/prisma/purchase-phase.enum';
+import { LowStockCandidate } from './types/low-stock-candidate.type';
+import { LowStockSchedulerService } from './low-stock-scheduler.service';
+import { PurchaseOrderReceiptProgress } from './types/purchase-order-receipt-progress.type';
 
 @Resolver()
 export class PurchaseResolver {
-  constructor(private readonly purchaseService: PurchaseService) {}
+  constructor(
+    private readonly purchaseService: PurchaseService,
+    private readonly lowStock: LowStockSchedulerService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Query(() => [Supplier])
   @UseGuards(GqlAuthGuard)
   suppliers() {
     return this.purchaseService.suppliers();
+  }
+
+  @Query(() => [Supplier])
+  @UseGuards(GqlAuthGuard)
+  listSuppliers(@Args() args: FindManySupplierArgs) {
+    // Mirror of listUsers/listStores pattern for server-side search
+    return this.prisma.supplier.findMany(
+      args as unknown as Prisma.SupplierFindManyArgs,
+    );
   }
 
   @Query(() => Supplier)
@@ -76,8 +97,11 @@ export class PurchaseResolver {
 
   @Query(() => [PurchaseOrder])
   @UseGuards(GqlAuthGuard)
-  purchaseOrders() {
-    return this.purchaseService.purchaseOrders();
+  purchaseOrders(
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    return this.purchaseService.purchaseOrders(take, skip);
   }
 
   @Query(() => PurchaseOrder)
@@ -108,10 +132,20 @@ export class PurchaseResolver {
     return this.purchaseService.supplierPayments();
   }
 
+  @Query(() => [SupplierPayment])
+  @UseGuards(GqlAuthGuard)
+  supplierPaymentsBySupplier(@Args('supplierId') supplierId: string) {
+    return this.purchaseService.supplierPaymentsBySupplier(supplierId);
+  }
+
   @Query(() => [PurchaseOrder])
   @UseGuards(GqlAuthGuard)
-  purchaseOrdersByStatus(@Args('status') status: string) {
-    return this.purchaseService.purchaseOrdersByStatus(status);
+  purchaseOrdersByStatus(
+    @Args('status') status: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    return this.purchaseService.purchaseOrdersByStatus(status, take, skip);
   }
 
   @Query(() => [PurchaseOrder])
@@ -127,8 +161,42 @@ export class PurchaseResolver {
 
   @Query(() => [PurchaseOrder])
   @UseGuards(GqlAuthGuard)
-  purchaseOrdersByPhase(@Args('phase') phase: string) {
-    return this.purchaseService.purchaseOrdersByPhase(phase);
+  purchaseOrdersByPhase(
+    @Args('phase') phase: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    return this.purchaseService.purchaseOrdersByPhase(phase, take, skip);
+  }
+
+  @Query(() => [PurchaseOrder])
+  @UseGuards(GqlAuthGuard)
+  purchaseOrdersBySupplier(
+    @Args('supplierId') supplierId: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    return this.purchaseService.purchaseOrdersBySupplier(
+      supplierId,
+      take,
+      skip,
+    );
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  issueRFQPreferred(@Args('requisitionId') requisitionId: string) {
+    return this.purchaseService.issueRFQPreferred(requisitionId);
+  }
+
+  @Query(() => Int)
+  @UseGuards(GqlAuthGuard)
+  purchaseOrdersCount(
+    @Args('status', { nullable: true }) status?: string,
+    @Args('phase', { nullable: true }) phase?: string,
+  ) {
+    return this.purchaseService.purchaseOrdersCount(status, phase);
   }
 
   @Query(() => [PurchaseOrder])
@@ -150,8 +218,58 @@ export class PurchaseResolver {
   @Query(() => [RequisitionSummary])
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
-  requisitionsByStatus(@Args('status') status: string) {
-    return this.purchaseService.requisitionsByStatus(status);
+  requisitionsByStatus(
+    @Args('status') status: string,
+    @Args('storeId', { nullable: true }) storeId?: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    return this.purchaseService.requisitionsByStatus(
+      status,
+      storeId || undefined,
+      take,
+      skip,
+    );
+  }
+
+  @Query(() => Int)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  requisitionsCountByStatus(
+    @Args('status') status: string,
+    @Args('storeId', { nullable: true }) storeId?: string,
+  ) {
+    return this.purchaseService.requisitionsCountByStatus(
+      status,
+      storeId || undefined,
+    );
+  }
+
+  @Query(() => [RequisitionSummary])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  requisitionsByStore(
+    @Args('storeId') storeId: string,
+    @Args('status', { nullable: true }) status?: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    return this.purchaseService.requisitionsByStore(
+      storeId,
+      status,
+      take,
+      skip,
+    );
+  }
+
+  @Query(() => Int)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  requisitionsCountByStore(
+    @Args('storeId') storeId: string,
+    @Args('status', { nullable: true }) status?: string,
+  ) {
+    return this.purchaseService.requisitionsCountByStore(storeId, status);
   }
 
   @Query(() => [SupplierQuoteSummary])
@@ -159,6 +277,13 @@ export class PurchaseResolver {
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   supplierQuotesByRequisition(@Args('requisitionId') requisitionId: string) {
     return this.purchaseService.supplierQuotesByRequisition(requisitionId);
+  }
+
+  @Query(() => RequisitionSummary, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  purchaseRequisitionSummary(@Args('id') id: string) {
+    return this.purchaseService.requisitionSummary(id);
   }
 
   // Supplier Catalog
@@ -261,6 +386,32 @@ export class PurchaseResolver {
     return this.purchaseService.closeRFQ(input);
   }
 
+  // Low-stock helpers
+  @Query(() => [LowStockCandidate])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  async lowStockCandidates(
+    @Args('storeId', { nullable: true }) storeId?: string,
+    @Args('limit', { type: () => Int, nullable: true }) limit?: number,
+  ) {
+    return this.purchaseService.getLowStockCandidates(storeId, limit ?? 500);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  async runLowStockScanNow() {
+    await this.lowStock.handleInterval();
+    return true;
+  }
+
+  @Query(() => String, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  async lastAutoRequisitionIdByStore(@Args('storeId') storeId: string) {
+    return this.purchaseService.getLastAutoRequisitionIdByStore(storeId);
+  }
+
   @Mutation(() => Supplier)
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
@@ -359,18 +510,46 @@ export class PurchaseResolver {
     return this.purchaseService.purchaseOrdersOverdueByStore(storeId);
   }
 
+  @Query(() => [PurchaseOrderReceiptProgress])
+  @UseGuards(GqlAuthGuard)
+  purchaseOrderReceiptProgress(
+    @Args('purchaseOrderId') purchaseOrderId: string,
+  ) {
+    return this.purchaseService.purchaseOrderReceiptProgress(purchaseOrderId);
+  }
+
+  @Query(() => [PurchaseOrder])
+  @UseGuards(GqlAuthGuard)
+  purchaseOrdersSearch(
+    @Args('q') q: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    return this.purchaseService.purchaseOrdersSearch(q, take, skip);
+  }
+
+  @Query(() => Int)
+  @UseGuards(GqlAuthGuard)
+  purchaseOrdersSearchCount(@Args('q') q: string) {
+    return this.purchaseService.purchaseOrdersSearchCount(q);
+  }
+
   @Query(() => [RequisitionSummary])
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   requisitionsWithNoSubmittedQuotesByStore(@Args('storeId') storeId: string) {
-    return this.purchaseService.requisitionsWithNoSubmittedQuotesByStore(storeId);
+    return this.purchaseService.requisitionsWithNoSubmittedQuotesByStore(
+      storeId,
+    );
   }
 
   @Query(() => [RequisitionSummary])
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   requisitionsWithPartialSubmissionsByStore(@Args('storeId') storeId: string) {
-    return this.purchaseService.requisitionsWithPartialSubmissionsByStore(storeId);
+    return this.purchaseService.requisitionsWithPartialSubmissionsByStore(
+      storeId,
+    );
   }
 
   @Query(() => RfqStatusCounts)
@@ -394,7 +573,6 @@ export class PurchaseResolver {
     return this.purchaseService.adminProcurementDashboardByStore(storeId);
   }
 
-
   @Mutation(() => String, { nullable: true })
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
@@ -402,5 +580,16 @@ export class PurchaseResolver {
     @Args('input') input: CreateRequisitionFromLowStockInput,
   ) {
     return this.purchaseService.createRequisitionFromLowStock(input);
+  }
+
+  @Mutation(() => String, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  createLowStockRequisitionAndIssuePreferred(
+    @Args('input') input: CreateRequisitionFromLowStockInput,
+  ) {
+    return this.purchaseService.createLowStockRequisitionAndIssuePreferred(
+      input,
+    );
   }
 }

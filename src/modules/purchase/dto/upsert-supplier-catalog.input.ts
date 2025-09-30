@@ -23,4 +23,3 @@ export class UpsertSupplierCatalogBulkInput {
   @Field(() => [UpsertSupplierCatalogInput])
   items: UpsertSupplierCatalogInput[];
 }
-

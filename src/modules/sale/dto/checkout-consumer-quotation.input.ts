@@ -8,4 +8,3 @@ export class CheckoutConsumerQuotationInput {
   @Field(() => ID)
   billerId: string;
 }
-

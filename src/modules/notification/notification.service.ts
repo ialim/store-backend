@@ -9,7 +9,11 @@ export class NotificationService {
     private domainEvents: DomainEventsService,
   ) {}
 
-  async createNotification(userId: string, type: string, message: string) {
+  async createNotification(
+    userId: string,
+    type: string,
+    message: string,
+  ): Promise<{ userId: string; type: string; message: string }> {
     // Publish via outbox; NotificationOutboxHandler writes the Notification row
     await this.domainEvents.publish(
       'NOTIFICATION',
@@ -25,7 +29,7 @@ export class NotificationService {
       { aggregateType: 'Notification', aggregateId: undefined },
     );
     // No immediate DB write; return a synthetic object shape to preserve call sites
-    return { userId, type, message } as any;
+    return { userId, type, message };
   }
 
   async getNotifications(userId: string) {

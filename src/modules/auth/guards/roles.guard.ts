@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
+import { GraphQLAuthContext } from '../types/auth-context.type';
+import { AuthenticatedUser } from '../auth.service';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -21,11 +23,13 @@ export class RolesGuard implements CanActivate {
       return true;
     }
     const ctx = GqlExecutionContext.create(context);
-    const { user } = ctx.getContext().req;
+    const graphqlContext = ctx.getContext<GraphQLAuthContext>();
+    const user: AuthenticatedUser | undefined = graphqlContext.req.user;
     if (!user) {
       throw new UnauthorizedException();
     }
-    if (requiredRoles.includes(user.role.name)) {
+    const roleName = user.role?.name;
+    if (roleName && requiredRoles.includes(roleName)) {
       return true;
     }
     throw new ForbiddenException("You don't have permission (RolesGuard)");

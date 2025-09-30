@@ -1,4 +1,5 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
+import { Prisma, PaymentStatus as PrismaPaymentStatus } from '@prisma/client';
 import { GraphQLISODateTime } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
@@ -15,6 +16,7 @@ import { SupplierPaymentMethodBreakdownEntry } from './types/supplier-payment-me
 import { ConsumerPayment } from '../../shared/prismagraphql/consumer-payment/consumer-payment.model';
 import { ResellerPayment } from '../../shared/prismagraphql/reseller-payment/reseller-payment.model';
 import { SupplierPayment } from '../../shared/prismagraphql/supplier-payment/supplier-payment.model';
+import { PaymentMethod } from '../../shared/prismagraphql/prisma/payment-method.enum';
 
 function monthWindow(month: string) {
   const [year, mm] = month.split('-').map((x) => Number(x));
@@ -27,6 +29,15 @@ function currentMonth(): string {
   const now = new Date();
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
 }
+
+const normalizePaymentMethod = (
+  value: string | null | undefined,
+): keyof typeof PaymentMethod => {
+  const upper = String(value ?? PaymentMethod.CASH).toUpperCase();
+  return upper in PaymentMethod
+    ? (upper as keyof typeof PaymentMethod)
+    : 'CASH';
+};
 
 @Resolver()
 export class PaymentResolver {
@@ -81,11 +92,11 @@ export class PaymentResolver {
     const [cAgg, rAgg] = await Promise.all([
       this.prisma.consumerPayment.aggregate({
         _sum: { amount: true },
-        where: { saleOrderId, status: 'CONFIRMED' as any },
+        where: { saleOrderId, status: PrismaPaymentStatus.CONFIRMED },
       }),
       this.prisma.resellerPayment.aggregate({
         _sum: { amount: true },
-        where: { saleOrderId, status: 'CONFIRMED' as any },
+        where: { saleOrderId, status: PrismaPaymentStatus.CONFIRMED },
       }),
     ]);
     const consumerPaid = cAgg._sum.amount || 0;
@@ -117,18 +128,18 @@ export class PaymentResolver {
       this.prisma.consumerPayment.aggregate({
         _sum: { amount: true },
         where: {
-          status: 'CONFIRMED' as any,
-          saleOrder: { storeId },
-          receivedAt: { gte: start, lt: end } as any,
-        } as any,
+          status: PrismaPaymentStatus.CONFIRMED,
+          saleOrder: { is: { storeId } },
+          receivedAt: { gte: start, lt: end },
+        },
       }),
       this.prisma.resellerPayment.aggregate({
         _sum: { amount: true },
         where: {
-          status: 'CONFIRMED' as any,
-          saleOrder: { storeId },
-          receivedAt: { gte: start, lt: end } as any,
-        } as any,
+          status: PrismaPaymentStatus.CONFIRMED,
+          saleOrder: { is: { storeId } },
+          receivedAt: { gte: start, lt: end },
+        },
       }),
     ]);
     const consumerPaid = cAgg._sum.amount || 0;
@@ -144,7 +155,7 @@ export class PaymentResolver {
     @Args('supplierId') supplierId: string,
     @Args('month', { nullable: true }) month?: string,
   ) {
-    const where: any = { supplierId };
+    const where: Prisma.SupplierPaymentWhereInput = { supplierId };
     if (month) {
       const { start, end } = monthWindow(month);
       where.paymentDate = { gte: start, lt: end };
@@ -177,23 +188,32 @@ export class PaymentResolver {
     @Args('storeId', { nullable: true }) storeId?: string,
     @Args('month', { nullable: true }) month?: string,
   ) {
-    const whereConsumer: any = {
-      status: 'CONFIRMED' as any,
-      saleOrder: { billerId },
+    const saleOrderFilter: Prisma.SaleOrderWhereInput = {
+      billerId,
+      ...(storeId ? { storeId } : {}),
     };
-    const whereReseller: any = {
-      status: 'CONFIRMED' as any,
-      saleOrder: { billerId },
+    const whereConsumer: Prisma.ConsumerPaymentWhereInput = {
+      status: PrismaPaymentStatus.CONFIRMED,
+      saleOrder: { is: saleOrderFilter },
+      ...(month
+        ? (() => {
+            const { start, end } = monthWindow(month);
+            const dt: Prisma.DateTimeFilter = { gte: start, lt: end };
+            return { receivedAt: dt };
+          })()
+        : {}),
     };
-    if (storeId) {
-      whereConsumer.saleOrder.storeId = storeId;
-      whereReseller.saleOrder.storeId = storeId;
-    }
-    if (month) {
-      const { start, end } = monthWindow(month);
-      whereConsumer.receivedAt = { gte: start, lt: end } as any;
-      whereReseller.receivedAt = { gte: start, lt: end } as any;
-    }
+    const whereReseller: Prisma.ResellerPaymentWhereInput = {
+      status: PrismaPaymentStatus.CONFIRMED,
+      saleOrder: { is: saleOrderFilter },
+      ...(month
+        ? (() => {
+            const { start, end } = monthWindow(month);
+            const dt: Prisma.DateTimeFilter = { gte: start, lt: end };
+            return { receivedAt: dt };
+          })()
+        : {}),
+    };
     const [cAgg, rAgg] = await Promise.all([
       this.prisma.consumerPayment.aggregate({
         _sum: { amount: true },
@@ -231,28 +251,34 @@ export class PaymentResolver {
   ) {
     const m = month || currentMonth();
     const { start, end } = monthWindow(m);
-    const whereConsumer: any = {
-      status: 'CONFIRMED' as any,
+    const whereConsumer: Prisma.ConsumerPaymentWhereInput = {
+      status: PrismaPaymentStatus.CONFIRMED,
       receivedAt: { gte: start, lt: end },
+      ...(storeId || billerId
+        ? {
+            saleOrder: {
+              is: {
+                ...(storeId ? { storeId } : {}),
+                ...(billerId ? { billerId } : {}),
+              },
+            },
+          }
+        : {}),
     };
-    const whereReseller: any = {
-      status: 'CONFIRMED' as any,
+    const whereReseller: Prisma.ResellerPaymentWhereInput = {
+      status: PrismaPaymentStatus.CONFIRMED,
       receivedAt: { gte: start, lt: end },
+      ...(storeId || billerId
+        ? {
+            saleOrder: {
+              is: {
+                ...(storeId ? { storeId } : {}),
+                ...(billerId ? { billerId } : {}),
+              },
+            },
+          }
+        : {}),
     };
-    if (storeId) {
-      whereConsumer.saleOrder = { ...(whereConsumer.saleOrder || {}), storeId };
-      whereReseller.saleOrder = { ...(whereReseller.saleOrder || {}), storeId };
-    }
-    if (billerId) {
-      whereConsumer.saleOrder = {
-        ...(whereConsumer.saleOrder || {}),
-        billerId,
-      };
-      whereReseller.saleOrder = {
-        ...(whereReseller.saleOrder || {}),
-        billerId,
-      };
-    }
     const [consumerPayments, resellerPayments] = await Promise.all([
       this.prisma.consumerPayment.findMany({
         where: whereConsumer,
@@ -300,17 +326,17 @@ export class PaymentResolver {
     const [cList, rList] = await Promise.all([
       this.prisma.consumerPayment.findMany({
         where: {
-          status: 'CONFIRMED' as any,
-          saleOrder: { storeId },
-          receivedAt: { gte: start, lt: end } as any,
+          status: PrismaPaymentStatus.CONFIRMED,
+          saleOrder: { is: { storeId } },
+          receivedAt: { gte: start, lt: end },
         },
         select: { amount: true, saleOrder: { select: { billerId: true } } },
       }),
       this.prisma.resellerPayment.findMany({
         where: {
-          status: 'CONFIRMED' as any,
-          saleOrder: { storeId },
-          receivedAt: { gte: start, lt: end } as any,
+          status: PrismaPaymentStatus.CONFIRMED,
+          saleOrder: { is: { storeId } },
+          receivedAt: { gte: start, lt: end },
         },
         select: { amount: true, saleOrder: { select: { billerId: true } } },
       }),
@@ -368,28 +394,34 @@ export class PaymentResolver {
   ) {
     const m = month || currentMonth();
     const { start, end } = monthWindow(m);
-    const whereConsumer: any = {
-      status: 'CONFIRMED' as any,
+    const whereConsumer: Prisma.ConsumerPaymentWhereInput = {
+      status: PrismaPaymentStatus.CONFIRMED,
       receivedAt: { gte: start, lt: end },
+      ...(storeId || billerId
+        ? {
+            saleOrder: {
+              is: {
+                ...(storeId ? { storeId } : {}),
+                ...(billerId ? { billerId } : {}),
+              },
+            },
+          }
+        : {}),
     };
-    const whereReseller: any = {
-      status: 'CONFIRMED' as any,
+    const whereReseller: Prisma.ResellerPaymentWhereInput = {
+      status: PrismaPaymentStatus.CONFIRMED,
       receivedAt: { gte: start, lt: end },
+      ...(storeId || billerId
+        ? {
+            saleOrder: {
+              is: {
+                ...(storeId ? { storeId } : {}),
+                ...(billerId ? { billerId } : {}),
+              },
+            },
+          }
+        : {}),
     };
-    if (storeId) {
-      whereConsumer.saleOrder = { ...(whereConsumer.saleOrder || {}), storeId };
-      whereReseller.saleOrder = { ...(whereReseller.saleOrder || {}), storeId };
-    }
-    if (billerId) {
-      whereConsumer.saleOrder = {
-        ...(whereConsumer.saleOrder || {}),
-        billerId,
-      };
-      whereReseller.saleOrder = {
-        ...(whereReseller.saleOrder || {}),
-        billerId,
-      };
-    }
     const [cList, rList] = await Promise.all([
       this.prisma.consumerPayment.findMany({
         where: whereConsumer,
@@ -418,17 +450,14 @@ export class PaymentResolver {
       entry.rCnt += 1;
       map.set(key, entry);
     }
-    return Array.from(map.entries()).map(
-      ([method, v]) =>
-        ({
-          method: method as any,
-          consumerPaid: v.cAmt,
-          resellerPaid: v.rAmt,
-          totalPaid: v.cAmt + v.rAmt,
-          consumerCount: v.cCnt,
-          resellerCount: v.rCnt,
-        }) as PaymentMethodBreakdownEntry,
-    );
+    return Array.from(map.entries()).map(([method, v]) => ({
+      method: normalizePaymentMethod(method),
+      consumerPaid: v.cAmt,
+      resellerPaid: v.rAmt,
+      totalPaid: v.cAmt + v.rAmt,
+      consumerCount: v.cCnt,
+      resellerCount: v.rCnt,
+    }));
   }
 
   // Supplier payment methods
@@ -439,8 +468,9 @@ export class PaymentResolver {
     @Args('month', { nullable: true }) month?: string,
     @Args('supplierId', { nullable: true }) supplierId?: string,
   ) {
-    const where: any = {};
-    if (supplierId) where.supplierId = supplierId;
+    const where: Prisma.SupplierPaymentWhereInput = {
+      ...(supplierId ? { supplierId } : {}),
+    };
     if (month) {
       const { start, end } = monthWindow(month);
       where.paymentDate = { gte: start, lt: end };
@@ -477,18 +507,18 @@ export class PaymentResolver {
       this.prisma.consumerPayment.aggregate({
         _sum: { amount: true },
         where: {
-          status: 'CONFIRMED' as any,
-          saleOrder: { storeId },
-          receivedAt: { gte: start, lt: end } as any,
-        } as any,
+          status: PrismaPaymentStatus.CONFIRMED,
+          saleOrder: { is: { storeId } },
+          receivedAt: { gte: start, lt: end },
+        },
       }),
       this.prisma.resellerPayment.aggregate({
         _sum: { amount: true },
         where: {
-          status: 'CONFIRMED' as any,
-          saleOrder: { storeId },
-          receivedAt: { gte: start, lt: end } as any,
-        } as any,
+          status: PrismaPaymentStatus.CONFIRMED,
+          saleOrder: { is: { storeId } },
+          receivedAt: { gte: start, lt: end },
+        },
       }),
     ]);
     const consumerPaid = cAgg._sum.amount || 0;
@@ -496,7 +526,7 @@ export class PaymentResolver {
     const totalPaid = consumerPaid + resellerPaid;
     return {
       storeId,
-      month: undefined as any,
+      month: undefined,
       consumerPaid,
       resellerPaid,
       totalPaid,
@@ -512,20 +542,20 @@ export class PaymentResolver {
     @Args('end', { type: () => GraphQLISODateTime }) end: Date,
     @Args('storeId', { nullable: true }) storeId?: string,
   ) {
-    const whereConsumer: any = {
-      status: 'CONFIRMED' as any,
-      saleOrder: { billerId },
+    const saleOrderFilter: Prisma.SaleOrderWhereInput = {
+      billerId,
+      ...(storeId ? { storeId } : {}),
+    };
+    const whereConsumer: Prisma.ConsumerPaymentWhereInput = {
+      status: PrismaPaymentStatus.CONFIRMED,
+      saleOrder: { is: saleOrderFilter },
       receivedAt: { gte: start, lt: end },
     };
-    const whereReseller: any = {
-      status: 'CONFIRMED' as any,
-      saleOrder: { billerId },
+    const whereReseller: Prisma.ResellerPaymentWhereInput = {
+      status: PrismaPaymentStatus.CONFIRMED,
+      saleOrder: { is: saleOrderFilter },
       receivedAt: { gte: start, lt: end },
     };
-    if (storeId) {
-      whereConsumer.saleOrder.storeId = storeId;
-      whereReseller.saleOrder.storeId = storeId;
-    }
     const [cAgg, rAgg] = await Promise.all([
       this.prisma.consumerPayment.aggregate({
         _sum: { amount: true },
@@ -562,28 +592,34 @@ export class PaymentResolver {
     @Args('storeId', { nullable: true }) storeId?: string,
     @Args('billerId', { nullable: true }) billerId?: string,
   ) {
-    const whereConsumer: any = {
-      status: 'CONFIRMED' as any,
+    const whereConsumer: Prisma.ConsumerPaymentWhereInput = {
+      status: PrismaPaymentStatus.CONFIRMED,
       receivedAt: { gte: start, lt: end },
+      ...(storeId || billerId
+        ? {
+            saleOrder: {
+              is: {
+                ...(storeId ? { storeId } : {}),
+                ...(billerId ? { billerId } : {}),
+              },
+            },
+          }
+        : {}),
     };
-    const whereReseller: any = {
-      status: 'CONFIRMED' as any,
+    const whereReseller: Prisma.ResellerPaymentWhereInput = {
+      status: PrismaPaymentStatus.CONFIRMED,
       receivedAt: { gte: start, lt: end },
+      ...(storeId || billerId
+        ? {
+            saleOrder: {
+              is: {
+                ...(storeId ? { storeId } : {}),
+                ...(billerId ? { billerId } : {}),
+              },
+            },
+          }
+        : {}),
     };
-    if (storeId) {
-      whereConsumer.saleOrder = { ...(whereConsumer.saleOrder || {}), storeId };
-      whereReseller.saleOrder = { ...(whereReseller.saleOrder || {}), storeId };
-    }
-    if (billerId) {
-      whereConsumer.saleOrder = {
-        ...(whereConsumer.saleOrder || {}),
-        billerId,
-      };
-      whereReseller.saleOrder = {
-        ...(whereReseller.saleOrder || {}),
-        billerId,
-      };
-    }
     const [cList, rList] = await Promise.all([
       this.prisma.consumerPayment.findMany({
         where: whereConsumer,
@@ -612,17 +648,14 @@ export class PaymentResolver {
       entry.rCnt += 1;
       map.set(key, entry);
     }
-    return Array.from(map.entries()).map(
-      ([method, v]) =>
-        ({
-          method: method as any,
-          consumerPaid: v.cAmt,
-          resellerPaid: v.rAmt,
-          totalPaid: v.cAmt + v.rAmt,
-          consumerCount: v.cCnt,
-          resellerCount: v.rCnt,
-        }) as PaymentMethodBreakdownEntry,
-    );
+    return Array.from(map.entries()).map(([method, v]) => ({
+      method: normalizePaymentMethod(method),
+      consumerPaid: v.cAmt,
+      resellerPaid: v.rAmt,
+      totalPaid: v.cAmt + v.rAmt,
+      consumerCount: v.cCnt,
+      resellerCount: v.rCnt,
+    }));
   }
 
   @Query(() => [PaymentDaySeries])
@@ -634,28 +667,34 @@ export class PaymentResolver {
     @Args('storeId', { nullable: true }) storeId?: string,
     @Args('billerId', { nullable: true }) billerId?: string,
   ) {
-    const whereConsumer: any = {
-      status: 'CONFIRMED' as any,
+    const whereConsumer: Prisma.ConsumerPaymentWhereInput = {
+      status: PrismaPaymentStatus.CONFIRMED,
       receivedAt: { gte: start, lt: end },
+      ...(storeId || billerId
+        ? {
+            saleOrder: {
+              is: {
+                ...(storeId ? { storeId } : {}),
+                ...(billerId ? { billerId } : {}),
+              },
+            },
+          }
+        : {}),
     };
-    const whereReseller: any = {
-      status: 'CONFIRMED' as any,
+    const whereReseller: Prisma.ResellerPaymentWhereInput = {
+      status: PrismaPaymentStatus.CONFIRMED,
       receivedAt: { gte: start, lt: end },
+      ...(storeId || billerId
+        ? {
+            saleOrder: {
+              is: {
+                ...(storeId ? { storeId } : {}),
+                ...(billerId ? { billerId } : {}),
+              },
+            },
+          }
+        : {}),
     };
-    if (storeId) {
-      whereConsumer.saleOrder = { ...(whereConsumer.saleOrder || {}), storeId };
-      whereReseller.saleOrder = { ...(whereReseller.saleOrder || {}), storeId };
-    }
-    if (billerId) {
-      whereConsumer.saleOrder = {
-        ...(whereConsumer.saleOrder || {}),
-        billerId,
-      };
-      whereReseller.saleOrder = {
-        ...(whereReseller.saleOrder || {}),
-        billerId,
-      };
-    }
     const [consumerPayments, resellerPayments] = await Promise.all([
       this.prisma.consumerPayment.findMany({
         where: whereConsumer,

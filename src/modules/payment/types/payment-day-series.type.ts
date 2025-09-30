@@ -14,4 +14,3 @@ export class PaymentDaySeries {
   @Field(() => Float)
   totalPaid!: number;
 }
-

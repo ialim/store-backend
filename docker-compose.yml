@@ -1,10 +1,21 @@
-version: '3'
+version: '3.9'
 services:
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: mydb
+  invoice-ocr:
+    build: ./python-invoice-ocr
+    container_name: invoice-ocr
     ports:
-      - "5432:5432"
+      - "8000:8000"
+    environment:
+      - TZ=UTC
+      - BARCODE_MIN_LENGTH=7
+      - BARCODE_MAX_LENGTH=14
+      # OCR tuning for scanned PDFs (adjust as needed)
+      - OCR_RASTER_DPI=400
+      - OCR_REMOVE_LINES=1
+      - OCR_PSMS=6,4,12,11,3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped

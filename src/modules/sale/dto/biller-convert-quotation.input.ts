@@ -8,4 +8,3 @@ export class BillerConvertQuotationInput {
   @Field(() => ID)
   billerId: string;
 }
-

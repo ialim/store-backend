@@ -37,4 +37,3 @@ export class CreateQuotationDraftInput {
   @Field(() => [CreateQuotationDraftItemInput])
   items: CreateQuotationDraftItemInput[];
 }
-

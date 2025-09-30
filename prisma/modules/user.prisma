@@ -41,6 +41,7 @@ model User {
   ResellerTierHistory ResellerTierHistory[]
   ResellerTierHistoryChangedBys ResellerTierHistory[] @relation("TierChangedBy")
   ResellerProfile ResellerProfile[] @relation("BillerResellers")
+  RequestedResellers ResellerProfile[] @relation("RequestedBiller")
 
   Notification Notification[]
 
@@ -82,19 +83,21 @@ model CustomerProfile {
 
 model ResellerProfile {
   userId             String   @id
-  billerId           String
+  billerId           String?
+  requestedBillerId  String?
   tier               UserTier
   creditLimit        Float
   outstandingBalance Float   @default(0)
   isActive           Boolean  @default(true)
-  profileStatus   ProfileStatus @default(PENDING)
-  requestedAt     DateTime      @default(now())
-  activatedAt     DateTime?
-  rejectedAt      DateTime?
-  rejectionReason String?
+  profileStatus      ProfileStatus @default(PENDING)
+  requestedAt        DateTime      @default(now())
+  activatedAt        DateTime?
+  rejectedAt         DateTime?
+  rejectionReason    String?
 
   user               User     @relation(fields: [userId], references: [id])
-  biller             User     @relation("BillerResellers", fields: [billerId], references: [id])
+  biller             User?    @relation("BillerResellers", fields: [billerId], references: [id])
+  requestedBiller    User?    @relation("RequestedBiller", fields: [requestedBillerId], references: [id])
 }
 
 model Role {

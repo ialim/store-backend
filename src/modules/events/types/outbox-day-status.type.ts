@@ -14,4 +14,3 @@ export class OutboxDayStatus {
   @Field(() => Int)
   published!: number;
 }
-

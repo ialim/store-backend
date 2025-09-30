@@ -32,7 +32,10 @@ async function main() {
   const roleDefs = [
     { name: 'SUPERADMIN', description: 'Full system access' },
     { name: 'ADMIN', description: 'Manage users and settings' },
-    { name: 'ACCOUNTANT', description: 'Manage supplier payments and invoicing' },
+    {
+      name: 'ACCOUNTANT',
+      description: 'Manage supplier payments and invoicing',
+    },
     { name: 'BILLER', description: 'Handle reseller accounts' },
     { name: 'MANAGER', description: 'Manage stores and inventory' },
     { name: 'RESELLER', description: 'B2B customer' },
@@ -79,10 +82,14 @@ async function main() {
   });
 
   // ACCOUNTANT
-  const accountantPerms = allPerms.filter((p) => ['VIEW_REPORTS'].includes(p.name));
+  const accountantPerms = allPerms.filter((p) =>
+    ['VIEW_REPORTS'].includes(p.name),
+  );
   await prisma.role.update({
     where: { name: 'ACCOUNTANT' },
-    data: { permissions: { connect: accountantPerms.map((p) => ({ id: p.id })) } },
+    data: {
+      permissions: { connect: accountantPerms.map((p) => ({ id: p.id })) },
+    },
   });
 
   // --- Users & Profiles ---
@@ -189,18 +196,12 @@ async function main() {
   });
 
   // --- Product, Variant & Stock ---
-  const category = await prisma.productCategory.upsert({
-    where: { name: 'Designer Perfume' },
-    update: {},
-    create: { name: 'Designer Perfume' },
-  });
-
   const product = await prisma.product.upsert({
-    where: { id: '1', name: '24 Gold Elixir EDP' },
+    where: { id: 'prod-24-gold' },
     update: {},
     create: {
+      id: 'prod-24-gold',
       name: '24 Gold Elixir EDP',
-      categoryId: category.id,
       barcode: 'GOLD-24-EDP',
     },
   });
@@ -210,9 +211,7 @@ async function main() {
     update: {},
     create: {
       productId: product.id,
-      size: '100ml',
-      concentration: 'EDP',
-      packaging: 'Boxed',
+      name: '24 Gold Elixir EDP 100ml',
       barcode: 'GOLD-24-EDP-100ML',
       price: 20000,
       resellerPrice: 18000,
@@ -222,21 +221,38 @@ async function main() {
   // Seed tier prices for the variant for testing
   await prisma.productVariantTierPrice.upsert({
     where: {
-      productVariantId_tier: { productVariantId: variant.id, tier: UserTier.BRONZE },
+      productVariantId_tier: {
+        productVariantId: variant.id,
+        tier: UserTier.BRONZE,
+      },
     },
     update: { price: 17500 },
-    create: { productVariantId: variant.id, tier: UserTier.BRONZE, price: 17500 },
+    create: {
+      productVariantId: variant.id,
+      tier: UserTier.BRONZE,
+      price: 17500,
+    },
   });
   await prisma.productVariantTierPrice.upsert({
     where: {
-      productVariantId_tier: { productVariantId: variant.id, tier: UserTier.SILVER },
+      productVariantId_tier: {
+        productVariantId: variant.id,
+        tier: UserTier.SILVER,
+      },
     },
     update: { price: 17000 },
-    create: { productVariantId: variant.id, tier: UserTier.SILVER, price: 17000 },
+    create: {
+      productVariantId: variant.id,
+      tier: UserTier.SILVER,
+      price: 17000,
+    },
   });
   await prisma.productVariantTierPrice.upsert({
     where: {
-      productVariantId_tier: { productVariantId: variant.id, tier: UserTier.GOLD },
+      productVariantId_tier: {
+        productVariantId: variant.id,
+        tier: UserTier.GOLD,
+      },
     },
     update: { price: 16500 },
     create: { productVariantId: variant.id, tier: UserTier.GOLD, price: 16500 },
@@ -249,7 +265,11 @@ async function main() {
       },
     },
     update: { price: 16000 },
-    create: { productVariantId: variant.id, tier: UserTier.PLATINUM, price: 16000 },
+    create: {
+      productVariantId: variant.id,
+      tier: UserTier.PLATINUM,
+      price: 16000,
+    },
   });
 
   await prisma.stock.upsert({

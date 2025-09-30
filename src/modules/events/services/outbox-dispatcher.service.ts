@@ -5,9 +5,20 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { OutboxStatus } from '@prisma/client';
 import { NotificationOutboxHandler } from '../handlers/notification-outbox.handler';
 import { PurchaseOutboxHandler } from '../handlers/purchase-outbox.handler';
 import { PaymentsOutboxHandler } from '../handlers/payments-outbox.handler';
+
+const toErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+};
 
 @Injectable()
 export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
@@ -24,9 +35,8 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    if (process.env.OUTBOX_POLLING === 'true') {
-      this.start();
-    }
+    // Prefer scheduler-driven execution; internal polling disabled by default
+    if (process.env.OUTBOX_POLLING === 'true') this.start();
   }
 
   onModuleDestroy() {
@@ -36,10 +46,9 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
   start() {
     if (this.timer) return; // already running
     // Simple polling loop; replace with scheduler/queue as needed
-    this.timer = setInterval(
-      () => this.tick().catch(() => {}),
-      this.intervalMs,
-    );
+    this.timer = setInterval(() => {
+      void this.tick();
+    }, this.intervalMs);
     this.logger.log(`Outbox dispatcher started (every ${this.intervalMs}ms)`);
   }
 
@@ -65,20 +74,31 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
   async runOnce(options?: {
     limit?: number;
     type?: string;
-    status?: 'PENDING' | 'FAILED';
+    status?: OutboxStatus;
   }) {
     const now = new Date();
-    const where: any = {
+    const baseWhere: import('@prisma/client').Prisma.OutboxEventWhereInput = {
       OR: [{ deliverAfter: null }, { deliverAfter: { lte: now } }],
     };
-    if (options?.type) where.type = options.type;
-    if (options?.status) where.status = options.status as any;
-    else where.status = 'PENDING' as any;
+    if (options?.type) baseWhere.type = options.type;
+    const statusFilter: OutboxStatus = options?.status ?? OutboxStatus.PENDING;
 
-    const events = await this.prisma.outboxEvent.findMany({
-      where,
+    // Claim a batch atomically by flipping to PROCESSING
+    const candidates = await this.prisma.outboxEvent.findMany({
+      where: { ...baseWhere, status: statusFilter },
+      select: { id: true },
       orderBy: { createdAt: 'asc' },
       take: options?.limit ?? this.batchSize,
+    });
+    if (!candidates.length) return 0;
+    const ids = candidates.map((c) => c.id);
+    await this.prisma.outboxEvent.updateMany({
+      where: { id: { in: ids }, status: statusFilter },
+      data: { status: OutboxStatus.PROCESSING },
+    });
+    const events = await this.prisma.outboxEvent.findMany({
+      where: { id: { in: ids }, status: OutboxStatus.PROCESSING },
+      orderBy: { createdAt: 'asc' },
     });
     if (!events.length) return 0;
 
@@ -91,28 +111,31 @@ export class OutboxDispatcherService implements OnModuleInit, OnModuleDestroy {
         handled = (await this.paymentsHandler.tryHandle(evt)) || handled;
 
         if (!handled) {
+          // Unknown type: publish with warning to avoid infinite loop
+          this.logger.warn(
+            `No handler for outbox type ${evt.type}; marking published.`,
+          );
           await this.prisma.outboxEvent.update({
             where: { id: evt.id },
-            data: { status: 'PUBLISHED' as any },
+            data: { status: OutboxStatus.PUBLISHED },
           });
           processed += 1;
           continue;
         }
         await this.prisma.outboxEvent.update({
           where: { id: evt.id },
-          data: { status: 'PUBLISHED' as any, lastError: null },
+          data: { status: OutboxStatus.PUBLISHED, lastError: null },
         });
         processed += 1;
-      } catch (err: any) {
-        this.logger.error(
-          `Outbox event ${evt.id} failed: ${err?.message || err}`,
-        );
+      } catch (err: unknown) {
+        const message = toErrorMessage(err);
+        this.logger.error(`Outbox event ${evt.id} failed: ${message}`);
         await this.prisma.outboxEvent.update({
           where: { id: evt.id },
           data: {
-            status: 'FAILED' as any,
-            retryCount: { increment: 1 } as any,
-            lastError: String(err?.message || err),
+            status: OutboxStatus.FAILED,
+            retryCount: { increment: 1 },
+            lastError: message,
             deliverAfter: new Date(
               Date.now() + Math.min((evt.retryCount + 1) * 60_000, 600_000),
             ),

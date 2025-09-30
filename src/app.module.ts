@@ -1,5 +1,6 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { ScheduleModule } from '@nestjs/schedule';
 import { GraphQLModule } from '@nestjs/graphql';
 import { join } from 'path';
@@ -20,6 +21,9 @@ import { EventsModule } from './modules/events/events.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ReturnsModule } from './modules/returns/returns.module';
 import { SupportModule } from './modules/support/support.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
+import { DevToolsModule } from './modules/devtools/devtools.module';
+import { HealthController } from './modules/health/health.controller';
 
 @Module({
   imports: [
@@ -28,6 +32,10 @@ import { SupportModule } from './modules/support/support.module';
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
       graphiql: process.env.ENV === 'dev',
+      context: ({ req, res }: { req: Request; res: Response }) => ({
+        req,
+        res,
+      }),
     }),
     AuthModule,
     CatalogueModule,
@@ -46,6 +54,9 @@ import { SupportModule } from './modules/support/support.module';
     StoreModule,
     UsersModule,
     VerificationModule,
+    UploadsModule,
+    DevToolsModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}

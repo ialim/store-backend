@@ -1,0 +1,17 @@
+schema: ../src/schema.gql
+documents:
+  - src/**/*.ts
+  - src/**/*.tsx
+  - '!src/generated/**'
+generates:
+  src/generated/graphql.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-react-apollo
+    config:
+      withHooks: true
+      reactApolloVersion: 3
+  src/generated/schema.json:
+    plugins:
+      - introspection

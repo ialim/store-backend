@@ -17,4 +17,3 @@ export class RejectSupplierQuoteInput {
   @Field({ nullable: true })
   reason?: string;
 }
-

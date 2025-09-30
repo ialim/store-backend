@@ -2,8 +2,10 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PRODUCT_VARIANT_SUMMARY_SELECT } from '../../common/prisma/selects';
 import { NotificationService } from '../notification/notification.service';
 import { UpdateSupplierInput } from './dto/update-supplier.input';
 import { CreatePurchaseOrderInput } from './dto/create-purchase-order.input';
@@ -35,9 +37,59 @@ import {
 } from './dto/select-reject-supplier-quote.input';
 import { CloseRfqInput } from './dto/close-rfq.input';
 import { CreateRequisitionFromLowStockInput } from './dto/create-requisition-from-low-stock.input';
+import {
+  Prisma,
+  PurchaseOrderStatus as PrismaPurchaseOrderStatus,
+  PurchasePhase as PrismaPurchasePhase,
+  PurchaseRequisitionStatus as PrismaPurchaseRequisitionStatus,
+  SupplierQuoteStatus as PrismaSupplierQuoteStatus,
+} from '@prisma/client';
+import { LowStockCandidate } from './types/low-stock-candidate.type';
+
+const toErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+};
+
+type RfqStatusSummary = {
+  requisitionId: string | null;
+  draft: number;
+  submitted: number;
+  selected: number;
+  rejected: number;
+  total: number;
+};
+
+type SupplierQuoteOverview = {
+  id: string;
+  requisitionId: string;
+  supplierId: string;
+  status: PrismaSupplierQuoteStatus;
+  validUntil: Date | null;
+  createdAt: Date;
+};
+
+type RfqDashboardSummary = RfqStatusSummary & {
+  pendingQuotes: SupplierQuoteOverview[];
+};
+
+type SupplierCatalogSummary = {
+  supplierId: string;
+  productVariantId: string;
+  defaultCost: number | null;
+  leadTimeDays: number | null;
+  isPreferred: boolean;
+  supplier: { id: string; name: string | null };
+};
 
 @Injectable()
 export class PurchaseService {
+  private readonly logger = new Logger(PurchaseService.name);
   constructor(
     private prisma: PrismaService,
     private notificationService: NotificationService,
@@ -55,6 +107,32 @@ export class PurchaseService {
         this.notificationService.createNotification(u.id, type, message),
       ),
     );
+  }
+
+  private summarizeQuoteStatuses(
+    rows: Array<{
+      status: PrismaSupplierQuoteStatus | null;
+      _count: { _all: number };
+    }>,
+    requisitionId: string | null,
+  ): RfqStatusSummary {
+    const counts = new Map<PrismaSupplierQuoteStatus, number>();
+    for (const { status, _count } of rows) {
+      if (status) counts.set(status, _count._all);
+    }
+    const get = (status: PrismaSupplierQuoteStatus) => counts.get(status) ?? 0;
+    const draft = get(PrismaSupplierQuoteStatus.DRAFT);
+    const submitted = get(PrismaSupplierQuoteStatus.SUBMITTED);
+    const selected = get(PrismaSupplierQuoteStatus.SELECTED);
+    const rejected = get(PrismaSupplierQuoteStatus.REJECTED);
+    return {
+      requisitionId,
+      draft,
+      submitted,
+      selected,
+      rejected,
+      total: draft + submitted + selected + rejected,
+    };
   }
 
   // Suppliers
@@ -117,24 +195,82 @@ export class PurchaseService {
   }
 
   // Purchase Orders
-  async purchaseOrders() {
-    return this.prisma.purchaseOrder.findMany({ include: { items: true } });
-  }
-
-  async purchaseOrdersByStatus(status: string) {
+  async purchaseOrders(take?: number, skip?: number) {
     return this.prisma.purchaseOrder.findMany({
-      where: { status: status as any },
-      include: { items: true },
+      include: {
+        items: true,
+        supplier: { select: { id: true, name: true } },
+      },
       orderBy: { createdAt: 'desc' },
+      take: take ?? undefined,
+      skip: skip ?? undefined,
     });
   }
 
-  async purchaseOrdersByPhase(phase: string) {
+  async purchaseOrdersByStatus(status: string, take?: number, skip?: number) {
     return this.prisma.purchaseOrder.findMany({
-      where: { phase: phase as any },
-      include: { items: true },
+      where: {
+        status:
+          PrismaPurchaseOrderStatus[
+            status as keyof typeof PrismaPurchaseOrderStatus
+          ],
+      },
+      include: { items: true, supplier: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
+      take: take ?? undefined,
+      skip: skip ?? undefined,
     });
+  }
+
+  async purchaseOrdersByPhase(phase: string, take?: number, skip?: number) {
+    return this.prisma.purchaseOrder.findMany({
+      where: {
+        phase: PrismaPurchasePhase[phase as keyof typeof PrismaPurchasePhase],
+      },
+      include: { items: true, supplier: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: take ?? undefined,
+      skip: skip ?? undefined,
+    });
+  }
+
+  async purchaseOrdersBySupplier(
+    supplierId: string,
+    take?: number,
+    skip?: number,
+  ) {
+    return this.prisma.purchaseOrder.findMany({
+      where: { supplierId },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        payments: {
+          select: { id: true, amount: true, paymentDate: true, method: true },
+        },
+      },
+      take: take ?? undefined,
+      skip: skip ?? undefined,
+    });
+  }
+
+  async purchaseOrdersCount(status?: string, phase?: string) {
+    const where: Prisma.PurchaseOrderWhereInput = {};
+    if (status) {
+      const statusEnum =
+        PrismaPurchaseOrderStatus[
+          status as keyof typeof PrismaPurchaseOrderStatus
+        ];
+      if (statusEnum) {
+        where.status = statusEnum;
+      }
+    }
+    if (phase) {
+      const phaseEnum =
+        PrismaPurchasePhase[phase as keyof typeof PrismaPurchasePhase];
+      if (phaseEnum) {
+        where.phase = phaseEnum;
+      }
+    }
+    return this.prisma.purchaseOrder.count({ where });
   }
 
   async purchaseOrdersOverdue() {
@@ -142,7 +278,12 @@ export class PurchaseService {
     return this.prisma.purchaseOrder.findMany({
       where: {
         dueDate: { lt: now },
-        status: { in: ['PENDING', 'PARTIALLY_PAID'] as any },
+        status: {
+          in: [
+            PrismaPurchaseOrderStatus.PENDING,
+            PrismaPurchaseOrderStatus.PARTIALLY_PAID,
+          ],
+        },
       },
       include: { items: true },
       orderBy: { dueDate: 'asc' },
@@ -154,7 +295,12 @@ export class PurchaseService {
     return this.prisma.purchaseOrder.findMany({
       where: {
         dueDate: { lt: now },
-        status: { in: ['PENDING', 'PARTIALLY_PAID'] as any },
+        status: {
+          in: [
+            PrismaPurchaseOrderStatus.PENDING,
+            PrismaPurchaseOrderStatus.PARTIALLY_PAID,
+          ],
+        },
         OR: [
           { storeId },
           { receipts: { some: { storeId } } }, // fallback for historical POs
@@ -166,9 +312,20 @@ export class PurchaseService {
   }
 
   // Requisition and quotes listings for dashboards
-  async requisitionsByStatus(status: string) {
+  async requisitionsByStatus(
+    status: string,
+    storeId?: string,
+    take?: number,
+    skip?: number,
+  ) {
     return this.prisma.purchaseRequisition.findMany({
-      where: { status: status as any },
+      where: {
+        status:
+          PrismaPurchaseRequisitionStatus[
+            status as keyof typeof PrismaPurchaseRequisitionStatus
+          ],
+        ...(storeId ? { storeId } : {}),
+      },
       select: {
         id: true,
         storeId: true,
@@ -177,10 +334,84 @@ export class PurchaseService {
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
+      take: take ?? undefined,
+      skip: skip ?? undefined,
     });
   }
 
-  async supplierQuotesByRequisition(requisitionId: string) {
+  async requisitionsCountByStatus(status: string, storeId?: string) {
+    return this.prisma.purchaseRequisition.count({
+      where: {
+        status:
+          PrismaPurchaseRequisitionStatus[
+            status as keyof typeof PrismaPurchaseRequisitionStatus
+          ],
+        ...(storeId ? { storeId } : {}),
+      },
+    });
+  }
+
+  async requisitionsByStore(
+    storeId: string,
+    status?: string,
+    take?: number,
+    skip?: number,
+  ) {
+    const where: Prisma.PurchaseRequisitionWhereInput = { storeId };
+    if (status) {
+      const statusEnum =
+        PrismaPurchaseRequisitionStatus[
+          status as keyof typeof PrismaPurchaseRequisitionStatus
+        ];
+      if (statusEnum) {
+        where.status = statusEnum;
+      }
+    }
+    return this.prisma.purchaseRequisition.findMany({
+      where,
+      select: {
+        id: true,
+        storeId: true,
+        requestedById: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: take ?? undefined,
+      skip: skip ?? undefined,
+    });
+  }
+
+  async requisitionsCountByStore(storeId: string, status?: string) {
+    const where: Prisma.PurchaseRequisitionWhereInput = { storeId };
+    if (status) {
+      const statusEnum =
+        PrismaPurchaseRequisitionStatus[
+          status as keyof typeof PrismaPurchaseRequisitionStatus
+        ];
+      if (statusEnum) {
+        where.status = statusEnum;
+      }
+    }
+    return this.prisma.purchaseRequisition.count({ where });
+  }
+
+  async requisitionSummary(id: string) {
+    return this.prisma.purchaseRequisition.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        storeId: true,
+        requestedById: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async supplierQuotesByRequisition(
+    requisitionId: string,
+  ): Promise<SupplierQuoteOverview[]> {
     return this.prisma.supplierQuote.findMany({
       where: { requisitionId },
       select: {
@@ -202,7 +433,7 @@ export class PurchaseService {
     if (!quote) throw new NotFoundException('Supplier quote not found');
     const updated = await this.prisma.supplierQuote.update({
       where: { id: quote.id },
-      data: { status: 'SELECTED' as any },
+      data: { status: PrismaSupplierQuoteStatus.SELECTED },
     });
     if (input.exclusive ?? true) {
       await this.prisma.supplierQuote.updateMany({
@@ -210,7 +441,7 @@ export class PurchaseService {
           requisitionId: updated.requisitionId,
           id: { not: updated.id },
         },
-        data: { status: 'REJECTED' as any },
+        data: { status: PrismaSupplierQuoteStatus.REJECTED },
       });
     }
     await this.domainEvents.publish(
@@ -249,7 +480,7 @@ export class PurchaseService {
     if (!quote) throw new NotFoundException('Supplier quote not found');
     await this.prisma.supplierQuote.update({
       where: { id: quote.id },
-      data: { status: 'REJECTED' as any },
+      data: { status: PrismaSupplierQuoteStatus.REJECTED },
     });
     await this.domainEvents.publish(
       'SUPPLIER_QUOTE_REJECTED',
@@ -365,7 +596,10 @@ export class PurchaseService {
     const results: typeof reqs = [];
     for (const r of reqs) {
       const submitted = await this.prisma.supplierQuote.count({
-        where: { requisitionId: r.id, status: 'SUBMITTED' as any },
+        where: {
+          requisitionId: r.id,
+          status: PrismaSupplierQuoteStatus.SUBMITTED,
+        },
       });
       if (submitted === 0) results.push(r);
     }
@@ -386,7 +620,10 @@ export class PurchaseService {
     const results: typeof reqs = [];
     for (const r of reqs) {
       const submitted = await this.prisma.supplierQuote.count({
-        where: { requisitionId: r.id, status: 'SUBMITTED' as any },
+        where: {
+          requisitionId: r.id,
+          status: PrismaSupplierQuoteStatus.SUBMITTED,
+        },
       });
       if (submitted === 0) results.push(r);
     }
@@ -395,7 +632,10 @@ export class PurchaseService {
 
   async rfqPendingSuppliers(requisitionId: string) {
     return this.prisma.supplierQuote.findMany({
-      where: { requisitionId, NOT: { status: 'SUBMITTED' as any } },
+      where: {
+        requisitionId,
+        NOT: { status: PrismaSupplierQuoteStatus.SUBMITTED },
+      },
       select: {
         id: true,
         requisitionId: true,
@@ -413,22 +653,7 @@ export class PurchaseService {
       _count: { _all: true },
       where: { requisitionId },
     });
-    const map = new Map<string, number>();
-    for (const r of rows as any[]) {
-      map.set(r.status, r._count?._all ?? r._count);
-    }
-    const draft = map.get('DRAFT') || 0;
-    const submitted = map.get('SUBMITTED') || 0;
-    const selected = map.get('SELECTED') || 0;
-    const rejected = map.get('REJECTED') || 0;
-    return {
-      requisitionId,
-      draft,
-      submitted,
-      selected,
-      rejected,
-      total: draft + submitted + selected + rejected,
-    };
+    return this.summarizeQuoteStatuses(rows, requisitionId);
   }
 
   async rfqCountsAll() {
@@ -436,29 +661,16 @@ export class PurchaseService {
       by: ['status'],
       _count: { _all: true },
     });
-    const map = new Map<string, number>();
-    for (const r of rows as any[]) {
-      map.set(r.status, r._count?._all ?? r._count);
-    }
-    const draft = map.get('DRAFT') || 0;
-    const submitted = map.get('SUBMITTED') || 0;
-    const selected = map.get('SELECTED') || 0;
-    const rejected = map.get('REJECTED') || 0;
-    return {
-      requisitionId: null,
-      draft,
-      submitted,
-      selected,
-      rejected,
-      total: draft + submitted + selected + rejected,
-    };
+    return this.summarizeQuoteStatuses(rows, null);
   }
 
-  async rfqDashboard(requisitionId: string) {
+  async rfqDashboard(requisitionId: string): Promise<RfqDashboardSummary> {
     const counts = await this.rfqStatusCounts(requisitionId);
     const pending = await this.supplierQuotesByRequisition(requisitionId);
-    const pendingQuotes = pending.filter((q: any) => q.status !== 'SUBMITTED');
-    return { ...counts, pendingQuotes } as any;
+    const pendingQuotes = pending.filter(
+      (q) => q.status !== PrismaSupplierQuoteStatus.SUBMITTED,
+    );
+    return { ...counts, pendingQuotes };
   }
 
   async adminProcurementDashboard() {
@@ -483,7 +695,7 @@ export class PurchaseService {
       noSubmissionRequisitions: noSubs,
       partialSubmissionRequisitions: partialSubs,
       creditBlockedSuppliers,
-    } as any;
+    };
   }
 
   // Auto-draft requisition for low-stock items at a store based on reorderPoint
@@ -560,33 +772,22 @@ export class PurchaseService {
     return reqId;
   }
 
-  async rfqStatusCountsByStore(storeId: string) {
-    const statuses = ['DRAFT', 'SUBMITTED', 'SELECTED', 'REJECTED'];
-    const counts: any = { draft: 0, submitted: 0, selected: 0, rejected: 0 };
-    for (const st of statuses) {
-      const c = await this.prisma.supplierQuote.count({
-        where: { status: st as any, requisition: { storeId } },
-      });
-      if (st === 'DRAFT') counts.draft = c;
-      if (st === 'SUBMITTED') counts.submitted = c;
-      if (st === 'SELECTED') counts.selected = c;
-      if (st === 'REJECTED') counts.rejected = c;
-    }
-    return {
-      requisitionId: null,
-      draft: counts.draft,
-      submitted: counts.submitted,
-      selected: counts.selected,
-      rejected: counts.rejected,
-      total:
-        counts.draft + counts.submitted + counts.selected + counts.rejected,
-    } as any;
+  async rfqStatusCountsByStore(storeId: string): Promise<RfqStatusSummary> {
+    const rows = await this.prisma.supplierQuote.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+      where: { requisition: { storeId } },
+    });
+    return this.summarizeQuoteStatuses(rows, null);
   }
 
-  async rfqDashboardByStore(storeId: string) {
+  async rfqDashboardByStore(storeId: string): Promise<RfqDashboardSummary> {
     const counts = await this.rfqStatusCountsByStore(storeId);
     const pendingQuotes = await this.prisma.supplierQuote.findMany({
-      where: { requisition: { storeId }, NOT: { status: 'SUBMITTED' as any } },
+      where: {
+        requisition: { storeId },
+        NOT: { status: PrismaSupplierQuoteStatus.SUBMITTED },
+      },
       select: {
         id: true,
         requisitionId: true,
@@ -597,13 +798,13 @@ export class PurchaseService {
       },
       orderBy: { createdAt: 'desc' },
     });
-    return { ...counts, pendingQuotes } as any;
+    return { ...counts, pendingQuotes };
   }
 
-  async rfqDashboardAll() {
+  async rfqDashboardAll(): Promise<RfqDashboardSummary> {
     const counts = await this.rfqCountsAll();
     const pendingQuotes = await this.prisma.supplierQuote.findMany({
-      where: { NOT: { status: 'SUBMITTED' as any } },
+      where: { NOT: { status: PrismaSupplierQuoteStatus.SUBMITTED } },
       select: {
         id: true,
         requisitionId: true,
@@ -614,7 +815,7 @@ export class PurchaseService {
       },
       orderBy: { createdAt: 'desc' },
     });
-    return { ...counts, pendingQuotes } as any;
+    return { ...counts, pendingQuotes };
   }
 
   async requisitionsWithPartialSubmissions() {
@@ -622,8 +823,12 @@ export class PurchaseService {
     return this.prisma.purchaseRequisition.findMany({
       where: {
         AND: [
-          { quotes: { some: { status: 'SUBMITTED' as any } } },
-          { quotes: { some: { NOT: { status: 'SUBMITTED' as any } } } },
+          { quotes: { some: { status: PrismaSupplierQuoteStatus.SUBMITTED } } },
+          {
+            quotes: {
+              some: { NOT: { status: PrismaSupplierQuoteStatus.SUBMITTED } },
+            },
+          },
         ],
       },
       select: {
@@ -642,8 +847,12 @@ export class PurchaseService {
       where: {
         storeId,
         AND: [
-          { quotes: { some: { status: 'SUBMITTED' as any } } },
-          { quotes: { some: { NOT: { status: 'SUBMITTED' as any } } } },
+          { quotes: { some: { status: PrismaSupplierQuoteStatus.SUBMITTED } } },
+          {
+            quotes: {
+              some: { NOT: { status: PrismaSupplierQuoteStatus.SUBMITTED } },
+            },
+          },
         ],
       },
       select: {
@@ -779,7 +988,7 @@ export class PurchaseService {
         create: {
           requisitionId: req.id,
           supplierId,
-          status: 'DRAFT',
+          status: PrismaSupplierQuoteStatus.DRAFT,
         },
       });
     }
@@ -891,10 +1100,78 @@ export class PurchaseService {
   async purchaseOrder(id: string) {
     const po = await this.prisma.purchaseOrder.findUnique({
       where: { id },
-      include: { items: true },
+      include: {
+        items: {
+          include: {
+            productVariant: { select: PRODUCT_VARIANT_SUMMARY_SELECT },
+          },
+        },
+        supplier: { select: { id: true, name: true } },
+      },
     });
     if (!po) throw new NotFoundException('Purchase order not found');
     return po;
+  }
+
+  async purchaseOrderReceiptProgress(purchaseOrderId: string) {
+    const po = await this.prisma.purchaseOrder.findUnique({
+      where: { id: purchaseOrderId },
+      include: { items: true },
+    });
+    if (!po) throw new NotFoundException('Purchase order not found');
+    const items = po.items || [];
+    if (!items.length) return [];
+    const batchItems = await this.prisma.stockReceiptBatchItem.findMany({
+      where: { batch: { is: { purchaseOrderId } } },
+      select: { productVariantId: true, quantity: true },
+    });
+    const receivedMap = new Map<string, number>();
+    for (const bi of batchItems) {
+      receivedMap.set(
+        bi.productVariantId,
+        (receivedMap.get(bi.productVariantId) || 0) + (bi.quantity || 0),
+      );
+    }
+    return items.map((it) => ({
+      productVariantId: it.productVariantId,
+      orderedQty: it.quantity || 0,
+      receivedQty: receivedMap.get(it.productVariantId) || 0,
+    }));
+  }
+
+  async purchaseOrdersSearch(q: string, take?: number, skip?: number) {
+    const query = q.trim();
+    if (!query)
+      return this.prisma.purchaseOrder.findMany({
+        take: take ?? 50,
+        skip: skip ?? undefined,
+        orderBy: { createdAt: 'desc' },
+      });
+    return this.prisma.purchaseOrder.findMany({
+      where: {
+        OR: [
+          { id: { contains: query, mode: 'insensitive' as const } },
+          { supplierId: { contains: query, mode: 'insensitive' as const } },
+          { invoiceNumber: { contains: query, mode: 'insensitive' as const } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      take: take ?? 100,
+      skip: skip ?? undefined,
+    });
+  }
+
+  async purchaseOrdersSearchCount(q: string) {
+    const query = q.trim();
+    if (!query) return this.prisma.purchaseOrder.count();
+    const where = {
+      OR: [
+        { id: { contains: query, mode: 'insensitive' as const } },
+        { supplierId: { contains: query, mode: 'insensitive' as const } },
+        { invoiceNumber: { contains: query, mode: 'insensitive' as const } },
+      ],
+    };
+    return this.prisma.purchaseOrder.count({ where });
   }
 
   // Close RFQ: reject selected categories of quotes and publish event
@@ -903,17 +1180,19 @@ export class PurchaseService {
       where: { id: input.requisitionId },
     });
     if (!req) throw new NotFoundException('Requisition not found');
-    const rejectStatuses: string[] = [];
-    if (input.rejectDrafts ?? true) rejectStatuses.push('DRAFT');
-    if (input.rejectUnsubmitted ?? true) rejectStatuses.push('SUBMITTED');
+    const rejectStatuses: PrismaSupplierQuoteStatus[] = [];
+    if (input.rejectDrafts ?? true)
+      rejectStatuses.push(PrismaSupplierQuoteStatus.DRAFT);
+    if (input.rejectUnsubmitted ?? true)
+      rejectStatuses.push(PrismaSupplierQuoteStatus.SUBMITTED);
     if (rejectStatuses.length) {
       await this.prisma.supplierQuote.updateMany({
         where: {
           requisitionId: req.id,
-          status: { in: rejectStatuses as any },
-          NOT: { status: 'SELECTED' as any },
+          status: { in: rejectStatuses },
+          NOT: { status: PrismaSupplierQuoteStatus.SELECTED },
         },
-        data: { status: 'REJECTED' as any },
+        data: { status: PrismaSupplierQuoteStatus.REJECTED },
       });
     }
     await this.domainEvents.publish(
@@ -933,7 +1212,7 @@ export class PurchaseService {
       data: {
         supplierId: data.supplierId,
         invoiceNumber: data.invoiceNumber,
-        status: 'PENDING',
+        status: PrismaPurchaseOrderStatus.PENDING,
         dueDate: data.dueDate,
         totalAmount: data.totalAmount,
         items: {
@@ -979,39 +1258,54 @@ export class PurchaseService {
       where: { id: data.id },
     });
     if (!current) throw new NotFoundException('Purchase order not found');
-    const next = data.status as string;
-    const cur = (current as any).status as string;
-    const curPhase = (current as any).phase as string;
+    const next =
+      PrismaPurchaseOrderStatus[
+        data.status as keyof typeof PrismaPurchaseOrderStatus
+      ];
+    const cur = current.status;
+    const curPhase = current.phase;
     // Guards to prevent regression or invalid manual changes
-    if (curPhase === 'COMPLETED') {
+    if (curPhase === PrismaPurchasePhase.COMPLETED) {
       throw new BadRequestException(
         'Cannot update status of a COMPLETED purchase order',
       );
     }
-    if (cur === 'CANCELLED') {
+    if (cur === PrismaPurchaseOrderStatus.CANCELLED) {
       throw new BadRequestException('Cannot update a CANCELLED purchase order');
     }
-    if (cur === 'PAID' && next !== 'PAID') {
+    if (
+      cur === PrismaPurchaseOrderStatus.PAID &&
+      next !== PrismaPurchaseOrderStatus.PAID
+    ) {
       throw new BadRequestException('Cannot regress from PAID status');
     }
-    if (cur === 'RECEIVED' && next !== 'RECEIVED' && next !== 'PAID') {
+    if (
+      cur === PrismaPurchaseOrderStatus.RECEIVED &&
+      next !== PrismaPurchaseOrderStatus.RECEIVED &&
+      next !== PrismaPurchaseOrderStatus.PAID
+    ) {
       throw new BadRequestException('Cannot regress from RECEIVED status');
     }
     if (
-      next === 'PENDING' &&
-      (cur === 'PARTIALLY_PAID' || cur === 'PAID' || cur === 'RECEIVED')
+      next === PrismaPurchaseOrderStatus.PENDING &&
+      (cur === PrismaPurchaseOrderStatus.PARTIALLY_PAID ||
+        cur === PrismaPurchaseOrderStatus.PAID ||
+        cur === PrismaPurchaseOrderStatus.RECEIVED)
     ) {
       throw new BadRequestException(
         'Cannot set PENDING after payments or receipt',
       );
     }
-    if (next === 'PARTIALLY_PAID' && cur === 'PAID') {
+    if (
+      next === PrismaPurchaseOrderStatus.PARTIALLY_PAID &&
+      cur === PrismaPurchaseOrderStatus.PAID
+    ) {
       throw new BadRequestException(
         'Cannot regress from PAID to PARTIALLY_PAID',
       );
     }
     // If cancelling, ensure no payments or receipts exist
-    if (next === 'CANCELLED') {
+    if (next === PrismaPurchaseOrderStatus.CANCELLED) {
       const [paymentCount, receiptCount] = await Promise.all([
         this.prisma.supplierPayment.count({
           where: { purchaseOrderId: data.id },
@@ -1028,7 +1322,7 @@ export class PurchaseService {
     }
     const po = await this.prisma.purchaseOrder.update({
       where: { id: data.id },
-      data: { status: data.status },
+      data: { status: next },
     });
     await this.domainEvents.publish(
       'PURCHASE_ORDER_STATUS_UPDATED',
@@ -1045,6 +1339,13 @@ export class PurchaseService {
   // Supplier Payments
   async supplierPayments() {
     return this.prisma.supplierPayment.findMany();
+  }
+
+  async supplierPaymentsBySupplier(supplierId: string) {
+    return this.prisma.supplierPayment.findMany({
+      where: { supplierId },
+      orderBy: { paymentDate: 'asc' },
+    });
   }
 
   async createSupplierPayment(data: CreateSupplierPaymentInput) {
@@ -1092,7 +1393,7 @@ export class PurchaseService {
         // When split across suppliers, enforce explicit quantities and cap
         const allHaveQty = input.items
           .filter((i) => i.productVariantId === variantId)
-          .every((i) => i.quantity != null && i.quantity! > 0);
+          .every((i) => i.quantity != null && i.quantity > 0);
         if (!allHaveQty) {
           throw new BadRequestException(
             `Quantity must be specified for all split selections of variant ${variantId}`,
@@ -1189,7 +1490,7 @@ export class PurchaseService {
           storeId: req.storeId,
           invoiceNumber: `PO-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           status: 'PENDING',
-          phase: 'ORDERED' as any,
+          phase: PrismaPurchasePhase.ORDERED,
           dueDate: input.dueDate ?? defaultDueDate,
           totalAmount: total,
           items: {
@@ -1211,12 +1512,12 @@ export class PurchaseService {
       // Update supplier balance
       await this.prisma.supplier.update({
         where: { id: supplierId },
-        data: { currentBalance: { increment: total } as any },
+        data: { currentBalance: { increment: total } },
       });
       // Mark quote as selected if exists
       await this.prisma.supplierQuote.updateMany({
         where: { requisitionId: req.id, supplierId },
-        data: { status: 'SELECTED' },
+        data: { status: PrismaSupplierQuoteStatus.SELECTED },
       });
       // Notify store manager
       const store = await this.prisma.store.findUnique({
@@ -1246,7 +1547,7 @@ export class PurchaseService {
     // Move requisition along
     await this.prisma.purchaseRequisition.update({
       where: { id: req.id },
-      data: { status: 'APPROVED' },
+      data: { status: PrismaPurchaseRequisitionStatus.APPROVED },
     });
     await this.domainEvents.publish(
       'PURCHASE_REQUISITION_APPROVED',
@@ -1263,20 +1564,34 @@ export class PurchaseService {
       where: { id: input.id },
     });
     if (!poCur) throw new NotFoundException('Purchase order not found');
-    const cur = (poCur as any).phase as string;
-    const next = input.phase as string;
-    if (cur === 'COMPLETED' && next !== 'COMPLETED') {
+    const cur = poCur.phase;
+    const next =
+      PrismaPurchasePhase[input.phase as keyof typeof PrismaPurchasePhase];
+    if (!next) {
+      throw new BadRequestException(`Invalid phase value: ${input.phase}`);
+    }
+    if (
+      cur === PrismaPurchasePhase.COMPLETED &&
+      next !== PrismaPurchasePhase.COMPLETED
+    ) {
       throw new BadRequestException(
         'Cannot change phase of a COMPLETED purchase order',
       );
     }
-    const allowed: Record<string, string[]> = {
-      ORDERED: ['RECEIVING', 'INVOICING'],
-      RECEIVING: ['INVOICING', 'COMPLETED'],
-      INVOICING: ['COMPLETED'],
-    };
-    if (cur in allowed) {
-      if (!allowed[cur].includes(next)) {
+    const allowed: Partial<Record<PrismaPurchasePhase, PrismaPurchasePhase[]>> =
+      {
+        [PrismaPurchasePhase.ORDERED]: [
+          PrismaPurchasePhase.RECEIVING,
+          PrismaPurchasePhase.INVOICING,
+        ],
+        [PrismaPurchasePhase.RECEIVING]: [
+          PrismaPurchasePhase.INVOICING,
+          PrismaPurchasePhase.COMPLETED,
+        ],
+        [PrismaPurchasePhase.INVOICING]: [PrismaPurchasePhase.COMPLETED],
+      };
+    if (cur && allowed[cur]) {
+      if (!allowed[cur]?.includes(next)) {
         throw new BadRequestException(
           `Invalid phase transition ${cur} -> ${next}`,
         );
@@ -1284,7 +1599,7 @@ export class PurchaseService {
     }
     const po = await this.prisma.purchaseOrder.update({
       where: { id: input.id },
-      data: { phase: next as any },
+      data: { phase: next },
     });
     await this.domainEvents.publish(
       'PURCHASE_ORDER_PHASE_UPDATED',
@@ -1298,18 +1613,33 @@ export class PurchaseService {
   async markPurchaseOrderReceived({ id }: MarkPurchaseOrderReceivedInput) {
     const po = await this.prisma.purchaseOrder.update({
       where: { id },
-      data: { status: 'RECEIVED' as any, phase: 'RECEIVING' as any },
+      data: {
+        status: PrismaPurchaseOrderStatus.RECEIVED,
+        phase: PrismaPurchasePhase.RECEIVING,
+      },
     });
     await this.domainEvents.publish(
       'PURCHASE_ORDER_RECEIVED',
       { purchaseOrderId: po.id },
       { aggregateType: 'PurchaseOrder', aggregateId: po.id },
     );
-    await this.notificationService.createNotification(
-      po.supplierId,
-      'PURCHASE_ORDER_RECEIVED',
-      `PO ${po.invoiceNumber} marked as received.`,
-    );
+    try {
+      const supplier = await this.prisma.supplier.findUnique({
+        where: { id: po.supplierId },
+        select: { userId: true },
+      });
+      if (supplier?.userId) {
+        await this.notificationService.createNotification(
+          supplier.userId,
+          'PURCHASE_ORDER_RECEIVED',
+          `PO ${po.invoiceNumber} marked as received.`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to notify supplier about received PO: ${toErrorMessage(error)}`,
+      );
+    }
     await this.maybeFinalizePurchaseOrder(id);
     return po;
   }
@@ -1326,11 +1656,11 @@ export class PurchaseService {
     });
     const paid = paidAgg._sum.amount || 0;
     const isPaid = paid >= po.totalAmount;
-    const isReceived = po.status === ('RECEIVED' as any);
+    const isReceived = po.status === PrismaPurchaseOrderStatus.RECEIVED;
     if (isPaid && isReceived) {
       await this.prisma.purchaseOrder.update({
         where: { id: po.id },
-        data: { phase: 'COMPLETED' as any },
+        data: { phase: PrismaPurchasePhase.COMPLETED },
       });
       await this.domainEvents.publish(
         'PURCHASE_COMPLETED',
@@ -1367,6 +1697,115 @@ export class PurchaseService {
       noSubmissionRequisitions: noSubs,
       partialSubmissionRequisitions: partialSubs,
       creditBlockedSuppliers,
-    } as any;
+    };
+  }
+
+  // Low-stock: list candidates
+  async getLowStockCandidates(
+    storeId?: string,
+    limit = 500,
+  ): Promise<LowStockCandidate[]> {
+    const where: Prisma.StockWhereInput = {
+      ...(storeId ? { storeId } : {}),
+      reorderPoint: { not: null },
+      reorderQty: { not: null },
+    };
+    const candidates = await this.prisma.stock.findMany({
+      where,
+      select: {
+        storeId: true,
+        productVariantId: true,
+        quantity: true,
+        reorderPoint: true,
+        reorderQty: true,
+      },
+      take: limit,
+    });
+    const list = candidates.filter(
+      (s) =>
+        (s.reorderPoint ?? 0) > 0 && (s.quantity ?? 0) <= (s.reorderPoint ?? 0),
+    );
+    if (!list.length) return [];
+    const variantIds = Array.from(new Set(list.map((x) => x.productVariantId)));
+    const storeIds = Array.from(new Set(list.map((x) => x.storeId)));
+    const [variants, stores, catalogs] = await Promise.all([
+      this.prisma.productVariant.findMany({
+        where: { id: { in: variantIds } },
+        select: PRODUCT_VARIANT_SUMMARY_SELECT,
+      }),
+      this.prisma.store.findMany({
+        where: { id: { in: storeIds } },
+        select: { id: true, name: true },
+      }),
+      this.prisma.supplierCatalog.findMany({
+        where: { productVariantId: { in: variantIds } },
+        select: {
+          supplierId: true,
+          productVariantId: true,
+          defaultCost: true,
+          leadTimeDays: true,
+          isPreferred: true,
+          supplier: { select: { id: true, name: true } },
+        },
+      }),
+    ]);
+    const vMap = new Map(variants.map((v) => [v.id, v] as const));
+    const sMap = new Map(stores.map((s) => [s.id, s] as const));
+    // Group catalogs by variant for quick pick
+    const catByVariant = new Map<string, SupplierCatalogSummary[]>();
+    for (const catalog of catalogs) {
+      const arr = catByVariant.get(catalog.productVariantId) ?? [];
+      arr.push(catalog);
+      catByVariant.set(catalog.productVariantId, arr);
+    }
+
+    return list.map<LowStockCandidate>((entry) => {
+      const variant = vMap.get(entry.productVariantId);
+      const store = sMap.get(entry.storeId);
+      const catalogsForVariant = catByVariant.get(entry.productVariantId) ?? [];
+      let primary: SupplierCatalogSummary | null =
+        catalogsForVariant.find((item) => item.isPreferred) ?? null;
+      if (!primary && catalogsForVariant.length) {
+        primary = catalogsForVariant.reduce<SupplierCatalogSummary | null>(
+          (min, cur) => {
+            if (!min) return cur;
+            if (min.defaultCost == null) return cur;
+            if (cur.defaultCost == null) return min;
+            return cur.defaultCost < min.defaultCost ? cur : min;
+          },
+          null,
+        );
+      }
+      return {
+        storeId: entry.storeId,
+        productVariantId: entry.productVariantId,
+        quantity: entry.quantity ?? null,
+        reorderPoint: entry.reorderPoint ?? null,
+        reorderQty: entry.reorderQty ?? null,
+        storeName: store?.name ?? null,
+        productId: variant?.product?.id ?? null,
+        productName: variant?.product?.name ?? null,
+        barcode: variant?.barcode ?? null,
+        supplierId: primary?.supplierId ?? null,
+        supplierName: primary?.supplier?.name ?? null,
+        supplierDefaultCost: primary?.defaultCost ?? null,
+        supplierLeadTimeDays: primary?.leadTimeDays ?? null,
+        supplierIsPreferred: primary?.isPreferred ?? null,
+        supplierCount: catalogsForVariant.length,
+      };
+    });
+  }
+
+  // Low-stock: last auto-created requisition (we treat any DRAFT as potential auto draft)
+  async getLastAutoRequisitionIdByStore(storeId: string) {
+    const recent = await this.prisma.purchaseRequisition.findFirst({
+      where: {
+        storeId,
+        status: PrismaPurchaseRequisitionStatus.DRAFT,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    return recent?.id || null;
   }
 }

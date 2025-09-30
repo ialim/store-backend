@@ -1,6 +1,27 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { DomainEventsService } from '../services/domain-events.service';
+import {
+  PaymentStatus as PrismaPaymentStatus,
+  OrderPhase as PrismaOrderPhase,
+  SaleType as PrismaSaleType,
+  SaleStatus as PrismaSaleStatus,
+  FulfillmentType as PrismaFulfillmentType,
+  FulfillmentStatus as PrismaFulfillmentStatus,
+} from '@prisma/client';
+
+type PaymentConfirmedPayload = {
+  saleOrderId?: string | null;
+  [key: string]: unknown;
+};
+
+const parsePaymentPayload = (
+  payload: Prisma.JsonValue | null | undefined,
+): PaymentConfirmedPayload => {
+  if (!payload || typeof payload !== 'object') return {};
+  return payload as PaymentConfirmedPayload;
+};
 
 @Injectable()
 export class PaymentsOutboxHandler {
@@ -10,34 +31,62 @@ export class PaymentsOutboxHandler {
     private domainEvents: DomainEventsService,
   ) {}
 
-  async tryHandle(event: { id: string; type: string; payload: any }): Promise<boolean> {
+  async tryHandle(event: {
+    id: string;
+    type: string;
+    payload: Prisma.JsonValue | null | undefined;
+  }): Promise<boolean> {
     if (event.type !== 'PAYMENT_CONFIRMED') return false;
-    const orderId = event.payload?.saleOrderId as string | undefined;
+    const payload = parsePaymentPayload(event.payload);
+    const orderId =
+      typeof payload.saleOrderId === 'string' ? payload.saleOrderId : undefined;
     if (!orderId) return true; // malformed but considered handled
     try {
-      const order = await this.prisma.saleOrder.findUnique({ where: { id: orderId } });
+      const order = await this.prisma.saleOrder.findUnique({
+        where: { id: orderId },
+      });
       if (!order) return true;
-      if ((order as any).phase !== 'SALE') return true; // Only advance from SALE phase
+      if (order.phase !== PrismaOrderPhase.SALE) return true; // Only advance from SALE phase
 
       // Sum confirmed payments
       const [consumerPaidAgg, resellerPaidAgg] = await Promise.all([
-        this.prisma.consumerPayment.aggregate({ _sum: { amount: true }, where: { saleOrderId: orderId, status: 'CONFIRMED' as any } }),
-        this.prisma.resellerPayment.aggregate({ _sum: { amount: true }, where: { saleOrderId: orderId, status: 'CONFIRMED' as any } }),
+        this.prisma.consumerPayment.aggregate({
+          _sum: { amount: true },
+          where: {
+            saleOrderId: orderId,
+            status: PrismaPaymentStatus.CONFIRMED,
+          },
+        }),
+        this.prisma.resellerPayment.aggregate({
+          _sum: { amount: true },
+          where: {
+            saleOrderId: orderId,
+            status: PrismaPaymentStatus.CONFIRMED,
+          },
+        }),
       ]);
-      const paid = (consumerPaidAgg._sum.amount || 0) + (resellerPaidAgg._sum.amount || 0);
+      const paid =
+        (consumerPaidAgg._sum.amount || 0) + (resellerPaidAgg._sum.amount || 0);
 
       let canAdvance = paid >= (order.totalAmount || 0);
 
-      if (!canAdvance && (order as any).type === ('RESELLER' as any)) {
-        const rSale = await this.prisma.resellerSale.findFirst({ where: { SaleOrderid: orderId } });
+      if (!canAdvance && order.type === PrismaSaleType.RESELLER) {
+        const rSale = await this.prisma.resellerSale.findFirst({
+          where: { SaleOrderid: orderId },
+        });
         if (rSale) {
-          const profile = await this.prisma.resellerProfile.findUnique({ where: { userId: rSale.resellerId } });
+          const profile = await this.prisma.resellerProfile.findUnique({
+            where: { userId: rSale.resellerId },
+          });
           if (profile) {
             const unpaidPortion = Math.max((order.totalAmount || 0) - paid, 0);
             const projected = (profile.outstandingBalance || 0) + unpaidPortion;
             if (projected <= (profile.creditLimit || 0)) {
               canAdvance = true;
-              await this.prisma.resellerProfile.update({ where: { userId: rSale.resellerId }, data: { outstandingBalance: projected } });
+              await this.prisma.resellerProfile.update({
+                where: { userId: rSale.resellerId },
+                data: { outstandingBalance: projected },
+              });
             }
           }
         }
@@ -47,19 +96,86 @@ export class PaymentsOutboxHandler {
 
       // Mark paid if fully paid
       if (paid >= (order.totalAmount || 0)) {
-        await this.prisma.saleOrder.update({ where: { id: orderId }, data: { status: 'PAID' as any } });
+        await this.prisma.saleOrder.update({
+          where: { id: orderId },
+          data: { status: PrismaSaleStatus.PAID },
+        });
       }
       // Move to fulfillment and create record if missing
-      await this.prisma.saleOrder.update({ where: { id: orderId }, data: { phase: 'FULFILLMENT' as any } });
-      const existing = await this.prisma.fulfillment.findUnique({ where: { saleOrderId: orderId } });
+      await this.prisma.saleOrder.update({
+        where: { id: orderId },
+        data: { phase: PrismaOrderPhase.FULFILLMENT },
+      });
+      const existing = await this.prisma.fulfillment.findUnique({
+        where: { saleOrderId: orderId },
+      });
       if (!existing) {
-        await this.prisma.fulfillment.create({ data: { saleOrderId: orderId, type: 'PICKUP' as any, status: 'PENDING' as any } });
+        await this.prisma.fulfillment.create({
+          data: {
+            saleOrderId: orderId,
+            type: PrismaFulfillmentType.PICKUP,
+            status: PrismaFulfillmentStatus.PENDING,
+          },
+        });
+      }
+
+      // Reserve stock for this order now that it advances to fulfillment
+      const cSale = await this.prisma.consumerSale.findFirst({
+        where: { saleOrderId: orderId },
+        include: { items: true },
+      });
+      if (cSale) {
+        for (const it of cSale.items) {
+          await this.prisma.stock.upsert({
+            where: {
+              storeId_productVariantId: {
+                storeId: cSale.storeId,
+                productVariantId: it.productVariantId,
+              },
+            },
+            update: { reserved: { increment: it.quantity } },
+            create: {
+              storeId: cSale.storeId,
+              productVariantId: it.productVariantId,
+              quantity: 0,
+              reserved: it.quantity,
+            },
+          });
+        }
+      } else {
+        const rSale = await this.prisma.resellerSale.findFirst({
+          where: { SaleOrderid: orderId },
+          include: { items: true },
+        });
+        if (rSale) {
+          for (const it of rSale.items) {
+            await this.prisma.stock.upsert({
+              where: {
+                storeId_productVariantId: {
+                  storeId: rSale.storeId,
+                  productVariantId: it.productVariantId,
+                },
+              },
+              update: { reserved: { increment: it.quantity } },
+              create: {
+                storeId: rSale.storeId,
+                productVariantId: it.productVariantId,
+                quantity: 0,
+                reserved: it.quantity,
+              },
+            });
+          }
+        }
       }
 
       // Notify store manager and biller
-      const so = await this.prisma.saleOrder.findUnique({ where: { id: orderId } });
+      const so = await this.prisma.saleOrder.findUnique({
+        where: { id: orderId },
+      });
       if (so) {
-        const store = await this.prisma.store.findUnique({ where: { id: so.storeId } });
+        const store = await this.prisma.store.findUnique({
+          where: { id: so.storeId },
+        });
         if (store) {
           await this.domainEvents.publish(
             'NOTIFICATION',
@@ -91,7 +207,9 @@ export class PaymentsOutboxHandler {
       }
       return true;
     } catch (e) {
-      this.logger.error(`Failed to handle payment confirmed for order ${event.payload?.saleOrderId}: ${e}`);
+      this.logger.error(
+        `Failed to handle payment confirmed for order ${orderId}: ${e}`,
+      );
       return false;
     }
   }

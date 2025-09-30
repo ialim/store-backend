@@ -24,6 +24,8 @@ model Store {
 
   PurchaseRequisition PurchaseRequisition[]
   purchaseOrders      PurchaseOrder[]
+
+  InvoiceImport InvoiceImport[]
 }
 
 model Stock {
@@ -39,6 +41,8 @@ model Stock {
 
   store            Store         @relation(fields: [storeId], references: [id])
   productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  @@unique([storeId, productVariantId])
 }
 
 model StockReceiptBatch {

@@ -1,4 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import {
+  PaymentStatus as PrismaPaymentStatus,
+  PaymentMethod as PrismaPaymentMethod,
+  PaymentType as PrismaPaymentType,
+  PurchaseOrderStatus as PrismaPurchaseOrderStatus,
+  PurchasePhase as PrismaPurchasePhase,
+} from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { DomainEventsService } from '../events/services/domain-events.service';
@@ -9,6 +16,7 @@ import { CreateSupplierPaymentInput } from '../purchase/dto/create-supplier-paym
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationService,
@@ -22,8 +30,8 @@ export class PaymentService {
         saleOrderId: data.saleOrderId,
         consumerSaleId: data.consumerSaleId,
         amount: data.amount,
-        method: data.method as any,
-        status: 'PENDING' as any,
+        method: data.method as PrismaPaymentMethod,
+        status: PrismaPaymentStatus.PENDING,
         reference: data.reference || undefined,
       },
     });
@@ -38,7 +46,7 @@ export class PaymentService {
   async confirmConsumerPayment(input: ConfirmConsumerPaymentInput) {
     const payment = await this.prisma.consumerPayment.update({
       where: { id: input.paymentId },
-      data: { status: 'CONFIRMED' as any },
+      data: { status: PrismaPaymentStatus.CONFIRMED },
     });
     await this.domainEvents.publish(
       'PAYMENT_CONFIRMED',
@@ -60,8 +68,8 @@ export class PaymentService {
         resellerId: data.resellerId,
         resellerSaleId: data.resellerSaleId,
         amount: data.amount,
-        method: data.method as any,
-        status: 'PENDING' as any,
+        method: data.method as PrismaPaymentMethod,
+        status: PrismaPaymentStatus.PENDING,
         reference: data.reference || undefined,
         receivedById: data.receivedById,
       },
@@ -77,7 +85,7 @@ export class PaymentService {
   async confirmResellerPayment(paymentId: string) {
     const payment = await this.prisma.resellerPayment.update({
       where: { id: paymentId },
-      data: { status: 'CONFIRMED' as any },
+      data: { status: PrismaPaymentStatus.CONFIRMED },
     });
     await this.domainEvents.publish(
       'PAYMENT_CONFIRMED',
@@ -97,7 +105,7 @@ export class PaymentService {
     // Reduce supplier current balance
     await this.prisma.supplier.update({
       where: { id: payment.supplierId },
-      data: { currentBalance: { decrement: payment.amount } as any },
+      data: { currentBalance: { decrement: payment.amount } },
     });
     // If applied to a PO, update its payment status
     if (payment.purchaseOrderId) {
@@ -110,12 +118,18 @@ export class PaymentService {
           where: { purchaseOrderId: po.id },
         });
         const paid = paidAgg._sum.amount || 0;
-        const newStatus = paid >= po.totalAmount ? 'PAID' : 'PARTIALLY_PAID';
+        const newStatus: PrismaPurchaseOrderStatus =
+          paid >= po.totalAmount
+            ? PrismaPurchaseOrderStatus.PAID
+            : PrismaPurchaseOrderStatus.PARTIALLY_PAID;
         await this.prisma.purchaseOrder.update({
           where: { id: po.id },
           data: {
-            status: newStatus as any,
-            phase: (newStatus === 'PAID' ? 'INVOICING' : po.phase) as any,
+            status: newStatus,
+            phase:
+              newStatus === PrismaPurchaseOrderStatus.PAID
+                ? PrismaPurchasePhase.INVOICING
+                : po.phase,
           },
         });
         await this.domainEvents.publish(
@@ -134,31 +148,56 @@ export class PaymentService {
           });
           const paid2 = paidAgg2._sum.amount || 0;
           const isPaid = paid2 >= fresh.totalAmount;
-          const isReceived = fresh.status === ('RECEIVED' as any);
+          const isReceived =
+            fresh.status === PrismaPurchaseOrderStatus.RECEIVED;
           if (isPaid && isReceived) {
             await this.prisma.purchaseOrder.update({
               where: { id: fresh.id },
-              data: { phase: 'COMPLETED' as any },
+              data: { phase: PrismaPurchasePhase.COMPLETED },
             });
             await this.domainEvents.publish(
               'PURCHASE_COMPLETED',
               { purchaseOrderId: fresh.id },
               { aggregateType: 'PurchaseOrder', aggregateId: fresh.id },
             );
-            await this.notifications.createNotification(
-              fresh.supplierId,
-              'PURCHASE_COMPLETED',
-              `PO ${fresh.invoiceNumber} completed.`,
-            );
+            try {
+              const supplier = await this.prisma.supplier.findUnique({
+                where: { id: fresh.supplierId },
+                select: { userId: true },
+              });
+              if (supplier?.userId) {
+                await this.notifications.createNotification(
+                  supplier.userId,
+                  'PURCHASE_COMPLETED',
+                  `PO ${fresh.invoiceNumber} completed.`,
+                );
+              }
+            } catch (error) {
+              this.logger.warn(
+                `Failed to notify supplier ${fresh.supplierId} about PO ${fresh.id}: ${error}`,
+              );
+            }
           }
         }
       }
     }
-    await this.notifications.createNotification(
-      payment.supplierId,
-      'SUPPLIER_PAYMENT',
-      `Payment of ${payment.amount} recorded for supplier`,
-    );
+    try {
+      const supplier = await this.prisma.supplier.findUnique({
+        where: { id: payment.supplierId },
+        select: { userId: true },
+      });
+      if (supplier?.userId) {
+        await this.notifications.createNotification(
+          supplier.userId,
+          'SUPPLIER_PAYMENT',
+          `Payment of ${payment.amount} recorded for your account`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to notify supplier ${payment.supplierId} about payment ${payment.id}: ${error}`,
+      );
+    }
     return payment;
   }
 
@@ -174,8 +213,8 @@ export class PaymentService {
         saleOrderId: params.saleOrderId,
         consumerSaleId: params.consumerSaleId,
         amount: -Math.abs(params.amount),
-        method: 'TRANSFER' as any,
-        status: 'CONFIRMED' as any,
+        method: PrismaPaymentMethod.TRANSFER,
+        status: PrismaPaymentStatus.CONFIRMED,
         reference: params.reference || undefined,
       },
     });
@@ -189,12 +228,12 @@ export class PaymentService {
   }) {
     return this.prisma.payment.create({
       data: {
-        type: 'SUPPLIER' as any,
+        type: PrismaPaymentType.SUPPLIER,
         sourceId: params.supplierId,
         referenceEntity: 'PurchaseReturn',
         referenceId: params.purchaseReturnId,
         amount: params.amount,
-        method: 'BANK' as any,
+        method: PrismaPaymentMethod.BANK,
         receivedById: params.receivedById,
       },
     });

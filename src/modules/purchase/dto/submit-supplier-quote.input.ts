@@ -32,4 +32,3 @@ export class SubmitSupplierQuoteInput {
   @Field({ nullable: true })
   notes?: string;
 }
-

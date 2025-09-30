@@ -8,4 +8,3 @@ export class IssueRfqInput {
   @Field(() => [String], { nullable: true })
   supplierIds?: string[];
 }
-

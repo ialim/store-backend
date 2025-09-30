@@ -14,4 +14,3 @@ export class OutboxTypeCount {
   @Field(() => Int)
   published!: number;
 }
-

@@ -23,4 +23,3 @@ export class CreatePurchaseRequisitionInput {
   @Field(() => [CreatePurchaseRequisitionItemInput])
   items: CreatePurchaseRequisitionItemInput[];
 }
-

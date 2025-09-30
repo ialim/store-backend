@@ -24,4 +24,3 @@ export class RfqDashboard {
   @Field(() => [SupplierQuoteSummary])
   pendingQuotes!: SupplierQuoteSummary[];
 }
-

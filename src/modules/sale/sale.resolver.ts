@@ -1,4 +1,4 @@
-import { Resolver, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Query, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -17,6 +17,8 @@ import { CreateConsumerPaymentInput } from './dto/create-consumer-payment.input'
 import { ConfirmConsumerPaymentInput } from './dto/confirm-consumer-payment.input';
 import { CreateConsumerReceiptInput } from './dto/create-consumer-receipt.input';
 import { CreateFulfillmentInput } from './dto/create-fulfillment.input';
+import { AssignFulfillmentPersonnelInput } from './dto/assign-fulfillment-personnel.input';
+import { UpdateFulfillmentStatusInput } from './dto/update-fulfillment-status.input';
 import { CreateResellerSaleInput } from './dto/create-reseller-sale.input';
 import { CreateResellerPaymentInput } from './dto/create-reseller-payment.input';
 import { Quotation } from '../../shared/prismagraphql/quotation/quotation.model';
@@ -27,10 +29,15 @@ import { ConfirmResellerQuotationInput } from './dto/confirm-reseller-quotation.
 import { BillerConvertQuotationInput } from './dto/biller-convert-quotation.input';
 import { FulfillConsumerSaleInput } from './dto/fulfill-consumer-sale.input';
 import { SaleOrder } from '../../shared/prismagraphql/sale-order/sale-order.model';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Resolver()
 export class SalesResolver {
-  constructor(private readonly salesService: SalesService) {}
+  constructor(
+    private readonly salesService: SalesService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   // Quotation flow
   // NOTE: Quotation/order mutations are now available under OrderResolver as well.
@@ -136,11 +143,33 @@ export class SalesResolver {
     return this.salesService.confirmResellerPayment(paymentId);
   }
 
-  @Mutation(() => Fulfillment)
+  @Mutation(() => Fulfillment, {
+    description:
+      'Assign delivery personnel to a fulfillment and set status to ASSIGNED',
+  })
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   createFulfillment(@Args('input') input: CreateFulfillmentInput) {
     return this.salesService.createFulfillment(input);
+  }
+
+  @Mutation(() => Fulfillment, {
+    description:
+      'Update fulfillment status (ASSIGNED, IN_TRANSIT, DELIVERED, CANCELLED). If DELIVERED and a PIN is set, confirmationPin is required.',
+  })
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('MANAGER', 'ADMIN', 'SUPERADMIN')
+  assignFulfillmentPersonnel(
+    @Args('input') input: AssignFulfillmentPersonnelInput,
+  ) {
+    return this.salesService.assignFulfillmentPersonnel(input);
+  }
+
+  @Mutation(() => Fulfillment)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('MANAGER', 'ADMIN', 'SUPERADMIN')
+  updateFulfillmentStatus(@Args('input') input: UpdateFulfillmentStatusInput) {
+    return this.salesService.updateFulfillmentStatus(input);
   }
 
   @Mutation(() => SaleOrder)
@@ -148,5 +177,66 @@ export class SalesResolver {
   @Roles('ADMIN', 'SUPERADMIN')
   adminRevertOrderToQuotation(@Args('saleOrderId') saleOrderId: string) {
     return this.salesService.adminRevertOrderToQuotation(saleOrderId);
+  }
+
+  // Admin queries for customer history
+  @Query(() => [ConsumerSale])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN')
+  consumerSalesByCustomer(
+    @Args('customerId') customerId: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+    @Args('order', { nullable: true }) order?: 'asc' | 'desc',
+    @Args('cursorId', { nullable: true }) cursorId?: string,
+  ) {
+    const where: Prisma.ConsumerSaleWhereInput = {
+      CustomerProfile: { some: { userId: customerId } },
+    };
+    const orderBy: Prisma.ConsumerSaleOrderByWithRelationInput = {
+      createdAt: order === 'asc' ? 'asc' : 'desc',
+    };
+    const args: Prisma.ConsumerSaleFindManyArgs = {
+      where,
+      orderBy,
+      take: take ?? 20,
+      skip: skip ?? 0,
+      include: { items: true, store: true },
+    };
+    if (cursorId) {
+      args.cursor = { id: cursorId };
+      // When using cursor pagination, skip the cursor row itself by default
+      if (!skip) args.skip = 1;
+    }
+    return this.prisma.consumerSale.findMany(args);
+  }
+
+  @Query(() => [ConsumerReceipt])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN')
+  consumerReceiptsByCustomer(
+    @Args('customerId') customerId: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+    @Args('order', { nullable: true }) order?: 'asc' | 'desc',
+    @Args('cursorId', { nullable: true }) cursorId?: string,
+  ) {
+    const where: Prisma.ConsumerReceiptWhereInput = {
+      sale: { CustomerProfile: { some: { userId: customerId } } },
+    };
+    const orderBy: Prisma.ConsumerReceiptOrderByWithRelationInput = {
+      issuedAt: order === 'asc' ? 'asc' : 'desc',
+    };
+    const args: Prisma.ConsumerReceiptFindManyArgs = {
+      where,
+      orderBy,
+      take: take ?? 20,
+      skip: skip ?? 0,
+    };
+    if (cursorId) {
+      args.cursor = { id: cursorId };
+      if (!skip) args.skip = 1;
+    }
+    return this.prisma.consumerReceipt.findMany(args);
   }
 }

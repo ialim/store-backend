@@ -96,3 +96,51 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+## Developer Quick Start (Invoice Imports)
+
+- One-time: ensure Docker is installed (for the Python OCR container).
+- Start the OCR microservice: `docker compose up -d`
+- Start the API (watch): `npm run start:dev`
+- Start the admin UI: `cd admin-ui && npm run dev`
+
+Alternatively, use the helper script:
+
+```
+npm run dev:stack
+```
+
+Notes and current TODOs are captured in `docs/INVOICE_IMPORT_NOTES.md`.
+
+## Invoice Import OCR Providers
+
+This project supports multiple providers to extract and parse invoice content into structured line items.
+
+- Python OCR microservice (on‑prem)
+  - Build and run:
+    - `docker compose up -d` (builds `python-invoice-ocr` and exposes port 8000)
+  - Configure backend env:
+    - `INVOICE_OCR_PROVIDER=python`
+    - `INVOICE_OCR_URL=http://localhost:8000/parse`
+  - Health: `GET http://localhost:8000/health`
+
+- AWS Textract AnalyzeExpense (managed)
+  - Install SDK (optional at runtime): `npm i @aws-sdk/client-textract --legacy-peer-deps`
+  - Configure backend env:
+    - `INVOICE_OCR_PROVIDER=textract`
+    - `AWS_REGION=us-east-1` (or your region)
+    - Provide AWS credentials via env or role
+  - The backend dynamically loads the SDK and falls back to built‑in parsing if unavailable.
+
+- Built‑in extraction
+  - PDF text: `pdf-parse` (+ optional PDF.js fallback)
+  - OCR: `tesseract.js` for images
+
+Behavior
+- Create and Reprocess actions queue background parsing and update status: `PROCESSING` → `READY`/`NEEDS_REVIEW`/`FAILED`.
+- Admin UI `/invoice-imports` polls when any import is processing.
+- Detail page shows parsed lines and a “Raw Text (debug)” toggle.
+
+Vendor normalization
+- Normalization hooks let us adjust totals/discounts per supplier.
+- Add rules in `src/modules/purchase/vendor-rules.ts`.

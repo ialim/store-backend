@@ -12,4 +12,3 @@ export class VariantTierPrice {
   @Field(() => Float)
   price!: number;
 }
-

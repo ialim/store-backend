@@ -21,4 +21,3 @@ export class PaymentMethodBreakdownEntry {
   @Field(() => Int)
   resellerCount!: number;
 }
-

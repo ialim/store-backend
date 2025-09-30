@@ -14,4 +14,3 @@ export class AdminSendSupportMessageInput {
   @Field()
   message!: string;
 }
-

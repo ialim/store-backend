@@ -1,16 +1,32 @@
 // src/stock/stock.service.ts
 
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PRODUCT_VARIANT_SUMMARY_SELECT } from '../../common/prisma/selects';
 import { ReceiveStockBatchInput } from './dto/receive-stock-batch.input';
 import { TransferStockInput } from './dto/transfer-stock.input';
-import { MovementDirection } from '../../shared/prismagraphql/prisma/movement-direction.enum';
+import {
+  MovementDirection as PrismaMovementDirection,
+  PurchasePhase as PrismaPurchasePhase,
+  PurchaseOrderStatus as PrismaPurchaseOrderStatus,
+} from '@prisma/client';
 import { NotificationService } from '../notification/notification.service';
 import { SetReorderSettingsInput } from './dto/set-reorder-settings.input';
 import { DomainEventsService } from '../events/services/domain-events.service';
 
+const toErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+};
+
 @Injectable()
 export class StockService {
+  private readonly logger = new Logger(StockService.name);
   constructor(
     private prisma: PrismaService,
     private notificationService: NotificationService,
@@ -24,6 +40,10 @@ export class StockService {
         storeId: storeId ?? undefined,
         productVariantId: productVariantId ?? undefined,
       },
+      include: {
+        store: { select: { id: true, name: true } },
+        productVariant: { select: PRODUCT_VARIANT_SUMMARY_SELECT },
+      },
     });
   }
 
@@ -36,34 +56,68 @@ export class StockService {
     });
   }
 
+  async stockTotalsByProduct(productId: string) {
+    const rows = await this.prisma.stock.findMany({
+      where: { productVariant: { productId } },
+      select: { productVariantId: true, quantity: true, reserved: true },
+    });
+    const totals = new Map<string, { onHand: number; reserved: number }>();
+    for (const r of rows) {
+      const t = totals.get(r.productVariantId) || { onHand: 0, reserved: 0 };
+      t.onHand += r.quantity || 0;
+      t.reserved += r.reserved || 0;
+      totals.set(r.productVariantId, t);
+    }
+    return Array.from(totals.entries()).map(([variantId, t]) => ({
+      variantId,
+      onHand: t.onHand,
+      reserved: t.reserved,
+      available: t.onHand - t.reserved,
+    }));
+  }
+
+  async stockTotalsByProductStore(productId: string, storeId: string) {
+    const rows = await this.prisma.stock.findMany({
+      where: { productVariant: { productId }, storeId },
+      select: { productVariantId: true, quantity: true, reserved: true },
+    });
+    const totals = new Map<string, { onHand: number; reserved: number }>();
+    for (const r of rows) {
+      const t = totals.get(r.productVariantId) || { onHand: 0, reserved: 0 };
+      t.onHand += r.quantity || 0;
+      t.reserved += r.reserved || 0;
+      totals.set(r.productVariantId, t);
+    }
+    return Array.from(totals.entries()).map(([variantId, t]) => ({
+      variantId,
+      onHand: t.onHand,
+      reserved: t.reserved,
+      available: t.onHand - t.reserved,
+    }));
+  }
+
   // Helper to apply stock changes after creating a movement record
   private async applyStockMovement(
-    direction: MovementDirection,
+    direction: PrismaMovementDirection,
     storeId: string,
     items: { productVariantId: string; quantity: number }[],
   ) {
     for (const { productVariantId, quantity } of items) {
       await this.prisma.stock.upsert({
         where: {
-          id: undefined,
-          // composite unique constraint: (storeId, productVariantId)
-          AND: [
-            {
-              storeId,
-              productVariantId,
-            },
-          ],
+          storeId_productVariantId: { storeId, productVariantId },
         },
         update: {
           quantity:
-            direction === MovementDirection.IN
+            direction === PrismaMovementDirection.IN
               ? { increment: quantity }
               : { decrement: quantity },
         },
         create: {
           storeId,
           productVariantId,
-          quantity: direction === MovementDirection.IN ? quantity : -quantity,
+          quantity:
+            direction === PrismaMovementDirection.IN ? quantity : -quantity,
           reserved: 0,
         },
       });
@@ -155,7 +209,7 @@ export class StockService {
       const movement = await tx.stockMovement.create({
         data: {
           storeId: batch.storeId,
-          direction: MovementDirection.IN,
+          direction: PrismaMovementDirection.IN,
           movementType: 'PURCHASE',
           referenceEntity: 'StockReceiptBatch',
           referenceId: batch.id,
@@ -171,7 +225,7 @@ export class StockService {
 
       // Apply to stock
       await this.applyStockMovement(
-        MovementDirection.IN,
+        PrismaMovementDirection.IN,
         movement.storeId,
         movement.items.map((i) => ({
           productVariantId: i.productVariantId,
@@ -212,17 +266,20 @@ export class StockService {
           );
 
           // Set phase to RECEIVING on first receipt
-          if (po.phase !== ('RECEIVING' as any)) {
+          if (po.phase !== PrismaPurchasePhase.RECEIVING) {
             await tx.purchaseOrder.update({
               where: { id: po.id },
-              data: { phase: 'RECEIVING' as any },
+              data: { phase: PrismaPurchasePhase.RECEIVING },
             });
           }
 
-          if (fullyReceived && po.status !== ('RECEIVED' as any)) {
+          if (
+            fullyReceived &&
+            po.status !== PrismaPurchaseOrderStatus.RECEIVED
+          ) {
             await tx.purchaseOrder.update({
               where: { id: po.id },
-              data: { status: 'RECEIVED' as any },
+              data: { status: PrismaPurchaseOrderStatus.RECEIVED },
             });
             await this.domainEvents.publish(
               'PURCHASE_ORDER_RECEIVED',
@@ -239,25 +296,39 @@ export class StockService {
             if (paid >= po.totalAmount) {
               await tx.purchaseOrder.update({
                 where: { id: po.id },
-                data: { phase: 'COMPLETED' as any },
+                data: { phase: PrismaPurchasePhase.COMPLETED },
               });
               await this.domainEvents.publish(
                 'PURCHASE_COMPLETED',
                 { purchaseOrderId: po.id },
                 { aggregateType: 'PurchaseOrder', aggregateId: po.id },
               );
-              await this.notificationService.createNotification(
-                po.supplierId,
-                'PURCHASE_COMPLETED',
-                `PO ${po.invoiceNumber} completed.`,
-              );
+              try {
+                const supplier = await tx.supplier.findUnique({
+                  where: { id: po.supplierId },
+                  select: { userId: true },
+                });
+                if (supplier?.userId) {
+                  await this.notificationService.createNotification(
+                    supplier.userId,
+                    'PURCHASE_COMPLETED',
+                    `PO ${po.invoiceNumber} completed.`,
+                  );
+                }
+              } catch (error) {
+                this.logger.warn(
+                  `Failed to notify supplier about completed PO: ${toErrorMessage(
+                    error,
+                  )}`,
+                );
+              }
             }
           }
         }
-      } catch (e) {
-        // Non-fatal; just log to console for now
-        // eslint-disable-next-line no-console
-        console.error('Failed to auto-update PO on receipt:', e);
+      } catch (error) {
+        this.logger.error(
+          `Failed to auto-update PO on receipt: ${toErrorMessage(error)}`,
+        );
       }
 
       return batch;
@@ -288,7 +359,7 @@ export class StockService {
       const outMovement = await tx.stockMovement.create({
         data: {
           storeId: transfer.fromStoreId,
-          direction: MovementDirection.OUT,
+          direction: PrismaMovementDirection.OUT,
           movementType: 'TRANSFER',
           referenceEntity: 'StockTransfer',
           referenceId: transfer.id,
@@ -306,7 +377,7 @@ export class StockService {
       const inMovement = await tx.stockMovement.create({
         data: {
           storeId: transfer.toStoreId,
-          direction: MovementDirection.IN,
+          direction: PrismaMovementDirection.IN,
           movementType: 'TRANSFER',
           referenceEntity: 'StockTransfer',
           referenceId: transfer.id,
@@ -322,7 +393,7 @@ export class StockService {
 
       // Apply both movements
       await this.applyStockMovement(
-        MovementDirection.OUT,
+        PrismaMovementDirection.OUT,
         outMovement.storeId,
         outMovement.items.map((i) => ({
           productVariantId: i.productVariantId,
@@ -330,7 +401,7 @@ export class StockService {
         })),
       );
       await this.applyStockMovement(
-        MovementDirection.IN,
+        PrismaMovementDirection.IN,
         inMovement.storeId,
         inMovement.items.map((i) => ({
           productVariantId: i.productVariantId,

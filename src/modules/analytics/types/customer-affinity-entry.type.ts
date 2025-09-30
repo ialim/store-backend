@@ -8,4 +8,3 @@ export class CustomerAffinityEntry {
   @Field(() => Int)
   count!: number;
 }
-
