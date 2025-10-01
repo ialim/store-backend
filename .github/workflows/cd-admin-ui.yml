@@ -32,23 +32,31 @@ jobs:
           path: admin-ui/dist
 
   deploy_netlify:
-    if: ${{ env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != '' }}
     needs: [build]
     runs-on: ubuntu-latest
     env:
       NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
       NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
     steps:
+      - name: Check Netlify secrets present
+        run: |
+          if [ -z "$NETLIFY_AUTH_TOKEN" ] || [ -z "$NETLIFY_SITE_ID" ]; then
+            echo "Netlify secrets missing, skipping deploy."
+            exit 0
+          fi
       - uses: actions/download-artifact@v4
+        if: ${{ env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != '' }}
         with:
           name: admin-ui-dist
           path: dist
       - name: Prepare publish directory
+        if: ${{ env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != '' }}
         run: |
           mkdir -p admin-ui
           rm -rf admin-ui/dist
           mv dist admin-ui/dist
       - name: Deploy to Netlify
+        if: ${{ env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != '' }}
         uses: netlify/actions/cli@v2
         with:
           args: deploy --dir=admin-ui/dist --prod --site ${{ env.NETLIFY_SITE_ID }}
