@@ -32,9 +32,12 @@ jobs:
           path: admin-ui/dist
 
   deploy_netlify:
-    if: ${{ secrets.NETLIFY_AUTH_TOKEN != '' && secrets.NETLIFY_SITE_ID != '' }}
+    if: ${{ env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != '' }}
     needs: [build]
     runs-on: ubuntu-latest
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -48,6 +51,4 @@ jobs:
       - name: Deploy to Netlify
         uses: netlify/actions/cli@v2
         with:
-          args: deploy --dir=admin-ui/dist --prod --site ${{ secrets.NETLIFY_SITE_ID }}
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          args: deploy --dir=admin-ui/dist --prod --site ${{ env.NETLIFY_SITE_ID }}
