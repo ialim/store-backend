@@ -1,0 +1,126 @@
+// sync.prisma
+
+enum LegacySyncEntity {
+  PRICES
+  SALES_TICKET
+  SALES_INVOICE
+}
+
+/// @TypeGraphQL.omit(input: true, output: true)
+model LegacySyncCursor {
+  id        String            @id @default(uuid())
+  entity    LegacySyncEntity
+  storeCode String
+  cursor    String
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([entity, storeCode])
+}
+
+/// @TypeGraphQL.omit(input: true, output: true)
+model LegacyPriceSnapshot {
+  id             String    @id @default(uuid())
+  identity       String    @unique
+  storeCode      String
+  tariffId       Int
+  articleCode    String
+  sizeCode       String?
+  colorCode      String?
+  formatCode     Int?
+  priceGross     Float?
+  discount       Float?
+  priceNet       Float?
+  priceGrossAlt  Float?
+  discountAlt    Float?
+  priceNetAlt    Float?
+  priceDate      DateTime
+  warehouseCode  String
+  stockQuantity  Float?
+  stockDate      DateTime?
+  createdAt      DateTime  @default(now())
+  processedAt    DateTime?
+  processingError String?
+
+  @@unique([storeCode, tariffId, articleCode, sizeCode, colorCode, formatCode, priceDate, warehouseCode], name: "legacyPriceSnapshotIdentity")
+}
+
+/// @TypeGraphQL.omit(input: true, output: true)
+model LegacyTicket {
+  id             String    @id @default(uuid())
+  identity       String    @unique
+  storeCode      String
+  warehouseCode  String?
+  fo             Int?
+  serie          String?
+  ticketNumber   Int?
+  suffix         String?
+  issuedAt       DateTime
+  openedAt       DateTime?
+  closedAt       DateTime?
+  totalNet       Float?
+  customerCode   Int?
+  vendorCode     Int?
+  createdAt      DateTime  @default(now())
+  processedAt    DateTime?
+  processingError String?
+
+  lines          LegacyTicketLine[]
+}
+
+/// @TypeGraphQL.omit(input: true, output: true)
+model LegacyTicketLine {
+  id           String   @id @default(uuid())
+  ticketId     String
+  lineNumber   Int
+  articleCode  String
+  sizeCode     String?
+  colorCode    String?
+  quantity     Float?
+  price        Float?
+  priceVat     Float?
+  total        Float?
+  vendorCode   Int?
+
+  ticket       LegacyTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@unique([ticketId, lineNumber], map: "legacy_ticket_line_identity")
+}
+
+/// @TypeGraphQL.omit(input: true, output: true)
+model LegacyInvoice {
+  id             String    @id @default(uuid())
+  identity       String    @unique
+  storeCode      String
+  warehouseCode  String?
+  serie          String?
+  invoiceNumber  Int?
+  suffix         String?
+  issuedAt       DateTime
+  totalNet       Float?
+  customerCode   Int?
+  vendorCode     Int?
+  createdAt      DateTime  @default(now())
+  processedAt    DateTime?
+  processingError String?
+
+  lines          LegacyInvoiceLine[]
+}
+
+/// @TypeGraphQL.omit(input: true, output: true)
+model LegacyInvoiceLine {
+  id           String   @id @default(uuid())
+  invoiceId    String
+  lineNumber   Int
+  articleCode  String
+  sizeCode     String?
+  colorCode    String?
+  quantity     Float?
+  price        Float?
+  priceVat     Float?
+  total        Float?
+
+  invoice      LegacyInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@unique([invoiceId, lineNumber], map: "legacy_invoice_line_identity")
+}

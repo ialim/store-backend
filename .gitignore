@@ -60,3 +60,11 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
  
 # Uploads (local artifacts)
 uploads/
+
+# Extractor runtime data
+extractor/state/
+extractor/batches/
+
+# Local data extracts
+variants.csv
+chart.md

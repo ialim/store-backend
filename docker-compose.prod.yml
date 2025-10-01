@@ -15,8 +15,8 @@ services:
       - "5432:5432"
 
   backend:
-    # Use published image (preferred in prod); set GHCR_OWNER in .env
-    image: ghcr.io/${GHCR_OWNER:-your-github-username}/store-backend:latest
+    # Use published image (preferred in prod); set GHCR_OWNER and optionally BACKEND_IMAGE_TAG in .env
+    image: ghcr.io/${GHCR_OWNER:-your-github-username}/store-backend:${BACKEND_IMAGE_TAG:-latest}
     # Alternatively, build locally:
     # build:
     #   context: .
@@ -36,7 +36,7 @@ services:
       - "3000:3000"
 
   invoice-ocr:
-    image: ghcr.io/${GHCR_OWNER:-your-github-username}/invoice-ocr:latest
+    image: ghcr.io/${GHCR_OWNER:-your-github-username}/invoice-ocr:${OCR_IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
       TZ: UTC
@@ -50,4 +50,3 @@ services:
 
 volumes:
   db_data:
-

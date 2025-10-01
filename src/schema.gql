@@ -945,6 +945,7 @@ type ProductVariant {
   productId: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime!
@@ -1005,6 +1006,13 @@ enum InvoiceImportStatus {
   COMPLETED
 }
 
+type LegacyStoreMapping {
+  id: ID!
+  storeCode: String!
+  storeId: String!
+  store: Store!
+}
+
 type StoreCount {
   stocks: Int!
   receipts: Int!
@@ -1020,6 +1028,7 @@ type StoreCount {
   PurchaseRequisition: Int!
   purchaseOrders: Int!
   InvoiceImport: Int!
+  legacyMappings: Int!
 }
 
 type Store {
@@ -1045,6 +1054,7 @@ type Store {
   PurchaseRequisition: [PurchaseRequisition!]
   purchaseOrders: [PurchaseOrder!]
   InvoiceImport: [InvoiceImport!]
+  legacyMappings: [LegacyStoreMapping!]
   _count: StoreCount!
 }
 
@@ -1297,6 +1307,7 @@ type ProductVariantCountAggregate {
   productId: Int!
   name: Int!
   barcode: Int!
+  legacyArticleCode: Int!
   price: Int!
   resellerPrice: Int!
   createdAt: Int!
@@ -1319,6 +1330,7 @@ type ProductVariantMinAggregate {
   productId: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float
   resellerPrice: Float
   createdAt: DateTime
@@ -1330,6 +1342,7 @@ type ProductVariantMaxAggregate {
   productId: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float
   resellerPrice: Float
   createdAt: DateTime
@@ -1349,6 +1362,7 @@ type ProductVariantGroupBy {
   productId: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime!
@@ -2494,6 +2508,7 @@ input ProductVariantWhereInput {
   productId: StringNullableFilter
   name: StringNullableFilter
   barcode: StringNullableFilter
+  legacyArticleCode: StringNullableFilter
   price: FloatFilter
   resellerPrice: FloatFilter
   createdAt: DateTimeFilter
@@ -2642,6 +2657,7 @@ input StoreWhereInput {
   PurchaseRequisition: PurchaseRequisitionListRelationFilter
   purchaseOrders: PurchaseOrderListRelationFilter
   InvoiceImport: InvoiceImportListRelationFilter
+  legacyMappings: LegacyStoreMappingListRelationFilter
 }
 
 input BoolFilter {
@@ -4230,6 +4246,22 @@ input NestedEnumInvoiceImportStatusFilter {
   not: NestedEnumInvoiceImportStatusFilter
 }
 
+input LegacyStoreMappingListRelationFilter {
+  every: LegacyStoreMappingWhereInput
+  some: LegacyStoreMappingWhereInput
+  none: LegacyStoreMappingWhereInput
+}
+
+input LegacyStoreMappingWhereInput {
+  AND: [LegacyStoreMappingWhereInput!]
+  OR: [LegacyStoreMappingWhereInput!]
+  NOT: [LegacyStoreMappingWhereInput!]
+  id: StringFilter
+  storeCode: StringFilter
+  storeId: StringFilter
+  store: StoreScalarRelationFilter
+}
+
 input ProductSalesStatsNullableScalarRelationFilter {
   is: ProductSalesStatsWhereInput
   isNot: ProductSalesStatsWhereInput
@@ -4573,6 +4605,7 @@ input ProductVariantOrderByWithRelationInput {
   productId: SortOrderInput
   name: SortOrderInput
   barcode: SortOrderInput
+  legacyArticleCode: SortOrderInput
   price: SortOrder
   resellerPrice: SortOrder
   createdAt: SortOrder
@@ -4669,6 +4702,7 @@ input VariantFacetValueOrderByRelationAggregateInput {
 input ProductVariantWhereUniqueInput {
   id: String
   barcode: String
+  legacyArticleCode: String
   AND: [ProductVariantWhereInput!]
   OR: [ProductVariantWhereInput!]
   NOT: [ProductVariantWhereInput!]
@@ -4702,6 +4736,7 @@ enum ProductVariantScalarFieldEnum {
   productId
   name
   barcode
+  legacyArticleCode
   price
   resellerPrice
   createdAt
@@ -4713,6 +4748,7 @@ input ProductVariantOrderByWithAggregationInput {
   productId: SortOrderInput
   name: SortOrderInput
   barcode: SortOrderInput
+  legacyArticleCode: SortOrderInput
   price: SortOrder
   resellerPrice: SortOrder
   createdAt: SortOrder
@@ -4729,6 +4765,7 @@ input ProductVariantCountOrderByAggregateInput {
   productId: SortOrder
   name: SortOrder
   barcode: SortOrder
+  legacyArticleCode: SortOrder
   price: SortOrder
   resellerPrice: SortOrder
   createdAt: SortOrder
@@ -4745,6 +4782,7 @@ input ProductVariantMaxOrderByAggregateInput {
   productId: SortOrder
   name: SortOrder
   barcode: SortOrder
+  legacyArticleCode: SortOrder
   price: SortOrder
   resellerPrice: SortOrder
   createdAt: SortOrder
@@ -4756,6 +4794,7 @@ input ProductVariantMinOrderByAggregateInput {
   productId: SortOrder
   name: SortOrder
   barcode: SortOrder
+  legacyArticleCode: SortOrder
   price: SortOrder
   resellerPrice: SortOrder
   createdAt: SortOrder
@@ -4775,6 +4814,7 @@ input ProductVariantScalarWhereWithAggregatesInput {
   productId: StringNullableWithAggregatesFilter
   name: StringNullableWithAggregatesFilter
   barcode: StringNullableWithAggregatesFilter
+  legacyArticleCode: StringNullableWithAggregatesFilter
   price: FloatWithAggregatesFilter
   resellerPrice: FloatWithAggregatesFilter
   createdAt: DateTimeWithAggregatesFilter
@@ -4818,6 +4858,7 @@ input ProductVariantCountAggregateInput {
   productId: Boolean
   name: Boolean
   barcode: Boolean
+  legacyArticleCode: Boolean
   price: Boolean
   resellerPrice: Boolean
   createdAt: Boolean
@@ -4840,6 +4881,7 @@ input ProductVariantMinAggregateInput {
   productId: Boolean
   name: Boolean
   barcode: Boolean
+  legacyArticleCode: Boolean
   price: Boolean
   resellerPrice: Boolean
   createdAt: Boolean
@@ -4851,6 +4893,7 @@ input ProductVariantMaxAggregateInput {
   productId: Boolean
   name: Boolean
   barcode: Boolean
+  legacyArticleCode: Boolean
   price: Boolean
   resellerPrice: Boolean
   createdAt: Boolean
@@ -5025,6 +5068,7 @@ input StoreOrderByWithRelationInput {
   PurchaseRequisition: PurchaseRequisitionOrderByRelationAggregateInput
   purchaseOrders: PurchaseOrderOrderByRelationAggregateInput
   InvoiceImport: InvoiceImportOrderByRelationAggregateInput
+  legacyMappings: LegacyStoreMappingOrderByRelationAggregateInput
 }
 
 input StockReceiptBatchOrderByRelationAggregateInput {
@@ -5068,6 +5112,10 @@ input PurchaseRequisitionOrderByRelationAggregateInput {
 }
 
 input InvoiceImportOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input LegacyStoreMappingOrderByRelationAggregateInput {
   _count: SortOrder
 }
 
@@ -5209,6 +5257,7 @@ input StoreWhereUniqueInput {
   PurchaseRequisition: PurchaseRequisitionListRelationFilter
   purchaseOrders: PurchaseOrderListRelationFilter
   InvoiceImport: InvoiceImportListRelationFilter
+  legacyMappings: LegacyStoreMappingListRelationFilter
 }
 
 enum StoreScalarFieldEnum {
@@ -5746,6 +5795,7 @@ input ProductVariantCreateWithoutProductInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -5813,6 +5863,7 @@ input StoreCreateWithoutStocksInput {
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input UserCreateNestedOneWithoutStoreInput {
@@ -6055,6 +6106,7 @@ input StoreCreateWithoutCustomerProfileInput {
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input StockCreateNestedManyWithoutStoreInput {
@@ -6085,6 +6137,7 @@ input ProductVariantCreateWithoutStockItemsInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -6180,6 +6233,7 @@ input ProductVariantCreateWithoutFacetsInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -6260,6 +6314,7 @@ input StoreCreateWithoutReceiptsInput {
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input StockTransferCreateNestedManyWithoutFromStoreInput {
@@ -6306,6 +6361,7 @@ input StoreCreateWithoutTransfersInInput {
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input StockReceiptBatchCreateNestedManyWithoutStoreInput {
@@ -6492,6 +6548,7 @@ input StoreCreateWithoutCustomerInput {
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input StockTransferCreateNestedManyWithoutToStoreInput {
@@ -6538,6 +6595,7 @@ input StoreCreateWithoutTransfersOutInput {
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input ConsumerSaleCreateNestedManyWithoutStoreInput {
@@ -6841,6 +6899,7 @@ input StoreCreateWithoutCustomerSalesInput {
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input SalesReturnCreateNestedManyWithoutStoreInput {
@@ -7094,6 +7153,7 @@ input StoreCreateWithoutQuotationInput {
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input ResellerSaleCreateNestedManyWithoutStoreInput {
@@ -7215,6 +7275,7 @@ input ProductVariantCreateWithoutReceiptItemsInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -7425,6 +7486,7 @@ input StoreCreateWithoutManagerInput {
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input StockMovementCreateNestedManyWithoutStoreInput {
@@ -7467,6 +7529,7 @@ input ProductVariantCreateWithoutStockMovementItemInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -7713,6 +7776,7 @@ input ProductVariantCreateWithoutConsumerItemsInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -8028,6 +8092,7 @@ input StoreCreateWithoutResellerSalesInput {
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input CustomerCreateNestedManyWithoutPreferredStoreInput {
@@ -8189,6 +8254,7 @@ input ProductVariantCreateWithoutResellerItemsInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -8732,6 +8798,7 @@ input StoreCreateWithoutPurchaseOrdersInput {
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input CustomerProfileCreateNestedManyWithoutPreferredStoreInput {
@@ -8861,6 +8928,7 @@ input StoreCreateWithoutSalesReturnsInput {
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input QuotationCreateNestedManyWithoutStoreInput {
@@ -9478,6 +9546,7 @@ input ProductVariantCreateWithoutQuotationItemsInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -9678,6 +9747,7 @@ input ProductVariantCreateWithoutReturnItemsInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -9932,6 +10002,7 @@ input ProductVariantCreateWithoutPurchaseOrderItemInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -10010,6 +10081,7 @@ input StoreCreateWithoutMovementsInput {
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input PurchaseRequisitionCreateNestedManyWithoutStoreInput {
@@ -10245,6 +10317,7 @@ input StoreCreateWithoutPurchaseRequisitionInput {
   Quotation: QuotationCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input PurchaseOrderCreateNestedManyWithoutStoreInput {
@@ -10311,6 +10384,7 @@ input ProductVariantCreateWithoutPurchaseReturnItemsInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -10541,6 +10615,7 @@ input ProductVariantCreateWithoutSupplierCatalogInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -10635,6 +10710,7 @@ input ProductVariantCreateWithoutPurchaseRequisitionItemInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -10739,6 +10815,7 @@ input ProductVariantCreateWithoutSupplierQuoteItemInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -11551,6 +11628,43 @@ input InvoiceImportCreateManyStoreInput {
   message: String
   createdAt: DateTime
   updatedAt: DateTime
+}
+
+input LegacyStoreMappingCreateNestedManyWithoutStoreInput {
+  create: [LegacyStoreMappingCreateWithoutStoreInput!]
+  connectOrCreate: [LegacyStoreMappingCreateOrConnectWithoutStoreInput!]
+  createMany: LegacyStoreMappingCreateManyStoreInputEnvelope
+  connect: [LegacyStoreMappingWhereUniqueInput!]
+}
+
+input LegacyStoreMappingCreateWithoutStoreInput {
+  id: String
+  storeCode: String!
+}
+
+input LegacyStoreMappingCreateOrConnectWithoutStoreInput {
+  where: LegacyStoreMappingWhereUniqueInput!
+  create: LegacyStoreMappingCreateWithoutStoreInput!
+}
+
+input LegacyStoreMappingWhereUniqueInput {
+  id: String
+  storeCode: String
+  AND: [LegacyStoreMappingWhereInput!]
+  OR: [LegacyStoreMappingWhereInput!]
+  NOT: [LegacyStoreMappingWhereInput!]
+  storeId: StringFilter
+  store: StoreScalarRelationFilter
+}
+
+input LegacyStoreMappingCreateManyStoreInputEnvelope {
+  data: [LegacyStoreMappingCreateManyStoreInput!]!
+  skipDuplicates: Boolean
+}
+
+input LegacyStoreMappingCreateManyStoreInput {
+  id: String
+  storeCode: String!
 }
 
 input StoreCreateOrConnectWithoutPurchaseRequisitionInput {
@@ -13450,6 +13564,7 @@ input ProductVariantCreateWithoutTransferItemsInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -14212,6 +14327,7 @@ input ProductVariantCreateManyProductInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -14274,6 +14390,7 @@ input ProductVariantUpdateWithoutProductInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -14386,6 +14503,7 @@ input StoreUpdateWithoutStocksInput {
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input BoolFieldUpdateOperationsInput {
@@ -14715,6 +14833,7 @@ input StoreUpdateWithoutCustomerProfileInput {
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input StockUpdateManyWithoutStoreNestedInput {
@@ -14766,6 +14885,7 @@ input ProductVariantUpdateWithoutStockItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -14914,6 +15034,7 @@ input ProductVariantUpdateWithoutFacetsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -15023,6 +15144,7 @@ input StoreUpdateWithoutReceiptsInput {
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input StockTransferUpdateManyWithoutFromStoreNestedInput {
@@ -15094,6 +15216,7 @@ input StoreUpdateWithoutTransfersInInput {
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input StockReceiptBatchUpdateManyWithoutStoreNestedInput {
@@ -15380,6 +15503,7 @@ input StoreUpdateWithoutCustomerInput {
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input StockTransferUpdateManyWithoutToStoreNestedInput {
@@ -15447,6 +15571,7 @@ input StoreUpdateWithoutTransfersOutInput {
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input ConsumerSaleUpdateManyWithoutStoreNestedInput {
@@ -15837,6 +15962,7 @@ input StoreUpdateWithoutCustomerSalesInput {
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input SalesReturnUpdateManyWithoutStoreNestedInput {
@@ -16187,6 +16313,7 @@ input StoreUpdateWithoutQuotationInput {
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input ResellerSaleUpdateManyWithoutStoreNestedInput {
@@ -16363,6 +16490,7 @@ input ProductVariantUpdateWithoutReceiptItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -16638,6 +16766,7 @@ input StoreUpdateWithoutManagerInput {
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input StockMovementUpdateManyWithoutStoreNestedInput {
@@ -16722,6 +16851,7 @@ input ProductVariantUpdateWithoutStockMovementItemInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -17060,6 +17190,7 @@ input ProductVariantUpdateWithoutConsumerItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -17501,6 +17632,7 @@ input StoreUpdateWithoutResellerSalesInput {
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input CustomerUpdateManyWithoutPreferredStoreNestedInput {
@@ -17743,6 +17875,7 @@ input ProductVariantUpdateWithoutResellerItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -18476,6 +18609,7 @@ input StoreUpdateWithoutPurchaseOrdersInput {
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input CustomerProfileUpdateManyWithoutPreferredStoreNestedInput {
@@ -18662,6 +18796,7 @@ input StoreUpdateWithoutSalesReturnsInput {
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input QuotationUpdateManyWithoutStoreNestedInput {
@@ -19505,6 +19640,7 @@ input ProductVariantUpdateWithoutQuotationItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -19791,6 +19927,7 @@ input ProductVariantUpdateWithoutReturnItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -20115,6 +20252,7 @@ input ProductVariantUpdateWithoutPurchaseOrderItemInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -20222,6 +20360,7 @@ input StoreUpdateWithoutMovementsInput {
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input PurchaseRequisitionUpdateManyWithoutStoreNestedInput {
@@ -20546,6 +20685,7 @@ input StoreUpdateWithoutPurchaseRequisitionInput {
   Quotation: QuotationUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input PurchaseOrderUpdateManyWithoutStoreNestedInput {
@@ -20659,6 +20799,7 @@ input ProductVariantUpdateWithoutPurchaseReturnItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -21024,6 +21165,7 @@ input ProductVariantUpdateWithoutSupplierCatalogInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -21168,6 +21310,7 @@ input ProductVariantUpdateWithoutPurchaseRequisitionItemInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -21327,6 +21470,7 @@ input ProductVariantUpdateWithoutSupplierQuoteItemInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -22088,6 +22232,55 @@ input InvoiceImportUpdateManyMutationInput {
   message: NullableStringFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
+}
+
+input LegacyStoreMappingUpdateManyWithoutStoreNestedInput {
+  create: [LegacyStoreMappingCreateWithoutStoreInput!]
+  connectOrCreate: [LegacyStoreMappingCreateOrConnectWithoutStoreInput!]
+  upsert: [LegacyStoreMappingUpsertWithWhereUniqueWithoutStoreInput!]
+  createMany: LegacyStoreMappingCreateManyStoreInputEnvelope
+  set: [LegacyStoreMappingWhereUniqueInput!]
+  disconnect: [LegacyStoreMappingWhereUniqueInput!]
+  delete: [LegacyStoreMappingWhereUniqueInput!]
+  connect: [LegacyStoreMappingWhereUniqueInput!]
+  update: [LegacyStoreMappingUpdateWithWhereUniqueWithoutStoreInput!]
+  updateMany: [LegacyStoreMappingUpdateManyWithWhereWithoutStoreInput!]
+  deleteMany: [LegacyStoreMappingScalarWhereInput!]
+}
+
+input LegacyStoreMappingUpsertWithWhereUniqueWithoutStoreInput {
+  where: LegacyStoreMappingWhereUniqueInput!
+  update: LegacyStoreMappingUpdateWithoutStoreInput!
+  create: LegacyStoreMappingCreateWithoutStoreInput!
+}
+
+input LegacyStoreMappingUpdateWithoutStoreInput {
+  id: StringFieldUpdateOperationsInput
+  storeCode: StringFieldUpdateOperationsInput
+}
+
+input LegacyStoreMappingUpdateWithWhereUniqueWithoutStoreInput {
+  where: LegacyStoreMappingWhereUniqueInput!
+  data: LegacyStoreMappingUpdateWithoutStoreInput!
+}
+
+input LegacyStoreMappingUpdateManyWithWhereWithoutStoreInput {
+  where: LegacyStoreMappingScalarWhereInput!
+  data: LegacyStoreMappingUpdateManyMutationInput!
+}
+
+input LegacyStoreMappingScalarWhereInput {
+  AND: [LegacyStoreMappingScalarWhereInput!]
+  OR: [LegacyStoreMappingScalarWhereInput!]
+  NOT: [LegacyStoreMappingScalarWhereInput!]
+  id: StringFilter
+  storeCode: StringFilter
+  storeId: StringFilter
+}
+
+input LegacyStoreMappingUpdateManyMutationInput {
+  id: StringFieldUpdateOperationsInput
+  storeCode: StringFieldUpdateOperationsInput
 }
 
 input StoreUpdateToOneWithWhereWithoutPurchaseRequisitionInput {
@@ -23746,6 +23939,7 @@ input ProductVariantUpdateWithoutTransferItemsInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -24324,6 +24518,7 @@ input ProductVariantScalarWhereInput {
   productId: StringNullableFilter
   name: StringNullableFilter
   barcode: StringNullableFilter
+  legacyArticleCode: StringNullableFilter
   price: FloatFilter
   resellerPrice: FloatFilter
   createdAt: DateTimeFilter
@@ -24334,6 +24529,7 @@ input ProductVariantUpdateManyMutationInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -24353,6 +24549,7 @@ input ProductVariantCreateInput {
   id: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -24381,6 +24578,7 @@ input ProductVariantCreateManyInput {
   productId: String
   name: String
   barcode: String
+  legacyArticleCode: String
   price: Float!
   resellerPrice: Float!
   createdAt: DateTime
@@ -24391,6 +24589,7 @@ input ProductVariantUpdateInput {
   id: StringFieldUpdateOperationsInput
   name: NullableStringFieldUpdateOperationsInput
   barcode: NullableStringFieldUpdateOperationsInput
+  legacyArticleCode: NullableStringFieldUpdateOperationsInput
   price: FloatFieldUpdateOperationsInput
   resellerPrice: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -24967,6 +25166,7 @@ input StoreCreateInput {
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutStoreInput
   purchaseOrders: PurchaseOrderCreateNestedManyWithoutStoreInput
   InvoiceImport: InvoiceImportCreateNestedManyWithoutStoreInput
+  legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
 input StoreCreateManyInput {
@@ -25001,6 +25201,7 @@ input StoreUpdateInput {
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutStoreNestedInput
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
+  legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
 }
 
 input UserCreateInput {

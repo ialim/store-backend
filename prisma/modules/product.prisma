@@ -21,6 +21,7 @@ model ProductVariant {
   // Optional display name for standalone listing pages
   name             String?
   barcode          String?  @unique
+  legacyArticleCode String? @unique
   price            Float
   resellerPrice    Float
   createdAt        DateTime @default(now())

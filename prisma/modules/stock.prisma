@@ -26,6 +26,8 @@ model Store {
   purchaseOrders      PurchaseOrder[]
 
   InvoiceImport InvoiceImport[]
+
+  legacyMappings LegacyStoreMapping[]
 }
 
 model Stock {
@@ -121,6 +123,14 @@ model StockMovementItem {
 
   movement         StockMovement    @relation(fields: [stockMovementId], references: [id])
   productVariant   ProductVariant   @relation(fields: [productVariantId], references: [id])
+}
+
+model LegacyStoreMapping {
+  id        String @id @default(uuid())
+  storeCode String @unique
+  storeId   String
+
+  store Store @relation(fields: [storeId], references: [id])
 }
 
 enum MovementDirection {

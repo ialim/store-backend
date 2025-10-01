@@ -23,6 +23,7 @@ import { ReturnsModule } from './modules/returns/returns.module';
 import { SupportModule } from './modules/support/support.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { DevToolsModule } from './modules/devtools/devtools.module';
+import { SyncModule } from './modules/sync/sync.module';
 import { HealthController } from './modules/health/health.controller';
 
 @Module({
@@ -56,6 +57,7 @@ import { HealthController } from './modules/health/health.controller';
     VerificationModule,
     UploadsModule,
     DevToolsModule,
+    SyncModule,
   ],
   controllers: [HealthController],
 })
