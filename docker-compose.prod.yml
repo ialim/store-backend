@@ -9,10 +9,20 @@ services:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email=${TRAEFIK_ACME_EMAIL:-admin@example.com}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.caserver=${TRAEFIK_ACME_CASERVER:-https://acme-v02.api.letsencrypt.org/directory}
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
     networks:
       - proxy
 
@@ -49,7 +59,9 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.backend.rule=Host(`${BACKEND_HOST:-api.localhost}`)
-      - traefik.http.routers.backend.entrypoints=web
+      - traefik.http.routers.backend.entrypoints=websecure
+      - traefik.http.routers.backend.tls=true
+      - traefik.http.routers.backend.tls.certresolver=letsencrypt
       - traefik.http.services.backend.loadbalancer.server.port=3000
     networks:
       - internal
@@ -68,7 +80,9 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.invoice-ocr.rule=Host(`${OCR_HOST:-ocr.localhost}`)
-      - traefik.http.routers.invoice-ocr.entrypoints=web
+      - traefik.http.routers.invoice-ocr.entrypoints=websecure
+      - traefik.http.routers.invoice-ocr.tls=true
+      - traefik.http.routers.invoice-ocr.tls.certresolver=letsencrypt
       - traefik.http.services.invoice-ocr.loadbalancer.server.port=8000
     networks:
       - internal
@@ -76,6 +90,7 @@ services:
 
 volumes:
   db_data:
+  traefik_letsencrypt:
 
 networks:
   internal:
