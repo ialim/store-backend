@@ -40,10 +40,14 @@ jobs:
         with:
           name: admin-ui-dist
           path: dist
+      - name: Prepare publish directory
+        run: |
+          mkdir -p admin-ui
+          rm -rf admin-ui/dist
+          mv dist admin-ui/dist
       - name: Deploy to Netlify
         uses: netlify/actions/cli@v2
         with:
-          args: deploy --dir=dist --prod --site ${{ secrets.NETLIFY_SITE_ID }}
+          args: deploy --dir=admin-ui/dist --prod --site ${{ secrets.NETLIFY_SITE_ID }}
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-
