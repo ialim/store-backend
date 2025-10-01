@@ -2,6 +2,20 @@ version: '3.9'
 name: store-backend-prod
 
 services:
+  traefik:
+    image: traefik:v3.1
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy
+
   db:
     image: postgres:16
     restart: unless-stopped
@@ -11,8 +25,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-store}
     volumes:
       - db_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    networks:
+      - internal
 
   backend:
     # Use published image (preferred in prod); set GHCR_OWNER and optionally BACKEND_IMAGE_TAG in .env
@@ -32,8 +46,14 @@ services:
       SKIP_PRISMA_MIGRATE: ${SKIP_PRISMA_MIGRATE:-false}
       # Add other secrets like JWT, SMTP, etc.
       # JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "3000:3000"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.backend.rule=Host(`${BACKEND_HOST:-api.localhost}`)
+      - traefik.http.routers.backend.entrypoints=web
+      - traefik.http.services.backend.loadbalancer.server.port=3000
+    networks:
+      - internal
+      - proxy
 
   invoice-ocr:
     image: ghcr.io/${GHCR_OWNER:-your-github-username}/invoice-ocr:${OCR_IMAGE_TAG:-latest}
@@ -45,8 +65,19 @@ services:
       OCR_RASTER_DPI: 400
       OCR_REMOVE_LINES: 1
       OCR_PSMS: "6,4,12,11,3"
-    ports:
-      - "8000:8000"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.invoice-ocr.rule=Host(`${OCR_HOST:-ocr.localhost}`)
+      - traefik.http.routers.invoice-ocr.entrypoints=web
+      - traefik.http.services.invoice-ocr.loadbalancer.server.port=8000
+    networks:
+      - internal
+      - proxy
 
 volumes:
   db_data:
+
+networks:
+  internal:
+    internal: true
+  proxy:
