@@ -54,6 +54,7 @@ services:
       # Optional controls
       SKIP_PRISMA_GENERATE: ${SKIP_PRISMA_GENERATE:-false}
       SKIP_PRISMA_MIGRATE: ${SKIP_PRISMA_MIGRATE:-false}
+      ADMIN_UI_ORIGIN: ${ADMIN_UI_ORIGIN:-http://localhost:5173}
       # Add other secrets like JWT, SMTP, etc.
       # JWT_SECRET: ${JWT_SECRET}
     labels:
