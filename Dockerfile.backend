@@ -4,9 +4,9 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Install deps without running npm lifecycle scripts (we run Prisma generate later)
+# Install deps
 COPY package*.json ./
-RUN npm ci --ignore-scripts
+RUN npm ci
 
 # Prisma generate
 COPY prisma ./prisma
