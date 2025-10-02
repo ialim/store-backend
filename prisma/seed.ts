@@ -142,22 +142,35 @@ async function seedVariantsFromCsv(options: {
       continue;
     }
 
-    const productId = `product-${legacyArticleCode}`;
+    const productSeedId = `product-${legacyArticleCode}`;
     const productName = row.name || legacyArticleCode;
-    await prisma.product.upsert({
-      where: { id: productId },
-      update: {
-        name: productName,
-        description: productName,
-        barcode: row.refProveedor || undefined,
-      },
-      create: {
-        id: productId,
-        name: productName,
-        description: productName,
-        barcode: row.refProveedor || undefined,
-      },
-    });
+    const existingProduct = row.refProveedor
+      ? await prisma.product.findUnique({ where: { barcode: row.refProveedor } })
+      : null;
+
+    const productRecord = existingProduct
+      ? await prisma.product.update({
+          where: { id: existingProduct.id },
+          data: {
+            name: productName,
+            description: productName,
+            barcode: row.refProveedor || undefined,
+          },
+        })
+      : await prisma.product.upsert({
+          where: { id: productSeedId },
+          update: {
+            name: productName,
+            description: productName,
+            barcode: row.refProveedor || undefined,
+          },
+          create: {
+            id: productSeedId,
+            name: productName,
+            description: productName,
+            barcode: row.refProveedor || undefined,
+          },
+        });
 
     const listPrice = row.priceNet ?? row.priceGross ?? 0;
     const resellerPrice = row.priceNet ?? 0;
@@ -183,7 +196,7 @@ async function seedVariantsFromCsv(options: {
           barcode: row.refProveedor || undefined,
           price: listPrice,
           resellerPrice,
-          productId,
+          productId: productRecord.id,
         },
       });
     } else {
@@ -194,7 +207,7 @@ async function seedVariantsFromCsv(options: {
           barcode: row.refProveedor || undefined,
           price: listPrice,
           resellerPrice,
-          productId,
+          productId: productRecord.id,
         },
       });
     }
