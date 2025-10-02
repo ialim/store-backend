@@ -1,7 +1,209 @@
 import { PrismaClient, UserTier } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { readFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
 
 const prisma = new PrismaClient();
+
+const VARIANTS_CSV_PATH = resolve(process.cwd(), 'variants.csv');
+
+interface CsvRow {
+  tariffId: number | null;
+  articleCode: string | null;
+  name: string;
+  refProveedor: string | null;
+  priceGross: number | null;
+  discount: number | null;
+  priceNet: number | null;
+  priceGrossAlt: number | null;
+  discountAlt: number | null;
+  priceNetAlt: number | null;
+  priceDate: string | null;
+  warehouseCode: string | null;
+  stockQuantity: number | null;
+  stockDate: string | null;
+}
+
+function splitCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+function toNumber(value: string | undefined): number | null {
+  if (!value) return null;
+  const parsed = Number.parseFloat(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function parseVariantsCsv(): CsvRow[] {
+  if (!existsSync(VARIANTS_CSV_PATH)) {
+    return [];
+  }
+  const content = readFileSync(VARIANTS_CSV_PATH, 'utf8');
+  const lines = content.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  if (lines.length <= 1) {
+    return [];
+  }
+  // drop header
+  lines.shift();
+  return lines.map((rawLine) => {
+    const columns = splitCsvLine(rawLine).map((col, index) => {
+      const trimmed = col.trim();
+      if (index === 0) {
+        return trimmed.replace(/^\ufeff/, '');
+      }
+      return trimmed;
+    });
+    return {
+      tariffId: toNumber(columns[0]),
+      articleCode: columns[1] || null,
+      name: columns[2] || '',
+      refProveedor: columns[3] || null,
+      priceGross: toNumber(columns[4]),
+      discount: toNumber(columns[5]),
+      priceNet: toNumber(columns[6]),
+      priceGrossAlt: toNumber(columns[7]),
+      discountAlt: toNumber(columns[8]),
+      priceNetAlt: toNumber(columns[9]),
+      priceDate: columns[10] || null,
+      warehouseCode: columns[11] || null,
+      stockQuantity: toNumber(columns[12]),
+      stockDate: columns[13] || null,
+    };
+  });
+}
+
+async function seedVariantsFromCsv(options: {
+  managerId: string;
+  mainStoreId: string;
+}): Promise<void> {
+  const rows = parseVariantsCsv();
+  if (!rows.length) {
+    console.log('No variant rows found in variants.csv, skipping CSV-based seeding.');
+    return;
+  }
+
+  const storeCache = new Map<string, { id: string }>();
+  storeCache.set('RE', { id: options.mainStoreId });
+
+  async function ensureStore(storeCode: string | null): Promise<{ id: string } | null> {
+    if (!storeCode) {
+      return null;
+    }
+    const normalized = storeCode.trim();
+    if (!normalized) {
+      return null;
+    }
+    if (storeCache.has(normalized)) {
+      return storeCache.get(normalized)!;
+    }
+    const storeId = `store-${normalized}`;
+    const store = await prisma.store.upsert({
+      where: { id: storeId },
+      update: {},
+      create: {
+        id: storeId,
+        name: `Store ${normalized}`,
+        managerId: options.managerId,
+        isMain: false,
+      },
+    });
+    await prisma.legacyStoreMapping.upsert({
+      where: { storeCode: normalized },
+      update: { storeId: store.id },
+      create: { storeCode: normalized, storeId: store.id },
+    });
+    storeCache.set(normalized, { id: store.id });
+    return { id: store.id };
+  }
+
+  for (const row of rows) {
+    const legacyArticleCode = row.articleCode?.trim();
+    if (!legacyArticleCode) {
+      continue;
+    }
+
+    const productId = `product-${legacyArticleCode}`;
+    const productName = row.name || legacyArticleCode;
+    await prisma.product.upsert({
+      where: { id: productId },
+      update: {
+        name: productName,
+        description: productName,
+        barcode: row.refProveedor || undefined,
+      },
+      create: {
+        id: productId,
+        name: productName,
+        description: productName,
+        barcode: row.refProveedor || undefined,
+      },
+    });
+
+    const listPrice = row.priceNet ?? row.priceGross ?? 0;
+    const resellerPrice = row.priceNet ?? 0;
+
+    const variant = await prisma.productVariant.upsert({
+      where: { legacyArticleCode },
+      update: {
+        name: productName,
+        barcode: row.refProveedor || undefined,
+        price: listPrice,
+        resellerPrice,
+        productId,
+      },
+      create: {
+        legacyArticleCode,
+        name: productName,
+        barcode: row.refProveedor || undefined,
+        price: listPrice,
+        resellerPrice,
+        productId,
+      },
+    });
+
+    const store = await ensureStore(row.warehouseCode || 'RE');
+    if (store) {
+      const quantity = row.stockQuantity != null ? Math.round(row.stockQuantity) : 0;
+      await prisma.stock.upsert({
+        where: {
+          storeId_productVariantId: {
+            storeId: store.id,
+            productVariantId: variant.id,
+          },
+        },
+        update: { quantity },
+        create: {
+          storeId: store.id,
+          productVariantId: variant.id,
+          quantity,
+          reserved: 0,
+        },
+      });
+    }
+  }
+
+  console.log(`Seeded ${rows.length} variants from variants.csv`);
+}
 
 async function main() {
   // --- Permissions ---
@@ -186,19 +388,35 @@ async function main() {
 
   // --- Store ---
   const mainStore = await prisma.store.upsert({
-    where: { id: '1', name: 'Main Store' },
-    update: {},
+    where: { id: 'store-RE' },
+    update: {
+      name: 'Main Store',
+      managerId: manager.id,
+      isMain: true,
+    },
     create: {
+      id: 'store-RE',
       name: 'Main Store',
       isMain: true,
       managerId: manager.id,
     },
   });
+  await prisma.legacyStoreMapping.upsert({
+    where: { storeCode: 'RE' },
+    update: { storeId: mainStore.id },
+    create: { storeCode: 'RE', storeId: mainStore.id },
+  });
+
+  await seedVariantsFromCsv({ managerId: manager.id, mainStoreId: mainStore.id });
 
   // --- Product, Variant & Stock ---
   const product = await prisma.product.upsert({
     where: { id: 'prod-24-gold' },
-    update: {},
+    update: {
+      name: '24 Gold Elixir EDP',
+      description: '24 Gold Elixir EDP',
+      barcode: 'GOLD-24-EDP',
+    },
     create: {
       id: 'prod-24-gold',
       name: '24 Gold Elixir EDP',
@@ -273,8 +491,15 @@ async function main() {
   });
 
   await prisma.stock.upsert({
-    where: { id: `${mainStore.id}-${variant.id}` },
-    update: {},
+    where: {
+      storeId_productVariantId: {
+        storeId: mainStore.id,
+        productVariantId: variant.id,
+      },
+    },
+    update: {
+      quantity: 100,
+    },
     create: {
       storeId: mainStore.id,
       productVariantId: variant.id,
