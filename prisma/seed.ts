@@ -1,4 +1,4 @@
-import { PrismaClient, UserTier } from '@prisma/client';
+import { PrismaClient, UserTier, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
@@ -162,43 +162,70 @@ async function seedVariantsFromCsv(options: {
     const listPrice = row.priceNet ?? row.priceGross ?? 0;
     const resellerPrice = row.priceNet ?? 0;
 
-    const variant = await prisma.productVariant.upsert({
-      where: { legacyArticleCode },
-      update: {
-        name: productName,
-        barcode: row.refProveedor || undefined,
-        price: listPrice,
-        resellerPrice,
-        productId,
-      },
-      create: {
-        legacyArticleCode,
-        name: productName,
-        barcode: row.refProveedor || undefined,
-        price: listPrice,
-        resellerPrice,
-        productId,
-      },
-    });
+    const variantMatchClauses = [] as Prisma.ProductVariantWhereInput[];
+    if (legacyArticleCode) {
+      variantMatchClauses.push({ legacyArticleCode });
+    }
+    if (row.refProveedor) {
+      variantMatchClauses.push({ barcode: row.refProveedor });
+    }
+
+    let variant = variantMatchClauses.length
+      ? await prisma.productVariant.findFirst({ where: { OR: variantMatchClauses } })
+      : null;
+
+    if (variant) {
+      variant = await prisma.productVariant.update({
+        where: { id: variant.id },
+        data: {
+          legacyArticleCode,
+          name: productName,
+          barcode: row.refProveedor || undefined,
+          price: listPrice,
+          resellerPrice,
+          productId,
+        },
+      });
+    } else {
+      variant = await prisma.productVariant.create({
+        data: {
+          legacyArticleCode,
+          name: productName,
+          barcode: row.refProveedor || undefined,
+          price: listPrice,
+          resellerPrice,
+          productId,
+        },
+      });
+    }
 
     const store = await ensureStore(row.warehouseCode || 'RE');
     if (store) {
       const quantity = row.stockQuantity != null ? Math.round(row.stockQuantity) : 0;
-      await prisma.stock.upsert({
+      const existingStock = await prisma.stock.findUnique({
         where: {
           storeId_productVariantId: {
             storeId: store.id,
             productVariantId: variant.id,
           },
         },
-        update: { quantity },
-        create: {
-          storeId: store.id,
-          productVariantId: variant.id,
-          quantity,
-          reserved: 0,
-        },
       });
+
+      if (existingStock) {
+        await prisma.stock.update({
+          where: { id: existingStock.id },
+          data: { quantity },
+        });
+      } else {
+        await prisma.stock.create({
+          data: {
+            storeId: store.id,
+            productVariantId: variant.id,
+            quantity,
+            reserved: 0,
+          },
+        });
+      }
     }
   }
 
