@@ -1,4 +1,4 @@
-import { PrismaClient, UserTier } from '@prisma/client';
+import { PrismaClient, UserTier, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
@@ -92,48 +92,11 @@ function parseVariantsCsv(): CsvRow[] {
   });
 }
 
-async function seedVariantsFromCsv(options: {
-  managerId: string;
-  mainStoreId: string;
-}): Promise<void> {
+async function seedVariantsFromCsv(options: { mainStoreId: string }): Promise<void> {
   const rows = parseVariantsCsv();
   if (!rows.length) {
     console.log('No variant rows found in variants.csv, skipping CSV-based seeding.');
     return;
-  }
-
-  const storeCache = new Map<string, { id: string }>();
-  storeCache.set('RE', { id: options.mainStoreId });
-
-  async function ensureStore(storeCode: string | null): Promise<{ id: string } | null> {
-    if (!storeCode) {
-      return null;
-    }
-    const normalized = storeCode.trim();
-    if (!normalized) {
-      return null;
-    }
-    if (storeCache.has(normalized)) {
-      return storeCache.get(normalized)!;
-    }
-    const storeId = `store-${normalized}`;
-    const store = await prisma.store.upsert({
-      where: { id: storeId },
-      update: {},
-      create: {
-        id: storeId,
-        name: `Store ${normalized}`,
-        managerId: options.managerId,
-        isMain: false,
-      },
-    });
-    await prisma.legacyStoreMapping.upsert({
-      where: { storeCode: normalized },
-      update: { storeId: store.id },
-      create: { storeCode: normalized, storeId: store.id },
-    });
-    storeCache.set(normalized, { id: store.id });
-    return { id: store.id };
   }
 
   for (const row of rows) {
@@ -141,59 +104,61 @@ async function seedVariantsFromCsv(options: {
     if (!legacyArticleCode) {
       continue;
     }
-
-    const productId = `product-${legacyArticleCode}`;
     const productName = row.name || legacyArticleCode;
-    await prisma.product.upsert({
-      where: { id: productId },
-      update: {
-        name: productName,
-        description: productName,
-        barcode: row.refProveedor || undefined,
-      },
-      create: {
-        id: productId,
-        name: productName,
-        description: productName,
-        barcode: row.refProveedor || undefined,
-      },
-    });
 
     const listPrice = row.priceNet ?? row.priceGross ?? 0;
     const resellerPrice = row.priceNet ?? 0;
 
-    const variant = await prisma.productVariant.upsert({
-      where: { legacyArticleCode },
-      update: {
-        name: productName,
-        barcode: row.refProveedor || undefined,
-        price: listPrice,
-        resellerPrice,
-        productId,
-      },
-      create: {
-        legacyArticleCode,
-        name: productName,
-        barcode: row.refProveedor || undefined,
-        price: listPrice,
-        resellerPrice,
-        productId,
-      },
-    });
+    const variantMatchClauses = [] as Prisma.ProductVariantWhereInput[];
+    if (legacyArticleCode) {
+      variantMatchClauses.push({ legacyArticleCode });
+    }
+    if (row.refProveedor) {
+      variantMatchClauses.push({ barcode: row.refProveedor });
+    }
 
-    const store = await ensureStore(row.warehouseCode || 'RE');
-    if (store) {
+    let variant = variantMatchClauses.length
+      ? await prisma.productVariant.findFirst({ where: { OR: variantMatchClauses } })
+      : null;
+
+    if (variant) {
+      variant = await prisma.productVariant.update({
+        where: { id: variant.id },
+        data: {
+          legacyArticleCode,
+          name: productName,
+          barcode: row.refProveedor || undefined,
+          price: listPrice,
+          resellerPrice,
+          productId: null,
+        },
+      });
+    } else {
+      variant = await prisma.productVariant.create({
+        data: {
+          legacyArticleCode,
+          name: productName,
+          barcode: row.refProveedor || undefined,
+          price: listPrice,
+          resellerPrice,
+          productId: null,
+        },
+      });
+    }
+
+    const warehouseCode = (row.warehouseCode || 'RE').trim().toUpperCase();
+    if (warehouseCode === 'RE') {
       const quantity = row.stockQuantity != null ? Math.round(row.stockQuantity) : 0;
       await prisma.stock.upsert({
         where: {
           storeId_productVariantId: {
-            storeId: store.id,
+            storeId: options.mainStoreId,
             productVariantId: variant.id,
           },
         },
         update: { quantity },
         create: {
-          storeId: store.id,
+          storeId: options.mainStoreId,
           productVariantId: variant.id,
           quantity,
           reserved: 0,
@@ -407,32 +372,41 @@ async function main() {
     create: { storeCode: 'RE', storeId: mainStore.id },
   });
 
-  await seedVariantsFromCsv({ managerId: manager.id, mainStoreId: mainStore.id });
+  await seedVariantsFromCsv({ mainStoreId: mainStore.id });
 
-  // --- Product, Variant & Stock ---
-  const product = await prisma.product.upsert({
-    where: { id: 'prod-24-gold' },
-    update: {
-      name: '24 Gold Elixir EDP',
-      description: '24 Gold Elixir EDP',
-      barcode: 'GOLD-24-EDP',
-    },
-    create: {
-      id: 'prod-24-gold',
-      name: '24 Gold Elixir EDP',
-      barcode: 'GOLD-24-EDP',
-    },
-  });
-
+  // --- Sample variant for smoke tests ---
   const variant = await prisma.productVariant.upsert({
     where: { barcode: 'GOLD-24-EDP-100ML' },
-    update: {},
+    update: {
+      name: '24 Gold Elixir EDP 100ml',
+      legacyArticleCode: 'demo-variant',
+      price: 20000,
+      resellerPrice: 18000,
+      productId: null,
+    },
     create: {
-      productId: product.id,
+      legacyArticleCode: 'demo-variant',
       name: '24 Gold Elixir EDP 100ml',
       barcode: 'GOLD-24-EDP-100ML',
       price: 20000,
       resellerPrice: 18000,
+      productId: null,
+    },
+  });
+
+  await prisma.stock.upsert({
+    where: {
+      storeId_productVariantId: {
+        storeId: mainStore.id,
+        productVariantId: variant.id,
+      },
+    },
+    update: { quantity: 100 },
+    create: {
+      storeId: mainStore.id,
+      productVariantId: variant.id,
+      quantity: 100,
+      reserved: 0,
     },
   });
 
