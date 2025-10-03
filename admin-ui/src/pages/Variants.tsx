@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/AuthProvider';
 import React from 'react';
 import TableList from '../shared/TableList';
+import { notify } from '../shared/notify';
 
 
 export default function Variants() {
@@ -165,14 +166,55 @@ export default function Variants() {
             }
             return (<TextField size="small" label="Value" value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} />);
           })()}
-          <Button size="small" variant="contained" disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkAssignLoading} onClick={async () => {
-            await bulkAssign({ variables: { variantIds: selectedIds as string[], facetId: bulkFacetId, value: bulkValue } });
-            clearSelection();
-          }}>Assign to selected</Button>
-          <Button size="small" color="error" variant="outlined" disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkRemoveLoading} onClick={async () => {
-            await bulkRemove({ variables: { variantIds: selectedIds as string[], facetId: bulkFacetId, value: bulkValue } });
-            clearSelection();
-          }}>Remove from selected</Button>
+          <Button
+            size="small"
+            variant="contained"
+            disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkAssignLoading}
+            onClick={async () => {
+              try {
+                await bulkAssign({
+                  variables: {
+                    variantIds: selectedIds as string[],
+                    facetId: bulkFacetId,
+                    value: bulkValue,
+                  },
+                });
+                notify('Facet assigned to selected variants', 'success');
+                clearSelection();
+                await refetch({ take, skip, where });
+                await refetchVariantCount({ where });
+              } catch (err: any) {
+                notify(err?.message || 'Failed to assign facet to selected variants', 'error');
+              }
+            }}
+          >
+            Assign to selected
+          </Button>
+          <Button
+            size="small"
+            color="error"
+            variant="outlined"
+            disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkRemoveLoading}
+            onClick={async () => {
+              try {
+                await bulkRemove({
+                  variables: {
+                    variantIds: selectedIds as string[],
+                    facetId: bulkFacetId,
+                    value: bulkValue,
+                  },
+                });
+                notify('Facet removed from selected variants', 'success');
+                clearSelection();
+                await refetch({ take, skip, where });
+                await refetchVariantCount({ where });
+              } catch (err: any) {
+                notify(err?.message || 'Failed to remove facet from selected variants', 'error');
+              }
+            }}
+          >
+            Remove from selected
+          </Button>
           <Button size="small" onClick={clearSelection}>Clear selection</Button>
         </Stack>
       )}
@@ -258,18 +300,51 @@ function VariantFacetsDialog({ variantId, onClose }: { variantId: string; onClos
             }
             return (<TextField size="small" label="Value" value={selValue} onChange={(e) => setSelValue(e.target.value)} />);
           })()}
-          <Button size="small" variant="contained" disabled={!selFacetId || !selValue} onClick={async () => {
-            await assign({ variables: { productVariantId: variantId, facetId: selFacetId, value: selValue } });
-            setSelValue('');
-            await refetch();
-          }}>Assign</Button>
+          <Button
+            size="small"
+            variant="contained"
+            disabled={!selFacetId || !selValue}
+            onClick={async () => {
+              try {
+                await assign({
+                  variables: {
+                    productVariantId: variantId,
+                    facetId: selFacetId,
+                    value: selValue,
+                  },
+                });
+                notify('Facet assigned', 'success');
+                setSelValue('');
+                await refetch();
+              } catch (err: any) {
+                notify(err?.message || 'Failed to assign facet', 'error');
+              }
+            }}
+          >
+            Assign
+          </Button>
         </Stack>
         <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
           {assigns.map((a, i) => (
-            <Chip key={`${a.facet?.id}_${a.value}_${i}`} label={`${a.facet?.name || a.facet?.code}: ${a.value}`} onDelete={async () => {
-              await remove({ variables: { productVariantId: variantId, facetId: a.facet?.id, value: a.value } });
-              await refetch();
-            }} />
+            <Chip
+              key={`${a.facet?.id}_${a.value}_${i}`}
+              label={`${a.facet?.name || a.facet?.code}: ${a.value}`}
+              onDelete={async () => {
+                try {
+                  await remove({
+                    variables: {
+                      productVariantId: variantId,
+                      facetId: a.facet?.id,
+                      value: a.value,
+                    },
+                  });
+                  notify('Facet removed', 'success');
+                  await refetch();
+                } catch (err: any) {
+                  notify(err?.message || 'Failed to remove facet', 'error');
+                }
+              }}
+            />
           ))}
         </Stack>
       </DialogContent>
