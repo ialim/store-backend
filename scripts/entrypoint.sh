@@ -27,5 +27,7 @@ if [ "${RUN_PRISMA_SEED_ON_BOOT:-false}" = "true" ]; then
   fi
 fi
 
+echo "I entered this here to test git"
+
 echo "[entrypoint] Starting application: $*"
 exec "$@"
