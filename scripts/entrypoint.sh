@@ -8,6 +8,7 @@ if [ "${SKIP_PRISMA_GENERATE:-false}" != "true" ]; then
   npx prisma generate 1>/dev/null
 fi
 
+
 if [ "${SKIP_PRISMA_MIGRATE:-false}" != "true" ]; then
   echo "[entrypoint] Applying database migrations..."
   npx prisma migrate deploy
@@ -28,6 +29,5 @@ if [ "${RUN_PRISMA_SEED_ON_BOOT:-false}" = "true" ]; then
 fi
 
 echo "I entered this here to test git"
-
 echo "[entrypoint] Starting application: $*"
 exec "$@"
