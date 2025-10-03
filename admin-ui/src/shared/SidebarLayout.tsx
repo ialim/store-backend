@@ -31,6 +31,7 @@ import ExpandMore from '@mui/icons-material/ExpandMore';
 import { Collapse, ListSubheader } from '@mui/material';
 import InsightsIcon from '@mui/icons-material/Insights';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useAuth } from './AuthProvider';
 
 const drawerWidth = 240;
@@ -86,6 +87,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       items: [
         { label: 'Products', to: '/products', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <Inventory2Icon /> },
         { label: 'Variants', to: '/variants', show: true, icon: <Inventory2Icon /> },
+        { label: 'Import Variants', to: '/variants/import', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <CloudUploadIcon /> },
         { label: 'Collections', to: '/collections', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <AssignmentIcon /> },
         { label: 'Facets', to: '/facets', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <AssignmentIcon /> },
         { label: 'Stock', to: '/stock', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <Inventory2Icon /> },

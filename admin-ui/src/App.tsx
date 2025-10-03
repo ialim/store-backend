@@ -44,6 +44,7 @@ const InvoiceImports = lazy(() => import('./pages/InvoiceImports'));
 const InvoiceImportDetail = lazy(() => import('./pages/InvoiceImportDetail'));
 const Variants = lazy(() => import('./pages/Variants'));
 const VariantDetail = lazy(() => import('./pages/VariantDetail'));
+const VariantImport = lazy(() => import('./pages/VariantImport'));
 const DevDbTools = lazy(() => import('./pages/DevDbTools'));
 const Facets = lazy(() => import('./pages/Facets'));
 const Collections = lazy(() => import('./pages/Collections'));
@@ -142,6 +143,16 @@ export default function App() {
               }
             />
             <Route path="/variants" element={<Variants />} />
+            <Route
+              path="/variants/import"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  perms={['MANAGE_PRODUCTS']}
+                  element={<VariantImport />}
+                />
+              }
+            />
             <Route path="/variants/:id" element={<VariantDetail />} />
             <Route
               path="/dev/db-tools"
