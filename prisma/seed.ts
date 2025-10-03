@@ -92,10 +92,14 @@ function parseVariantsCsv(): CsvRow[] {
   });
 }
 
-async function seedVariantsFromCsv(options: { mainStoreId: string }): Promise<void> {
+async function seedVariantsFromCsv(options: {
+  mainStoreId: string;
+}): Promise<void> {
   const rows = parseVariantsCsv();
   if (!rows.length) {
-    console.log('No variant rows found in variants.csv, skipping CSV-based seeding.');
+    console.log(
+      'No variant rows found in variants.csv, skipping CSV-based seeding.',
+    );
     return;
   }
 
@@ -118,7 +122,9 @@ async function seedVariantsFromCsv(options: { mainStoreId: string }): Promise<vo
     }
 
     let variant = variantMatchClauses.length
-      ? await prisma.productVariant.findFirst({ where: { OR: variantMatchClauses } })
+      ? await prisma.productVariant.findFirst({
+          where: { OR: variantMatchClauses },
+        })
       : null;
 
     if (variant) {
@@ -148,7 +154,8 @@ async function seedVariantsFromCsv(options: { mainStoreId: string }): Promise<vo
 
     const warehouseCode = (row.warehouseCode || 'RE').trim().toUpperCase();
     if (warehouseCode === 'RE') {
-      const quantity = row.stockQuantity != null ? Math.round(row.stockQuantity) : 0;
+      const quantity =
+        row.stockQuantity != null ? Math.round(row.stockQuantity) : 0;
       await prisma.stock.upsert({
         where: {
           storeId_productVariantId: {
@@ -375,7 +382,9 @@ async function main() {
   if ((process.env.SEED_VARIANTS_FROM_CSV ?? '').toLowerCase() === 'true') {
     await seedVariantsFromCsv({ mainStoreId: mainStore.id });
   } else {
-    console.log('Skipping CSV variant seeding (SEED_VARIANTS_FROM_CSV is not true).');
+    console.log(
+      'Skipping CSV variant seeding (SEED_VARIANTS_FROM_CSV is not true).',
+    );
   }
 
   // --- Sample variant for smoke tests ---

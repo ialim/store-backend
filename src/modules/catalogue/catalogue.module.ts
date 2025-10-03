@@ -9,6 +9,8 @@ import { FacetResolver } from './facet/facet.resolver';
 import { FacetService } from './facet/facet.service';
 import { CollectionResolver } from './collection/collection.resolver';
 import { CollectionService } from './collection/collection.service';
+import { VariantImportService } from './variant/variant-import.service';
+import { VariantImportController } from './variant/variant-import.controller';
 
 @Module({
   providers: [
@@ -17,12 +19,14 @@ import { CollectionService } from './collection/collection.service';
     PrismaService,
     ProductVariantsResolver,
     ProductVariantService,
+    VariantImportService,
     CatalogueDiagnosticsResolver,
     FacetResolver,
     FacetService,
     CollectionResolver,
     CollectionService,
   ],
+  controllers: [VariantImportController],
   exports: [ProductVariantService],
 })
 export class CatalogueModule {}
