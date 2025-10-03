@@ -66,5 +66,4 @@ extractor/state/
 extractor/batches/
 
 # Local data extracts
-variants.csv
 chart.md
