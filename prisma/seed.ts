@@ -372,7 +372,11 @@ async function main() {
     create: { storeCode: 'RE', storeId: mainStore.id },
   });
 
-  await seedVariantsFromCsv({ mainStoreId: mainStore.id });
+  if ((process.env.SEED_VARIANTS_FROM_CSV ?? '').toLowerCase() === 'true') {
+    await seedVariantsFromCsv({ mainStoreId: mainStore.id });
+  } else {
+    console.log('Skipping CSV variant seeding (SEED_VARIANTS_FROM_CSV is not true).');
+  }
 
   // --- Sample variant for smoke tests ---
   const variant = await prisma.productVariant.upsert({
