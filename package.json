@@ -25,7 +25,8 @@
     "prisma:studio": "npx prisma studio",
     "prisma:seed": "npx ts-node prisma/seed.ts",
     "prisma:backfillPoStoreId": "npx ts-node prisma/scripts/backfill-po-store-id.ts",
-    "legacy:extractor": "ts-node scripts/legacy-extractor.ts"
+    "legacy:extractor": "ts-node scripts/legacy-extractor.ts",
+    "db:wipe": "node scripts/reset-db.js"
   },
   "prisma": {
     "schema": "./prisma"

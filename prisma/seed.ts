@@ -92,7 +92,7 @@ function parseVariantsCsv(): CsvRow[] {
   });
 }
 
-async function seedVariantsFromCsv(): Promise<void> {
+async function seedVariantsFromCsv(options: { mainStoreId: string }): Promise<void> {
   const rows = parseVariantsCsv();
   if (!rows.length) {
     console.log('No variant rows found in variants.csv, skipping CSV-based seeding.');
@@ -142,6 +142,26 @@ async function seedVariantsFromCsv(): Promise<void> {
           price: listPrice,
           resellerPrice,
           productId: null,
+        },
+      });
+    }
+
+    const warehouseCode = (row.warehouseCode || 'RE').trim().toUpperCase();
+    if (warehouseCode === 'RE') {
+      const quantity = row.stockQuantity != null ? Math.round(row.stockQuantity) : 0;
+      await prisma.stock.upsert({
+        where: {
+          storeId_productVariantId: {
+            storeId: options.mainStoreId,
+            productVariantId: variant.id,
+          },
+        },
+        update: { quantity },
+        create: {
+          storeId: options.mainStoreId,
+          productVariantId: variant.id,
+          quantity,
+          reserved: 0,
         },
       });
     }
@@ -352,7 +372,7 @@ async function main() {
     create: { storeCode: 'RE', storeId: mainStore.id },
   });
 
-  await seedVariantsFromCsv();
+  await seedVariantsFromCsv({ mainStoreId: mainStore.id });
 
   // --- Sample variant for smoke tests ---
   const variant = await prisma.productVariant.upsert({
@@ -371,6 +391,22 @@ async function main() {
       price: 20000,
       resellerPrice: 18000,
       productId: null,
+    },
+  });
+
+  await prisma.stock.upsert({
+    where: {
+      storeId_productVariantId: {
+        storeId: mainStore.id,
+        productVariantId: variant.id,
+      },
+    },
+    update: { quantity: 100 },
+    create: {
+      storeId: mainStore.id,
+      productVariantId: variant.id,
+      quantity: 100,
+      reserved: 0,
     },
   });
 
