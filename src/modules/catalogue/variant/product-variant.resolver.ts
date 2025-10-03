@@ -19,6 +19,10 @@ import { Resolver, Query, Args, Mutation, Int } from '@nestjs/graphql';
 import { ProductVariantService } from './product-variant.service';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../../auth/guards/gql-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../../auth/guards/permissions.guard';
+import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { UpsertVariantSupplierCatalogInput } from '../dto/upsert-variant-supplier-catalog.input';
 import { SupplierCatalogEntry } from '../../purchase/types/supplier-catalog-entry.type';
 import { VariantTierPrice } from '../types/variant-tier-price.type';
@@ -86,6 +90,9 @@ export class ProductVariantsResolver {
   }
 
   @Mutation(() => ProductVariant, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions('MANAGE_PRODUCTS')
   createProductVariant(
     @Args() args: CreateOneProductVariantArgs,
   ): Promise<ProductVariant> {
@@ -93,6 +100,9 @@ export class ProductVariantsResolver {
   }
 
   @Mutation(() => AffectedRows, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions('MANAGE_PRODUCTS')
   async createManyProductVariant(
     @Args() args: CreateManyProductVariantArgs,
   ): Promise<AffectedRows> {
@@ -100,6 +110,9 @@ export class ProductVariantsResolver {
   }
 
   @Mutation(() => ProductVariant, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions('MANAGE_PRODUCTS')
   updateProductVariant(
     @Args() args: UpdateOneProductVariantArgs,
   ): Promise<ProductVariant> {
@@ -107,6 +120,9 @@ export class ProductVariantsResolver {
   }
 
   @Mutation(() => AffectedRows, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions('MANAGE_PRODUCTS')
   async updateManyProductVariant(
     @Args() args: UpdateManyProductVariantArgs,
   ): Promise<AffectedRows> {
@@ -114,6 +130,9 @@ export class ProductVariantsResolver {
   }
 
   @Mutation(() => ProductVariant, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions('MANAGE_PRODUCTS')
   deleteProductVariant(
     @Args() args: DeleteOneProductVariantArgs,
   ): Promise<ProductVariant> {
@@ -121,6 +140,9 @@ export class ProductVariantsResolver {
   }
 
   @Mutation(() => AffectedRows, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions('MANAGE_PRODUCTS')
   async deleteManyProductVariant(
     @Args() args: DeleteManyProductVariantArgs,
   ): Promise<AffectedRows> {
@@ -154,7 +176,9 @@ export class ProductVariantsResolver {
   }
 
   @Mutation(() => SupplierCatalogEntry)
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions('MANAGE_PRODUCTS')
   upsertVariantSupplierCatalog(
     @Args('input') input: UpsertVariantSupplierCatalogInput,
   ): ReturnType<ProductVariantService['upsertVariantSupplierCatalog']> {
@@ -170,7 +194,9 @@ export class ProductVariantsResolver {
   }
 
   @Mutation(() => String)
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions('MANAGE_PRODUCTS')
   async upsertVariantTierPrice(
     @Args('input') input: UpsertVariantTierPriceInput,
   ): Promise<string> {
@@ -192,7 +218,9 @@ export class ProductVariantsResolver {
 
   // Flexible variant management
   @Mutation(() => ProductVariant)
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions('MANAGE_PRODUCTS')
   createLooseProductVariant(
     @Args('input') input: LooseProductVariantInput,
   ): ReturnType<ProductVariantService['createLoose']> {
@@ -200,7 +228,9 @@ export class ProductVariantsResolver {
   }
 
   @Mutation(() => ProductVariant)
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions('MANAGE_PRODUCTS')
   linkVariantToProduct(
     @Args('input') input: LinkVariantToProductInput,
   ): ReturnType<ProductVariantService['linkToProduct']> {
@@ -211,7 +241,9 @@ export class ProductVariantsResolver {
   }
 
   @Mutation(() => ProductVariant)
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions('MANAGE_PRODUCTS')
   unlinkVariantFromProduct(
     @Args('input') input: UnlinkVariantFromProductInput,
   ): ReturnType<ProductVariantService['unlinkFromProduct']> {
