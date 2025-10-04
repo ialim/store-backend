@@ -4,6 +4,8 @@ import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { VerificationService } from './verification.service';
 import { AuthenticatedUser } from '../auth/auth.service';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @Resolver()
 export class VerificationResolver {
@@ -18,6 +20,13 @@ export class VerificationResolver {
   @Mutation(() => Boolean)
   verifyEmail(@Args('token') token: string) {
     return this.verificationService.verifyEmail(token);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('SUPERADMIN', 'ADMIN')
+  sendUserEmailVerification(@Args('userId') userId: string) {
+    return this.verificationService.sendEmailVerification(userId);
   }
 
   @Mutation(() => Boolean)

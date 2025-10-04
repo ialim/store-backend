@@ -5672,6 +5672,11 @@ type Mutation {
   rejectReseller(resellerId: String!, reason: String): ResellerProfile!
   adminUpdateCustomerProfile(userId: String!, input: AdminUpdateCustomerProfileInput!): CustomerProfile!
   adminCreateCustomer(input: AdminCreateCustomerInput!): User!
+  sendEmailVerification: Boolean!
+  verifyEmail(token: String!): Boolean!
+  sendUserEmailVerification(userId: String!): Boolean!
+  sendPhoneVerification: Boolean!
+  verifyPhone(code: String!): Boolean!
   createSupplier(input: CreateSupplierInput!): Supplier!
   updateSupplier(input: UpdateSupplierInput!): Supplier!
   createPurchaseOrder(input: CreatePurchaseOrderInput!): PurchaseOrder!
@@ -5751,10 +5756,6 @@ type Mutation {
   updateManyUser(data: UserUpdateManyMutationInput!, where: UserWhereInput, limit: Int): AffectedRows
   deleteUser(where: UserWhereUniqueInput!): User
   deleteManyUser(where: UserWhereInput, limit: Int): AffectedRows
-  sendEmailVerification: Boolean!
-  verifyEmail(token: String!): Boolean!
-  sendPhoneVerification: Boolean!
-  verifyPhone(code: String!): Boolean!
   devPurgeInvoiceImports(filter: DevPurgeFilter): Int!
   devPurgePurchaseOrders(filter: DevPurgeFilter): Int!
   devImportSnapshot(json: String!, preview: Boolean): String!

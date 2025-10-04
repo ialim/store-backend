@@ -43,6 +43,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^5.0.0",
     "@prisma/client": "^6.15.0",
+    "@aws-sdk/client-sesv2": "^3.886.0",
     "bcrypt": "^6.0.0",
     "graphql": "^16.11.0",
     "graphql-type-json": "^0.3.2",

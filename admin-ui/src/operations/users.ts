@@ -5,10 +5,11 @@ export const Users = gql`
     listUsers(take: $take) {
       id
       email
+      createdAt
+      isEmailVerified
       role { name }
       customerProfile { fullName }
       resellerProfile { tier }
     }
   }
 `;
-

@@ -2,11 +2,15 @@ import {
   useAssignBillerMutation,
   useAssignStoreManagerMutation,
   useCreateStaffMutation,
+  useUsersQuery,
   RoleName,
 } from '../generated/graphql';
 import { Alert, Card, CardContent, Grid, MenuItem, Stack, TextField, Typography, Button } from '@mui/material';
 import { UserSelect, StoreSelect } from '../shared/IdSelects';
 import React from 'react';
+import TableList from '../shared/TableList';
+import { notify } from '../shared/notify';
+import { useNavigate } from 'react-router-dom';
 
 
 export default function Staff() {
@@ -22,19 +26,57 @@ export default function Staff() {
   const [billerId, setBillerId] = React.useState('');
   const [resellerId, setResellerId] = React.useState('');
   const [assignBiller, { loading: assigningBiller, error: assignBillerErr }] = useAssignBillerMutation();
+  const {
+    data: usersData,
+    loading: loadingUsers,
+    error: usersError,
+    refetch: refetchUsers,
+  } = useUsersQuery({ variables: { take: 200 }, fetchPolicy: 'cache-and-network' as any });
+  const navigate = useNavigate();
+  const staffUsers = React.useMemo(
+    () =>
+      (usersData?.listUsers ?? []).filter((u) =>
+        ['MANAGER', 'ADMIN', 'BILLER'].includes(u.role?.name ?? ''),
+      ),
+    [usersData?.listUsers],
+  );
 
   const submitCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createStaff({ variables: { input: { email, password, role } } });
-    setEmail(''); setPassword('');
+    if (!email || !password) return;
+    try {
+      await createStaff({ variables: { input: { email, password, role } } });
+      notify('Staff account created', 'success');
+      setEmail('');
+      setPassword('');
+      await refetchUsers();
+    } catch (err: any) {
+      notify(err?.message || 'Failed to create staff', 'error');
+    }
   };
   const submitManager = async (e: React.FormEvent) => {
     e.preventDefault();
-    await assignManager({ variables: { storeId, managerId: userId } });
+    if (!userId || !storeId) return;
+    try {
+      await assignManager({ variables: { storeId, managerId: userId } });
+      notify('Store manager assigned', 'success');
+      setUserId('');
+      setStoreId('');
+    } catch (err: any) {
+      notify(err?.message || 'Failed to assign store manager', 'error');
+    }
   };
   const submitBiller = async (e: React.FormEvent) => {
     e.preventDefault();
-    await assignBiller({ variables: { input: { billerId, resellerId } } });
+    if (!billerId || !resellerId) return;
+    try {
+      await assignBiller({ variables: { input: { billerId, resellerId } } });
+      notify('Biller assigned to reseller', 'success');
+      setBillerId('');
+      setResellerId('');
+    } catch (err: any) {
+      notify(err?.message || 'Failed to assign biller', 'error');
+    }
   };
 
   return (
@@ -94,6 +136,74 @@ export default function Staff() {
           </Card>
         </Grid>
       </Grid>
+
+      <Card>
+        <CardContent>
+          <Stack spacing={1}>
+            <Typography variant="subtitle1">Existing Staff</Typography>
+            {usersError && (
+              <Alert
+                severity="error"
+                onClick={() => void refetchUsers()}
+                sx={{ cursor: 'pointer' }}
+              >
+                {usersError.message} (click to retry)
+              </Alert>
+            )}
+            <TableList
+              columns={React.useMemo(
+                () =>
+                  [
+                    {
+                      key: 'email',
+                      label: 'Email',
+                      sort: true,
+                      filter: true,
+                    },
+                    {
+                      key: 'role',
+                      label: 'Role',
+                      render: (u: any) => u.role?.name || '—',
+                      sort: true,
+                      accessor: (u: any) => u.role?.name || '',
+                    },
+                    {
+                      key: 'isEmailVerified',
+                      label: 'Verified',
+                      render: (u: any) => (u.isEmailVerified ? 'Yes' : 'No'),
+                      sort: true,
+                      accessor: (u: any) => (u.isEmailVerified ? 1 : 0),
+                    },
+                    {
+                      key: 'createdAt',
+                      label: 'Created',
+                      render: (u: any) => new Date(u.createdAt).toLocaleString(),
+                      sort: true,
+                      accessor: (u: any) => new Date(u.createdAt || 0),
+                    },
+                    {
+                      key: 'id',
+                      label: 'User ID',
+                    },
+                  ] as any,
+                [],
+              )}
+              rows={staffUsers}
+              loading={loadingUsers}
+              emptyMessage="No staff accounts"
+              getRowKey={(u: any) => u.id}
+              defaultSortKey="email"
+              showFilters
+              globalSearch
+              globalSearchPlaceholder="Search staff"
+              globalSearchKeys={['email', 'role', 'id']}
+              enableUrlState
+              urlKey="staff_list"
+              onRowClick={(u: any) => navigate(`/staff/${u.id}`)}
+            />
+          </Stack>
+        </CardContent>
+      </Card>
     </Stack>
   );
 }
