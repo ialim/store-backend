@@ -23,6 +23,11 @@ export const Me = gql`
         name
         permissions { id name module action }
       }
+      customerProfile {
+        fullName
+        email
+        phone
+      }
     }
   }
 `;

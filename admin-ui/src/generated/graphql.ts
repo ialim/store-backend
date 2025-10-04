@@ -26951,7 +26951,7 @@ export type LoginMutation = { __typename?: 'Mutation', login: { __typename?: 'Au
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = { __typename?: 'Query', me: { __typename?: 'User', id: string, email: string, role: { __typename?: 'Role', id: string, name: string, permissions?: Array<{ __typename?: 'Permission', id: string, name: string, module: string, action: string }> | null } } };
+export type MeQuery = { __typename?: 'Query', me: { __typename?: 'User', id: string, email: string, role: { __typename?: 'Role', id: string, name: string, permissions?: Array<{ __typename?: 'Permission', id: string, name: string, module: string, action: string }> | null }, customerProfile?: { __typename?: 'CustomerProfile', fullName: string, email?: string | null, phone?: string | null } | null } };
 
 export type ChangePasswordMutationVariables = Exact<{
   input: ChangePasswordInput;
@@ -28172,6 +28172,11 @@ export const MeDocument = gql`
         module
         action
       }
+    }
+    customerProfile {
+      fullName
+      email
+      phone
     }
   }
 }

@@ -3,7 +3,11 @@ import { Box, Button, Card, CardContent, Grid, Stack, TextField, Typography } fr
 import { useAuth } from '../shared/AuthProvider';
 import { decodeJwt } from '../shared/jwt';
 import { notify } from '../shared/notify';
-import { useChangePasswordMutation, useMeQuery } from '../generated/graphql';
+import {
+  useChangePasswordMutation,
+  useCompleteCustomerProfileMutation,
+  useMeQuery,
+} from '../generated/graphql';
 
 
 function formatDate(ts?: number) {
@@ -28,10 +32,22 @@ export default function Profile() {
   const exp = (claims?.exp as number | undefined) || undefined;
   const iat = (claims?.iat as number | undefined) || undefined;
   const { data: meData, refetch } = useMeQuery({ fetchPolicy: 'cache-and-network' as any });
+  const [profileName, setProfileName] = React.useState('');
+  const [profileEmail, setProfileEmail] = React.useState('');
+  const [profilePhone, setProfilePhone] = React.useState('');
   const [currentPassword, setCurrentPassword] = React.useState('');
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
   const [changePassword, { loading: changing }] = useChangePasswordMutation();
+  const [updateProfile, { loading: savingProfile }] =
+    useCompleteCustomerProfileMutation();
+
+  React.useEffect(() => {
+    const profile = meData?.me?.customerProfile;
+    setProfileName(profile?.fullName || '');
+    setProfileEmail(profile?.email || meData?.me?.email || '');
+    setProfilePhone(profile?.phone || '');
+  }, [meData?.me?.customerProfile, meData?.me?.email]);
 
   const copy = async () => {
     if (!token) return;
@@ -64,6 +80,29 @@ export default function Profile() {
     } catch (err: any) {
       const msg = err?.message || 'Failed to change password';
       notify(msg, 'error');
+    }
+  };
+
+  const submitProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileName.trim()) {
+      notify('Full name is required', 'warning');
+      return;
+    }
+    try {
+      await updateProfile({
+        variables: {
+          input: {
+            fullName: profileName.trim(),
+            email: profileEmail.trim() || undefined,
+            phone: profilePhone.trim() || undefined,
+          },
+        },
+      });
+      notify('Profile updated', 'success');
+      await refetch();
+    } catch (err: any) {
+      notify(err?.message || 'Failed to update profile', 'error');
     }
   };
 
@@ -140,6 +179,46 @@ export default function Profile() {
           </Card>
         </Grid>
       </Grid>
+
+      {meData?.me?.customerProfile && (
+        <Grid item xs={12} md={6}>
+          <Card component="form" onSubmit={submitProfileUpdate}>
+            <CardContent>
+              <Stack spacing={1.5}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Profile Details
+                </Typography>
+                <TextField
+                  label="Full Name"
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  required
+                />
+                <TextField
+                  label="Email"
+                  value={profileEmail}
+                  onChange={(e) => setProfileEmail(e.target.value)}
+                  type="email"
+                />
+                <TextField
+                  label="Phone"
+                  value={profilePhone}
+                  onChange={(e) => setProfilePhone(e.target.value)}
+                />
+                <Box>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={savingProfile}
+                  >
+                    Save Profile
+                  </Button>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+      )}
 
         <Grid item xs={12}>
           <Card component="form" onSubmit={submitChange}>
