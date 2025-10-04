@@ -46,6 +46,52 @@ export default function CustomerDetail() {
   const [status, setStatus] = React.useState('');
   const [storeId, setStoreId] = React.useState('');
   const [updateProfile] = useAdminUpdateCustomerProfileMutation();
+  const salesColumns = React.useMemo(
+    () =>
+      [
+        { key: 'id', label: 'ID' },
+        {
+          key: 'store',
+          label: 'Store',
+          render: (s: any) => s.store?.name || '—',
+          sort: true,
+          accessor: (s: any) => s.store?.name || '',
+        },
+        { key: 'status', label: 'Status', sort: true },
+        {
+          key: 'createdAt',
+          label: 'Created',
+          render: (s: any) =>
+            s.createdAt ? new Date(s.createdAt).toLocaleString() : '—',
+          sort: true,
+          accessor: (s: any) => new Date(s.createdAt || 0),
+        },
+        {
+          key: 'totalAmount',
+          label: 'Total',
+          render: (s: any) => formatMoney(s.totalAmount),
+          sort: true,
+          accessor: (s: any) => s.totalAmount || 0,
+        },
+      ] as any,
+    [],
+  );
+  const receiptColumns = React.useMemo(
+    () =>
+      [
+        { key: 'id', label: 'ID' },
+        {
+          key: 'issuedAt',
+          label: 'Issued',
+          render: (s: any) =>
+            s.issuedAt ? new Date(s.issuedAt).toLocaleString() : '—',
+          sort: true,
+          accessor: (s: any) => new Date(s.issuedAt || 0),
+        },
+        { key: 'consumerSaleId', label: 'Sale ID' },
+      ] as any,
+    [],
+  );
 
   React.useEffect(() => {
     if (profile) {
@@ -113,13 +159,7 @@ export default function CustomerDetail() {
             <Typography variant="subtitle2" color="text.secondary">Recent Sales</Typography>
             {/* Using nested sales from profile; no separate error */}
             <TableList
-              columns={React.useMemo(() => ([
-                { key: 'id', label: 'ID' },
-                { key: 'store', label: 'Store', render: (s: any) => s.store?.name || '—', sort: true, accessor: (s: any) => s.store?.name || '' },
-                { key: 'status', label: 'Status', sort: true },
-                { key: 'createdAt', label: 'Created', render: (s: any) => s.createdAt ? new Date(s.createdAt).toLocaleString() : '—', sort: true, accessor: (s: any) => new Date(s.createdAt || 0) },
-                { key: 'totalAmount', label: 'Total', render: (s: any) => formatMoney(s.totalAmount), sort: true, accessor: (s: any) => s.totalAmount || 0 },
-              ] as any), [])}
+              columns={salesColumns}
               rows={sales}
               loading={sLoading || loading}
               emptyMessage="No sales"
@@ -139,11 +179,7 @@ export default function CustomerDetail() {
             <Typography variant="subtitle2" color="text.secondary">Recent Receipts</Typography>
             {/* Using nested receipts derived from sales; no separate error */}
             <TableList
-              columns={React.useMemo(() => ([
-                { key: 'id', label: 'ID' },
-                { key: 'issuedAt', label: 'Issued', render: (s: any) => s.issuedAt ? new Date(s.issuedAt).toLocaleString() : '—', sort: true, accessor: (s: any) => new Date(s.issuedAt || 0) },
-                { key: 'consumerSaleId', label: 'Sale ID' },
-              ] as any), [])}
+              columns={receiptColumns}
               rows={receipts}
               loading={rLoading || loading}
               emptyMessage="No receipts"
