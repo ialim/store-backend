@@ -1,5 +1,28 @@
 import React from 'react';
-import { Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TableSortLabel, TablePagination, TextField, Box, Button, Stack, Select, MenuItem, Checkbox, Typography } from '@mui/material';
+import {
+  Alert,
+  Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TableSortLabel,
+  TablePagination,
+  TextField,
+  Box,
+  Button,
+  Stack,
+  Select,
+  MenuItem,
+  Checkbox,
+  Typography,
+  InputBase,
+} from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
+import SearchIcon from '@mui/icons-material/Search';
 import { useSearchParams } from 'react-router-dom';
 
 type Column<Row> = {
@@ -45,6 +68,7 @@ type Props<Row> = {
 };
 
 export default function TableList<Row = any>({ columns, rows, loading, error, emptyMessage, onRowClick, getRowKey, size = 'small', paginated = true, rowsPerPageOptions = [10, 25, 50], defaultRowsPerPage = 25, defaultSortKey, defaultSortDir = 'asc', showFilters = false, globalSearch = false, globalSearchPlaceholder = 'Search', globalSearchKeys, enableUrlState = false, urlKey = 'tbl', onRowsProcessed, onExport, exportLabel = 'Export CSV', exportScopeControl = false, selectable = false, selectedIds, onSelectedIdsChange }: Props<Row>) {
+  const theme = useTheme();
   const key = getRowKey || ((_: any, i: number) => i);
   const clickable = Boolean(onRowClick);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -226,68 +250,226 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
   const pageAllSelected = pagedRows.length > 0 && pagedRows.every((row: any, i: number) => selectedSet.has(keyFn(row, i + page * rowsPerPage)));
   const pageSomeSelected = pagedRows.some((row: any, i: number) => selectedSet.has(keyFn(row, i + page * rowsPerPage)));
 
+  const filtersActive = React.useMemo(
+    () => Object.values(filters).some((v) => (v ?? '').toString().trim().length > 0),
+    [filters]
+  );
+  const showClearButton = Boolean(q || filtersActive);
+  const showResetButton = Boolean(
+    orderBy !== initialSortKey ||
+    order !== defaultSortDir ||
+    page !== 0 ||
+    rowsPerPage !== defaultRowsPerPage
+  );
+  const hasToolbar = globalSearch || showClearButton || showResetButton || onExport || selectable;
+
+  const rowRadius = 18;
+  const rowBaseSx = React.useMemo(() => ({
+    position: 'relative',
+    cursor: clickable ? 'pointer' : 'default',
+    '&:before': {
+      content: '""',
+      position: 'absolute',
+      inset: 0,
+      borderRadius: rowRadius,
+      backgroundColor: '#fff',
+      boxShadow: '0 8px 20px rgba(16, 94, 62, 0.08)',
+      transition: 'box-shadow 180ms ease, transform 180ms ease, background-color 180ms ease',
+      pointerEvents: 'none',
+      zIndex: 0,
+    },
+    '&:hover:before': {
+      boxShadow: '0 16px 32px rgba(16, 94, 62, 0.18)',
+      transform: 'translateY(-2px)',
+      backgroundColor: alpha(theme.palette.success.main, 0.05),
+    },
+    '& td': {
+      position: 'relative',
+      zIndex: 1,
+      borderBottom: 'none',
+      backgroundColor: 'transparent',
+      py: 1.75,
+      fontSize: 14,
+      color: theme.palette.text.primary,
+    },
+    '& td:first-of-type': {
+      borderTopLeftRadius: rowRadius,
+      borderBottomLeftRadius: rowRadius,
+      paddingLeft: selectable ? theme.spacing(1.5) : theme.spacing(3),
+    },
+    '& td:last-of-type': {
+      borderTopRightRadius: rowRadius,
+      borderBottomRightRadius: rowRadius,
+      paddingRight: theme.spacing(3),
+    },
+  }), [clickable, selectable, theme]);
+
+  const searchInput = globalSearch ? (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
+        width: '100%',
+        maxWidth: { xs: '100%', md: 420 },
+        bgcolor: alpha(theme.palette.success.main, 0.08),
+        borderRadius: 999,
+        px: 2,
+        py: 1,
+      }}
+    >
+      <SearchIcon sx={{ color: theme.palette.success.main, opacity: 0.75 }} />
+      <InputBase
+        fullWidth
+        placeholder={globalSearchPlaceholder}
+        value={q}
+        onChange={(event) => {
+          setQ(event.target.value);
+          setPage(0);
+        }}
+        sx={{ fontWeight: 500 }}
+      />
+    </Box>
+  ) : null;
+
+  const emptyStateColSpan = columns.length + (selectable ? 1 : 0);
+
   return (
-    <TableContainer component={Paper}>
+    <TableContainer
+      component={Paper}
+      elevation={0}
+      sx={{
+        borderRadius: 4,
+        p: { xs: 2, md: 3 },
+        boxShadow: '0 32px 60px rgba(16, 94, 62, 0.10)',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, #ffffff 100%)',
+        border: `1px solid ${alpha(theme.palette.success.main, 0.1)}`,
+      }}
+    >
       {error && <Alert severity="error">{error}</Alert>}
-      {(globalSearch || showFilters || onExport || selectable) && (
-        <Box sx={{ p: 1 }}>
-          <Stack direction="row" spacing={1} alignItems="center">
-            {globalSearch && (
-              <TextField
-                size="small"
-                placeholder={globalSearchPlaceholder}
-                value={q}
-                onChange={(e) => { setQ(e.target.value); setPage(0); }}
-                fullWidth
-              />
-            )}
-            {(q || Object.values(filters).some(Boolean)) && (
-              <Button onClick={() => { setQ(''); setDq(''); setFilters({}); setPage(0); }} size="small">Clear</Button>
-            )}
-            {((orderBy && orderBy !== defaultSortKey) || page !== 0 || rowsPerPage !== defaultRowsPerPage || order !== defaultSortDir) && (
-              <Button onClick={() => { setOrderBy(defaultSortKey); setOrder(defaultSortDir); setPage(0); setRowsPerPage(defaultRowsPerPage); }} size="small">Reset</Button>
-            )}
-            {onExport && (
-              <>
-                {exportScopeControl && (
-                  <Select
-                    size="small"
-                    value={exportScope}
-                    onChange={(e) => setExportScope(e.target.value as any)}
-                    sx={{ minWidth: 140, ml: 'auto' }}
-                  >
-                    <MenuItem value="all">Export: All Rows</MenuItem>
-                    <MenuItem value="page">Export: Current Page</MenuItem>
-                  </Select>
-                )}
+
+      {hasToolbar && (
+        <Stack spacing={2} sx={{ mb: 3 }}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={2}
+            alignItems={{ xs: 'stretch', md: 'center' }}
+            justifyContent="space-between"
+          >
+            {searchInput && <Box sx={{ flexGrow: 1 }}>{searchInput}</Box>}
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              flexWrap="wrap"
+              justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
+              sx={{ flexGrow: searchInput ? 0 : 1 }}
+            >
+              {showClearButton && (
+                <Button size="small" onClick={() => { setQ(''); setDq(''); setFilters({}); setPage(0); }}>
+                  Clear Filters
+                </Button>
+              )}
+              {showResetButton && (
                 <Button
-                  variant="outlined"
                   size="small"
                   onClick={() => {
-                    if (!lastProcessedRef.current) return;
-                    const payload = exportScopeControl && exportScope === 'page'
-                      ? { ...lastProcessedRef.current, sorted: lastProcessedRef.current.paged }
-                      : lastProcessedRef.current;
-                    onExport(payload);
+                    setOrderBy(initialSortKey);
+                    setOrder(defaultSortDir);
+                    setPage(0);
+                    setRowsPerPage(defaultRowsPerPage);
                   }}
-                  disabled={!sortedRows.length}
                 >
-                  {exportLabel}
+                  Reset View
                 </Button>
-              </>
-            )}
-            {selectable && (
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
-                <Typography variant="body2">Selected: {selectedCount}</Typography>
-                <Button size="small" onClick={selectAllFiltered} disabled={!filteredRows.length}>Select All Filtered</Button>
-                <Button size="small" onClick={clearSelection} disabled={!selectedCount}>Clear Selection</Button>
-              </Stack>
-            )}
+              )}
+              {onExport && (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  {exportScopeControl && (
+                    <Select
+                      size="small"
+                      value={exportScope}
+                      onChange={(e) => setExportScope(e.target.value as any)}
+                      sx={{ minWidth: 160 }}
+                    >
+                      <MenuItem value="all">Export: All Rows</MenuItem>
+                      <MenuItem value="page">Export: Current Page</MenuItem>
+                    </Select>
+                  )}
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => {
+                      if (!lastProcessedRef.current) return;
+                      const payload = exportScopeControl && exportScope === 'page'
+                        ? { ...lastProcessedRef.current, sorted: lastProcessedRef.current.paged }
+                        : lastProcessedRef.current;
+                      onExport(payload);
+                    }}
+                    disabled={!sortedRows.length}
+                  >
+                    {exportLabel}
+                  </Button>
+                </Stack>
+              )}
+            </Stack>
           </Stack>
-        </Box>
+
+          {selectable && (
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              spacing={1}
+              alignItems={{ xs: 'flex-start', md: 'center' }}
+              justifyContent="space-between"
+            >
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Selected: {selectedCount}
+              </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                <Button size="small" onClick={selectAllFiltered} disabled={!filteredRows.length}>
+                  Select All Filtered
+                </Button>
+                <Button size="small" onClick={clearSelection} disabled={!selectedCount}>
+                  Clear Selection
+                </Button>
+              </Stack>
+            </Stack>
+          )}
+        </Stack>
       )}
-      <Table size={size}>
-        <TableHead>
+
+      <Table
+        size={size}
+        sx={{
+          borderCollapse: 'separate',
+          borderSpacing: '0 14px',
+          minWidth: 650,
+        }}
+      >
+        <TableHead
+          sx={{
+            '& .MuiTableRow-root': {
+              backgroundColor: theme.palette.success.main,
+              '& .MuiTableCell-root': {
+                color: '#fff',
+                fontWeight: 700,
+                borderBottom: 'none',
+                textTransform: 'uppercase',
+                letterSpacing: 0.8,
+                fontSize: 13,
+                py: 1.6,
+              },
+              '& .MuiTableCell-root:first-of-type': {
+                borderTopLeftRadius: 18,
+                borderBottomLeftRadius: 18,
+              },
+              '& .MuiTableCell-root:last-of-type': {
+                borderTopRightRadius: 18,
+                borderBottomRightRadius: 18,
+              },
+            },
+          }}
+        >
           <TableRow>
             {selectable && (
               <TableCell padding="checkbox">
@@ -295,6 +477,7 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
                   indeterminate={!pageAllSelected && pageSomeSelected}
                   checked={pageAllSelected}
                   onChange={(e) => togglePage(e.target.checked)}
+                  sx={{ color: '#fff' }}
                 />
               </TableCell>
             )}
@@ -309,7 +492,17 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
                       direction={active ? order : 'asc'}
                       onClick={() => {
                         if (active) setOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
-                        else { setOrderBy(c.key); setOrder('asc'); }
+                        else {
+                          setOrderBy(c.key);
+                          setOrder('asc');
+                        }
+                      }}
+                      sx={{
+                        color: '#fff',
+                        '&.Mui-active': { color: '#fff' },
+                        '& .MuiTableSortLabel-icon': {
+                          color: '#fff !important',
+                        },
                       }}
                     >
                       {c.label}
@@ -323,15 +516,19 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
           </TableRow>
           {showFilters && (
             <TableRow>
-              {selectable && (<TableCell padding="checkbox" />)}
+              {selectable && <TableCell padding="checkbox" />}
               {columns.map((c) => (
-                <TableCell key={`f-${c.key}`} align={c.align}>
+                <TableCell key={`f-${c.key}`} align={c.align} sx={{ bgcolor: alpha(theme.palette.success.main, 0.08) }}>
                   {c.filter ? (
                     <TextField
                       size="small"
+                      fullWidth
                       placeholder={c.filterPlaceholder || 'Filter'}
                       value={filters[c.key] || ''}
-                      onChange={(e) => { setFilters((f) => ({ ...f, [c.key]: e.target.value })); setPage(0); }}
+                      onChange={(e) => {
+                        setFilters((f) => ({ ...f, [c.key]: e.target.value }));
+                        setPage(0);
+                      }}
                     />
                   ) : null}
                 </TableCell>
@@ -342,17 +539,23 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
         <TableBody>
           {loading && rows.length === 0 && (
             [...Array(3)].map((_, i) => (
-              <TableRow key={`s-${i}`}>
-                {selectable && (<TableCell padding="checkbox"><Skeleton variant="rectangular" width={18} height={18} /></TableCell>)}
+              <TableRow key={`s-${i}`} sx={{ ...rowBaseSx, cursor: 'default' }}>
+                {selectable && (
+                  <TableCell padding="checkbox">
+                    <Skeleton variant="circular" width={20} height={20} />
+                  </TableCell>
+                )}
                 {columns.map((c) => (
-                  <TableCell key={c.key}><Skeleton variant="text" /></TableCell>
+                  <TableCell key={`${c.key}-sk-${i}`}>
+                    <Skeleton variant="text" />
+                  </TableCell>
                 ))}
               </TableRow>
             ))
           )}
           {!loading && rows.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={columns.length + (selectable ? 1 : 0)} align="center" sx={{ color: 'text.secondary' }}>
+            <TableRow sx={rowBaseSx}>
+              <TableCell colSpan={emptyStateColSpan} align="center" sx={{ py: 3, fontSize: 14, color: theme.palette.text.secondary }}>
                 {emptyMessage || 'No records'}
               </TableCell>
             </TableRow>
@@ -361,11 +564,11 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
             <TableRow
               key={key(row, idx + page * rowsPerPage)}
               hover={clickable}
-              sx={{ cursor: clickable ? 'pointer' : 'default' }}
+              sx={rowBaseSx}
               onClick={clickable ? () => onRowClick!(row) : undefined}
             >
               {selectable && (
-                <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()} sx={{ width: 52 }}>
                   <Checkbox
                     checked={selectedSet.has(key(row, idx + page * rowsPerPage))}
                     onChange={(e) => toggleOne(row, idx + page * rowsPerPage, e.target.checked)}
@@ -373,7 +576,13 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
                 </TableCell>
               )}
               {columns.map((c) => (
-                <TableCell key={c.key} align={c.align} onClick={(e) => { /* prevent bubbling from interactive controls */ if ((e.target as HTMLElement).closest('button, input, select, a, textarea')) e.stopPropagation(); }}>
+                <TableCell
+                  key={c.key}
+                  align={c.align}
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest('button, input, select, a, textarea')) e.stopPropagation();
+                  }}
+                >
                   {c.render ? c.render(row, idx) : (row as any)[c.key]}
                 </TableCell>
               ))}
@@ -381,16 +590,22 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
           ))}
         </TableBody>
       </Table>
+
       {paginated && (
-        <TablePagination
-          component="div"
-          count={rows.length}
-          page={page}
-          onPageChange={(_, p) => setPage(p)}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-          rowsPerPageOptions={rowsPerPageOptions}
-        />
+        <Box sx={{ mt: 2 }}>
+          <TablePagination
+            component="div"
+            count={rows.length}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+            rowsPerPageOptions={rowsPerPageOptions}
+          />
+        </Box>
       )}
     </TableContainer>
   );
