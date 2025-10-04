@@ -16,7 +16,7 @@ else
   echo "[entrypoint] Skipping prisma migrate (SKIP_PRISMA_MIGRATE=true)"
 fi
 
-if [ "${RUN_PRISMA_SEED_ON_BOOT:-false}" = "true" ]; then
+if [ "${RUN_PRISMA_SEED_ON_BOOT:-false}" != "true" ]; then
   echo "[entrypoint] Checking if database seed is required..."
   if node -e "const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); (async () => { try { const count = await prisma.user.count(); await prisma.$disconnect(); process.exit(count === 0 ? 0 : 1); } catch (err) { console.error('[entrypoint] Seed check failed', err); await prisma.$disconnect(); process.exit(2); } })();"; then
     echo "[entrypoint] Running prisma db seed..."
