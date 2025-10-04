@@ -1,5 +1,16 @@
 import React from 'react';
-import { Box, Button, Card, CardContent, Grid, Stack, TextField, Typography } from '@mui/material';
+import {
+  Avatar,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Divider,
+  Grid,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
 import { useAuth } from '../shared/AuthProvider';
 import { decodeJwt } from '../shared/jwt';
 import { notify } from '../shared/notify';
@@ -8,7 +19,6 @@ import {
   useMeQuery,
   useUpdateMyProfileMutation,
 } from '../generated/graphql';
-
 
 function formatDate(ts?: number) {
   if (!ts) return '-';
@@ -26,8 +36,21 @@ function maskToken(t?: string | null) {
   return `${t.slice(0, 12)}...${t.slice(-8)}`;
 }
 
+const InfoRow = ({ label, value }: { label: string; value?: React.ReactNode }) => (
+  <Grid item xs={12} sm={6} md={4}>
+    <Typography
+      variant="caption"
+      color="text.secondary"
+      sx={{ textTransform: 'uppercase', letterSpacing: 0.6 }}
+    >
+      {label}
+    </Typography>
+    <Typography variant="body1">{value || '—'}</Typography>
+  </Grid>
+);
+
 export default function Profile() {
-  const { user, token, logout, hasRole, hasPermission, permissions } = useAuth();
+  const { user, token, logout } = useAuth();
   const claims = token ? decodeJwt(token) : null;
   const exp = (claims?.exp as number | undefined) || undefined;
   const iat = (claims?.iat as number | undefined) || undefined;
@@ -40,8 +63,7 @@ export default function Profile() {
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
   const [changePassword, { loading: changing }] = useChangePasswordMutation();
-  const [updateProfile, { loading: savingProfile }] =
-    useUpdateMyProfileMutation();
+  const [updateProfile, { loading: savingProfile }] = useUpdateMyProfileMutation();
 
   React.useEffect(() => {
     const profile = meData?.me?.customerProfile;
@@ -51,7 +73,7 @@ export default function Profile() {
     setEditingProfile(false);
   }, [meData?.me?.customerProfile, meData?.me?.email]);
 
-  const copy = async () => {
+  const handleCopyToken = async () => {
     if (!token) return;
     try {
       await navigator.clipboard.writeText(token);
@@ -61,7 +83,7 @@ export default function Profile() {
     }
   };
 
-  const submitChange = async (e: React.FormEvent) => {
+  const submitChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword || !newPassword) {
       notify('Please fill all password fields', 'warning');
@@ -72,7 +94,9 @@ export default function Profile() {
       return;
     }
     try {
-      const res = await changePassword({ variables: { input: { currentPassword, newPassword } } });
+      const res = await changePassword({
+        variables: { input: { currentPassword, newPassword } },
+      });
       if (res.data?.changePassword) {
         notify('Password changed. Please login again.', 'success');
         logout();
@@ -80,8 +104,7 @@ export default function Profile() {
         notify('Failed to change password', 'error');
       }
     } catch (err: any) {
-      const msg = err?.message || 'Failed to change password';
-      notify(msg, 'error');
+      notify(err?.message || 'Failed to change password', 'error');
     }
   };
 
@@ -109,101 +132,82 @@ export default function Profile() {
     }
   };
 
+  const displayName =
+    meData?.me?.customerProfile?.fullName || meData?.me?.email || user?.email || '-';
+  const roleName = meData?.me?.role?.name || user?.roleName || '—';
+  const summaryEmail = profileEmail || meData?.me?.email || user?.email || '—';
+  const avatarLabel = displayName
+    .split(' ')
+    .map((part) => part.charAt(0))
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
     <Stack spacing={3}>
-      <Typography variant="h5">Profile</Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Stack spacing={1}>
-                <Typography variant="subtitle2" color="text.secondary">User</Typography>
-                <Typography><b>Email:</b> {user?.email || '-'}</Typography>
-                <Typography><b>Role:</b> {meData?.me?.role?.name || user?.roleName || user?.roleId || '-'}</Typography>
-                <Typography><b>User ID:</b> {user?.id || '-'}</Typography>
-                <Box>
-                  <Button size="small" onClick={() => refetch()}>Refresh</Button>
-                </Box>
+      <Typography variant="h5">My Profile</Typography>
+
+      <Card>
+        <CardContent>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            alignItems={{ xs: 'flex-start', sm: 'center' }}
+            justifyContent="space-between"
+          >
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Avatar sx={{ width: 72, height: 72, bgcolor: 'primary.main', fontSize: 28 }}>
+                {avatarLabel || '?'}
+              </Avatar>
+              <Stack spacing={0.5}>
+                <Typography variant="h6">{displayName}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {roleName}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {summaryEmail}
+                </Typography>
               </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Stack spacing={1}>
-                <Typography variant="subtitle2" color="text.secondary">Session</Typography>
-                <Typography><b>Token:</b> {maskToken(token)}</Typography>
-                <Typography><b>Issued:</b> {formatDate(iat)}</Typography>
-                <Typography><b>Expires:</b> {formatDate(exp)}</Typography>
-                <Box>
-                  <Button size="small" variant="outlined" onClick={copy} sx={{ mr: 1 }}>Copy Token</Button>
-                  <Button size="small" color="error" variant="contained" onClick={logout}>Logout</Button>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-      </Grid>
+            </Stack>
+            <Button variant="outlined" onClick={() => refetch()}>
+              Refresh
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
 
       <Grid container spacing={2}>
         <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Stack spacing={1}>
-                <Typography variant="subtitle2" color="text.secondary">Permissions Debug</Typography>
-                <Grid container spacing={1}>
-                  <Grid item xs={12} sm={6} md={4}>
-                    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
-                      <Typography variant="body2"><b>Role Matches</b></Typography>
-                      <Typography variant="caption">SUPERADMIN: {String(hasRole('SUPERADMIN'))}</Typography><br />
-                      <Typography variant="caption">ADMIN: {String(hasRole('ADMIN'))}</Typography><br />
-                      <Typography variant="caption">MANAGER: {String(hasRole('MANAGER'))}</Typography><br />
-                      <Typography variant="caption">ACCOUNTANT: {String(hasRole('ACCOUNTANT'))}</Typography><br />
-                      <Typography variant="caption">BILLER: {String(hasRole('BILLER'))}</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={4}>
-                    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
-                      <Typography variant="body2"><b>Nav Gates</b></Typography>
-                      <Typography variant="caption">Outbox: {String(hasRole('SUPERADMIN','ADMIN','MANAGER','ACCOUNTANT') || hasPermission('VIEW_REPORTS'))}</Typography><br />
-                      <Typography variant="caption">Low Stock: {String(hasRole('SUPERADMIN','ADMIN','MANAGER') || hasPermission('MANAGE_PRODUCTS','VIEW_REPORTS'))}</Typography><br />
-                      <Typography variant="caption">Fulfillment: {String(hasRole('SUPERADMIN','ADMIN','MANAGER','BILLER') || hasPermission('ASSIGN_MANAGER','ASSIGN_BILLER'))}</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={12} md={4}>
-                    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
-                      <Typography variant="body2"><b>Permissions</b></Typography>
-                      <Typography variant="caption" color="text.secondary">{permissions.length ? permissions.join(', ') : 'None'}</Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-        <Grid item xs={12} md={6}>
           <Card component={editingProfile ? 'form' : 'div'} onSubmit={submitProfileUpdate}>
             <CardContent>
-              <Stack spacing={1.5}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between">
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Profile Details
-                  </Typography>
+              <Stack spacing={2}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                >
+                  <Typography variant="subtitle1">Personal Information</Typography>
                   {!editingProfile ? (
-                    <Button size="small" variant="outlined" onClick={() => setEditingProfile(true)}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => setEditingProfile(true)}
+                    >
                       Edit
                     </Button>
                   ) : (
                     <Stack direction="row" spacing={1}>
-                      <Button size="small" variant="outlined" onClick={() => {
-                        const profile = meData?.me?.customerProfile;
-                        setProfileName(profile?.fullName || '');
-                        setProfileEmail(profile?.email || meData?.me?.email || '');
-                        setProfilePhone(profile?.phone || '');
-                        setEditingProfile(false);
-                      }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          const profile = meData?.me?.customerProfile;
+                          setProfileName(profile?.fullName || '');
+                          setProfileEmail(profile?.email || meData?.me?.email || '');
+                          setProfilePhone(profile?.phone || '');
+                          setEditingProfile(false);
+                        }}
+                      >
                         Cancel
                       </Button>
                       <Button
@@ -217,12 +221,13 @@ export default function Profile() {
                     </Stack>
                   )}
                 </Stack>
+                <Divider />
                 {!editingProfile ? (
-                  <Stack spacing={0.75}>
-                    <Typography><b>Name:</b> {profileName || '-'}</Typography>
-                    <Typography><b>Email:</b> {profileEmail || '-'}</Typography>
-                    <Typography><b>Phone:</b> {profilePhone || '-'}</Typography>
-                  </Stack>
+                  <Grid container spacing={2}>
+                    <InfoRow label="Full Name" value={profileName} />
+                    <InfoRow label="Email Address" value={profileEmail} />
+                    <InfoRow label="Phone Number" value={profilePhone} />
+                  </Grid>
                 ) : (
                   <Stack spacing={1.5}>
                     <TextField
@@ -249,11 +254,34 @@ export default function Profile() {
           </Card>
         </Grid>
 
-        <Grid item xs={12}>
-          <Card component="form" onSubmit={submitChange}>
+        <Grid item xs={12} md={6}>
+          <Card>
             <CardContent>
-              <Stack spacing={2}>
-                <Typography variant="subtitle2" color="text.secondary">Change Password</Typography>
+              <Stack spacing={1.5}>
+                <Typography variant="subtitle1">Session</Typography>
+                <Divider />
+                <Typography><b>Token:</b> {maskToken(token)}</Typography>
+                <Typography><b>Issued:</b> {formatDate(iat)}</Typography>
+                <Typography><b>Expires:</b> {formatDate(exp)}</Typography>
+                <Stack direction="row" spacing={1}>
+                  <Button size="small" variant="outlined" onClick={handleCopyToken}>
+                    Copy Token
+                  </Button>
+                  <Button size="small" color="error" variant="contained" onClick={logout}>
+                    Logout
+                  </Button>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Card component="form" onSubmit={submitChangePassword}>
+            <CardContent>
+              <Stack spacing={1.5}>
+                <Typography variant="subtitle1">Change Password</Typography>
+                <Divider />
                 <TextField
                   label="Current Password"
                   type="password"
@@ -274,32 +302,10 @@ export default function Profile() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
                 <Box>
-                  <Button type="submit" variant="contained" disabled={changing}>Change Password</Button>
+                  <Button type="submit" variant="contained" disabled={changing}>
+                    Change Password
+                  </Button>
                 </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Stack spacing={1}>
-                <Typography variant="subtitle2" color="text.secondary">Permissions</Typography>
-                {meData?.me?.role?.permissions?.length ? (
-                  <Grid container spacing={1}>
-                    {meData.me.role.permissions.map((p: any) => (
-                      <Grid item xs={12} sm={6} md={4} key={p.id}>
-                        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
-                          <Typography variant="body2"><b>{p.name}</b></Typography>
-                          <Typography variant="caption" color="text.secondary">{p.module} • {p.action}</Typography>
-                        </Box>
-                      </Grid>
-                    ))}
-                  </Grid>
-                ) : (
-                  <Typography color="text.secondary">No permissions found.</Typography>
-                )}
               </Stack>
             </CardContent>
           </Card>
