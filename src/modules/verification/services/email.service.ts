@@ -1,5 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
+import {
+  SESv2Client,
+  SendEmailCommand,
+  type SESv2ClientConfig,
+} from '@aws-sdk/client-sesv2';
 import * as nodemailer from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import type SESTransport from 'nodemailer/lib/ses-transport';
@@ -12,7 +16,18 @@ export class EmailService {
   constructor() {
     const sesRegion = process.env.SES_REGION || process.env.AWS_REGION;
     if (sesRegion) {
-      const ses = new SESv2Client({ region: sesRegion });
+      const accessKeyId =
+        process.env.SES_ACCESS_KEY_ID ?? process.env.AWS_ACCESS_KEY_ID;
+      const secretAccessKey =
+        process.env.SES_SECRET_ACCESS_KEY ?? process.env.AWS_SECRET_ACCESS_KEY;
+      const sesConfig: SESv2ClientConfig = { region: sesRegion };
+      if (accessKeyId && secretAccessKey) {
+        sesConfig.credentials = { accessKeyId, secretAccessKey };
+        this.logger.log(
+          'EmailService configured with explicit SES credentials from environment variables',
+        );
+      }
+      const ses = new SESv2Client(sesConfig);
       const sesTransportOptions: SESTransport.Options = {
         SES: { sesClient: ses, SendEmailCommand },
       };
