@@ -38,10 +38,7 @@ export class SyncController {
   }
 
   @Post('prices')
-  async syncPrices(
-    @Body() dto: SyncPricesDto,
-    @Req() req: RequestWithUser,
-  ) {
+  async syncPrices(@Body() dto: SyncPricesDto, @Req() req: RequestWithUser) {
     if (!dto?.rows || !Array.isArray(dto.rows)) {
       throw new BadRequestException('rows must be an array');
     }
@@ -50,10 +47,7 @@ export class SyncController {
   }
 
   @Post('tickets')
-  async syncTickets(
-    @Body() dto: SyncTicketsDto,
-    @Req() req: RequestWithUser,
-  ) {
+  async syncTickets(@Body() dto: SyncTicketsDto, @Req() req: RequestWithUser) {
     if (!dto?.tickets || !Array.isArray(dto.tickets)) {
       throw new BadRequestException('tickets must be an array');
     }
