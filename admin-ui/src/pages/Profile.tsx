@@ -5,8 +5,8 @@ import { decodeJwt } from '../shared/jwt';
 import { notify } from '../shared/notify';
 import {
   useChangePasswordMutation,
-  useCompleteCustomerProfileMutation,
   useMeQuery,
+  useUpdateMyProfileMutation,
 } from '../generated/graphql';
 
 
@@ -40,7 +40,7 @@ export default function Profile() {
   const [confirmPassword, setConfirmPassword] = React.useState('');
   const [changePassword, { loading: changing }] = useChangePasswordMutation();
   const [updateProfile, { loading: savingProfile }] =
-    useCompleteCustomerProfileMutation();
+    useUpdateMyProfileMutation();
 
   React.useEffect(() => {
     const profile = meData?.me?.customerProfile;
@@ -180,7 +180,6 @@ export default function Profile() {
         </Grid>
       </Grid>
 
-      {meData?.me?.customerProfile && (
         <Grid item xs={12} md={6}>
           <Card component="form" onSubmit={submitProfileUpdate}>
             <CardContent>
@@ -218,7 +217,6 @@ export default function Profile() {
             </CardContent>
           </Card>
         </Grid>
-      )}
 
         <Grid item xs={12}>
           <Card component="form" onSubmit={submitChange}>

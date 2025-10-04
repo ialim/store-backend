@@ -40,6 +40,18 @@ export class OnboardingResolver {
     return this.onboardingService.completeCustomerProfile(user.id, input);
   }
 
+  @Mutation(() => CustomerProfile)
+  @UseGuards(GqlAuthGuard)
+  updateMyProfile(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Args('input') input: UpdateCustomerProfileInput,
+  ) {
+    if (!user?.id) {
+      throw new UnauthorizedException('Missing authenticated user');
+    }
+    return this.onboardingService.updateMyProfile(user.id, input);
+  }
+
   @Mutation(() => ResellerProfile)
   applyReseller(@Args('input') input: ApplyResellerInput) {
     return this.onboardingService.applyReseller(input);

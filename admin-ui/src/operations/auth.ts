@@ -37,3 +37,18 @@ export const ChangePassword = gql`
     changePassword(input: $input)
   }
 `;
+
+export const UpdateMyProfile = gql`
+  mutation UpdateMyProfile($input: UpdateCustomerProfileInput!) {
+    updateMyProfile(input: $input) {
+      userId
+      fullName
+      email
+      phone
+      preferredStore {
+        id
+        name
+      }
+    }
+  }
+`;
