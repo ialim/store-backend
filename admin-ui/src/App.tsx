@@ -25,6 +25,8 @@ const Analytics = lazy(() => import('./pages/Analytics'));
 const Stores = lazy(() => import('./pages/Stores'));
 const Support = lazy(() => import('./pages/Support'));
 const Staff = lazy(() => import('./pages/Staff'));
+const StaffDetail = lazy(() => import('./pages/StaffDetail'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const ReceiveStock = lazy(() => import('./pages/ReceiveStock'));
 const SupplierPayments = lazy(() => import('./pages/SupplierPayments'));
 const SupplierAging = lazy(() => import('./pages/SupplierAging'));
@@ -61,6 +63,7 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/apply-reseller" element={<ApplyReseller />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/complete-profile" element={<ProtectedRoute element={<CompleteProfile />} />} />
             <Route
               path="/outbox"
@@ -336,6 +339,16 @@ export default function App() {
                   roles={['SUPERADMIN', 'ADMIN']}
                   perms={['CREATE_STAFF', 'ASSIGN_MANAGER', 'ASSIGN_BILLER']}
                   element={<Staff />}
+                />
+              }
+            />
+            <Route
+              path="/staff/:id"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN']}
+                  perms={['CREATE_STAFF', 'ASSIGN_MANAGER', 'ASSIGN_BILLER']}
+                  element={<StaffDetail />}
                 />
               }
             />

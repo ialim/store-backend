@@ -9,6 +9,7 @@ import { UpdateCustomerProfileInput } from './dto/update-customer-profile.input'
 import { ApplyResellerInput } from './dto/apply-reseller.input';
 import { ApproveResellerInput } from './dto/approve-reseller.input';
 import { NotificationService } from '../notification/notification.service';
+import { VerificationService } from '../verification/verification.service';
 import { AdminUpdateCustomerProfileInput } from './dto/admin-update-customer-profile.input';
 import { AdminCreateCustomerInput } from './dto/admin-create-customer.input';
 
@@ -22,6 +23,7 @@ export class OnboardingService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private notificationService: NotificationService,
+    private verificationService: VerificationService,
   ) {}
 
   private static hashPassword(password: string): string {
@@ -62,6 +64,14 @@ export class OnboardingService {
       'CUSTOMER_SIGNUP',
       'Welcome! Please complete your profile to start ordering.',
     );
+
+    try {
+      await this.verificationService.sendEmailVerification(user.id);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to queue verification email for customer signup ${user.id}: ${error}`,
+      );
+    }
 
     const token = this.jwtService.sign({
       sub: user.id,
@@ -127,6 +137,14 @@ export class OnboardingService {
       'RESELLER_APPLIED',
       'Your reseller application is pending approval.',
     );
+
+    try {
+      await this.verificationService.sendEmailVerification(user.id);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to queue verification email for reseller ${user.id}: ${error}`,
+      );
+    }
 
     return user.resellerProfile;
   }
@@ -293,6 +311,14 @@ export class OnboardingService {
     } catch (error) {
       this.logger.warn(
         `Failed to send admin-created notification for user ${user.id}: ${error}`,
+      );
+    }
+
+    try {
+      await this.verificationService.sendEmailVerification(user.id);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to queue verification email for admin-created customer ${user.id}: ${error}`,
       );
     }
     return user;

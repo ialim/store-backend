@@ -4809,6 +4809,120 @@ export type JsonNullableFilter = {
   string_starts_with?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type LegacyStoreMapping = {
+  __typename?: 'LegacyStoreMapping';
+  id: Scalars['ID']['output'];
+  store: Store;
+  storeCode: Scalars['String']['output'];
+  storeId: Scalars['String']['output'];
+};
+
+export type LegacyStoreMappingCreateManyStoreInput = {
+  id?: InputMaybe<Scalars['String']['input']>;
+  storeCode: Scalars['String']['input'];
+};
+
+export type LegacyStoreMappingCreateManyStoreInputEnvelope = {
+  data: Array<LegacyStoreMappingCreateManyStoreInput>;
+  skipDuplicates?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type LegacyStoreMappingCreateNestedManyWithoutStoreInput = {
+  connect?: InputMaybe<Array<LegacyStoreMappingWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<LegacyStoreMappingCreateOrConnectWithoutStoreInput>>;
+  create?: InputMaybe<Array<LegacyStoreMappingCreateWithoutStoreInput>>;
+  createMany?: InputMaybe<LegacyStoreMappingCreateManyStoreInputEnvelope>;
+};
+
+export type LegacyStoreMappingCreateOrConnectWithoutStoreInput = {
+  create: LegacyStoreMappingCreateWithoutStoreInput;
+  where: LegacyStoreMappingWhereUniqueInput;
+};
+
+export type LegacyStoreMappingCreateWithoutStoreInput = {
+  id?: InputMaybe<Scalars['String']['input']>;
+  storeCode: Scalars['String']['input'];
+};
+
+export type LegacyStoreMappingListRelationFilter = {
+  every?: InputMaybe<LegacyStoreMappingWhereInput>;
+  none?: InputMaybe<LegacyStoreMappingWhereInput>;
+  some?: InputMaybe<LegacyStoreMappingWhereInput>;
+};
+
+export type LegacyStoreMappingOrderByRelationAggregateInput = {
+  _count?: InputMaybe<SortOrder>;
+};
+
+export type LegacyStoreMappingScalarWhereInput = {
+  AND?: InputMaybe<Array<LegacyStoreMappingScalarWhereInput>>;
+  NOT?: InputMaybe<Array<LegacyStoreMappingScalarWhereInput>>;
+  OR?: InputMaybe<Array<LegacyStoreMappingScalarWhereInput>>;
+  id?: InputMaybe<StringFilter>;
+  storeCode?: InputMaybe<StringFilter>;
+  storeId?: InputMaybe<StringFilter>;
+};
+
+export type LegacyStoreMappingUpdateManyMutationInput = {
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  storeCode?: InputMaybe<StringFieldUpdateOperationsInput>;
+};
+
+export type LegacyStoreMappingUpdateManyWithWhereWithoutStoreInput = {
+  data: LegacyStoreMappingUpdateManyMutationInput;
+  where: LegacyStoreMappingScalarWhereInput;
+};
+
+export type LegacyStoreMappingUpdateManyWithoutStoreNestedInput = {
+  connect?: InputMaybe<Array<LegacyStoreMappingWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<LegacyStoreMappingCreateOrConnectWithoutStoreInput>>;
+  create?: InputMaybe<Array<LegacyStoreMappingCreateWithoutStoreInput>>;
+  createMany?: InputMaybe<LegacyStoreMappingCreateManyStoreInputEnvelope>;
+  delete?: InputMaybe<Array<LegacyStoreMappingWhereUniqueInput>>;
+  deleteMany?: InputMaybe<Array<LegacyStoreMappingScalarWhereInput>>;
+  disconnect?: InputMaybe<Array<LegacyStoreMappingWhereUniqueInput>>;
+  set?: InputMaybe<Array<LegacyStoreMappingWhereUniqueInput>>;
+  update?: InputMaybe<Array<LegacyStoreMappingUpdateWithWhereUniqueWithoutStoreInput>>;
+  updateMany?: InputMaybe<Array<LegacyStoreMappingUpdateManyWithWhereWithoutStoreInput>>;
+  upsert?: InputMaybe<Array<LegacyStoreMappingUpsertWithWhereUniqueWithoutStoreInput>>;
+};
+
+export type LegacyStoreMappingUpdateWithWhereUniqueWithoutStoreInput = {
+  data: LegacyStoreMappingUpdateWithoutStoreInput;
+  where: LegacyStoreMappingWhereUniqueInput;
+};
+
+export type LegacyStoreMappingUpdateWithoutStoreInput = {
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  storeCode?: InputMaybe<StringFieldUpdateOperationsInput>;
+};
+
+export type LegacyStoreMappingUpsertWithWhereUniqueWithoutStoreInput = {
+  create: LegacyStoreMappingCreateWithoutStoreInput;
+  update: LegacyStoreMappingUpdateWithoutStoreInput;
+  where: LegacyStoreMappingWhereUniqueInput;
+};
+
+export type LegacyStoreMappingWhereInput = {
+  AND?: InputMaybe<Array<LegacyStoreMappingWhereInput>>;
+  NOT?: InputMaybe<Array<LegacyStoreMappingWhereInput>>;
+  OR?: InputMaybe<Array<LegacyStoreMappingWhereInput>>;
+  id?: InputMaybe<StringFilter>;
+  store?: InputMaybe<StoreScalarRelationFilter>;
+  storeCode?: InputMaybe<StringFilter>;
+  storeId?: InputMaybe<StringFilter>;
+};
+
+export type LegacyStoreMappingWhereUniqueInput = {
+  AND?: InputMaybe<Array<LegacyStoreMappingWhereInput>>;
+  NOT?: InputMaybe<Array<LegacyStoreMappingWhereInput>>;
+  OR?: InputMaybe<Array<LegacyStoreMappingWhereInput>>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  store?: InputMaybe<StoreScalarRelationFilter>;
+  storeCode?: InputMaybe<Scalars['String']['input']>;
+  storeId?: InputMaybe<StringFilter>;
+};
+
 export type LinkSupplierUserInput = {
   supplierId: Scalars['ID']['input'];
   userId?: InputMaybe<Scalars['ID']['input']>;
@@ -4980,6 +5094,7 @@ export type Mutation = {
   sendEmailVerification: Scalars['Boolean']['output'];
   sendPhoneVerification: Scalars['Boolean']['output'];
   sendSupportMessage: SupportMessage;
+  sendUserEmailVerification: Scalars['Boolean']['output'];
   setReorderSettings: Stock;
   signupCustomer: AuthResponse;
   submitPurchaseRequisition: Scalars['Boolean']['output'];
@@ -5523,6 +5638,11 @@ export type MutationSelectSupplierQuoteArgs = {
 
 export type MutationSendSupportMessageArgs = {
   input: SendSupportMessageInput;
+};
+
+
+export type MutationSendUserEmailVerificationArgs = {
+  userId: Scalars['String']['input'];
 };
 
 
@@ -7251,6 +7371,7 @@ export type ProductVariant = {
   createdAt: Scalars['DateTime']['output'];
   facets?: Maybe<Array<VariantFacetValue>>;
   id: Scalars['ID']['output'];
+  legacyArticleCode?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
   price: Scalars['Float']['output'];
   product?: Maybe<Product>;
@@ -7308,6 +7429,7 @@ export type ProductVariantCountAggregate = {
   barcode: Scalars['Int']['output'];
   createdAt: Scalars['Int']['output'];
   id: Scalars['Int']['output'];
+  legacyArticleCode: Scalars['Int']['output'];
   name: Scalars['Int']['output'];
   price: Scalars['Int']['output'];
   productId: Scalars['Int']['output'];
@@ -7320,6 +7442,7 @@ export type ProductVariantCountAggregateInput = {
   barcode?: InputMaybe<Scalars['Boolean']['input']>;
   createdAt?: InputMaybe<Scalars['Boolean']['input']>;
   id?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['Boolean']['input']>;
   name?: InputMaybe<Scalars['Boolean']['input']>;
   price?: InputMaybe<Scalars['Boolean']['input']>;
   productId?: InputMaybe<Scalars['Boolean']['input']>;
@@ -7331,6 +7454,7 @@ export type ProductVariantCountOrderByAggregateInput = {
   barcode?: InputMaybe<SortOrder>;
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  legacyArticleCode?: InputMaybe<SortOrder>;
   name?: InputMaybe<SortOrder>;
   price?: InputMaybe<SortOrder>;
   productId?: InputMaybe<SortOrder>;
@@ -7350,6 +7474,7 @@ export type ProductVariantCreateInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7369,6 +7494,7 @@ export type ProductVariantCreateManyInput = {
   barcode?: InputMaybe<Scalars['String']['input']>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   productId?: InputMaybe<Scalars['String']['input']>;
@@ -7380,6 +7506,7 @@ export type ProductVariantCreateManyProductInput = {
   barcode?: InputMaybe<Scalars['String']['input']>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   resellerPrice: Scalars['Float']['input'];
@@ -7568,6 +7695,7 @@ export type ProductVariantCreateWithoutConsumerItemsInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7594,6 +7722,7 @@ export type ProductVariantCreateWithoutFacetsInput = {
   consumerItems?: InputMaybe<ConsumerSaleItemCreateNestedManyWithoutProductVariantInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7621,6 +7750,7 @@ export type ProductVariantCreateWithoutProductInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   purchaseReturnItems?: InputMaybe<PurchaseReturnItemCreateNestedManyWithoutProductVariantInput>;
@@ -7646,6 +7776,7 @@ export type ProductVariantCreateWithoutPurchaseOrderItemInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7672,6 +7803,7 @@ export type ProductVariantCreateWithoutPurchaseRequisitionItemInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7699,6 +7831,7 @@ export type ProductVariantCreateWithoutPurchaseReturnItemsInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7725,6 +7858,7 @@ export type ProductVariantCreateWithoutQuotationItemsInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7751,6 +7885,7 @@ export type ProductVariantCreateWithoutReceiptItemsInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7777,6 +7912,7 @@ export type ProductVariantCreateWithoutResellerItemsInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7803,6 +7939,7 @@ export type ProductVariantCreateWithoutReturnItemsInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7829,6 +7966,7 @@ export type ProductVariantCreateWithoutStockItemsInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7854,6 +7992,7 @@ export type ProductVariantCreateWithoutStockMovementItemInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7880,6 +8019,7 @@ export type ProductVariantCreateWithoutSupplierCatalogInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7906,6 +8046,7 @@ export type ProductVariantCreateWithoutSupplierQuoteItemInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7933,6 +8074,7 @@ export type ProductVariantCreateWithoutTransferItemsInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   facets?: InputMaybe<VariantFacetValueCreateNestedManyWithoutVariantInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   price: Scalars['Float']['input'];
   product?: InputMaybe<ProductCreateNestedOneWithoutVariantsInput>;
@@ -7957,6 +8099,7 @@ export type ProductVariantGroupBy = {
   barcode?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['String']['output'];
+  legacyArticleCode?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
   price: Scalars['Float']['output'];
   productId?: Maybe<Scalars['String']['output']>;
@@ -7975,6 +8118,7 @@ export type ProductVariantMaxAggregate = {
   barcode?: Maybe<Scalars['String']['output']>;
   createdAt?: Maybe<Scalars['DateTime']['output']>;
   id?: Maybe<Scalars['String']['output']>;
+  legacyArticleCode?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
   price?: Maybe<Scalars['Float']['output']>;
   productId?: Maybe<Scalars['String']['output']>;
@@ -7986,6 +8130,7 @@ export type ProductVariantMaxAggregateInput = {
   barcode?: InputMaybe<Scalars['Boolean']['input']>;
   createdAt?: InputMaybe<Scalars['Boolean']['input']>;
   id?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['Boolean']['input']>;
   name?: InputMaybe<Scalars['Boolean']['input']>;
   price?: InputMaybe<Scalars['Boolean']['input']>;
   productId?: InputMaybe<Scalars['Boolean']['input']>;
@@ -7997,6 +8142,7 @@ export type ProductVariantMaxOrderByAggregateInput = {
   barcode?: InputMaybe<SortOrder>;
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  legacyArticleCode?: InputMaybe<SortOrder>;
   name?: InputMaybe<SortOrder>;
   price?: InputMaybe<SortOrder>;
   productId?: InputMaybe<SortOrder>;
@@ -8009,6 +8155,7 @@ export type ProductVariantMinAggregate = {
   barcode?: Maybe<Scalars['String']['output']>;
   createdAt?: Maybe<Scalars['DateTime']['output']>;
   id?: Maybe<Scalars['String']['output']>;
+  legacyArticleCode?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
   price?: Maybe<Scalars['Float']['output']>;
   productId?: Maybe<Scalars['String']['output']>;
@@ -8020,6 +8167,7 @@ export type ProductVariantMinAggregateInput = {
   barcode?: InputMaybe<Scalars['Boolean']['input']>;
   createdAt?: InputMaybe<Scalars['Boolean']['input']>;
   id?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['Boolean']['input']>;
   name?: InputMaybe<Scalars['Boolean']['input']>;
   price?: InputMaybe<Scalars['Boolean']['input']>;
   productId?: InputMaybe<Scalars['Boolean']['input']>;
@@ -8031,6 +8179,7 @@ export type ProductVariantMinOrderByAggregateInput = {
   barcode?: InputMaybe<SortOrder>;
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  legacyArticleCode?: InputMaybe<SortOrder>;
   name?: InputMaybe<SortOrder>;
   price?: InputMaybe<SortOrder>;
   productId?: InputMaybe<SortOrder>;
@@ -8051,6 +8200,7 @@ export type ProductVariantOrderByWithAggregationInput = {
   barcode?: InputMaybe<SortOrderInput>;
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  legacyArticleCode?: InputMaybe<SortOrderInput>;
   name?: InputMaybe<SortOrderInput>;
   price?: InputMaybe<SortOrder>;
   productId?: InputMaybe<SortOrderInput>;
@@ -8070,6 +8220,7 @@ export type ProductVariantOrderByWithRelationInput = {
   createdAt?: InputMaybe<SortOrder>;
   facets?: InputMaybe<VariantFacetValueOrderByRelationAggregateInput>;
   id?: InputMaybe<SortOrder>;
+  legacyArticleCode?: InputMaybe<SortOrderInput>;
   name?: InputMaybe<SortOrderInput>;
   price?: InputMaybe<SortOrder>;
   product?: InputMaybe<ProductOrderByWithRelationInput>;
@@ -8090,6 +8241,7 @@ export enum ProductVariantScalarFieldEnum {
   Barcode = 'barcode',
   CreatedAt = 'createdAt',
   Id = 'id',
+  LegacyArticleCode = 'legacyArticleCode',
   Name = 'name',
   Price = 'price',
   ProductId = 'productId',
@@ -8109,6 +8261,7 @@ export type ProductVariantScalarWhereInput = {
   barcode?: InputMaybe<StringNullableFilter>;
   createdAt?: InputMaybe<DateTimeFilter>;
   id?: InputMaybe<StringFilter>;
+  legacyArticleCode?: InputMaybe<StringNullableFilter>;
   name?: InputMaybe<StringNullableFilter>;
   price?: InputMaybe<FloatFilter>;
   productId?: InputMaybe<StringNullableFilter>;
@@ -8123,6 +8276,7 @@ export type ProductVariantScalarWhereWithAggregatesInput = {
   barcode?: InputMaybe<StringNullableWithAggregatesFilter>;
   createdAt?: InputMaybe<DateTimeWithAggregatesFilter>;
   id?: InputMaybe<StringWithAggregatesFilter>;
+  legacyArticleCode?: InputMaybe<StringNullableWithAggregatesFilter>;
   name?: InputMaybe<StringNullableWithAggregatesFilter>;
   price?: InputMaybe<FloatWithAggregatesFilter>;
   productId?: InputMaybe<StringNullableWithAggregatesFilter>;
@@ -8286,6 +8440,7 @@ export type ProductVariantUpdateInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -8305,6 +8460,7 @@ export type ProductVariantUpdateManyMutationInput = {
   barcode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   resellerPrice?: InputMaybe<FloatFieldUpdateOperationsInput>;
@@ -8528,6 +8684,7 @@ export type ProductVariantUpdateWithoutConsumerItemsInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -8554,6 +8711,7 @@ export type ProductVariantUpdateWithoutFacetsInput = {
   consumerItems?: InputMaybe<ConsumerSaleItemUpdateManyWithoutProductVariantNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -8581,6 +8739,7 @@ export type ProductVariantUpdateWithoutProductInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   purchaseReturnItems?: InputMaybe<PurchaseReturnItemUpdateManyWithoutProductVariantNestedInput>;
@@ -8606,6 +8765,7 @@ export type ProductVariantUpdateWithoutPurchaseOrderItemInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -8632,6 +8792,7 @@ export type ProductVariantUpdateWithoutPurchaseRequisitionItemInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -8659,6 +8820,7 @@ export type ProductVariantUpdateWithoutPurchaseReturnItemsInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -8685,6 +8847,7 @@ export type ProductVariantUpdateWithoutQuotationItemsInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -8711,6 +8874,7 @@ export type ProductVariantUpdateWithoutReceiptItemsInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -8737,6 +8901,7 @@ export type ProductVariantUpdateWithoutResellerItemsInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -8763,6 +8928,7 @@ export type ProductVariantUpdateWithoutReturnItemsInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -8789,6 +8955,7 @@ export type ProductVariantUpdateWithoutStockItemsInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -8814,6 +8981,7 @@ export type ProductVariantUpdateWithoutStockMovementItemInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -8840,6 +9008,7 @@ export type ProductVariantUpdateWithoutSupplierCatalogInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -8866,6 +9035,7 @@ export type ProductVariantUpdateWithoutSupplierQuoteItemInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -8893,6 +9063,7 @@ export type ProductVariantUpdateWithoutTransferItemsInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   facets?: InputMaybe<VariantFacetValueUpdateManyWithoutVariantNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  legacyArticleCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   name?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   price?: InputMaybe<FloatFieldUpdateOperationsInput>;
   product?: InputMaybe<ProductUpdateOneWithoutVariantsNestedInput>;
@@ -9012,6 +9183,7 @@ export type ProductVariantWhereInput = {
   createdAt?: InputMaybe<DateTimeFilter>;
   facets?: InputMaybe<VariantFacetValueListRelationFilter>;
   id?: InputMaybe<StringFilter>;
+  legacyArticleCode?: InputMaybe<StringNullableFilter>;
   name?: InputMaybe<StringNullableFilter>;
   price?: InputMaybe<FloatFilter>;
   product?: InputMaybe<ProductNullableScalarRelationFilter>;
@@ -9043,6 +9215,7 @@ export type ProductVariantWhereUniqueInput = {
   createdAt?: InputMaybe<DateTimeFilter>;
   facets?: InputMaybe<VariantFacetValueListRelationFilter>;
   id?: InputMaybe<Scalars['String']['input']>;
+  legacyArticleCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<StringNullableFilter>;
   price?: InputMaybe<FloatFilter>;
   product?: InputMaybe<ProductNullableScalarRelationFilter>;
@@ -18870,6 +19043,7 @@ export type Store = {
   customerSales?: Maybe<Array<ConsumerSale>>;
   id: Scalars['ID']['output'];
   isMain: Scalars['Boolean']['output'];
+  legacyMappings?: Maybe<Array<LegacyStoreMapping>>;
   location?: Maybe<Scalars['String']['output']>;
   manager: User;
   managerId: Scalars['String']['output'];
@@ -18893,6 +19067,7 @@ export type StoreCount = {
   PurchaseRequisition: Scalars['Int']['output'];
   Quotation: Scalars['Int']['output'];
   customerSales: Scalars['Int']['output'];
+  legacyMappings: Scalars['Int']['output'];
   movements: Scalars['Int']['output'];
   purchaseOrders: Scalars['Int']['output'];
   receipts: Scalars['Int']['output'];
@@ -18946,6 +19121,7 @@ export type StoreCreateInput = {
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   manager: UserCreateNestedOneWithoutStoreInput;
   movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
@@ -19148,6 +19324,7 @@ export type StoreCreateWithoutCustomerInput = {
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   manager: UserCreateNestedOneWithoutStoreInput;
   movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
@@ -19171,6 +19348,7 @@ export type StoreCreateWithoutCustomerProfileInput = {
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   manager: UserCreateNestedOneWithoutStoreInput;
   movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
@@ -19194,6 +19372,7 @@ export type StoreCreateWithoutCustomerSalesInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   manager: UserCreateNestedOneWithoutStoreInput;
   movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
@@ -19218,6 +19397,7 @@ export type StoreCreateWithoutManagerInput = {
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
   name: Scalars['String']['input'];
@@ -19241,6 +19421,7 @@ export type StoreCreateWithoutMovementsInput = {
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   manager: UserCreateNestedOneWithoutStoreInput;
   name: Scalars['String']['input'];
@@ -19264,6 +19445,7 @@ export type StoreCreateWithoutPurchaseOrdersInput = {
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   manager: UserCreateNestedOneWithoutStoreInput;
   movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
@@ -19286,6 +19468,7 @@ export type StoreCreateWithoutPurchaseRequisitionInput = {
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   manager: UserCreateNestedOneWithoutStoreInput;
   movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
@@ -19309,6 +19492,7 @@ export type StoreCreateWithoutQuotationInput = {
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   manager: UserCreateNestedOneWithoutStoreInput;
   movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
@@ -19333,6 +19517,7 @@ export type StoreCreateWithoutReceiptsInput = {
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   manager: UserCreateNestedOneWithoutStoreInput;
   movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
@@ -19356,6 +19541,7 @@ export type StoreCreateWithoutResellerSalesInput = {
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   manager: UserCreateNestedOneWithoutStoreInput;
   movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
@@ -19379,6 +19565,7 @@ export type StoreCreateWithoutSalesReturnsInput = {
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   manager: UserCreateNestedOneWithoutStoreInput;
   movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
@@ -19402,6 +19589,7 @@ export type StoreCreateWithoutStocksInput = {
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   manager: UserCreateNestedOneWithoutStoreInput;
   movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
@@ -19425,6 +19613,7 @@ export type StoreCreateWithoutTransfersInInput = {
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   manager: UserCreateNestedOneWithoutStoreInput;
   movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
@@ -19448,6 +19637,7 @@ export type StoreCreateWithoutTransfersOutInput = {
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
   location?: InputMaybe<Scalars['String']['input']>;
   manager: UserCreateNestedOneWithoutStoreInput;
   movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
@@ -19584,6 +19774,7 @@ export type StoreOrderByWithRelationInput = {
   customerSales?: InputMaybe<ConsumerSaleOrderByRelationAggregateInput>;
   id?: InputMaybe<SortOrder>;
   isMain?: InputMaybe<SortOrder>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingOrderByRelationAggregateInput>;
   location?: InputMaybe<SortOrderInput>;
   manager?: InputMaybe<UserOrderByWithRelationInput>;
   managerId?: InputMaybe<SortOrder>;
@@ -19659,6 +19850,7 @@ export type StoreUpdateInput = {
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
   movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
@@ -19890,6 +20082,7 @@ export type StoreUpdateWithoutCustomerInput = {
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
   movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
@@ -19913,6 +20106,7 @@ export type StoreUpdateWithoutCustomerProfileInput = {
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
   movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
@@ -19936,6 +20130,7 @@ export type StoreUpdateWithoutCustomerSalesInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
   movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
@@ -19960,6 +20155,7 @@ export type StoreUpdateWithoutManagerInput = {
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
   name?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -19983,6 +20179,7 @@ export type StoreUpdateWithoutMovementsInput = {
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
   name?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -20006,6 +20203,7 @@ export type StoreUpdateWithoutPurchaseOrdersInput = {
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
   movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
@@ -20028,6 +20226,7 @@ export type StoreUpdateWithoutPurchaseRequisitionInput = {
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
   movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
@@ -20051,6 +20250,7 @@ export type StoreUpdateWithoutQuotationInput = {
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
   movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
@@ -20075,6 +20275,7 @@ export type StoreUpdateWithoutReceiptsInput = {
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
   movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
@@ -20098,6 +20299,7 @@ export type StoreUpdateWithoutResellerSalesInput = {
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
   movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
@@ -20121,6 +20323,7 @@ export type StoreUpdateWithoutSalesReturnsInput = {
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
   movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
@@ -20144,6 +20347,7 @@ export type StoreUpdateWithoutStocksInput = {
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
   movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
@@ -20167,6 +20371,7 @@ export type StoreUpdateWithoutTransfersInInput = {
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
   movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
@@ -20190,6 +20395,7 @@ export type StoreUpdateWithoutTransfersOutInput = {
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
   location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
   movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
@@ -20300,6 +20506,7 @@ export type StoreWhereInput = {
   customerSales?: InputMaybe<ConsumerSaleListRelationFilter>;
   id?: InputMaybe<StringFilter>;
   isMain?: InputMaybe<BoolFilter>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingListRelationFilter>;
   location?: InputMaybe<StringNullableFilter>;
   manager?: InputMaybe<UserScalarRelationFilter>;
   managerId?: InputMaybe<StringFilter>;
@@ -20328,6 +20535,7 @@ export type StoreWhereUniqueInput = {
   customerSales?: InputMaybe<ConsumerSaleListRelationFilter>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<BoolFilter>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingListRelationFilter>;
   location?: InputMaybe<StringNullableFilter>;
   manager?: InputMaybe<UserScalarRelationFilter>;
   managerId?: InputMaybe<StringFilter>;
@@ -27438,6 +27646,20 @@ export type AssignBillerMutationVariables = Exact<{
 
 export type AssignBillerMutation = { __typename?: 'Mutation', assignBiller: { __typename?: 'ResellerProfile', userId: string, billerId?: string | null } };
 
+export type StaffDetailQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type StaffDetailQuery = { __typename?: 'Query', findUniqueUser: { __typename?: 'User', id: string, email: string, createdAt: any, updatedAt: any, isEmailVerified: boolean, role: { __typename?: 'Role', name: string }, Store?: Array<{ __typename?: 'Store', id: string, name: string, isMain: boolean, location?: string | null }> | null, Notification?: Array<{ __typename?: 'Notification', id: string, type: string, message: string, isRead: boolean, createdAt: any }> | null } };
+
+export type SendUserEmailVerificationMutationVariables = Exact<{
+  userId: Scalars['String']['input'];
+}>;
+
+
+export type SendUserEmailVerificationMutation = { __typename?: 'Mutation', sendUserEmailVerification: boolean };
+
 export type StockQueryVariables = Exact<{
   input?: InputMaybe<QueryStockInput>;
 }>;
@@ -27554,7 +27776,7 @@ export type UsersQueryVariables = Exact<{
 }>;
 
 
-export type UsersQuery = { __typename?: 'Query', listUsers: Array<{ __typename?: 'User', id: string, email: string, role: { __typename?: 'Role', name: string }, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null, resellerProfile?: { __typename?: 'ResellerProfile', tier: UserTier } | null }> };
+export type UsersQuery = { __typename?: 'Query', listUsers: Array<{ __typename?: 'User', id: string, email: string, createdAt: any, isEmailVerified: boolean, role: { __typename?: 'Role', name: string }, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null, resellerProfile?: { __typename?: 'ResellerProfile', tier: UserTier } | null }> };
 
 export type ListFacetsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -27670,6 +27892,13 @@ export type VariantQueryVariables = Exact<{
 
 
 export type VariantQuery = { __typename?: 'Query', findUniqueProductVariant?: { __typename?: 'ProductVariant', id: string, name?: string | null, barcode?: string | null, price: number, resellerPrice: number, createdAt: any, product?: { __typename?: 'Product', id: string, name: string } | null } | null };
+
+export type VerifyEmailMutationVariables = Exact<{
+  token: Scalars['String']['input'];
+}>;
+
+
+export type VerifyEmailMutation = { __typename?: 'Mutation', verifyEmail: boolean };
 
 export type AdminProcessInvoiceUrlMutationVariables = Exact<{
   input: ProcessInvoiceUrlInput;
@@ -31744,6 +31973,97 @@ export function useAssignBillerMutation(baseOptions?: Apollo.MutationHookOptions
 export type AssignBillerMutationHookResult = ReturnType<typeof useAssignBillerMutation>;
 export type AssignBillerMutationResult = Apollo.MutationResult<AssignBillerMutation>;
 export type AssignBillerMutationOptions = Apollo.BaseMutationOptions<AssignBillerMutation, AssignBillerMutationVariables>;
+export const StaffDetailDocument = gql`
+    query StaffDetail($id: String!) {
+  findUniqueUser(where: {id: $id}) {
+    id
+    email
+    createdAt
+    updatedAt
+    isEmailVerified
+    role {
+      name
+    }
+    Store {
+      id
+      name
+      isMain
+      location
+    }
+    Notification {
+      id
+      type
+      message
+      isRead
+      createdAt
+    }
+  }
+}
+    `;
+
+/**
+ * __useStaffDetailQuery__
+ *
+ * To run a query within a React component, call `useStaffDetailQuery` and pass it any options that fit your needs.
+ * When your component renders, `useStaffDetailQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useStaffDetailQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useStaffDetailQuery(baseOptions: Apollo.QueryHookOptions<StaffDetailQuery, StaffDetailQueryVariables> & ({ variables: StaffDetailQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<StaffDetailQuery, StaffDetailQueryVariables>(StaffDetailDocument, options);
+      }
+export function useStaffDetailLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<StaffDetailQuery, StaffDetailQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<StaffDetailQuery, StaffDetailQueryVariables>(StaffDetailDocument, options);
+        }
+export function useStaffDetailSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<StaffDetailQuery, StaffDetailQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<StaffDetailQuery, StaffDetailQueryVariables>(StaffDetailDocument, options);
+        }
+export type StaffDetailQueryHookResult = ReturnType<typeof useStaffDetailQuery>;
+export type StaffDetailLazyQueryHookResult = ReturnType<typeof useStaffDetailLazyQuery>;
+export type StaffDetailSuspenseQueryHookResult = ReturnType<typeof useStaffDetailSuspenseQuery>;
+export type StaffDetailQueryResult = Apollo.QueryResult<StaffDetailQuery, StaffDetailQueryVariables>;
+export const SendUserEmailVerificationDocument = gql`
+    mutation SendUserEmailVerification($userId: String!) {
+  sendUserEmailVerification(userId: $userId)
+}
+    `;
+export type SendUserEmailVerificationMutationFn = Apollo.MutationFunction<SendUserEmailVerificationMutation, SendUserEmailVerificationMutationVariables>;
+
+/**
+ * __useSendUserEmailVerificationMutation__
+ *
+ * To run a mutation, you first call `useSendUserEmailVerificationMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSendUserEmailVerificationMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [sendUserEmailVerificationMutation, { data, loading, error }] = useSendUserEmailVerificationMutation({
+ *   variables: {
+ *      userId: // value for 'userId'
+ *   },
+ * });
+ */
+export function useSendUserEmailVerificationMutation(baseOptions?: Apollo.MutationHookOptions<SendUserEmailVerificationMutation, SendUserEmailVerificationMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SendUserEmailVerificationMutation, SendUserEmailVerificationMutationVariables>(SendUserEmailVerificationDocument, options);
+      }
+export type SendUserEmailVerificationMutationHookResult = ReturnType<typeof useSendUserEmailVerificationMutation>;
+export type SendUserEmailVerificationMutationResult = Apollo.MutationResult<SendUserEmailVerificationMutation>;
+export type SendUserEmailVerificationMutationOptions = Apollo.BaseMutationOptions<SendUserEmailVerificationMutation, SendUserEmailVerificationMutationVariables>;
 export const StockDocument = gql`
     query Stock($input: QueryStockInput) {
   stock(input: $input) {
@@ -32426,6 +32746,8 @@ export const UsersDocument = gql`
   listUsers(take: $take) {
     id
     email
+    createdAt
+    isEmailVerified
     role {
       name
     }
@@ -33073,6 +33395,37 @@ export type VariantQueryHookResult = ReturnType<typeof useVariantQuery>;
 export type VariantLazyQueryHookResult = ReturnType<typeof useVariantLazyQuery>;
 export type VariantSuspenseQueryHookResult = ReturnType<typeof useVariantSuspenseQuery>;
 export type VariantQueryResult = Apollo.QueryResult<VariantQuery, VariantQueryVariables>;
+export const VerifyEmailDocument = gql`
+    mutation VerifyEmail($token: String!) {
+  verifyEmail(token: $token)
+}
+    `;
+export type VerifyEmailMutationFn = Apollo.MutationFunction<VerifyEmailMutation, VerifyEmailMutationVariables>;
+
+/**
+ * __useVerifyEmailMutation__
+ *
+ * To run a mutation, you first call `useVerifyEmailMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useVerifyEmailMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [verifyEmailMutation, { data, loading, error }] = useVerifyEmailMutation({
+ *   variables: {
+ *      token: // value for 'token'
+ *   },
+ * });
+ */
+export function useVerifyEmailMutation(baseOptions?: Apollo.MutationHookOptions<VerifyEmailMutation, VerifyEmailMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<VerifyEmailMutation, VerifyEmailMutationVariables>(VerifyEmailDocument, options);
+      }
+export type VerifyEmailMutationHookResult = ReturnType<typeof useVerifyEmailMutation>;
+export type VerifyEmailMutationResult = Apollo.MutationResult<VerifyEmailMutation>;
+export type VerifyEmailMutationOptions = Apollo.BaseMutationOptions<VerifyEmailMutation, VerifyEmailMutationVariables>;
 export const AdminProcessInvoiceUrlDocument = gql`
     mutation AdminProcessInvoiceUrl($input: ProcessInvoiceUrlInput!) {
   adminProcessInvoiceUrl(input: $input) {

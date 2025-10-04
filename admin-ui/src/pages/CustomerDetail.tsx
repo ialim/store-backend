@@ -26,14 +26,20 @@ export default function CustomerDetail() {
   const { data: storesData } = useStoresForCustomersQuery({ fetchPolicy: 'cache-first' as any, errorPolicy: 'all' as any });
   const stores = storesData?.listStores ?? [];
   const sales = sData?.consumerSalesByCustomer ?? (profile?.customerProfile?.sales ?? []);
-  const receipts = rData?.consumerReceiptsByCustomer ?? React.useMemo(
-    () => (profile?.customerProfile?.sales || [])
-      .map((s: any) => s?.receipt)
-      .filter(Boolean)
-      .sort((a: any, b: any) => new Date(b.issuedAt || 0).getTime() - new Date(a.issuedAt || 0).getTime())
-      .slice(0, 20),
-    [profile?.customerProfile?.sales]
+  const fallbackReceipts = React.useMemo(
+    () =>
+      (profile?.customerProfile?.sales || [])
+        .map((s: any) => s?.receipt)
+        .filter(Boolean)
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.issuedAt || 0).getTime() -
+            new Date(a.issuedAt || 0).getTime(),
+        )
+        .slice(0, 20),
+    [profile?.customerProfile?.sales],
   );
+  const receipts = rData?.consumerReceiptsByCustomer ?? fallbackReceipts;
   const [fullName, setFullName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [phone, setPhone] = React.useState('');

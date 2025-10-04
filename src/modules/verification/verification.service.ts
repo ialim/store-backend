@@ -24,12 +24,21 @@ export class VerificationService {
     });
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new BadRequestException('User not found');
-    const link = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
-    await this.emailService.sendMail(
-      user.email,
-      'Verify Your Email',
-      `Click here to verify your email: ${link}`,
-    );
+    const frontendBase = process.env.FRONTEND_URL ?? '';
+    const link = frontendBase
+      ? `${frontendBase.replace(/\/$/, '')}/verify-email?token=${token}`
+      : `https://example.com/verify-email?token=${token}`;
+    const subject = 'Verify Your Email';
+    const text = `Hi ${user.email},\n\nPlease verify your email address by visiting the link below:\n${link}\n\nIf you did not create an account, you can ignore this email.`;
+    const html = `
+      <p>Hi ${user.email},</p>
+      <p>Please verify your email address by clicking the button below.</p>
+      <p><a href="${link}" style="display:inline-block;padding:8px 16px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:4px;">Verify Email</a></p>
+      <p>If the button does not work, copy and paste this URL into your browser:</p>
+      <p><a href="${link}">${link}</a></p>
+      <p>If you did not create an account, you can safely ignore this message.</p>
+    `;
+    await this.emailService.sendMail(user.email, subject, text, html);
     return true;
   }
 

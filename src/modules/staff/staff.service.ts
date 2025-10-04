@@ -1,16 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import bcrypt from 'bcrypt';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { hashSync } from 'bcrypt';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateStaffInput } from './dto/create-staff.input';
 import { AssignStoreManagerInput } from './dto/assign-store-manager.input';
 import { AssignBillerInput } from './dto/assign-biller.input';
 import { NotificationService } from '../notification/notification.service';
+import { VerificationService } from '../verification/verification.service';
 
 @Injectable()
 export class StaffService {
+  private readonly logger = new Logger(StaffService.name);
+
   constructor(
     private prisma: PrismaService,
     private notificationService: NotificationService,
+    private verificationService: VerificationService,
   ) {}
 
   async createStaff(data: CreateStaffInput) {
@@ -21,7 +25,7 @@ export class StaffService {
     const user = await this.prisma.user.create({
       data: {
         email: data.email,
-        passwordHash: bcrypt.hashSync(data.password, 10),
+        passwordHash: hashSync(data.password, 10),
         roleId: role.id,
       },
     });
@@ -31,6 +35,15 @@ export class StaffService {
       'STAFF_CREATED',
       `Your account as ${data.role} has been created.`,
     );
+
+    try {
+      await this.verificationService.sendEmailVerification(user.id);
+    } catch (error) {
+      // Staff accounts are typically provisioned by admins; log and continue.
+      this.logger.warn(
+        `Failed to queue verification email for staff user ${user.id}: ${error}`,
+      );
+    }
 
     return user;
   }
