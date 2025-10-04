@@ -35,6 +35,7 @@ export default function Profile() {
   const [profileName, setProfileName] = React.useState('');
   const [profileEmail, setProfileEmail] = React.useState('');
   const [profilePhone, setProfilePhone] = React.useState('');
+  const [editingProfile, setEditingProfile] = React.useState(false);
   const [currentPassword, setCurrentPassword] = React.useState('');
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
@@ -47,6 +48,7 @@ export default function Profile() {
     setProfileName(profile?.fullName || '');
     setProfileEmail(profile?.email || meData?.me?.email || '');
     setProfilePhone(profile?.phone || '');
+    setEditingProfile(false);
   }, [meData?.me?.customerProfile, meData?.me?.email]);
 
   const copy = async () => {
@@ -101,6 +103,7 @@ export default function Profile() {
       });
       notify('Profile updated', 'success');
       await refetch();
+      setEditingProfile(false);
     } catch (err: any) {
       notify(err?.message || 'Failed to update profile', 'error');
     }
@@ -181,38 +184,66 @@ export default function Profile() {
       </Grid>
 
         <Grid item xs={12} md={6}>
-          <Card component="form" onSubmit={submitProfileUpdate}>
+          <Card component={editingProfile ? 'form' : 'div'} onSubmit={submitProfileUpdate}>
             <CardContent>
               <Stack spacing={1.5}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Profile Details
-                </Typography>
-                <TextField
-                  label="Full Name"
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  required
-                />
-                <TextField
-                  label="Email"
-                  value={profileEmail}
-                  onChange={(e) => setProfileEmail(e.target.value)}
-                  type="email"
-                />
-                <TextField
-                  label="Phone"
-                  value={profilePhone}
-                  onChange={(e) => setProfilePhone(e.target.value)}
-                />
-                <Box>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    disabled={savingProfile}
-                  >
-                    Save Profile
-                  </Button>
-                </Box>
+                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Profile Details
+                  </Typography>
+                  {!editingProfile ? (
+                    <Button size="small" variant="outlined" onClick={() => setEditingProfile(true)}>
+                      Edit
+                    </Button>
+                  ) : (
+                    <Stack direction="row" spacing={1}>
+                      <Button size="small" variant="outlined" onClick={() => {
+                        const profile = meData?.me?.customerProfile;
+                        setProfileName(profile?.fullName || '');
+                        setProfileEmail(profile?.email || meData?.me?.email || '');
+                        setProfilePhone(profile?.phone || '');
+                        setEditingProfile(false);
+                      }}>
+                        Cancel
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        type="submit"
+                        disabled={savingProfile}
+                      >
+                        Save
+                      </Button>
+                    </Stack>
+                  )}
+                </Stack>
+                {!editingProfile ? (
+                  <Stack spacing={0.75}>
+                    <Typography><b>Name:</b> {profileName || '-'}</Typography>
+                    <Typography><b>Email:</b> {profileEmail || '-'}</Typography>
+                    <Typography><b>Phone:</b> {profilePhone || '-'}</Typography>
+                  </Stack>
+                ) : (
+                  <Stack spacing={1.5}>
+                    <TextField
+                      label="Full Name"
+                      value={profileName}
+                      onChange={(e) => setProfileName(e.target.value)}
+                      required
+                    />
+                    <TextField
+                      label="Email"
+                      value={profileEmail}
+                      onChange={(e) => setProfileEmail(e.target.value)}
+                      type="email"
+                    />
+                    <TextField
+                      label="Phone"
+                      value={profilePhone}
+                      onChange={(e) => setProfilePhone(e.target.value)}
+                    />
+                  </Stack>
+                )}
               </Stack>
             </CardContent>
           </Card>
