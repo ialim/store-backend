@@ -27216,6 +27216,11 @@ export type CreateAndIssuePreferredMutationVariables = Exact<{
 
 export type CreateAndIssuePreferredMutation = { __typename?: 'Mutation', createLowStockRequisitionAndIssuePreferred?: string | null };
 
+export type HeaderNotificationsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type HeaderNotificationsQuery = { __typename?: 'Query', notifications: Array<{ __typename?: 'Notification', id: string, isRead: boolean, type: string, message: string, createdAt: any }> };
+
 export type OutboxStatusQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -29645,6 +29650,49 @@ export function useCreateAndIssuePreferredMutation(baseOptions?: Apollo.Mutation
 export type CreateAndIssuePreferredMutationHookResult = ReturnType<typeof useCreateAndIssuePreferredMutation>;
 export type CreateAndIssuePreferredMutationResult = Apollo.MutationResult<CreateAndIssuePreferredMutation>;
 export type CreateAndIssuePreferredMutationOptions = Apollo.BaseMutationOptions<CreateAndIssuePreferredMutation, CreateAndIssuePreferredMutationVariables>;
+export const HeaderNotificationsDocument = gql`
+    query HeaderNotifications {
+  notifications {
+    id
+    isRead
+    type
+    message
+    createdAt
+  }
+}
+    `;
+
+/**
+ * __useHeaderNotificationsQuery__
+ *
+ * To run a query within a React component, call `useHeaderNotificationsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useHeaderNotificationsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useHeaderNotificationsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useHeaderNotificationsQuery(baseOptions?: Apollo.QueryHookOptions<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>(HeaderNotificationsDocument, options);
+      }
+export function useHeaderNotificationsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>(HeaderNotificationsDocument, options);
+        }
+export function useHeaderNotificationsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>(HeaderNotificationsDocument, options);
+        }
+export type HeaderNotificationsQueryHookResult = ReturnType<typeof useHeaderNotificationsQuery>;
+export type HeaderNotificationsLazyQueryHookResult = ReturnType<typeof useHeaderNotificationsLazyQuery>;
+export type HeaderNotificationsSuspenseQueryHookResult = ReturnType<typeof useHeaderNotificationsSuspenseQuery>;
+export type HeaderNotificationsQueryResult = Apollo.QueryResult<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>;
 export const OutboxStatusDocument = gql`
     query OutboxStatus {
   outboxStatus {
