@@ -521,24 +521,40 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
             py: { xs: 1, md: 1.25 },
           }}
         >
-          <Stack spacing={1.5}>
           <Stack
             direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
+            spacing={1.5}
             alignItems={{ xs: 'stretch', md: 'center' }}
             justifyContent="space-between"
+            flexWrap="wrap"
+            rowGap={1.25}
           >
-            {searchInput && <Box sx={{ flexGrow: 1 }}>{searchInput}</Box>}
+            {searchInput && (
+              <Box sx={{ flexGrow: 1, minWidth: { xs: '100%', sm: 260 } }}>{searchInput}</Box>
+            )}
             <Stack
-              direction="row"
+              direction={{ xs: 'column', sm: 'row' }}
               spacing={1}
-              alignItems="center"
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+              justifyContent="flex-end"
               flexWrap="wrap"
-              justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
-              sx={{ flexGrow: searchInput ? 0 : 1 }}
+              sx={{
+                flexGrow: searchInput ? 0 : 1,
+                ml: searchInput ? { md: 'auto' } : undefined,
+                minWidth: { xs: '100%', md: 'auto' },
+              }}
             >
               {showClearButton && (
-                <Button size="small" onClick={() => { setQ(''); setDq(''); setFilters({}); setPage(0); }} sx={{ color: '#fff' }}>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setQ('');
+                    setDq('');
+                    setFilters({});
+                    setPage(0);
+                  }}
+                  sx={{ color: '#fff' }}
+                >
                   Clear Filters
                 </Button>
               )}
@@ -579,9 +595,10 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
                     size="small"
                     onClick={() => {
                       if (!lastProcessedRef.current) return;
-                      const payload = exportScopeControl && exportScope === 'page'
-                        ? { ...lastProcessedRef.current, sorted: lastProcessedRef.current.paged }
-                        : lastProcessedRef.current;
+                      const payload =
+                        exportScopeControl && exportScope === 'page'
+                          ? { ...lastProcessedRef.current, sorted: lastProcessedRef.current.paged }
+                          : lastProcessedRef.current;
                       onExport(payload);
                     }}
                     disabled={!sortedRows.length}
@@ -597,29 +614,42 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
                   </Button>
                 </Stack>
               )}
+              {selectable && (
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={0.75}
+                  alignItems={{ xs: 'flex-start', sm: 'center' }}
+                  flexWrap="wrap"
+                  sx={{
+                    pl: { sm: 1 },
+                    ml: { sm: 0.5 },
+                    borderLeft: { sm: '1px solid rgba(255,255,255,0.2)' },
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Selected: {selectedCount}
+                  </Typography>
+                  <Stack direction="row" spacing={0.75} flexWrap="wrap">
+                    <Button
+                      size="small"
+                      onClick={selectAllFiltered}
+                      disabled={!filteredRows.length}
+                      sx={{ color: '#fff' }}
+                    >
+                      Select All Filtered
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={clearSelection}
+                      disabled={!selectedCount}
+                      sx={{ color: '#fff' }}
+                    >
+                      Clear Selection
+                    </Button>
+                  </Stack>
+                </Stack>
+              )}
             </Stack>
-          </Stack>
-
-          {selectable && (
-            <Stack
-              direction={{ xs: 'column', md: 'row' }}
-              spacing={1}
-              alignItems={{ xs: 'flex-start', md: 'center' }}
-              justifyContent="space-between"
-            >
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                Selected: {selectedCount}
-              </Typography>
-              <Stack direction="row" spacing={1} flexWrap="wrap">
-                <Button size="small" onClick={selectAllFiltered} disabled={!filteredRows.length} sx={{ color: '#fff' }}>
-                  Select All Filtered
-                </Button>
-                <Button size="small" onClick={clearSelection} disabled={!selectedCount} sx={{ color: '#fff' }}>
-                  Clear Selection
-                </Button>
-              </Stack>
-            </Stack>
-          )}
           </Stack>
         </Box>
       )}
@@ -705,7 +735,33 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
             <TableRow>
               {selectable && <TableCell padding="checkbox" />}
               {columns.map((c) => (
-                <TableCell key={`f-${c.key}`} align={c.align} sx={{ bgcolor: alpha(theme.palette.success.main, 0.08) }}>
+                <TableCell
+                  key={`f-${c.key}`}
+                  align={c.align}
+                  sx={(theme) => ({
+                    bgcolor: theme.palette.success.main,
+                    color: '#fff',
+                    borderBottom: 'none',
+                    pt: 1.25,
+                    pb: 1.5,
+                    borderTop: `1px solid ${alpha(theme.palette.common.white, 0.25)}`,
+                    '& .MuiInputBase-root': {
+                      color: '#fff',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(255,255,255,0.35)',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(255,255,255,0.65)',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#fff',
+                      },
+                    },
+                    '& .MuiSvgIcon-root': {
+                      color: '#fff',
+                    },
+                  })}
+                >
                   {c.filter ? (
                     <TextField
                       size="small"
@@ -715,6 +771,15 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
                       onChange={(e) => {
                         setFilters((f) => ({ ...f, [c.key]: e.target.value }));
                         setPage(0);
+                      }}
+                      InputProps={{
+                        sx: {
+                          color: '#fff',
+                          '& input::placeholder': {
+                            color: 'rgba(255,255,255,0.75)',
+                            opacity: 1,
+                          },
+                        },
                       }}
                     />
                   ) : null}

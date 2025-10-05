@@ -1,9 +1,7 @@
 import {
-  useAssignFacetToVariantMutation,
   useListFacetsQuery,
   useProductVariantsCountQuery,
   useVariantFacetsQuery,
-  useRemoveFacetFromVariantMutation,
   useBulkAssignFacetToVariantsMutation,
   useBulkRemoveFacetFromVariantsMutation,
 } from '../generated/graphql';
@@ -13,10 +11,6 @@ import {
   Avatar,
   Button,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   MenuItem,
   Select,
   Stack,
@@ -25,6 +19,7 @@ import {
   Box,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/AuthProvider';
 import React from 'react';
@@ -140,9 +135,9 @@ export default function Variants() {
 
   const currencyFormatter = React.useMemo(() => {
     try {
-      return new Intl.NumberFormat('en-IN', {
+      return new Intl.NumberFormat('en-NG', {
         style: 'currency',
-        currency: 'INR',
+        currency: 'NGN',
         maximumFractionDigits: 2,
         minimumFractionDigits: 0,
       });
@@ -507,13 +502,66 @@ export default function Variants() {
             ),
           },
           {
+            key: 'image',
+            label: 'Image',
+            width: 96,
+            align: 'center',
+            render: (variant: any) => {
+              const candidates: Array<any> = [
+                variant.imageUrl,
+                variant.thumbnailUrl,
+                typeof variant.image === 'string' ? variant.image : variant.image?.url,
+                Array.isArray(variant.images) ? variant.images[0]?.url : undefined,
+                Array.isArray(variant.media) ? variant.media[0]?.url : undefined,
+                variant.product?.imageUrl,
+                variant.product?.thumbnailUrl,
+                variant.product && typeof variant.product.image === 'object'
+                  ? (variant.product.image as any)?.url
+                  : typeof variant.product?.image === 'string'
+                    ? variant.product.image
+                    : undefined,
+              ];
+              const imageUrl = candidates.find((src) => typeof src === 'string' && src.length > 0) as string | undefined;
+              return (
+                <Avatar
+                  variant="rounded"
+                  src={imageUrl}
+                  alt={variant.name || variant.product?.name || 'Variant preview placeholder'}
+                  sx={(theme) => ({
+                    width: 48,
+                    height: 48,
+                    borderRadius: 2,
+                    border: `1px solid ${alpha(theme.palette.success.main, 0.18)}`,
+                    bgcolor: imageUrl
+                      ? '#fff'
+                      : alpha(theme.palette.success.main, 0.12),
+                    color: theme.palette.success.dark,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    '& .MuiSvgIcon-root': {
+                      fontSize: 22,
+                    },
+                  })}
+                >
+                  {!imageUrl && <ImageOutlinedIcon />}
+                </Avatar>
+              );
+            },
+          },
+          {
             key: 'title',
             label: 'Title',
             sort: true,
+            filter: true,
+            filterPlaceholder: 'Filter title',
             accessor: (variant: any) => variant.name || variant.product?.name || '',
             render: (variant: any) => {
-              const primary = variant.name || variant.product?.name || '—';
-              const parent = variant.product?.name && variant.product?.name !== variant.name ? variant.product.name : '';
+              const primary = variant.name || '—';
+              const parent =
+                variant.product?.name && variant.product?.name !== variant.name
+                  ? variant.product.name
+                  : '';
               const initial = typeof primary === 'string' && primary.length ? primary.charAt(0).toUpperCase() : '?';
               return (
                 <Stack direction="row" spacing={1.5} alignItems="center">
@@ -577,6 +625,8 @@ export default function Variants() {
             label: 'Price',
             align: 'right',
             sort: true,
+            filter: true,
+            filterPlaceholder: 'Filter price',
             accessor: (variant: any) => variant.price || 0,
             render: (variant: any) => (
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -585,22 +635,12 @@ export default function Variants() {
             ),
           },
           {
-            key: 'resellerPrice',
-            label: 'Reseller Price',
-            align: 'right',
-            sort: true,
-            accessor: (variant: any) => variant.resellerPrice || 0,
-            render: (variant: any) => (
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {formatCurrency(variant.resellerPrice)}
-              </Typography>
-            ),
-          },
-          {
             key: 'stock',
             label: 'Stock',
             align: 'center',
             sort: true,
+            filter: true,
+            filterPlaceholder: 'Filter stock',
             accessor: (variant: any) => getAvailableStock(variant),
             render: (variant: any) => {
               const available = getAvailableStock(variant);
@@ -649,21 +689,6 @@ export default function Variants() {
               </Typography>
             ),
           },
-          {
-            key: 'facets',
-            label: 'Facets',
-            render: (variant: any) => <VariantFacetsChips variantId={variant.id} />,
-          },
-          ...(isManager
-            ? [
-                {
-                  key: 'actions',
-                  label: 'Actions',
-                  align: 'right',
-                  render: (variant: any) => <VariantFacetsButton variantId={variant.id} />,
-                },
-              ]
-            : []),
         ] as any}
         rows={list}
         loading={loading}
@@ -685,116 +710,14 @@ export default function Variants() {
           if (available < 5) return 'warning';
           return 'default';
         }}
+        actions={{
+          view: {
+            onClick: (variant: any) => navigate(`/variants/${variant.id}`),
+            label: 'View variant detail',
+          },
+        }}
       />
     </Stack>
-  );
-}
-
-function VariantFacetsChips({ variantId }: { variantId: string }) {
-  const { data, loading } = useVariantFacetsQuery({ variables: { productVariantId: variantId }, fetchPolicy: 'cache-first' as any });
-  const assigns: Array<{ facet: any; value: string }> = data?.variantFacets ?? [];
-  if (loading) return null;
-  if (!assigns.length) return <>—</>;
-  return (
-    <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
-      {assigns.map((a, i) => (<Chip key={`${a.facet?.id}_${a.value}_${i}`} size="small" label={`${a.facet?.code}: ${a.value}`} />))}
-    </Stack>
-  );
-}
-
-function VariantFacetsButton({ variantId }: { variantId: string }) {
-  const [open, setOpen] = React.useState(false);
-  return (
-    <>
-      <Button size="small" onClick={(e) => { e.stopPropagation(); setOpen(true); }}>Manage Facets</Button>
-      {open && <VariantFacetsDialog variantId={variantId} onClose={() => setOpen(false)} />}
-    </>
-  );
-}
-
-function VariantFacetsDialog({ variantId, onClose }: { variantId: string; onClose: () => void }) {
-  const { data: facetsData } = useListFacetsQuery({ fetchPolicy: 'cache-first' as any });
-  const allFacets: Array<{ id: string; name: string; code: string; values?: string[]; isPrivate?: boolean }>
-    = facetsData?.listFacets ?? [];
-  const { data, refetch } = useVariantFacetsQuery({ variables: { productVariantId: variantId }, fetchPolicy: 'cache-and-network' as any });
-  const assigns: Array<{ facet: any; value: string }> = data?.variantFacets ?? [];
-  const [assign] = useAssignFacetToVariantMutation();
-  const [remove] = useRemoveFacetFromVariantMutation();
-  const [selFacetId, setSelFacetId] = React.useState('');
-  const [selValue, setSelValue] = React.useState('');
-  return (
-    <Dialog open onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Variant Facets</DialogTitle>
-      <DialogContent>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1 }}>
-          <Select size="small" value={selFacetId} onChange={(e) => { setSelFacetId(e.target.value); setSelValue(''); }} displayEmpty sx={{ minWidth: 220 }}>
-            <MenuItem value=""><em>Select facet…</em></MenuItem>
-            {allFacets.map((f) => (<MenuItem key={f.id} value={f.id}>{f.name} ({f.code})</MenuItem>))}
-          </Select>
-          {(() => {
-            const f = allFacets.find((x) => x.id === selFacetId);
-            if (f && Array.isArray(f.values) && f.values.length) {
-              return (
-                <Select size="small" value={selValue} onChange={(e) => setSelValue(e.target.value)} displayEmpty sx={{ minWidth: 180 }}>
-                  <MenuItem value=""><em>Value…</em></MenuItem>
-                  {f.values.map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
-                </Select>
-              );
-            }
-            return (<TextField size="small" label="Value" value={selValue} onChange={(e) => setSelValue(e.target.value)} />);
-          })()}
-          <Button
-            size="small"
-            variant="contained"
-            disabled={!selFacetId || !selValue}
-            onClick={async () => {
-              try {
-                await assign({
-                  variables: {
-                    productVariantId: variantId,
-                    facetId: selFacetId,
-                    value: selValue,
-                  },
-                });
-                notify('Facet assigned', 'success');
-                setSelValue('');
-                await refetch();
-              } catch (err: any) {
-                notify(err?.message || 'Failed to assign facet', 'error');
-              }
-            }}
-          >
-            Assign
-          </Button>
-        </Stack>
-        <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
-          {assigns.map((a, i) => (
-            <Chip
-              key={`${a.facet?.id}_${a.value}_${i}`}
-              label={`${a.facet?.name || a.facet?.code}: ${a.value}`}
-              onDelete={async () => {
-                try {
-                  await remove({
-                    variables: {
-                      productVariantId: variantId,
-                      facetId: a.facet?.id,
-                      value: a.value,
-                    },
-                  });
-                  notify('Facet removed', 'success');
-                  await refetch();
-                } catch (err: any) {
-                  notify(err?.message || 'Failed to remove facet', 'error');
-                }
-              }}
-            />
-          ))}
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Close</Button>
-      </DialogActions>
-    </Dialog>
   );
 }
 
