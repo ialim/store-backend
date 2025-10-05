@@ -10,7 +10,6 @@ import {
   TableRow,
   Paper,
   TableSortLabel,
-  TablePagination,
   TextField,
   Box,
   Button,
@@ -22,6 +21,7 @@ import {
   InputBase,
   IconButton,
   Tooltip,
+  Pagination,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
@@ -406,32 +406,52 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
   const rowBaseSx = React.useMemo(() => ({
     position: 'relative',
     cursor: clickable ? 'pointer' : 'default',
-    backgroundColor: '#fff',
-    transition: 'background-color 160ms ease, transform 160ms ease',
-    '&:hover': {
-      backgroundColor: alpha(theme.palette.success.main, 0.06),
-      transform: clickable ? 'translateY(-1px)' : 'none',
+    backgroundColor: 'transparent',
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      inset: selectable ? '6px 8px' : '6px 4px',
+      borderRadius: rowRadius,
+      border: `1px solid ${baseBorderColor}`,
+      backgroundColor: '#ffffff',
+      boxShadow: '0 22px 45px rgba(13, 74, 49, 0.08)',
+      transition: 'transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, border-color 160ms ease',
+      transform: 'translateZ(0)',
+      zIndex: -1,
+    },
+    '&:hover::before': {
+      transform: clickable ? 'translateY(-2px)' : 'none',
+      boxShadow: clickable
+        ? '0 32px 60px rgba(13, 74, 49, 0.16)'
+        : '0 22px 45px rgba(13, 74, 49, 0.08)',
     },
     '& td': {
-      borderBottom: '1px solid',
-      borderBottomColor: baseBorderColor,
+      borderBottom: 'none',
       backgroundColor: 'transparent',
-      py: 1.5,
-      px: selectable ? theme.spacing(1.5) : theme.spacing(2),
+      py: 1.8,
+      px: selectable ? theme.spacing(2) : theme.spacing(2.5),
       fontSize: 14,
+      fontWeight: 500,
       color: theme.palette.text.primary,
     },
     '& td:first-of-type': {
       borderTopLeftRadius: rowRadius,
       borderBottomLeftRadius: rowRadius,
-      paddingLeft: selectable ? theme.spacing(1.5) : theme.spacing(2.5),
+      paddingLeft: selectable ? theme.spacing(2) : theme.spacing(3),
     },
     '& td:last-of-type': {
       borderTopRightRadius: rowRadius,
       borderBottomRightRadius: rowRadius,
-      paddingRight: theme.spacing(2.5),
+      paddingRight: theme.spacing(3),
     },
   }), [baseBorderColor, clickable, selectable, theme]);
+
+  const rowsPerPageChoices = React.useMemo(() => {
+    if (!paginated) return rowsPerPageOptions;
+    const opts = new Set<number>(rowsPerPageOptions);
+    opts.add(rowsPerPage);
+    return Array.from(opts).sort((a, b) => a - b);
+  }, [paginated, rowsPerPageOptions, rowsPerPage]);
 
   const searchInput = globalSearch ? (
     <Box
@@ -462,6 +482,18 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
   ) : null;
 
   const emptyStateColSpan = columns.length + (selectable ? 1 : 0);
+
+  const totalSorted = sortedRows.length;
+  const displayFrom = totalSorted === 0 ? 0 : (paginated ? page * rowsPerPage + 1 : 1);
+  const displayTo = totalSorted === 0 ? 0 : (paginated ? Math.min(totalSorted, page * rowsPerPage + pagedRows.length) : totalSorted);
+  const pageCount = paginated ? Math.max(1, Math.ceil(totalSorted / rowsPerPage)) : 1;
+
+  React.useEffect(() => {
+    if (!paginated) return;
+    if (page > pageCount - 1) {
+      setPage(Math.max(0, pageCount - 1));
+    }
+  }, [paginated, page, pageCount]);
 
   return (
     <TableContainer
@@ -728,12 +760,12 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
                       const palette = accentPalette[tone];
                       if (!palette) return {};
                       return {
-                        backgroundColor: palette.background,
-                        '&:hover': {
-                          backgroundColor: palette.hoverBackground,
+                        '&::before': {
+                          backgroundColor: palette.background,
+                          borderColor: palette.border,
                         },
-                        '& td': {
-                          borderBottomColor: palette.border,
+                        '&:hover::before': {
+                          backgroundColor: palette.hoverBackground,
                         },
                       };
                     })()
@@ -766,20 +798,85 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
       </Table>
 
       {paginated && (
-        <Box sx={{ mt: 2 }}>
-          <TablePagination
-            component="div"
-            count={rows.length}
-            page={page}
-            onPageChange={(_, p) => setPage(p)}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-            rowsPerPageOptions={rowsPerPageOptions}
-          />
-        </Box>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={1.5}
+          alignItems={{ xs: 'flex-start', md: 'center' }}
+          justifyContent="space-between"
+          sx={{
+            mt: 3,
+            px: { xs: 0, md: 1 },
+          }}
+        >
+          <Typography variant="body2" color="text.secondary">
+            {totalSorted
+              ? `Showing ${displayFrom} to ${displayTo} of ${totalSorted} entries`
+              : 'No entries'}
+          </Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="body2" color="text.secondary">
+                Show
+              </Typography>
+              <Select
+                size="small"
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(parseInt(e.target.value as string, 10));
+                  setPage(0);
+                }}
+                sx={{
+                  minWidth: 92,
+                  borderRadius: 999,
+                  '& .MuiSelect-select': {
+                    py: 0.75,
+                  },
+                }}
+              >
+                {rowsPerPageChoices.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Typography variant="body2" color="text.secondary">
+                entries
+              </Typography>
+            </Stack>
+            {pageCount > 1 && (
+              <Pagination
+                count={pageCount}
+                page={page + 1}
+                onChange={(_, value) => setPage(value - 1)}
+                shape="rounded"
+                color="primary"
+                sx={{
+                  '& .MuiPaginationItem-root': {
+                    borderRadius: 999,
+                    border: `1px solid ${alpha(theme.palette.success.main, 0.25)}`,
+                    color: theme.palette.success.dark,
+                    fontWeight: 600,
+                    minWidth: 36,
+                    height: 36,
+                    transition: 'all 160ms ease',
+                  },
+                  '& .MuiPaginationItem-root.Mui-selected': {
+                    backgroundColor: theme.palette.success.main,
+                    color: '#fff',
+                    boxShadow: '0 18px 30px rgba(13, 74, 49, 0.25)',
+                    borderColor: theme.palette.success.main,
+                    '&:hover': {
+                      backgroundColor: theme.palette.success.dark,
+                    },
+                  },
+                  '& .MuiPaginationItem-root:hover': {
+                    backgroundColor: alpha(theme.palette.success.main, 0.12),
+                  },
+                }}
+              />
+            )}
+          </Stack>
+        </Stack>
       )}
     </TableContainer>
   );

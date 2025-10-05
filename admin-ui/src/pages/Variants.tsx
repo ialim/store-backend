@@ -10,6 +10,7 @@ import {
 import { useVariantsQuery } from '../generated/graphql';
 import {
   Alert,
+  Avatar,
   Button,
   Chip,
   Dialog,
@@ -23,14 +24,12 @@ import {
   Typography,
   Box,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/AuthProvider';
 import React from 'react';
 import TableList from '../shared/TableList';
 import { notify } from '../shared/notify';
-import { ListingHero, ListingSelectionCard } from '../shared/ListingLayout';
-
-
 export default function Variants() {
   const auth = useAuth();
   const isManager =
@@ -138,7 +137,46 @@ export default function Variants() {
   const [bulkValue, setBulkValue] = React.useState('');
   const [bulkAssign, { loading: bulkAssignLoading }] = useBulkAssignFacetToVariantsMutation();
   const [bulkRemove, { loading: bulkRemoveLoading }] = useBulkRemoveFacetFromVariantsMutation();
-  const [facetsVariantId, setFacetsVariantId] = React.useState<string | null>(null);
+
+  const currencyFormatter = React.useMemo(() => {
+    try {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 2,
+        minimumFractionDigits: 0,
+      });
+    } catch (err) {
+      return null;
+    }
+  }, []);
+
+  const formatCurrency = React.useCallback(
+    (value?: number | null) => {
+      if (value == null) return '—';
+      if (currencyFormatter) return currencyFormatter.format(value);
+      return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    },
+    [currencyFormatter],
+  );
+
+  const dateFormatter = React.useMemo(
+    () =>
+      new Intl.DateTimeFormat(undefined, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      }),
+    [],
+  );
+
+  const getAvailableStock = React.useCallback((variant: any) => {
+    if (!Array.isArray(variant?.stockItems) || !variant.stockItems.length) return 0;
+    return variant.stockItems.reduce(
+      (acc: number, item: any) => acc + (item?.quantity ?? 0) - (item?.reserved ?? 0),
+      0,
+    );
+  }, []);
 
   const filtersRow = (
     <Stack
@@ -445,15 +483,187 @@ export default function Variants() {
       )}
       <TableList
         columns={[
-          { key: 'name', label: 'Name', render: (v: any) => v.name || v.product?.name || v.barcode || '—', sort: true, filter: true, accessor: (v: any) => v.name || v.product?.name || v.barcode || '' },
-          { key: 'product', label: 'Product', render: (v: any) => v.product?.name || '—', sort: true, accessor: (v: any) => v.product?.name || '', filter: true },
-          { key: 'tags', label: 'Brand/Gender', render: (v: any) => (<BrandGenderChips variantId={v.id} />) },
-          { key: 'barcode', label: 'Barcode', render: (v: any) => v.barcode || '—', sort: true, filter: true },
-          { key: 'price', label: 'Price', render: (v: any) => v.price ?? '—', sort: true, accessor: (v: any) => v.price || 0 },
-          { key: 'resellerPrice', label: 'Reseller Price', render: (v: any) => v.resellerPrice ?? '—', sort: true, accessor: (v: any) => v.resellerPrice || 0 },
-          { key: 'createdAt', label: 'Created', render: (v: any) => new Date(v.createdAt).toLocaleString(), sort: true, accessor: (v: any) => new Date(v.createdAt || 0) },
-          { key: 'facets', label: 'Facets', render: (v: any) => (<VariantFacetsChips variantId={v.id} />) },
-          ...(isManager ? [{ key: 'actions', label: 'Actions', render: (v: any) => (<VariantFacetsButton variantId={v.id} />) }] as any[] : []),
+          {
+            key: 'sl',
+            label: 'SL',
+            width: 72,
+            align: 'center',
+            render: (_variant: any, idx: number) => (
+              <Box
+                sx={(theme) => ({
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  fontWeight: 700,
+                  bgcolor: alpha(theme.palette.success.main, 0.14),
+                  color: theme.palette.success.dark,
+                })}
+              >
+                {skip + idx + 1}
+              </Box>
+            ),
+          },
+          {
+            key: 'title',
+            label: 'Title',
+            sort: true,
+            accessor: (variant: any) => variant.name || variant.product?.name || '',
+            render: (variant: any) => {
+              const primary = variant.name || variant.product?.name || '—';
+              const parent = variant.product?.name && variant.product?.name !== variant.name ? variant.product.name : '';
+              const initial = typeof primary === 'string' && primary.length ? primary.charAt(0).toUpperCase() : '?';
+              return (
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Avatar
+                    variant="rounded"
+                    sx={(theme) => ({
+                      width: 44,
+                      height: 44,
+                      fontWeight: 700,
+                      bgcolor: alpha(theme.palette.success.main, 0.12),
+                      color: theme.palette.success.dark,
+                      textTransform: 'uppercase',
+                    })}
+                  >
+                    {initial}
+                  </Avatar>
+                  <Stack spacing={0.4} sx={{ minWidth: 0 }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 700,
+                        lineHeight: 1.2,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {primary}
+                    </Typography>
+                    {parent ? (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
+                        {parent}
+                      </Typography>
+                    ) : null}
+                    <Box sx={{ pt: 0.2 }}>
+                      <BrandGenderChips variantId={variant.id} hidePlaceholder />
+                    </Box>
+                  </Stack>
+                </Stack>
+              );
+            },
+          },
+          {
+            key: 'barcode',
+            label: 'Barcode',
+            sort: true,
+            filter: true,
+            accessor: (variant: any) => variant.barcode || '',
+            render: (variant: any) => (
+              <Typography variant="body2" color="text.secondary">
+                {variant.barcode || '—'}
+              </Typography>
+            ),
+          },
+          {
+            key: 'price',
+            label: 'Price',
+            align: 'right',
+            sort: true,
+            accessor: (variant: any) => variant.price || 0,
+            render: (variant: any) => (
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {formatCurrency(variant.price)}
+              </Typography>
+            ),
+          },
+          {
+            key: 'resellerPrice',
+            label: 'Reseller Price',
+            align: 'right',
+            sort: true,
+            accessor: (variant: any) => variant.resellerPrice || 0,
+            render: (variant: any) => (
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {formatCurrency(variant.resellerPrice)}
+              </Typography>
+            ),
+          },
+          {
+            key: 'stock',
+            label: 'Stock',
+            align: 'center',
+            sort: true,
+            accessor: (variant: any) => getAvailableStock(variant),
+            render: (variant: any) => {
+              const available = getAvailableStock(variant);
+              return (
+                <Typography variant="body2" sx={{ fontWeight: 600, color: available > 0 ? 'success.main' : 'error.main' }}>
+                  {available}
+                </Typography>
+              );
+            },
+          },
+          {
+            key: 'status',
+            label: 'Status',
+            align: 'center',
+            sort: true,
+            accessor: (variant: any) => getAvailableStock(variant),
+            render: (variant: any) => {
+              const available = getAvailableStock(variant);
+              const active = available > 0;
+              return (
+                <Chip
+                  size="small"
+                  label={active ? 'Active' : 'Inactive'}
+                  sx={(theme) => ({
+                    fontWeight: 600,
+                    borderRadius: 1.5,
+                    px: 1.5,
+                    bgcolor: active
+                      ? alpha(theme.palette.success.main, 0.16)
+                      : alpha(theme.palette.error.main, 0.16),
+                    color: active ? theme.palette.success.dark : theme.palette.error.dark,
+                  })}
+                />
+              );
+            },
+          },
+          {
+            key: 'createdAt',
+            label: 'Created',
+            align: 'right',
+            sort: true,
+            accessor: (variant: any) => new Date(variant.createdAt || 0),
+            render: (variant: any) => (
+              <Typography variant="body2" color="text.secondary">
+                {variant.createdAt ? dateFormatter.format(new Date(variant.createdAt)) : '—'}
+              </Typography>
+            ),
+          },
+          {
+            key: 'facets',
+            label: 'Facets',
+            render: (variant: any) => <VariantFacetsChips variantId={variant.id} />,
+          },
+          ...(isManager
+            ? [
+                {
+                  key: 'actions',
+                  label: 'Actions',
+                  align: 'right',
+                  render: (variant: any) => <VariantFacetsButton variantId={variant.id} />,
+                },
+              ]
+            : []),
         ] as any}
         rows={list}
         loading={loading}
@@ -467,6 +677,14 @@ export default function Variants() {
         selectable
         selectedIds={selectedIds}
         onSelectedIdsChange={(ids) => setSelectedIds(ids)}
+        size="medium"
+        paginated={false}
+        rowAccent={(variant: any) => {
+          const available = getAvailableStock(variant);
+          if (available <= 0) return 'danger';
+          if (available < 5) return 'warning';
+          return 'default';
+        }}
       />
     </Stack>
   );
@@ -580,14 +798,16 @@ function VariantFacetsDialog({ variantId, onClose }: { variantId: string; onClos
   );
 }
 
-function BrandGenderChips({ variantId }: { variantId: string }) {
+function BrandGenderChips({ variantId, hidePlaceholder = false }: { variantId: string; hidePlaceholder?: boolean }) {
   const { data, loading } = useVariantFacetsQuery({ variables: { productVariantId: variantId }, fetchPolicy: 'cache-first' as any });
   if (loading) return null;
   const assigns: Array<{ facet: any; value: string }> = data?.variantFacets ?? [];
   const lower = assigns.map((a) => ({ code: String(a.facet?.code || '').toLowerCase(), value: a.value }));
   const gender = lower.find((x) => x.code === 'gender')?.value;
   const brand = lower.find((x) => x.code === 'brand')?.value;
-  if (!gender && !brand) return <>—</>;
+  if (!gender && !brand) {
+    return hidePlaceholder ? null : <>—</>;
+  }
   return (
     <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
       {brand && <Chip size="small" label={brand} />}
