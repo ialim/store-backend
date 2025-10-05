@@ -1,16 +1,40 @@
-import { useAssignFacetToVariantMutation, useListFacetsQuery, useProductVariantsCountQuery, useVariantFacetsQuery, useRemoveFacetFromVariantMutation, useBulkAssignFacetToVariantsMutation, useBulkRemoveFacetFromVariantsMutation } from '../generated/graphql';
+import {
+  useAssignFacetToVariantMutation,
+  useListFacetsQuery,
+  useProductVariantsCountQuery,
+  useVariantFacetsQuery,
+  useRemoveFacetFromVariantMutation,
+  useBulkAssignFacetToVariantsMutation,
+  useBulkRemoveFacetFromVariantsMutation,
+} from '../generated/graphql';
 import { useVariantsQuery } from '../generated/graphql';
-import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
+import {
+  Alert,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Typography,
+  Box,
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/AuthProvider';
 import React from 'react';
 import TableList from '../shared/TableList';
 import { notify } from '../shared/notify';
+import { ListingHero, ListingSelectionCard } from '../shared/ListingLayout';
 
 
 export default function Variants() {
   const auth = useAuth();
-  const isManager = auth.hasRole('SUPERADMIN','ADMIN','MANAGER') || auth.hasPermission('MANAGE_PRODUCTS');
+  const isManager =
+    auth.hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || auth.hasPermission('MANAGE_PRODUCTS');
   const navigate = useNavigate();
   const [take, setTake] = React.useState(50);
   const [page, setPage] = React.useState(1);
@@ -24,20 +48,19 @@ export default function Variants() {
   const [gender, setGender] = React.useState('');
   const [brand, setBrand] = React.useState('');
   const where = React.useMemo(() => {
-    const sq = (q || '').trim();
-    const w: any = {};
+    const sq = q.trim();
+    const filters: any = {};
     if (sq.length >= 2) {
-      w.OR = [
+      filters.OR = [
         { name: { contains: sq, mode: 'insensitive' } },
         { barcode: { contains: sq, mode: 'insensitive' } },
         { product: { is: { name: { contains: sq, mode: 'insensitive' } } } },
       ];
     }
     if (filterFacetId && filterFacetValue) {
-      // Filter by facet code/value
       const facet = allFacets.find((f) => f.id === filterFacetId);
       if (facet) {
-        w.AND = (w.AND || []).concat({
+        filters.AND = (filters.AND || []).concat({
           facets: {
             some: {
               facet: { is: { code: { equals: facet.code } } },
@@ -48,16 +71,36 @@ export default function Variants() {
       }
     }
     if (gender) {
-      w.AND = (w.AND || []).concat({ facets: { some: { facet: { is: { code: { equals: 'gender' } } }, value: { equals: gender } } } });
+      filters.AND = (filters.AND || []).concat({
+        facets: {
+          some: {
+            facet: { is: { code: { equals: 'gender' } } },
+            value: { equals: gender },
+          },
+        },
+      });
     }
     if (brand) {
-      w.AND = (w.AND || []).concat({ facets: { some: { facet: { is: { code: { equals: 'brand' } } }, value: { equals: brand } } } });
+      filters.AND = (filters.AND || []).concat({
+        facets: {
+          some: {
+            facet: { is: { code: { equals: 'brand' } } },
+            value: { equals: brand },
+          },
+        },
+      });
     }
-    return Object.keys(w).length ? w : undefined;
+    return Object.keys(filters).length ? filters : undefined;
   }, [q, filterFacetId, filterFacetValue, allFacets, gender, brand]);
   const skip = Math.max(0, (page - 1) * take);
-  const { data, loading, error, refetch } = useVariantsQuery({ variables: { take, skip, where }, fetchPolicy: 'cache-and-network' as any });
-  const { data: countData, refetch: refetchVariantCount } = useProductVariantsCountQuery({ variables: { where }, fetchPolicy: 'cache-and-network' as any });
+  const { data, loading, error, refetch } = useVariantsQuery({
+    variables: { take, skip, where },
+    fetchPolicy: 'cache-and-network' as any,
+  });
+  const { data: countData, refetch: refetchVariantCount } = useProductVariantsCountQuery({
+    variables: { where },
+    fetchPolicy: 'cache-and-network' as any,
+  });
   const list = data?.listProductVariants ?? [];
   const total = countData?.productVariantsCount ?? 0;
   const canPrev = page > 1;
@@ -84,7 +127,7 @@ export default function Variants() {
     }, 300);
     return () => clearTimeout(h);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, filterFacetId, filterFacetValue, gender, brand, take]);
+  }, [q, filterFacetId, filterFacetValue, gender, brand]);
 
   // Selection for bulk operations via TableList API
   const [selectedIds, setSelectedIds] = React.useState<Array<string | number>>([]);
@@ -95,58 +138,240 @@ export default function Variants() {
   const [bulkValue, setBulkValue] = React.useState('');
   const [bulkAssign, { loading: bulkAssignLoading }] = useBulkAssignFacetToVariantsMutation();
   const [bulkRemove, { loading: bulkRemoveLoading }] = useBulkRemoveFacetFromVariantsMutation();
+  const [facetsVariantId, setFacetsVariantId] = React.useState<string | null>(null);
+
+  const filtersRow = (
+    <Stack
+      direction={{ xs: 'column', sm: 'row' }}
+      spacing={1.5}
+      alignItems={{ sm: 'center' }}
+      sx={{ flexWrap: 'wrap' }}
+    >
+      <Select
+        size="small"
+        value={gender}
+        onChange={(e) => setGender(e.target.value)}
+        displayEmpty
+        sx={{ minWidth: 160, borderRadius: 999 }}
+      >
+        <MenuItem value="">
+          <em>Gender</em>
+        </MenuItem>
+        {(allFacets.find((f) => f.code.toLowerCase() === 'gender')?.values || ['Male', 'Female', 'Unisex']).map((v) => (
+          <MenuItem key={v} value={v}>
+            {v}
+          </MenuItem>
+        ))}
+      </Select>
+      <Select
+        size="small"
+        value={brand}
+        onChange={(e) => setBrand(e.target.value)}
+        displayEmpty
+        sx={{ minWidth: 160, borderRadius: 999 }}
+      >
+        <MenuItem value="">
+          <em>Brand</em>
+        </MenuItem>
+        {(allFacets.find((f) => f.code.toLowerCase() === 'brand')?.values || []).map((v) => (
+          <MenuItem key={v} value={v}>
+            {v}
+          </MenuItem>
+        ))}
+      </Select>
+      <Select
+        size="small"
+        value={filterFacetId}
+        onChange={(e) => {
+          setFilterFacetId(e.target.value);
+          setFilterFacetValue('');
+        }}
+        displayEmpty
+        sx={{ minWidth: 200, borderRadius: 999 }}
+      >
+        <MenuItem value="">
+          <em>Facet filter…</em>
+        </MenuItem>
+        {allFacets.map((f) => (
+          <MenuItem key={f.id} value={f.id}>
+            {f.name} ({f.code})
+          </MenuItem>
+        ))}
+      </Select>
+      {(() => {
+        const f = allFacets.find((x) => x.id === filterFacetId);
+        if (f && Array.isArray(f.values) && f.values.length) {
+          return (
+            <Select
+              size="small"
+              value={filterFacetValue}
+              onChange={(e) => setFilterFacetValue(e.target.value)}
+              displayEmpty
+              sx={{ minWidth: 180, borderRadius: 999 }}
+            >
+              <MenuItem value="">
+                <em>Value…</em>
+              </MenuItem>
+              {f.values.map((v) => (
+                <MenuItem key={v} value={v}>
+                  {v}
+                </MenuItem>
+              ))}
+            </Select>
+          );
+        }
+        if (filterFacetId) {
+          return (
+            <TextField
+              size="small"
+              label="Value"
+              value={filterFacetValue}
+              onChange={(e) => setFilterFacetValue(e.target.value)}
+            />
+          );
+        }
+        return null;
+      })()}
+      <Button
+        size="small"
+        variant="text"
+        onClick={async () => {
+          setQ('');
+          setFilterFacetId('');
+          setFilterFacetValue('');
+          setGender('');
+          setBrand('');
+          setPage(1);
+          await refetch({ take, skip: 0, where: undefined });
+          await refetchVariantCount({ where: undefined });
+        }}
+      >
+        Clear
+      </Button>
+    </Stack>
+  );
+
+  const paginationRow = (
+    <Stack
+      direction={{ xs: 'column', md: 'row' }}
+      spacing={1}
+      alignItems={{ xs: 'flex-start', md: 'center' }}
+      justifyContent="space-between"
+      sx={{ rowGap: 1.5 }}
+    >
+      <Typography variant="body2" color="text.secondary">
+        {total ? `${rangeStart}–${rangeEnd} of ${total}` : 'No variants found'}
+      </Typography>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Button
+          size="small"
+          disabled={!canPrev}
+          onClick={async () => {
+            if (!canPrev) return;
+            const nextPage = Math.max(1, page - 1);
+            setPage(nextPage);
+            const newSkip = (nextPage - 1) * take;
+            await refetch({ take, skip: newSkip, where });
+          }}
+        >
+          Prev
+        </Button>
+        <Typography variant="body2">Page {page}</Typography>
+        <Button
+          size="small"
+          disabled={!canNext}
+          onClick={async () => {
+            if (!canNext) return;
+            const nextPage = page + 1;
+            setPage(nextPage);
+            const newSkip = (nextPage - 1) * take;
+            await refetch({ take, skip: newSkip, where });
+          }}
+        >
+          Next
+        </Button>
+      </Stack>
+    </Stack>
+  );
+  const toolbarSx = {
+    px: { xs: 1.25, sm: 1.5, md: 2 },
+    py: { xs: 1, sm: 1.25 },
+    borderRadius: 2,
+    border: '1px solid',
+    borderColor: 'divider',
+    bgcolor: 'background.paper',
+    boxShadow: 1,
+  } as const;
+
+  const pageSizeOptions = React.useMemo(() => {
+    const presets = [10, 25, 50, 100];
+    if (presets.includes(take)) return presets;
+    return [...presets, take].sort((a, b) => a - b);
+  }, [take]);
+
+  const handleTakeChange = React.useCallback(
+    async (next: number) => {
+      const safeValue = Math.max(1, Number.isFinite(next) ? next : 50);
+      setPage(1);
+      setTake(safeValue);
+      try {
+        await refetch({ take: safeValue, skip: 0, where });
+        await refetchVariantCount({ where });
+      } catch (err) {
+        console.error('Failed to update page size', err);
+      }
+    },
+    [refetch, refetchVariantCount, where],
+  );
+
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Variants</Typography>
       {error && <Alert severity="error" onClick={() => refetch()} sx={{ cursor: 'pointer' }}>{error.message} (click to retry)</Alert>}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-        <TextField label="Page size" type="number" size="small" value={take} onChange={(e) => { const v = Math.max(1, Number(e.target.value) || 50); setPage(1); setTake(v); refetch(); refetchVariantCount(); }} sx={{ width: 120 }} />
-        <TextField label="Search (name/sku/barcode/product)" size="small" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') refetch(); }} />
-        {(() => {
-          const genderFacet = allFacets.find((f) => f.code.toLowerCase() === 'gender');
-          const brandFacet = allFacets.find((f) => f.code.toLowerCase() === 'brand');
-          return (
-            <>
-              <Select size="small" value={gender} onChange={(e) => setGender(e.target.value)} displayEmpty sx={{ minWidth: 160 }}>
-                <MenuItem value=""><em>Gender</em></MenuItem>
-                {(genderFacet?.values || ['Male','Female','Unisex']).map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
+      <Stack spacing={1.25}>
+        <Box sx={toolbarSx}>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ md: 'center' }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search variants"
+              label="Search (name/sku/barcode/product)"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setPage(1);
+                  void refetch({ take, skip: 0, where });
+                  void refetchVariantCount({ where });
+                }
+              }}
+            />
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: { md: 200 } }}>
+              <Typography variant="body2" color="text.secondary">
+                Show
+              </Typography>
+              <Select
+                size="small"
+                value={take}
+                onChange={(event) => {
+                  void handleTakeChange(Number(event.target.value));
+                }}
+                sx={{ minWidth: 96, borderRadius: 999 }}
+              >
+                {pageSizeOptions.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
               </Select>
-              <Select size="small" value={brand} onChange={(e) => setBrand(e.target.value)} displayEmpty sx={{ minWidth: 160 }}>
-                <MenuItem value=""><em>Brand</em></MenuItem>
-                {(brandFacet?.values || []).map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
-              </Select>
-            </>
-          );
-        })()}
-        <Select size="small" value={filterFacetId} onChange={(e) => { setFilterFacetId(e.target.value); setFilterFacetValue(''); }} displayEmpty sx={{ minWidth: 220 }}>
-          <MenuItem value=""><em>Facet filter…</em></MenuItem>
-          {allFacets.map((f) => (<MenuItem key={f.id} value={f.id}>{f.name} ({f.code})</MenuItem>))}
-        </Select>
-        {filterFacetId && (() => {
-          const f = allFacets.find((x) => x.id === filterFacetId);
-          if (f && Array.isArray(f.values) && f.values.length) {
-            return (
-              <Select size="small" value={filterFacetValue} onChange={(e) => setFilterFacetValue(e.target.value)} displayEmpty sx={{ minWidth: 180 }}>
-                <MenuItem value=""><em>Value…</em></MenuItem>
-                {f.values.map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
-              </Select>
-            );
-          }
-          return (
-            <TextField size="small" label="Value" value={filterFacetValue} onChange={(e) => setFilterFacetValue(e.target.value)} />
-          );
-        })()}
-        <Button variant="text" onClick={async () => {
-          setQ(''); setFilterFacetId(''); setFilterFacetValue(''); setGender(''); setBrand(''); setPage(1);
-          await refetch({ take, skip: 0, where: undefined });
-          await refetchVariantCount({ where: undefined });
-        }}>Clear</Button>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
-          <Button size="small" disabled={!canPrev} onClick={async () => { if (!canPrev) return; const p = Math.max(1, page - 1); setPage(p); await refetch({ take, skip: (p - 1) * take, where }); }}>Prev</Button>
-          <Typography variant="body2">Page {page}</Typography>
-          <Button size="small" disabled={!canNext} onClick={async () => { if (!canNext) return; const p = page + 1; setPage(p); await refetch({ take, skip: (p - 1) * take, where }); }}>Next</Button>
-          <Typography variant="body2" sx={{ ml: 1, minWidth: 110, textAlign: 'right' }}>{total ? `${rangeStart}–${rangeEnd} of ${total}` : '0 of 0'}</Typography>
-        </Stack>
+              <Typography variant="body2" color="text.secondary">
+                per page
+              </Typography>
+            </Stack>
+          </Stack>
+        </Box>
+        <Box sx={toolbarSx}>{filtersRow}</Box>
+        <Box sx={toolbarSx}>{paginationRow}</Box>
       </Stack>
       {selectedIds.length > 0 && (
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>

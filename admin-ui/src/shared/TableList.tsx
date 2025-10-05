@@ -20,10 +20,16 @@ import {
   Checkbox,
   Typography,
   InputBase,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import { useSearchParams } from 'react-router-dom';
+import { useAuth } from './AuthProvider';
 
 type Column<Row> = {
   key: string;
@@ -35,6 +41,22 @@ type Column<Row> = {
   accessor?: (row: Row) => any;
   filter?: boolean;
   filterPlaceholder?: string;
+};
+
+type ActionConfig<Row> = {
+  onClick: (row: Row) => void | Promise<void>;
+  permission?: string | string[];
+  label?: string;
+  hidden?: (row: Row) => boolean;
+  disabled?: (row: Row) => boolean;
+  confirmMessage?: string | ((row: Row) => string | undefined);
+};
+
+type ActionsConfig<Row> = {
+  label?: string;
+  view?: ActionConfig<Row>;
+  edit?: ActionConfig<Row>;
+  delete?: ActionConfig<Row>;
 };
 
 type Props<Row> = {
@@ -65,16 +87,104 @@ type Props<Row> = {
   selectable?: boolean; // show selection checkbox column and header select-all
   selectedIds?: Array<string | number>; // controlled mode; if omitted, internal state is used
   onSelectedIdsChange?: (ids: Array<string | number>) => void;
+  actions?: ActionsConfig<Row>;
+  rowAccent?: (row: Row, index: number) => 'default' | 'success' | 'warning' | 'info' | 'danger' | null | undefined;
 };
-
-export default function TableList<Row = any>({ columns, rows, loading, error, emptyMessage, onRowClick, getRowKey, size = 'small', paginated = true, rowsPerPageOptions = [10, 25, 50], defaultRowsPerPage = 25, defaultSortKey, defaultSortDir = 'asc', showFilters = false, globalSearch = false, globalSearchPlaceholder = 'Search', globalSearchKeys, enableUrlState = false, urlKey = 'tbl', onRowsProcessed, onExport, exportLabel = 'Export CSV', exportScopeControl = false, selectable = false, selectedIds, onSelectedIdsChange }: Props<Row>) {
+export default function TableList<Row = any>({ columns: initialColumns, rows, loading, error, emptyMessage, onRowClick, getRowKey, size = 'small', paginated = true, rowsPerPageOptions = [10, 25, 50], defaultRowsPerPage = 25, defaultSortKey, defaultSortDir = 'asc', showFilters = false, globalSearch = false, globalSearchPlaceholder = 'Search', globalSearchKeys, enableUrlState = false, urlKey = 'tbl', onRowsProcessed, onExport, exportLabel = 'Export CSV', exportScopeControl = false, selectable = false, selectedIds, onSelectedIdsChange, actions, rowAccent }: Props<Row>) {
   const theme = useTheme();
+  const { hasPermission } = useAuth();
   const key = getRowKey || ((_: any, i: number) => i);
   const clickable = Boolean(onRowClick);
   const [searchParams, setSearchParams] = useSearchParams();
   const param = (name: string) => `${urlKey}_${name}`;
   const lastApplied = React.useRef<string | null>(null);
-  const initialSortKey = defaultSortKey && columns.find(c => c.key === defaultSortKey && c.sort) ? defaultSortKey : undefined;
+
+  const can = React.useCallback(
+    (perm?: string | string[]) => {
+      if (!perm) return true;
+      if (Array.isArray(perm)) return perm.length ? hasPermission(...perm) : true;
+      return hasPermission(perm);
+    },
+    [hasPermission]
+  );
+
+  const shouldHideAction = React.useCallback(
+    (cfg: ActionConfig<Row> | undefined, row: Row) => {
+      if (!cfg || typeof cfg.onClick !== 'function') return true;
+      if (!can(cfg.permission)) return true;
+      if (cfg.hidden?.(row)) return true;
+      return false;
+    },
+    [can]
+  );
+
+  const renderActions = React.useCallback(
+    (row: Row) => {
+      if (!actions) return null;
+      const actionDefs: Array<{ type: 'view' | 'edit' | 'delete'; cfg: ActionConfig<Row> | undefined; Icon: React.ComponentType<any>; color: 'primary' | 'warning' | 'error'; fallbackLabel: string; }> = [
+        { type: 'view', cfg: actions.view, Icon: VisibilityOutlinedIcon, color: 'primary', fallbackLabel: 'View' },
+        { type: 'edit', cfg: actions.edit, Icon: EditOutlinedIcon, color: 'warning', fallbackLabel: 'Edit' },
+        { type: 'delete', cfg: actions.delete, Icon: DeleteOutlineOutlinedIcon, color: 'error', fallbackLabel: 'Delete' },
+      ];
+      const items = actionDefs
+        .filter(({ cfg }) => !shouldHideAction(cfg, row))
+        .map((item) => ({ ...item, cfg: item.cfg! }));
+      if (!items.length) return <Typography variant="body2" color="text.secondary">—</Typography>;
+      return (
+        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+          {items.map(({ cfg, Icon, color, fallbackLabel, type }) => {
+            const label = cfg.label || fallbackLabel;
+            const disabled = cfg.disabled?.(row) ?? false;
+            const handleClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+              event.stopPropagation();
+              if (disabled) return;
+              if (cfg.confirmMessage) {
+                const message = typeof cfg.confirmMessage === 'function' ? cfg.confirmMessage(row) : cfg.confirmMessage;
+                if (message && !window.confirm(message)) return;
+              }
+              await cfg.onClick(row);
+            };
+            return (
+              <Tooltip key={type} title={label} placement="top" arrow>
+                <span>
+                  <IconButton
+                    size="small"
+                    color={color}
+                    onClick={handleClick}
+                    disabled={disabled}
+                    aria-label={label}
+                  >
+                    <Icon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            );
+          })}
+        </Stack>
+      );
+    },
+    [actions, shouldHideAction]
+  );
+
+  const hasActions = React.useMemo(() => Boolean(actions && (actions.view || actions.edit || actions.delete)), [actions]);
+
+  const actionsColumn = React.useMemo<Column<Row> | null>(() => {
+    if (!hasActions) return null;
+    return {
+      key: '__actions',
+      label: actions?.label ?? 'Actions',
+      align: 'right',
+      width: 140,
+      render: (row) => renderActions(row),
+    } as Column<Row>;
+  }, [actions, hasActions, renderActions]);
+
+  const columns = React.useMemo(() => {
+    if (!actionsColumn) return initialColumns;
+    return [...initialColumns, actionsColumn];
+  }, [actionsColumn, initialColumns]);
+
+  const initialSortKey = defaultSortKey && columns.find((c) => c.key === defaultSortKey && c.sort) ? defaultSortKey : undefined;
   const [orderBy, setOrderBy] = React.useState<string | undefined>(initialSortKey);
   const [order, setOrder] = React.useState<'asc' | 'desc'>(defaultSortDir);
   const [page, setPage] = React.useState(0);
@@ -263,46 +373,65 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
   );
   const hasToolbar = globalSearch || showClearButton || showResetButton || onExport || selectable;
 
-  const rowRadius = 18;
+  const rowRadius = 12;
+
+  const accentPalette = React.useMemo(
+    () => ({
+      success: {
+        background: alpha(theme.palette.success.main, 0.12),
+        hoverBackground: alpha(theme.palette.success.main, 0.18),
+        border: alpha(theme.palette.success.main, 0.24),
+      },
+      warning: {
+        background: alpha(theme.palette.warning.main, 0.14),
+        hoverBackground: alpha(theme.palette.warning.main, 0.2),
+        border: alpha(theme.palette.warning.main, 0.24),
+      },
+      info: {
+        background: alpha(theme.palette.info.main, 0.14),
+        hoverBackground: alpha(theme.palette.info.main, 0.22),
+        border: alpha(theme.palette.info.main, 0.24),
+      },
+      danger: {
+        background: alpha(theme.palette.error.main, 0.14),
+        hoverBackground: alpha(theme.palette.error.main, 0.22),
+        border: alpha(theme.palette.error.main, 0.26),
+      },
+    }),
+    [theme.palette.error.main, theme.palette.info.main, theme.palette.success.main, theme.palette.warning.main]
+  );
+
+  const baseBorderColor = React.useMemo(() => alpha(theme.palette.success.main, 0.08), [theme.palette.success.main]);
+
   const rowBaseSx = React.useMemo(() => ({
     position: 'relative',
     cursor: clickable ? 'pointer' : 'default',
-    '&:before': {
-      content: '""',
-      position: 'absolute',
-      inset: 0,
-      borderRadius: rowRadius,
-      backgroundColor: '#fff',
-      boxShadow: '0 8px 20px rgba(16, 94, 62, 0.08)',
-      transition: 'box-shadow 180ms ease, transform 180ms ease, background-color 180ms ease',
-      pointerEvents: 'none',
-      zIndex: 0,
-    },
-    '&:hover:before': {
-      boxShadow: '0 16px 32px rgba(16, 94, 62, 0.18)',
-      transform: 'translateY(-2px)',
-      backgroundColor: alpha(theme.palette.success.main, 0.05),
+    backgroundColor: '#fff',
+    transition: 'background-color 160ms ease, transform 160ms ease',
+    '&:hover': {
+      backgroundColor: alpha(theme.palette.success.main, 0.06),
+      transform: clickable ? 'translateY(-1px)' : 'none',
     },
     '& td': {
-      position: 'relative',
-      zIndex: 1,
-      borderBottom: 'none',
+      borderBottom: '1px solid',
+      borderBottomColor: baseBorderColor,
       backgroundColor: 'transparent',
-      py: 1.75,
+      py: 1.5,
+      px: selectable ? theme.spacing(1.5) : theme.spacing(2),
       fontSize: 14,
       color: theme.palette.text.primary,
     },
     '& td:first-of-type': {
       borderTopLeftRadius: rowRadius,
       borderBottomLeftRadius: rowRadius,
-      paddingLeft: selectable ? theme.spacing(1.5) : theme.spacing(3),
+      paddingLeft: selectable ? theme.spacing(1.5) : theme.spacing(2.5),
     },
     '& td:last-of-type': {
       borderTopRightRadius: rowRadius,
       borderBottomRightRadius: rowRadius,
-      paddingRight: theme.spacing(3),
+      paddingRight: theme.spacing(2.5),
     },
-  }), [clickable, selectable, theme]);
+  }), [baseBorderColor, clickable, selectable, theme]);
 
   const searchInput = globalSearch ? (
     <Box
@@ -349,7 +478,18 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
       {error && <Alert severity="error">{error}</Alert>}
 
       {hasToolbar && (
-        <Stack spacing={2} sx={{ mb: 3 }}>
+        <Box
+          sx={{
+            mb: 3,
+            mt: 1,
+            backgroundColor: theme.palette.success.main,
+            borderRadius: 2,
+            color: '#fff',
+            px: { xs: 1.5, md: 2 },
+            py: { xs: 1, md: 1.25 },
+          }}
+        >
+          <Stack spacing={1.5}>
           <Stack
             direction={{ xs: 'column', md: 'row' }}
             spacing={2}
@@ -366,7 +506,7 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
               sx={{ flexGrow: searchInput ? 0 : 1 }}
             >
               {showClearButton && (
-                <Button size="small" onClick={() => { setQ(''); setDq(''); setFilters({}); setPage(0); }}>
+                <Button size="small" onClick={() => { setQ(''); setDq(''); setFilters({}); setPage(0); }} sx={{ color: '#fff' }}>
                   Clear Filters
                 </Button>
               )}
@@ -379,6 +519,7 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
                     setPage(0);
                     setRowsPerPage(defaultRowsPerPage);
                   }}
+                  sx={{ color: '#fff' }}
                 >
                   Reset View
                 </Button>
@@ -390,7 +531,12 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
                       size="small"
                       value={exportScope}
                       onChange={(e) => setExportScope(e.target.value as any)}
-                      sx={{ minWidth: 160 }}
+                      sx={{
+                        minWidth: 160,
+                        color: '#fff',
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.4)' },
+                        '& .MuiSvgIcon-root': { color: '#fff' },
+                      }}
                     >
                       <MenuItem value="all">Export: All Rows</MenuItem>
                       <MenuItem value="page">Export: Current Page</MenuItem>
@@ -407,6 +553,13 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
                       onExport(payload);
                     }}
                     disabled={!sortedRows.length}
+                    sx={{
+                      color: '#fff',
+                      borderColor: 'rgba(255,255,255,0.6)',
+                      '&:hover': {
+                        borderColor: 'rgba(255,255,255,0.9)',
+                      },
+                    }}
                   >
                     {exportLabel}
                   </Button>
@@ -426,24 +579,26 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
                 Selected: {selectedCount}
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap">
-                <Button size="small" onClick={selectAllFiltered} disabled={!filteredRows.length}>
+                <Button size="small" onClick={selectAllFiltered} disabled={!filteredRows.length} sx={{ color: '#fff' }}>
                   Select All Filtered
                 </Button>
-                <Button size="small" onClick={clearSelection} disabled={!selectedCount}>
+                <Button size="small" onClick={clearSelection} disabled={!selectedCount} sx={{ color: '#fff' }}>
                   Clear Selection
                 </Button>
               </Stack>
             </Stack>
           )}
-        </Stack>
+          </Stack>
+        </Box>
       )}
 
       <Table
         size={size}
         sx={{
-          borderCollapse: 'separate',
-          borderSpacing: '0 14px',
-          minWidth: 650,
+          borderCollapse: 'collapse',
+          width: '100%',
+          tableLayout: 'auto',
+          minWidth: 0,
         }}
       >
         <TableHead
@@ -564,7 +719,26 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
             <TableRow
               key={key(row, idx + page * rowsPerPage)}
               hover={clickable}
-              sx={rowBaseSx}
+              sx={{
+                ...rowBaseSx,
+                ...(rowAccent
+                  ? (() => {
+                      const tone = rowAccent(row, idx);
+                      if (!tone || tone === 'default') return {};
+                      const palette = accentPalette[tone];
+                      if (!palette) return {};
+                      return {
+                        backgroundColor: palette.background,
+                        '&:hover': {
+                          backgroundColor: palette.hoverBackground,
+                        },
+                        '& td': {
+                          borderBottomColor: palette.border,
+                        },
+                      };
+                    })()
+                  : {}),
+              }}
               onClick={clickable ? () => onRowClick!(row) : undefined}
             >
               {selectable && (
