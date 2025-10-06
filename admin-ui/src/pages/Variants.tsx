@@ -17,14 +17,17 @@ import {
   TextField,
   Typography,
   Box,
+  Pagination,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/AuthProvider';
 import React from 'react';
 import TableList from '../shared/TableList';
 import { notify } from '../shared/notify';
+import { ListingHero, ListingSelectionCard } from '../shared/ListingLayout';
 export default function Variants() {
+  const theme = useTheme();
   const auth = useAuth();
   const isManager =
     auth.hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || auth.hasPermission('MANAGE_PRODUCTS');
@@ -283,48 +286,6 @@ export default function Variants() {
     </Stack>
   );
 
-  const paginationRow = (
-    <Stack
-      direction={{ xs: 'column', md: 'row' }}
-      spacing={1}
-      alignItems={{ xs: 'flex-start', md: 'center' }}
-      justifyContent="space-between"
-      sx={{ rowGap: 1.5 }}
-    >
-      <Typography variant="body2" color="text.secondary">
-        {total ? `${rangeStart}–${rangeEnd} of ${total}` : 'No variants found'}
-      </Typography>
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Button
-          size="small"
-          disabled={!canPrev}
-          onClick={async () => {
-            if (!canPrev) return;
-            const nextPage = Math.max(1, page - 1);
-            setPage(nextPage);
-            const newSkip = (nextPage - 1) * take;
-            await refetch({ take, skip: newSkip, where });
-          }}
-        >
-          Prev
-        </Button>
-        <Typography variant="body2">Page {page}</Typography>
-        <Button
-          size="small"
-          disabled={!canNext}
-          onClick={async () => {
-            if (!canNext) return;
-            const nextPage = page + 1;
-            setPage(nextPage);
-            const newSkip = (nextPage - 1) * take;
-            await refetch({ take, skip: newSkip, where });
-          }}
-        >
-          Next
-        </Button>
-      </Stack>
-    </Stack>
-  );
   const toolbarSx = {
     px: { xs: 1.25, sm: 1.5, md: 2 },
     py: { xs: 1, sm: 1.25 },
@@ -340,6 +301,7 @@ export default function Variants() {
     if (presets.includes(take)) return presets;
     return [...presets, take].sort((a, b) => a - b);
   }, [take]);
+  const pageCount = Math.max(1, Math.ceil(total / take));
 
   const handleTakeChange = React.useCallback(
     async (next: number) => {
@@ -360,183 +322,240 @@ export default function Variants() {
     <Stack spacing={2}>
       <Typography variant="h5">Variants</Typography>
       {error && <Alert severity="error" onClick={() => refetch()} sx={{ cursor: 'pointer' }}>{error.message} (click to retry)</Alert>}
-      <Stack spacing={1.25}>
-        <Box sx={toolbarSx}>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ md: 'center' }}>
-            <TextField
-              fullWidth
+      <ListingHero
+        search={{
+          value: q,
+          onChange: setQ,
+          placeholder: 'Search variants',
+          onSubmit: () => {
+            setPage(1);
+            void refetch({ take, skip: 0, where });
+            void refetchVariantCount({ where });
+          },
+        }}
+        action={(
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => {
+              void refetch({ take, skip, where });
+              void refetchVariantCount({ where });
+            }}
+            sx={{ borderRadius: 999 }}
+          >
+            Refresh
+          </Button>
+        )}
+        trailing={(
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="body2" color="text.secondary">
+              Show
+            </Typography>
+            <Select
               size="small"
-              placeholder="Search variants"
-              label="Search (name/sku/barcode/product)"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  setPage(1);
-                  void refetch({ take, skip: 0, where });
-                  void refetchVariantCount({ where });
-                }
+              value={take}
+              onChange={(event) => {
+                void handleTakeChange(Number(event.target.value));
+              }}
+              sx={{ minWidth: 96, borderRadius: 999 }}
+            >
+              {pageSizeOptions.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </Select>
+            <Typography variant="body2" color="text.secondary">
+              per page
+            </Typography>
+          </Stack>
+        )}
+        density="compact"
+      />
+      <Box sx={toolbarSx}>{filtersRow}</Box>
+      <ListingSelectionCard count={selectedIds.length}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }} flexWrap="wrap">
+          <Select
+            size="small"
+            value={bulkFacetId}
+            onChange={(e) => {
+              setBulkFacetId(e.target.value);
+              setBulkValue('');
+            }}
+            displayEmpty
+            sx={{ minWidth: 220 }}
+          >
+            <MenuItem value="">
+              <em>Select facet…</em>
+            </MenuItem>
+            {allFacets.map((f) => (
+              <MenuItem key={f.id} value={f.id}>
+                {f.name} ({f.code})
+              </MenuItem>
+            ))}
+          </Select>
+          {(() => {
+            const f = allFacets.find((x) => x.id === bulkFacetId);
+            if (f && Array.isArray(f.values) && f.values.length) {
+              return (
+                <Select
+                  size="small"
+                  value={bulkValue}
+                  onChange={(e) => setBulkValue(e.target.value)}
+                  displayEmpty
+                  sx={{ minWidth: 180 }}
+                >
+                  <MenuItem value="">
+                    <em>Value…</em>
+                  </MenuItem>
+                  {(f.values || []).map((v) => (
+                    <MenuItem key={v} value={v}>
+                      {v}
+                    </MenuItem>
+                  ))}
+                </Select>
+              );
+            }
+            return (
+              <TextField
+                size="small"
+                label="Value"
+                value={bulkValue}
+                onChange={(e) => setBulkValue(e.target.value)}
+              />
+            );
+          })()}
+          <Button
+            size="small"
+            variant="contained"
+            disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkAssignLoading}
+            onClick={async () => {
+              try {
+                await bulkAssign({
+                  variables: {
+                    variantIds: selectedIds as string[],
+                    facetId: bulkFacetId,
+                    value: bulkValue,
+                  },
+                });
+                notify('Facet assigned to selected variants', 'success');
+                clearSelection();
+                await refetch({ take, skip, where });
+                await refetchVariantCount({ where });
+              } catch (err: any) {
+                notify(err?.message || 'Failed to assign facet to selected variants', 'error');
+              }
+            }}
+          >
+            Assign to selected
+          </Button>
+          <Button
+            size="small"
+            color="error"
+            variant="outlined"
+            disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkRemoveLoading}
+            onClick={async () => {
+              try {
+                await bulkRemove({
+                  variables: {
+                    variantIds: selectedIds as string[],
+                    facetId: bulkFacetId,
+                    value: bulkValue,
+                  },
+                });
+                notify('Facet removed from selected variants', 'success');
+                clearSelection();
+                await refetch({ take, skip, where });
+                await refetchVariantCount({ where });
+              } catch (err: any) {
+                notify(err?.message || 'Failed to remove facet from selected variants', 'error');
+              }
+            }}
+          >
+            Remove from selected
+          </Button>
+          <Button size="small" variant="text" onClick={clearSelection}>
+            Clear selection
+          </Button>
+        </Stack>
+      </ListingSelectionCard>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        spacing={1.5}
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+        justifyContent="space-between"
+        sx={{ mt: 2, px: { xs: 0, md: 0.5 } }}
+      >
+        <Typography variant="body2" color="text.secondary">
+          {total ? `Showing ${rangeStart} to ${rangeEnd} of ${total} entries` : 'No variants found'}
+        </Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="body2" color="text.secondary">
+              Show
+            </Typography>
+            <Select
+              size="small"
+              value={take}
+              onChange={(event) => {
+                void handleTakeChange(Number(event.target.value));
+              }}
+              sx={{
+                minWidth: 92,
+                borderRadius: 999,
+                '& .MuiSelect-select': {
+                  py: 0.75,
+                },
+              }}
+            >
+              {pageSizeOptions.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </Select>
+            <Typography variant="body2" color="text.secondary">
+              entries
+            </Typography>
+          </Stack>
+          {pageCount > 1 && (
+            <Pagination
+              count={pageCount}
+              page={page}
+              onChange={(_, value) => {
+                setPage(value);
+                const newSkip = (value - 1) * take;
+                void refetch({ take, skip: newSkip, where });
+              }}
+              shape="rounded"
+              color="primary"
+              sx={{
+                '& .MuiPaginationItem-root': {
+                  borderRadius: 999,
+                  border: `1px solid ${alpha(theme.palette.success.main, 0.25)}`,
+                  color: theme.palette.success.dark,
+                  fontWeight: 600,
+                  minWidth: 36,
+                  height: 36,
+                  transition: 'all 160ms ease',
+                },
+                '& .MuiPaginationItem-root.Mui-selected': {
+                  backgroundColor: theme.palette.success.main,
+                  color: '#fff',
+                  boxShadow: '0 18px 30px rgba(13, 74, 49, 0.25)',
+                  borderColor: theme.palette.success.main,
+                  '&:hover': {
+                    backgroundColor: theme.palette.success.dark,
+                  },
+                },
+                '& .MuiPaginationItem-root:hover': {
+                  backgroundColor: alpha(theme.palette.success.main, 0.12),
+                },
               }}
             />
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: { md: 200 } }}>
-              <Typography variant="body2" color="text.secondary">
-                Show
-              </Typography>
-              <Select
-                size="small"
-                value={take}
-                onChange={(event) => {
-                  void handleTakeChange(Number(event.target.value));
-                }}
-                sx={{ minWidth: 96, borderRadius: 999 }}
-              >
-                {pageSizeOptions.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    {option}
-                  </MenuItem>
-                ))}
-              </Select>
-              <Typography variant="body2" color="text.secondary">
-                per page
-              </Typography>
-            </Stack>
-          </Stack>
-        </Box>
-        <Box sx={toolbarSx}>{filtersRow}</Box>
-        <Box sx={toolbarSx}>{paginationRow}</Box>
+          )}
+        </Stack>
       </Stack>
-      {selectedIds.length > 0 && (
-        <Box sx={toolbarSx}>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={1.5}
-            alignItems={{ xs: 'stretch', md: 'center' }}
-            justifyContent="space-between"
-            flexWrap="wrap"
-          >
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {selectedIds.length} selected
-            </Typography>
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={1}
-              alignItems={{ xs: 'stretch', sm: 'center' }}
-              flexWrap="wrap"
-            >
-              <Select
-                size="small"
-                value={bulkFacetId}
-                onChange={(e) => {
-                  setBulkFacetId(e.target.value);
-                  setBulkValue('');
-                }}
-                displayEmpty
-                sx={{ minWidth: 220 }}
-              >
-                <MenuItem value="">
-                  <em>Select facet…</em>
-                </MenuItem>
-                {allFacets.map((f) => (
-                  <MenuItem key={f.id} value={f.id}>
-                    {f.name} ({f.code})
-                  </MenuItem>
-                ))}
-              </Select>
-              {(() => {
-                const f = allFacets.find((x) => x.id === bulkFacetId);
-                if (f && Array.isArray(f.values) && f.values.length) {
-                  return (
-                    <Select
-                      size="small"
-                      value={bulkValue}
-                      onChange={(e) => setBulkValue(e.target.value)}
-                      displayEmpty
-                      sx={{ minWidth: 180 }}
-                    >
-                      <MenuItem value="">
-                        <em>Value…</em>
-                      </MenuItem>
-                      {(f.values || []).map((v) => (
-                        <MenuItem key={v} value={v}>
-                          {v}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  );
-                }
-                return (
-                  <TextField
-                    size="small"
-                    label="Value"
-                    value={bulkValue}
-                    onChange={(e) => setBulkValue(e.target.value)}
-                  />
-                );
-              })()}
-            </Stack>
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={1}
-              alignItems={{ xs: 'stretch', sm: 'center' }}
-              justifyContent="flex-end"
-              flexWrap="wrap"
-            >
-              <Button
-                size="small"
-                variant="contained"
-                disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkAssignLoading}
-                onClick={async () => {
-                  try {
-                    await bulkAssign({
-                      variables: {
-                        variantIds: selectedIds as string[],
-                        facetId: bulkFacetId,
-                        value: bulkValue,
-                      },
-                    });
-                    notify('Facet assigned to selected variants', 'success');
-                    clearSelection();
-                    await refetch({ take, skip, where });
-                    await refetchVariantCount({ where });
-                  } catch (err: any) {
-                    notify(err?.message || 'Failed to assign facet to selected variants', 'error');
-                  }
-                }}
-              >
-                Assign to selected
-              </Button>
-              <Button
-                size="small"
-                color="error"
-                variant="outlined"
-                disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkRemoveLoading}
-                onClick={async () => {
-                  try {
-                    await bulkRemove({
-                      variables: {
-                        variantIds: selectedIds as string[],
-                        facetId: bulkFacetId,
-                        value: bulkValue,
-                      },
-                    });
-                    notify('Facet removed from selected variants', 'success');
-                    clearSelection();
-                    await refetch({ take, skip, where });
-                    await refetchVariantCount({ where });
-                  } catch (err: any) {
-                    notify(err?.message || 'Failed to remove facet from selected variants', 'error');
-                  }
-                }}
-              >
-                Remove from selected
-              </Button>
-              <Button size="small" variant="text" onClick={clearSelection}>
-                Clear selection
-              </Button>
-            </Stack>
-          </Stack>
-        </Box>
-      )}
       <TableList
         columns={[
           {
