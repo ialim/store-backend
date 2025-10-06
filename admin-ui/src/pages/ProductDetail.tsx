@@ -113,7 +113,7 @@ export default function ProductDetail() {
     <Stack spacing={2}>
       <Typography variant="h5">{p.name}</Typography>
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
@@ -176,60 +176,66 @@ export default function ProductDetail() {
                   minRows={2}
                 />
               </Stack>
-              <Typography variant="subtitle1" sx={{ mt: 3 }}>Assign Existing Variant</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle1">Assign Existing Variant</Typography>
               <Stack spacing={1.5} sx={{ mt: 1 }}>
                 <Autocomplete
                   value={assignSelection}
                   onChange={(_e, value) => setAssignSelection(value)}
-                inputValue={assignQuery}
-                onInputChange={(_e, value) => setAssignQuery(value)}
-                options={assignOptions}
-                loading={assignLoading}
-                getOptionLabel={(option) => option?.name || option?.barcode || option?.id || ''}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Search variants"
-                    placeholder="Type at least 2 characters"
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {assignLoading ? <CircularProgress size={18} color="inherit" /> : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    }}
-                  />
-                )}
-              />
-              <Button
-                variant="contained"
-                disabled={!assignSelection}
-                onClick={async () => {
-                  if (!assignSelection || !hasId) return;
-                  try {
-                    await updateVariant({
-                      variables: {
-                        id: assignSelection.id,
-                        data: { product: { connect: { id } } },
-                      },
-                    });
-                    notify('Variant assigned to product', 'success');
-                    setAssignSelection(null);
-                    setAssignQuery('');
-                    refetchVariants();
-                  } catch (err: any) {
-                    notify(err?.message || 'Failed to assign variant', 'error');
-                  }
-                }}
-              >
-                Assign Variant
-              </Button>
-              <Typography variant="caption" color="text.secondary">
-                Only variants not currently linked to a product are listed.
-              </Typography>
-            </Stack>
+                  inputValue={assignQuery}
+                  onInputChange={(_e, value) => setAssignQuery(value)}
+                  options={assignOptions}
+                  loading={assignLoading}
+                  getOptionLabel={(option) => option?.name || option?.barcode || option?.id || ''}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Search variants"
+                      placeholder="Type at least 2 characters"
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {assignLoading ? <CircularProgress size={18} color="inherit" /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                />
+                <Button
+                  variant="contained"
+                  disabled={!assignSelection}
+                  onClick={async () => {
+                    if (!assignSelection || !hasId) return;
+                    try {
+                      await updateVariant({
+                        variables: {
+                          id: assignSelection.id,
+                          data: { product: { connect: { id } } },
+                        },
+                      });
+                      notify('Variant assigned to product', 'success');
+                      setAssignSelection(null);
+                      setAssignQuery('');
+                      refetchVariants();
+                    } catch (err: any) {
+                      notify(err?.message || 'Failed to assign variant', 'error');
+                    }
+                  }}
+                >
+                  Assign Variant
+                </Button>
+                <Typography variant="caption" color="text.secondary">
+                  Only variants not currently linked to a product are listed.
+                </Typography>
+              </Stack>
             </CardContent>
           </Card>
         </Grid>
