@@ -35,8 +35,8 @@ const prisma = new PrismaClient();
 })();
 NODE
   then
-    echo "[entrypoint] Running prisma db seed..."
-    if ! npx prisma db seed; then
+    echo "[entrypoint] Running prisma seed script..."
+    if ! npm run prisma:seed; then
       echo "[entrypoint] Prisma seed failed" >&2
     fi
   else
