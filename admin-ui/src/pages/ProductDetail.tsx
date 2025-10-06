@@ -5,7 +5,6 @@ import {
   useListFacetsQuery,
   useProductFacetsQuery,
   useProductQuery,
-  useCreateProductVariantMutation,
   useUpdateProductMutation,
   useUpdateProductVariantMutation,
   useVariantsQuery,
@@ -17,7 +16,8 @@ import {
   useRemoveFacetFromVariantMutation,
   useStockByVariantQuery,
 } from '../generated/graphql';
-import { Alert, Box, Button, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, CircularProgress, Chip, Autocomplete } from '@mui/material';
+import { Alert, Avatar, Box, Button, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, CircularProgress, Chip, Autocomplete } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import TableList from '../shared/TableList';
@@ -25,11 +25,11 @@ import { formatMoney } from '../shared/format';
 import { notify } from '../shared/notify';
 
 export default function ProductDetail() {
+  const theme = useTheme();
   const params = useParams<{ id?: string }>();
   const id = params.id ?? '';
   const hasId = Boolean(params.id);
   const { data, loading, error, refetch } = useProductQuery({ variables: { id }, skip: !hasId, fetchPolicy: 'cache-and-network' as any });
-  const [createVariant, { loading: creating }] = useCreateProductVariantMutation();
   const p = data?.findUniqueProduct;
   // Categories removed; facets will be used for classification going forward.
   const { data: vData, loading: vLoading, error: vError, refetch: refetchVariants } = useVariantsQuery({ variables: { where: { productId: { equals: id } } }, skip: !hasId, fetchPolicy: 'cache-and-network' as any });
@@ -52,11 +52,8 @@ export default function ProductDetail() {
   const [selFacetId, setSelFacetId] = React.useState('');
   const [selFacetValue, setSelFacetValue] = React.useState('');
 
-  const [variantName, setVariantName] = React.useState('');
-  const [vBarcode, setVBarcode] = React.useState('');
-  const [price, setPrice] = React.useState<number>(0);
-  const [resellerPrice, setResellerPrice] = React.useState<number>(0);
-  const canAdd = !!variantName && price > 0 && resellerPrice > 0 && hasId;
+  const [assignQuery, setAssignQuery] = React.useState('');
+  const [assignSelection, setAssignSelection] = React.useState<{ id: string; name?: string | null; barcode?: string | null } | null>(null);
   const [editVariant, setEditVariant] = React.useState<Variant | null>(null);
   const [invVariant, setInvVariant] = React.useState<any | null>(null);
   // Hooks must not be conditional; keep before any early return
@@ -68,6 +65,24 @@ export default function ProductDetail() {
     return map;
   }, [totalsDataAll, totalsDataStore, storeTotalsFilter]);
   const variants = vData?.listProductVariants ?? p?.variants ?? [];
+  const assignWhere = React.useMemo(() => {
+    const term = assignQuery.trim();
+    if (term.length < 2) return undefined;
+    return {
+      productId: { equals: null },
+      OR: [
+        { name: { contains: term, mode: 'insensitive' } },
+        { barcode: { contains: term, mode: 'insensitive' } },
+        { legacyArticleCode: { contains: term, mode: 'insensitive' } },
+      ],
+    } as any;
+  }, [assignQuery]);
+  const { data: assignData, loading: assignLoading } = useVariantsQuery({
+    variables: { take: 10, where: assignWhere },
+    skip: !assignWhere,
+    fetchPolicy: 'network-only' as any,
+  });
+  const assignOptions: Array<{ id: string; name?: string | null; barcode?: string | null }> = assignData?.listProductVariants ?? [];
 
   if ((loading || vLoading) && !p) return <Skeleton variant="rectangular" height={200} />;
   if (error || vError) return <Alert severity="error">{error?.message || vError?.message}</Alert>;
@@ -99,80 +114,131 @@ export default function ProductDetail() {
       <Typography variant="h5">{p.name}</Typography>
       <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
-          <Card><CardContent>
-            <Typography variant="subtitle1">Summary</Typography>
-            <Stack spacing={0.5} sx={{ mt: 1 }}>
-              <Typography color="text.secondary">Product ID: {p.id}</Typography>
-              <Typography color="text.secondary">Created: {new Date(p.createdAt).toLocaleString()}</Typography>
-              <TextField
-                label="Name"
-                size="small"
-                defaultValue={p.name}
-                onBlur={async (e) => {
-                  if (!hasId) return;
-                  const v = e.target.value.trim();
-                  if (v && v !== p.name) {
-                    await updateProduct({ variables: { id, data: { name: { set: v } } } });
+          <Card>
+            <CardContent>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
+                <Avatar
+                  variant="rounded"
+                  sx={{
+                    width: 72,
+                    height: 72,
+                    bgcolor: alpha(theme.palette.success.main, 0.12),
+                    color: theme.palette.success.dark,
+                    fontWeight: 700,
+                    fontSize: 28,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {(p.name || 'P').charAt(0)}
+                </Avatar>
+                <Stack spacing={0.5} sx={{ minWidth: 0 }}>
+                  <Typography variant="subtitle1">Summary</Typography>
+                  <Typography color="text.secondary">Created: {new Date(p.createdAt).toLocaleString()}</Typography>
+                  <Typography color="text.secondary">Product ID: {p.id}</Typography>
+                </Stack>
+              </Stack>
+              <Stack spacing={1} sx={{ mt: 2 }}>
+                <TextField
+                  label="Name"
+                  size="small"
+                  defaultValue={p.name}
+                  onBlur={async (e) => {
+                    if (!hasId) return;
+                    const v = e.target.value.trim();
+                    if (v && v !== p.name) {
+                      await updateProduct({ variables: { id, data: { name: { set: v } } } });
+                      refetch();
+                    }
+                  }}
+                />
+                <TextField
+                  label="Barcode"
+                  size="small"
+                  defaultValue={p.barcode || ''}
+                  onBlur={async (e) => {
+                    if (!hasId) return;
+                    const v = e.target.value.trim();
+                    await updateProduct({ variables: { id, data: { barcode: { set: v || null } } } });
                     refetch();
-                  }
-                }}
-              />
-              <TextField
-                label="Barcode"
-                size="small"
-                defaultValue={p.barcode || ''}
-                onBlur={async (e) => {
-                  if (!hasId) return;
-                  const v = e.target.value.trim();
-                  await updateProduct({ variables: { id, data: { barcode: { set: v || null } } } });
-                  refetch();
-                }}
-              />
-              <TextField
-                label="Description"
-                size="small"
-                defaultValue={p.description || ''}
-                onBlur={async (e) => {
-                  if (!hasId) return;
-                  const v = e.target.value;
-                  await updateProduct({ variables: { id, data: { description: { set: v || null } } } });
-                  refetch();
-                }}
-                multiline
-                minRows={2}
-              />
-              {/* Category removed */}
-            </Stack>
-          </CardContent></Card>
+                  }}
+                />
+                <TextField
+                  label="Description"
+                  size="small"
+                  defaultValue={p.description || ''}
+                  onBlur={async (e) => {
+                    if (!hasId) return;
+                    const v = e.target.value;
+                    await updateProduct({ variables: { id, data: { description: { set: v || null } } } });
+                    refetch();
+                  }}
+                  multiline
+                  minRows={2}
+                />
+              </Stack>
+            </CardContent>
+          </Card>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Card><CardContent>
-            <Typography variant="subtitle1">Add Variant</Typography>
-            <Stack spacing={1} sx={{ mt: 1 }}>
-              <TextField label="Name" size="small" value={variantName} onChange={(e) => setVariantName(e.target.value)} />
-              <TextField label="Barcode (optional)" size="small" value={vBarcode} onChange={(e) => setVBarcode(e.target.value)} />
-              <Stack direction="row" spacing={1}>
-                <TextField label="Price" type="number" size="small" value={price} onChange={(e) => setPrice(Number(e.target.value) || 0)} />
-                <TextField label="Reseller Price" type="number" size="small" value={resellerPrice} onChange={(e) => setResellerPrice(Number(e.target.value) || 0)} />
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle1">Assign Existing Variant</Typography>
+              <Stack spacing={1.5} sx={{ mt: 1 }}>
+                <Autocomplete
+                  value={assignSelection}
+                  onChange={(_e, value) => setAssignSelection(value)}
+                  inputValue={assignQuery}
+                  onInputChange={(_e, value) => setAssignQuery(value)}
+                  options={assignOptions}
+                  loading={assignLoading}
+                  getOptionLabel={(option) => option?.name || option?.barcode || option?.id || ''}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Search variants"
+                      placeholder="Type at least 2 characters"
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {assignLoading ? <CircularProgress size={18} color="inherit" /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                />
+                <Button
+                  variant="contained"
+                  disabled={!assignSelection}
+                  onClick={async () => {
+                    if (!assignSelection || !hasId) return;
+                    try {
+                      await updateVariant({
+                        variables: {
+                          id: assignSelection.id,
+                          data: { product: { connect: { id } } },
+                        },
+                      });
+                      notify('Variant assigned to product', 'success');
+                      setAssignSelection(null);
+                      setAssignQuery('');
+                      refetchVariants();
+                    } catch (err: any) {
+                      notify(err?.message || 'Failed to assign variant', 'error');
+                    }
+                  }}
+                >
+                  Assign Variant
+                </Button>
+                <Typography variant="caption" color="text.secondary">
+                  Only variants not currently linked to a product are listed.
+                </Typography>
               </Stack>
-              <Box>
-                <Button variant="contained" disabled={creating || !canAdd} onClick={async () => {
-                try {
-                  if (!hasId) return;
-                  await createVariant({ variables: { data: {
-                    name: variantName || null,
-                    barcode: vBarcode || null,
-                    price, resellerPrice,
-                    product: { connect: { id } },
-                    } } });
-                    setVariantName(''); setVBarcode(''); setPrice(0); setResellerPrice(0);
-                    await refetch();
-                  } catch {}
-                }}>{creating ? 'Adding…' : 'Add Variant'}</Button>
-              </Box>
-            </Stack>
-          </CardContent></Card>
-      </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
     </Grid>
 
       <Card sx={{ mt: 2 }}><CardContent>

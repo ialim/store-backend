@@ -4,6 +4,7 @@ import {
   useVariantFacetsQuery,
   useBulkAssignFacetToVariantsMutation,
   useBulkRemoveFacetFromVariantsMutation,
+  useCreateProductVariantMutation,
 } from '../generated/graphql';
 import { useVariantsQuery } from '../generated/graphql';
 import {
@@ -11,6 +12,10 @@ import {
   Avatar,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   MenuItem,
   Select,
   Stack,
@@ -18,7 +23,9 @@ import {
   Typography,
   Box,
   Pagination,
+  CircularProgress,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/AuthProvider';
@@ -35,6 +42,15 @@ export default function Variants() {
   const [take, setTake] = React.useState(50);
   const [page, setPage] = React.useState(1);
   const [q, setQ] = React.useState('');
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [createLoading, setCreateLoading] = React.useState(false);
+  const [createForm, setCreateForm] = React.useState({
+    name: '',
+    barcode: '',
+    price: '0',
+    resellerPrice: '0',
+    productId: '',
+  });
   // Facet filters
   const { data: facetsData } = useListFacetsQuery({ fetchPolicy: 'cache-first' as any });
   const allFacets: Array<{ id: string; name: string; code: string; values?: string[]; isPrivate?: boolean }>
@@ -134,6 +150,7 @@ export default function Variants() {
   const [bulkValue, setBulkValue] = React.useState('');
   const [bulkAssign, { loading: bulkAssignLoading }] = useBulkAssignFacetToVariantsMutation();
   const [bulkRemove, { loading: bulkRemoveLoading }] = useBulkRemoveFacetFromVariantsMutation();
+  const [createVariant] = useCreateProductVariantMutation();
 
   const currencyFormatter = React.useMemo(() => {
     try {
@@ -334,17 +351,30 @@ export default function Variants() {
           },
         }}
         action={(
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => {
-              void refetch({ take, skip, where });
-              void refetchVariantCount({ where });
-            }}
-            sx={{ borderRadius: 999 }}
-          >
-            Refresh
-          </Button>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setCreateForm({ name: '', barcode: '', price: '0', resellerPrice: '0', productId: '' });
+                setCreateOpen(true);
+              }}
+            >
+              New Variant
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                void refetch({ take, skip, where });
+                void refetchVariantCount({ where });
+              }}
+              sx={{ borderRadius: 999 }}
+            >
+              Refresh
+            </Button>
+          </Stack>
         )}
         trailing={(
           <Stack direction="row" spacing={1} alignItems="center">
@@ -479,6 +509,86 @@ export default function Variants() {
           </Button>
         </Stack>
       </ListingSelectionCard>
+      {createOpen && (
+        <Dialog open onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>New Variant</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <TextField
+                label="Name"
+                value={createForm.name}
+                onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+                required
+              />
+              <TextField
+                label="Barcode (optional)"
+                value={createForm.barcode}
+                onChange={(e) => setCreateForm((f) => ({ ...f, barcode: e.target.value }))}
+              />
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                <TextField
+                  label="Price"
+                  type="number"
+                  value={createForm.price}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, price: e.target.value }))}
+                  required
+                  fullWidth
+                />
+                <TextField
+                  label="Reseller Price"
+                  type="number"
+                  value={createForm.resellerPrice}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, resellerPrice: e.target.value }))}
+                  required
+                  fullWidth
+                />
+              </Stack>
+              <TextField
+                label="Attach to Product ID (optional)"
+                value={createForm.productId}
+                onChange={(e) => setCreateForm((f) => ({ ...f, productId: e.target.value }))}
+                helperText="Leave blank to create an unassigned variant"
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              disabled={createLoading || !createForm.name || Number(createForm.price) <= 0 || Number(createForm.resellerPrice) <= 0}
+              onClick={async () => {
+                setCreateLoading(true);
+                try {
+                  const priceValue = Number(createForm.price);
+                  const resellerValue = Number(createForm.resellerPrice);
+                  const data: any = {
+                    name: createForm.name,
+                    price: priceValue,
+                    resellerPrice: resellerValue,
+                  };
+                  if (createForm.barcode.trim()) data.barcode = createForm.barcode.trim();
+                  if (createForm.productId.trim()) {
+                    data.product = { connect: { id: createForm.productId.trim() } };
+                  }
+                  await createVariant({ variables: { data } });
+                  notify('Variant created', 'success');
+                  setCreateOpen(false);
+                  setCreateForm({ name: '', barcode: '', price: '0', resellerPrice: '0', productId: '' });
+                  setPage(1);
+                  await refetch({ take, skip: 0, where });
+                  await refetchVariantCount({ where });
+                } catch (err: any) {
+                  notify(err?.message || 'Failed to create variant', 'error');
+                } finally {
+                  setCreateLoading(false);
+                }
+              }}
+            >
+              {createLoading ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : 'Create'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
       <Stack
         direction={{ xs: 'column', md: 'row' }}
         spacing={1.5}
