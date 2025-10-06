@@ -27683,7 +27683,7 @@ export type StockQueryVariables = Exact<{
 }>;
 
 
-export type StockQuery = { __typename?: 'Query', stock: Array<{ __typename?: 'Stock', id: string, productVariantId: string, storeId: string, quantity: number, reserved: number, store: { __typename?: 'Store', id: string, name: string } }> };
+export type StockQuery = { __typename?: 'Query', stock: Array<{ __typename?: 'Stock', id: string, productVariantId: string, storeId: string, quantity: number, reserved: number, productVariant: { __typename?: 'ProductVariant', id: string, name?: string | null, barcode?: string | null, product?: { __typename?: 'Product', id: string, name: string } | null }, store: { __typename?: 'Store', id: string, name: string } }> };
 
 export type StoresQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -32178,6 +32178,15 @@ export const StockDocument = gql`
     storeId
     quantity
     reserved
+    productVariant {
+      id
+      name
+      barcode
+      product {
+        id
+        name
+      }
+    }
     store {
       id
       name
