@@ -17,8 +17,9 @@ import {
   TextField,
   Typography,
   Box,
+  Pagination,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/AuthProvider';
 import React from 'react';
@@ -26,6 +27,7 @@ import TableList from '../shared/TableList';
 import { notify } from '../shared/notify';
 import { ListingHero, ListingSelectionCard } from '../shared/ListingLayout';
 export default function Variants() {
+  const theme = useTheme();
   const auth = useAuth();
   const isManager =
     auth.hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || auth.hasPermission('MANAGE_PRODUCTS');
@@ -284,48 +286,6 @@ export default function Variants() {
     </Stack>
   );
 
-  const paginationRow = (
-    <Stack
-      direction={{ xs: 'column', md: 'row' }}
-      spacing={1}
-      alignItems={{ xs: 'flex-start', md: 'center' }}
-      justifyContent="space-between"
-      sx={{ rowGap: 1.5 }}
-    >
-      <Typography variant="body2" color="text.secondary">
-        {total ? `${rangeStart}–${rangeEnd} of ${total}` : 'No variants found'}
-      </Typography>
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Button
-          size="small"
-          disabled={!canPrev}
-          onClick={async () => {
-            if (!canPrev) return;
-            const nextPage = Math.max(1, page - 1);
-            setPage(nextPage);
-            const newSkip = (nextPage - 1) * take;
-            await refetch({ take, skip: newSkip, where });
-          }}
-        >
-          Prev
-        </Button>
-        <Typography variant="body2">Page {page}</Typography>
-        <Button
-          size="small"
-          disabled={!canNext}
-          onClick={async () => {
-            if (!canNext) return;
-            const nextPage = page + 1;
-            setPage(nextPage);
-            const newSkip = (nextPage - 1) * take;
-            await refetch({ take, skip: newSkip, where });
-          }}
-        >
-          Next
-        </Button>
-      </Stack>
-    </Stack>
-  );
   const toolbarSx = {
     px: { xs: 1.25, sm: 1.5, md: 2 },
     py: { xs: 1, sm: 1.25 },
@@ -341,6 +301,7 @@ export default function Variants() {
     if (presets.includes(take)) return presets;
     return [...presets, take].sort((a, b) => a - b);
   }, [take]);
+  const pageCount = Math.max(1, Math.ceil(total / take));
 
   const handleTakeChange = React.useCallback(
     async (next: number) => {
@@ -412,7 +373,6 @@ export default function Variants() {
         density="compact"
       />
       <Box sx={toolbarSx}>{filtersRow}</Box>
-      <Box sx={toolbarSx}>{paginationRow}</Box>
       <ListingSelectionCard count={selectedIds.length}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }} flexWrap="wrap">
           <Select
@@ -519,6 +479,83 @@ export default function Variants() {
           </Button>
         </Stack>
       </ListingSelectionCard>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        spacing={1.5}
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+        justifyContent="space-between"
+        sx={{ mt: 2, px: { xs: 0, md: 0.5 } }}
+      >
+        <Typography variant="body2" color="text.secondary">
+          {total ? `Showing ${rangeStart} to ${rangeEnd} of ${total} entries` : 'No variants found'}
+        </Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="body2" color="text.secondary">
+              Show
+            </Typography>
+            <Select
+              size="small"
+              value={take}
+              onChange={(event) => {
+                void handleTakeChange(Number(event.target.value));
+              }}
+              sx={{
+                minWidth: 92,
+                borderRadius: 999,
+                '& .MuiSelect-select': {
+                  py: 0.75,
+                },
+              }}
+            >
+              {pageSizeOptions.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </Select>
+            <Typography variant="body2" color="text.secondary">
+              entries
+            </Typography>
+          </Stack>
+          {pageCount > 1 && (
+            <Pagination
+              count={pageCount}
+              page={page}
+              onChange={(_, value) => {
+                setPage(value);
+                const newSkip = (value - 1) * take;
+                void refetch({ take, skip: newSkip, where });
+              }}
+              shape="rounded"
+              color="primary"
+              sx={{
+                '& .MuiPaginationItem-root': {
+                  borderRadius: 999,
+                  border: `1px solid ${alpha(theme.palette.success.main, 0.25)}`,
+                  color: theme.palette.success.dark,
+                  fontWeight: 600,
+                  minWidth: 36,
+                  height: 36,
+                  transition: 'all 160ms ease',
+                },
+                '& .MuiPaginationItem-root.Mui-selected': {
+                  backgroundColor: theme.palette.success.main,
+                  color: '#fff',
+                  boxShadow: '0 18px 30px rgba(13, 74, 49, 0.25)',
+                  borderColor: theme.palette.success.main,
+                  '&:hover': {
+                    backgroundColor: theme.palette.success.dark,
+                  },
+                },
+                '& .MuiPaginationItem-root:hover': {
+                  backgroundColor: alpha(theme.palette.success.main, 0.12),
+                },
+              }}
+            />
+          )}
+        </Stack>
+      </Stack>
       <TableList
         columns={[
           {
