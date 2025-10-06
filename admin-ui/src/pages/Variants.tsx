@@ -19,7 +19,6 @@ import {
   Box,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/AuthProvider';
 import React from 'react';
@@ -407,74 +406,136 @@ export default function Variants() {
         <Box sx={toolbarSx}>{paginationRow}</Box>
       </Stack>
       {selectedIds.length > 0 && (
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
-          <Select size="small" value={bulkFacetId} onChange={(e) => { setBulkFacetId(e.target.value); setBulkValue(''); }} displayEmpty sx={{ minWidth: 220 }}>
-            <MenuItem value=""><em>Select facet…</em></MenuItem>
-            {allFacets.map((f) => (<MenuItem key={f.id} value={f.id}>{f.name} ({f.code})</MenuItem>))}
-          </Select>
-          {(() => {
-            const f = allFacets.find((x) => x.id === bulkFacetId);
-            if (f && Array.isArray(f.values) && f.values.length) {
-              return (
-                <Select size="small" value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} displayEmpty sx={{ minWidth: 180 }}>
-                  <MenuItem value=""><em>Value…</em></MenuItem>
-                  {(f.values || []).map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
-                </Select>
-              );
-            }
-            return (<TextField size="small" label="Value" value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} />);
-          })()}
-          <Button
-            size="small"
-            variant="contained"
-            disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkAssignLoading}
-            onClick={async () => {
-              try {
-                await bulkAssign({
-                  variables: {
-                    variantIds: selectedIds as string[],
-                    facetId: bulkFacetId,
-                    value: bulkValue,
-                  },
-                });
-                notify('Facet assigned to selected variants', 'success');
-                clearSelection();
-                await refetch({ take, skip, where });
-                await refetchVariantCount({ where });
-              } catch (err: any) {
-                notify(err?.message || 'Failed to assign facet to selected variants', 'error');
-              }
-            }}
+        <Box sx={toolbarSx}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={1.5}
+            alignItems={{ xs: 'stretch', md: 'center' }}
+            justifyContent="space-between"
+            flexWrap="wrap"
           >
-            Assign to selected
-          </Button>
-          <Button
-            size="small"
-            color="error"
-            variant="outlined"
-            disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkRemoveLoading}
-            onClick={async () => {
-              try {
-                await bulkRemove({
-                  variables: {
-                    variantIds: selectedIds as string[],
-                    facetId: bulkFacetId,
-                    value: bulkValue,
-                  },
-                });
-                notify('Facet removed from selected variants', 'success');
-                clearSelection();
-                await refetch({ take, skip, where });
-                await refetchVariantCount({ where });
-              } catch (err: any) {
-                notify(err?.message || 'Failed to remove facet from selected variants', 'error');
-              }
-            }}
-          >
-            Remove from selected
-          </Button>
-          <Button size="small" onClick={clearSelection}>Clear selection</Button>
-        </Stack>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {selectedIds.length} selected
+            </Typography>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1}
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+              flexWrap="wrap"
+            >
+              <Select
+                size="small"
+                value={bulkFacetId}
+                onChange={(e) => {
+                  setBulkFacetId(e.target.value);
+                  setBulkValue('');
+                }}
+                displayEmpty
+                sx={{ minWidth: 220 }}
+              >
+                <MenuItem value="">
+                  <em>Select facet…</em>
+                </MenuItem>
+                {allFacets.map((f) => (
+                  <MenuItem key={f.id} value={f.id}>
+                    {f.name} ({f.code})
+                  </MenuItem>
+                ))}
+              </Select>
+              {(() => {
+                const f = allFacets.find((x) => x.id === bulkFacetId);
+                if (f && Array.isArray(f.values) && f.values.length) {
+                  return (
+                    <Select
+                      size="small"
+                      value={bulkValue}
+                      onChange={(e) => setBulkValue(e.target.value)}
+                      displayEmpty
+                      sx={{ minWidth: 180 }}
+                    >
+                      <MenuItem value="">
+                        <em>Value…</em>
+                      </MenuItem>
+                      {(f.values || []).map((v) => (
+                        <MenuItem key={v} value={v}>
+                          {v}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  );
+                }
+                return (
+                  <TextField
+                    size="small"
+                    label="Value"
+                    value={bulkValue}
+                    onChange={(e) => setBulkValue(e.target.value)}
+                  />
+                );
+              })()}
+            </Stack>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1}
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+              justifyContent="flex-end"
+              flexWrap="wrap"
+            >
+              <Button
+                size="small"
+                variant="contained"
+                disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkAssignLoading}
+                onClick={async () => {
+                  try {
+                    await bulkAssign({
+                      variables: {
+                        variantIds: selectedIds as string[],
+                        facetId: bulkFacetId,
+                        value: bulkValue,
+                      },
+                    });
+                    notify('Facet assigned to selected variants', 'success');
+                    clearSelection();
+                    await refetch({ take, skip, where });
+                    await refetchVariantCount({ where });
+                  } catch (err: any) {
+                    notify(err?.message || 'Failed to assign facet to selected variants', 'error');
+                  }
+                }}
+              >
+                Assign to selected
+              </Button>
+              <Button
+                size="small"
+                color="error"
+                variant="outlined"
+                disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkRemoveLoading}
+                onClick={async () => {
+                  try {
+                    await bulkRemove({
+                      variables: {
+                        variantIds: selectedIds as string[],
+                        facetId: bulkFacetId,
+                        value: bulkValue,
+                      },
+                    });
+                    notify('Facet removed from selected variants', 'success');
+                    clearSelection();
+                    await refetch({ take, skip, where });
+                    await refetchVariantCount({ where });
+                  } catch (err: any) {
+                    notify(err?.message || 'Failed to remove facet from selected variants', 'error');
+                  }
+                }}
+              >
+                Remove from selected
+              </Button>
+              <Button size="small" variant="text" onClick={clearSelection}>
+                Clear selection
+              </Button>
+            </Stack>
+          </Stack>
+        </Box>
       )}
       <TableList
         columns={[
@@ -522,29 +583,38 @@ export default function Variants() {
                     : undefined,
               ];
               const imageUrl = candidates.find((src) => typeof src === 'string' && src.length > 0) as string | undefined;
+              if (imageUrl) {
+                return (
+                  <Avatar
+                    variant="rounded"
+                    src={imageUrl}
+                    alt={variant.name || variant.product?.name || 'Variant preview'}
+                    sx={(theme) => ({
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      border: `1px solid ${alpha(theme.palette.success.main, 0.18)}`,
+                      bgcolor: '#fff',
+                    })}
+                  />
+                );
+              }
+              const fallback = (variant.name || variant.product?.name || 'NA').slice(0, 2).toUpperCase();
               return (
                 <Avatar
                   variant="rounded"
-                  src={imageUrl}
-                  alt={variant.name || variant.product?.name || 'Variant preview placeholder'}
                   sx={(theme) => ({
                     width: 48,
                     height: 48,
                     borderRadius: 2,
                     border: `1px solid ${alpha(theme.palette.success.main, 0.18)}`,
-                    bgcolor: imageUrl
-                      ? '#fff'
-                      : alpha(theme.palette.success.main, 0.12),
+                    bgcolor: alpha(theme.palette.success.main, 0.12),
                     color: theme.palette.success.dark,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    '& .MuiSvgIcon-root': {
-                      fontSize: 22,
-                    },
+                    fontWeight: 700,
+                    letterSpacing: 0.5,
                   })}
                 >
-                  {!imageUrl && <ImageOutlinedIcon />}
+                  {fallback}
                 </Avatar>
               );
             },

@@ -14,20 +14,17 @@ import {
   DialogContent,
   DialogTitle,
   MenuItem,
-  Paper,
   Select,
   Stack,
   TextField,
   Typography,
-  InputBase,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import React from 'react';
 import TableList from '../shared/TableList';
 import { useNavigate } from 'react-router-dom';
+import { ListingHero, ListingSelectionCard } from '../shared/ListingLayout';
 
 export default function Products() {
   const [take, setTake] = React.useState(20);
@@ -111,93 +108,50 @@ export default function Products() {
     []
   );
 
-  const searchField = (
-    <Box
-      sx={(t) => ({
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.5,
-        bgcolor: alpha(t.palette.success.main, 0.08),
-        borderRadius: 999,
-        px: 2,
-        py: 1,
-      })}
-    >
-      <SearchIcon sx={{ color: 'success.main', opacity: 0.8 }} />
-      <InputBase
-        fullWidth
-        placeholder="Search name or barcode"
-        value={q}
-        onChange={(event) => setQ(event.target.value)}
-      />
-    </Box>
-  );
-
   return (
     <Stack spacing={3}>
-      <Paper
-        elevation={0}
-        sx={(t) => ({
-          borderRadius: 4,
-          p: { xs: 2, md: 3 },
-          boxShadow: '0 28px 56px rgba(16, 94, 62, 0.12)',
-          background: 'linear-gradient(135deg, rgba(15, 91, 58, 0.08) 0%, rgba(255,255,255,0.98) 100%)',
-          border: `1px solid ${alpha(t.palette.success.main, 0.12)}`,
-        })}
-      >
-        <Stack spacing={2.5}>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            alignItems={{ xs: 'flex-start', md: 'center' }}
-            justifyContent="space-between"
+      <Box>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Products
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Monitor catalogue inventory and keep product records up to date.
+        </Typography>
+      </Box>
+      <ListingHero
+        action={(
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<AddIcon />}
+            onClick={() => setOpen(true)}
+            sx={{ borderRadius: 999 }}
           >
-            <Box>
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                Products
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Monitor catalogue inventory and keep product records up to date.
-              </Typography>
-            </Box>
-            <Button
-              variant="contained"
-              color="success"
-              startIcon={<AddIcon />}
-              onClick={() => setOpen(true)}
-              sx={{ borderRadius: 999 }}
+            Add New
+          </Button>
+        )}
+        search={{ value: q, onChange: setQ, placeholder: 'Search name or barcode' }}
+        trailing={(
+          <>
+            <Select
+              size="small"
+              value={take}
+              onChange={(event) => setTake(Number(event.target.value) || 20)}
+              sx={{ minWidth: 140, borderRadius: 999 }}
             >
-              Add New
+              {[10, 20, 50, 100].map((option) => (
+                <MenuItem key={option} value={option}>
+                  Show {option}
+                </MenuItem>
+              ))}
+            </Select>
+            <Button variant="outlined" startIcon={<CalendarMonthIcon />} sx={{ borderRadius: 999 }}>
+              Date Range
             </Button>
-          </Stack>
-
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={1.5}
-            alignItems={{ xs: 'stretch', md: 'center' }}
-            justifyContent="space-between"
-          >
-            <Box sx={{ flexGrow: 1 }}>{searchField}</Box>
-            <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" justifyContent={{ xs: 'flex-start', md: 'flex-end' }}>
-              <Select
-                size="small"
-                value={take}
-                onChange={(event) => setTake(Number(event.target.value) || 20)}
-                sx={{ minWidth: 140, borderRadius: 999 }}
-              >
-                {[10, 20, 50, 100].map((option) => (
-                  <MenuItem key={option} value={option}>
-                    Show {option}
-                  </MenuItem>
-                ))}
-              </Select>
-              <Button variant="outlined" startIcon={<CalendarMonthIcon />} sx={{ borderRadius: 999 }}>
-                Date Range
-              </Button>
-            </Stack>
-          </Stack>
-        </Stack>
-      </Paper>
+          </>
+        )}
+        density="compact"
+      />
 
       {error && (
         <Alert severity="error" onClick={() => refetch()} sx={{ cursor: 'pointer' }}>
@@ -205,96 +159,74 @@ export default function Products() {
         </Alert>
       )}
 
-      {selectedIds.length > 0 && (
-        <Paper
-          elevation={0}
-          sx={(t) => ({
-            borderRadius: 3,
-            p: { xs: 2, md: 3 },
-            border: `1px solid ${alpha(t.palette.success.main, 0.12)}`,
-            boxShadow: '0 18px 40px rgba(16, 94, 62, 0.12)',
-          })}
+      <ListingSelectionCard count={selectedIds.length}>
+        <Select
+          size="small"
+          value={selFacetId}
+          onChange={(e) => {
+            setSelFacetId(e.target.value);
+            setSelValue('');
+          }}
+          displayEmpty
+          sx={{ minWidth: 220 }}
         >
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={1.5}
-            alignItems={{ xs: 'flex-start', md: 'center' }}
-            justifyContent="space-between"
-          >
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              Selected: {selectedIds.length}
-            </Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
+          <MenuItem value="">
+            <em>Select facet…</em>
+          </MenuItem>
+          {facets.map((f) => (
+            <MenuItem key={f.id} value={f.id}>
+              {f.name} ({f.code})
+            </MenuItem>
+          ))}
+        </Select>
+        {(() => {
+          const f = facets.find((x) => x.id === selFacetId);
+          if (f && Array.isArray(f.values) && f.values.length) {
+            return (
               <Select
                 size="small"
-                value={selFacetId}
-                onChange={(e) => {
-                  setSelFacetId(e.target.value);
-                  setSelValue('');
-                }}
+                value={selValue}
+                onChange={(e) => setSelValue(e.target.value)}
                 displayEmpty
-                sx={{ minWidth: 220 }}
+                sx={{ minWidth: 180 }}
               >
                 <MenuItem value="">
-                  <em>Select facet…</em>
+                  <em>Value…</em>
                 </MenuItem>
-                {facets.map((f) => (
-                  <MenuItem key={f.id} value={f.id}>
-                    {f.name} ({f.code})
+                {f.values.map((v) => (
+                  <MenuItem key={v} value={v}>
+                    {v}
                   </MenuItem>
                 ))}
               </Select>
-              {(() => {
-                const f = facets.find((x) => x.id === selFacetId);
-                if (f && Array.isArray(f.values) && f.values.length) {
-                  return (
-                    <Select
-                      size="small"
-                      value={selValue}
-                      onChange={(e) => setSelValue(e.target.value)}
-                      displayEmpty
-                      sx={{ minWidth: 180 }}
-                    >
-                      <MenuItem value="">
-                        <em>Value…</em>
-                      </MenuItem>
-                      {f.values.map((v) => (
-                        <MenuItem key={v} value={v}>
-                          {v}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  );
-                }
-                return <TextField size="small" label="Value" value={selValue} onChange={(e) => setSelValue(e.target.value)} />;
-              })()}
-              <Button
-                size="small"
-                variant="contained"
-                disabled={!selFacetId || !selValue || !selectedIds.length || assigning}
-                onClick={async () => {
-                  await bulkAssign({ variables: { productIds: selectedIds as string[], facetId: selFacetId, value: selValue } });
-                  setSelValue('');
-                }}
-              >
-                Assign to selected
-              </Button>
-              <Button
-                size="small"
-                color="error"
-                variant="outlined"
-                disabled={!selFacetId || !selValue || !selectedIds.length || removing}
-                onClick={async () => {
-                  await bulkRemove({ variables: { productIds: selectedIds as string[], facetId: selFacetId, value: selValue } });
-                  setSelValue('');
-                }}
-              >
-                Remove from selected
-              </Button>
-            </Stack>
-          </Stack>
-        </Paper>
-      )}
+            );
+          }
+          return <TextField size="small" label="Value" value={selValue} onChange={(e) => setSelValue(e.target.value)} />;
+        })()}
+        <Button
+          size="small"
+          variant="contained"
+          disabled={!selFacetId || !selValue || !selectedIds.length || assigning}
+          onClick={async () => {
+            await bulkAssign({ variables: { productIds: selectedIds as string[], facetId: selFacetId, value: selValue } });
+            setSelValue('');
+          }}
+        >
+          Assign to selected
+        </Button>
+        <Button
+          size="small"
+          color="error"
+          variant="outlined"
+          disabled={!selFacetId || !selValue || !selectedIds.length || removing}
+          onClick={async () => {
+            await bulkRemove({ variables: { productIds: selectedIds as string[], facetId: selFacetId, value: selValue } });
+            setSelValue('');
+          }}
+        >
+          Remove from selected
+        </Button>
+      </ListingSelectionCard>
 
       <TableList
         columns={productColumns as any}

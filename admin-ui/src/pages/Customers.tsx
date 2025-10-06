@@ -1,15 +1,17 @@
 import React from 'react';
 import { useAdminCreateCustomerMutation, useAdminUpdateCustomerProfileMutation, useCustomersQuery, useStoresForCustomersQuery } from '../generated/graphql';
-import { Alert, Stack, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem } from '@mui/material';
+import { Alert, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, Box, Typography } from '@mui/material';
 import TableList from '../shared/TableList';
 import { useNavigate } from 'react-router-dom';
 import { notify } from '../shared/notify';
+import { ListingHero } from '../shared/ListingLayout';
 
 export default function Customers() {
   const navigate = useNavigate();
   // Filters
   const [statusFilter, setStatusFilter] = React.useState<string>('');
   const [storeFilter, setStoreFilter] = React.useState<string>('');
+  const [search, setSearch] = React.useState('');
   const where = React.useMemo(() => {
     const base: any = { role: { is: { name: { equals: 'CUSTOMER' } } } };
     const and: any[] = [base];
@@ -40,7 +42,7 @@ export default function Customers() {
 
   const [createCustomer, { loading: creating }] = useAdminCreateCustomerMutation();
   const exportCsv = ({ sorted }: { sorted: any[] }) => {
-    const rowsToUse = sorted?.length ? sorted : list;
+    const rowsToUse = sorted?.length ? sorted : filteredList;
     if (!rowsToUse?.length) return;
     const header = ['id','name','email','phone','store','status'];
     const rows = rowsToUse.map((u: any) => [
@@ -63,27 +65,89 @@ export default function Customers() {
     URL.revokeObjectURL(url);
   };
 
+  const filteredList = React.useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return list;
+    return list.filter((u: any) => {
+      const name = (u.customerProfile?.fullName || u.email || '').toLowerCase();
+      const email = (u.customerProfile?.email || u.email || '').toLowerCase();
+      const phone = (u.customerProfile?.phone || '').toLowerCase();
+      const store = (u.customerProfile?.preferredStore?.name || '').toLowerCase();
+      return [name, email, phone, store].some((value) => value.includes(term));
+    });
+  }, [list, search]);
+
   return (
-    <Stack spacing={2}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
-        <Typography variant="h5">Customers</Typography>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Select size="small" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} displayEmpty>
-            <MenuItem value=""><em>Status…</em></MenuItem>
-            {['PENDING','ACTIVE','REJECTED'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-          </Select>
-          <Select size="small" value={storeFilter} onChange={(e) => setStoreFilter(e.target.value)} displayEmpty sx={{ minWidth: 220 }}>
-            <MenuItem value=""><em>Store…</em></MenuItem>
-            {stores.map((s: any) => (
-              <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
-            ))}
-          </Select>
-          {(statusFilter || storeFilter) && (
-            <Button size="small" onClick={() => { setStatusFilter(''); setStoreFilter(''); }}>Clear</Button>
-          )}
-        </Stack>
-        <Button variant="contained" onClick={() => setOpen(true)}>New Customer</Button>
-      </Stack>
+    <Stack spacing={3}>
+      <Box>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Customers
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Manage customer accounts, statuses, and preferred stores.
+        </Typography>
+      </Box>
+      <ListingHero
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: 'Search name, email, phone, or store',
+        }}
+        action={(
+          <Button variant="contained" onClick={() => setOpen(true)} sx={{ borderRadius: 999 }}>
+            New Customer
+          </Button>
+        )}
+        trailing={(
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
+            <Select
+              size="small"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              displayEmpty
+              sx={{ minWidth: 160, borderRadius: 999 }}
+            >
+              <MenuItem value="">
+                <em>Status…</em>
+              </MenuItem>
+              {['PENDING', 'ACTIVE', 'REJECTED'].map((s) => (
+                <MenuItem key={s} value={s}>
+                  {s}
+                </MenuItem>
+              ))}
+            </Select>
+            <Select
+              size="small"
+              value={storeFilter}
+              onChange={(e) => setStoreFilter(e.target.value)}
+              displayEmpty
+              sx={{ minWidth: 220, borderRadius: 999 }}
+            >
+              <MenuItem value="">
+                <em>Store…</em>
+              </MenuItem>
+              {stores.map((s: any) => (
+                <MenuItem key={s.id} value={s.id}>
+                  {s.name}
+                </MenuItem>
+              ))}
+            </Select>
+            {(statusFilter || storeFilter) && (
+              <Button
+                size="small"
+                variant="text"
+                onClick={() => {
+                  setStatusFilter('');
+                  setStoreFilter('');
+                }}
+              >
+                Clear
+              </Button>
+            )}
+          </Stack>
+        )}
+        density="compact"
+      />
       {error && (
         <Alert severity="error" onClick={() => refetch()} sx={{ cursor: 'pointer' }}>
           {error.message} (click to retry)
@@ -198,16 +262,14 @@ export default function Customers() {
           ] as any,
           [navigate, refetch, updateProfile],
         )}
-        rows={list}
+        rows={filteredList}
         loading={loading}
         emptyMessage="No customers"
         getRowKey={(u: any) => u.id}
         onRowClick={(u: any) => navigate(`/customers/${u.id}`)}
         defaultSortKey="name"
         showFilters
-        globalSearch
-        globalSearchPlaceholder="Search name/email/phone/store"
-        globalSearchKeys={['name', 'email', 'phone', 'store']}
+        globalSearch={false}
         enableUrlState
         urlKey="customers"
         onExport={exportCsv}

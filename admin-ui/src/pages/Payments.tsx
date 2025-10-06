@@ -13,10 +13,12 @@ import {
   MenuItem,
   Switch,
   FormControlLabel,
+  Box,
 } from '@mui/material';
 import React from 'react';
 import TableList from '../shared/TableList';
 import { formatMoney } from '../shared/format';
+import { ListingHero } from '../shared/ListingLayout';
 
 export default function Payments() {
   const [storeId, setStoreId] = React.useState('');
@@ -115,64 +117,92 @@ export default function Payments() {
   };
 
   return (
-    <Stack spacing={2}>
-      <Typography variant="h5">Payments</Typography>
-      <Stack direction="row" spacing={2} alignItems="center">
-        <Select
-          size="small"
-          value={storeId}
-          onChange={(e) => setStoreId(e.target.value)}
-          displayEmpty
-          sx={{ minWidth: 260 }}
+    <Stack spacing={3}>
+      <Box>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Payments
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Review store payment summaries and daily breakdowns.
+        </Typography>
+      </Box>
+      <ListingHero
+        trailing={(
+          <FormControlLabel
+            control={<Switch checked={showChart} onChange={(e) => setShowChart(e.target.checked)} />}
+            label="Show Chart"
+          />
+        )}
+        density="compact"
+      />
+
+      <ListingHero density="compact">
+        <Stack
+          direction={{ xs: 'column', lg: 'row' }}
+          spacing={1.5}
+          alignItems={{ xs: 'stretch', lg: 'center' }}
+          flexWrap="wrap"
         >
-          <MenuItem value=""><em>Select store…</em></MenuItem>
-          {stores.map((s: any) => (
-            <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
-          ))}
-        </Select>
-        <TextField
-          label="Month (YYYY-MM)"
-          size="small"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          disabled={!!(start || end)}
-        />
-        <TextField
-          label="Start"
-          type="date"
-          size="small"
-          value={start}
-          onChange={(e) => setStart(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          disabled={!!month}
-        />
-        <TextField
-          label="End"
-          type="date"
-          size="small"
-          value={end}
-          onChange={(e) => setEnd(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          disabled={!!month}
-        />
-        <Button
-          variant="contained"
-          onClick={() => {
-            if (start && end) {
-              refetchSummaryRange();
-              refetchSeriesRange();
-            } else {
-              refetchSummary();
-              refetchSeries();
-            }
-          }}
-          disabled={!storeId || rangeInvalid}
-        >
-          Refresh
-        </Button>
-        {/* Export handled in TableList toolbar */}
-        <FormControlLabel control={<Switch checked={showChart} onChange={(e) => setShowChart(e.target.checked)} />} label="Show Chart" />
-      </Stack>
+          <Select
+            size="small"
+            value={storeId}
+            onChange={(e) => setStoreId(e.target.value)}
+            displayEmpty
+            sx={{ minWidth: 260, borderRadius: 999 }}
+          >
+            <MenuItem value="">
+              <em>Select store…</em>
+            </MenuItem>
+            {stores.map((s: any) => (
+              <MenuItem key={s.id} value={s.id}>
+                {s.name}
+              </MenuItem>
+            ))}
+          </Select>
+          <TextField
+            label="Month (YYYY-MM)"
+            size="small"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            disabled={!!(start || end)}
+            sx={{ minWidth: 180 }}
+          />
+          <TextField
+            label="Start"
+            type="date"
+            size="small"
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            disabled={!!month}
+          />
+          <TextField
+            label="End"
+            type="date"
+            size="small"
+            value={end}
+            onChange={(e) => setEnd(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            disabled={!!month}
+          />
+          <Button
+            variant="contained"
+            onClick={() => {
+              if (start && end) {
+                refetchSummaryRange();
+                refetchSeriesRange();
+              } else {
+                refetchSummary();
+                refetchSeries();
+              }
+            }}
+            disabled={!storeId || rangeInvalid}
+            sx={{ borderRadius: 999 }}
+          >
+            Refresh
+          </Button>
+        </Stack>
+      </ListingHero>
       {rangeInvalid && (
         <Alert severity="warning">Please select both Start and End dates, and ensure Start is before or equal to End.</Alert>
       )}
