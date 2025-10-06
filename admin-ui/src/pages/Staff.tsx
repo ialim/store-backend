@@ -5,12 +5,13 @@ import {
   useUsersQuery,
   RoleName,
 } from '../generated/graphql';
-import { Alert, Card, CardContent, Grid, MenuItem, Stack, TextField, Typography, Button } from '@mui/material';
+import { Alert, Card, CardContent, Grid, MenuItem, Stack, TextField, Typography, Button, Box } from '@mui/material';
 import { UserSelect, StoreSelect } from '../shared/IdSelects';
 import React from 'react';
 import TableList from '../shared/TableList';
 import { notify } from '../shared/notify';
 import { useNavigate } from 'react-router-dom';
+import { ListingHero } from '../shared/ListingLayout';
 
 
 export default function Staff() {
@@ -40,6 +41,22 @@ export default function Staff() {
       ),
     [usersData?.listUsers],
   );
+  const [search, setSearch] = React.useState('');
+  const filteredStaff = React.useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return staffUsers;
+    return staffUsers.filter((u: any) => {
+      const email = (u.email || '').toLowerCase();
+      const roleName = (u.role?.name || '').toLowerCase();
+      const verified = u.isEmailVerified ? 'verified' : 'unverified';
+      return (
+        email.includes(term) ||
+        roleName.includes(term) ||
+        verified.includes(term) ||
+        (u.id || '').toLowerCase().includes(term)
+      );
+    });
+  }, [staffUsers, search]);
 
   const submitCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +98,25 @@ export default function Staff() {
 
   return (
     <Stack spacing={3}>
-      <Typography variant="h5">Staff</Typography>
+      <Box>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Staff
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Create internal accounts, assign managers, and track biller access.
+        </Typography>
+      </Box>
+
+      <ListingHero
+        search={{ value: search, onChange: setSearch, placeholder: 'Search staff by email, role, or ID' }}
+        action={(
+          <Button size="small" variant="outlined" onClick={() => void refetchUsers()} sx={{ borderRadius: 999 }}>
+            Refresh
+          </Button>
+        )}
+        density="compact"
+      />
+
       <Grid container spacing={2}>
         <Grid item xs={12} md={4}>
           <Card component="form" onSubmit={submitCreate}>
@@ -188,18 +223,22 @@ export default function Staff() {
                   ] as any,
                 [],
               )}
-              rows={staffUsers}
+              rows={filteredStaff}
               loading={loadingUsers}
               emptyMessage="No staff accounts"
               getRowKey={(u: any) => u.id}
               defaultSortKey="email"
               showFilters
-              globalSearch
-              globalSearchPlaceholder="Search staff"
-              globalSearchKeys={['email', 'role', 'id']}
+              globalSearch={false}
               enableUrlState
               urlKey="staff_list"
               onRowClick={(u: any) => navigate(`/staff/${u.id}`)}
+              actions={{
+                view: {
+                  onClick: (row: any) => navigate(`/staff/${row.id}`),
+                  label: 'View staff detail',
+                },
+              }}
             />
           </Stack>
         </CardContent>

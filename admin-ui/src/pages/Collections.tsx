@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
 import TableList from '../shared/TableList';
+import { ListingHero } from '../shared/ListingLayout';
 import { useCollectionsQuery, useCreateCollectionMutation, useUpdateCollectionMutation, useDeleteCollectionMutation, useListFacetsQuery, useCollectionMembersCountLazyQuery, useCollectionVariantsLazyQuery, useCollectionProductsLazyQuery } from '../generated/graphql';
 
 type FacetFilter = { facetId: string; value: string };
@@ -93,11 +94,23 @@ export default function Collections() {
   };
 
   return (
-    <Stack spacing={2}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <Typography variant="h5">Collections</Typography>
-        <Button size="small" variant="outlined" onClick={startCreate}>New Collection</Button>
-      </Stack>
+    <Stack spacing={3}>
+      <Box>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Collections
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Curate product and variant groups for campaigns and reporting.
+        </Typography>
+      </Box>
+      <ListingHero
+        action={(
+          <Button size="small" variant="outlined" onClick={startCreate} sx={{ borderRadius: 999 }}>
+            New Collection
+          </Button>
+        )}
+        density="compact"
+      />
       {error && <Alert severity="error" onClick={() => refetch()} sx={{ cursor: 'pointer' }}>{error.message} (click to retry)</Alert>}
       <Card><CardContent>
         <TableList
@@ -106,13 +119,6 @@ export default function Collections() {
             { key: 'code', label: 'Code', sort: true, filter: true },
             { key: 'target', label: 'Target', sort: true },
             { key: 'filters', label: 'Filters', render: (c: any) => renderFilters(c.filters, facets) },
-            { key: 'actions', label: 'Actions', render: (c: any) => (
-              <Stack direction="row" spacing={1}>
-                <Button size="small" onClick={() => startEdit(c)}>Edit</Button>
-                <Button size="small" color="error" onClick={async () => { if (!window.confirm('Delete this collection?')) return; await deleteCollection({ variables: { id: c.id } }); await refetch(); }}>Delete</Button>
-                <Button size="small" variant="outlined" onClick={() => refreshPreview(c.id, c.target)}>Preview</Button>
-              </Stack>
-            )},
           ] as any}
           rows={list}
           loading={loading}
@@ -122,6 +128,29 @@ export default function Collections() {
           showFilters
           enableUrlState
           urlKey="collections"
+          actions={{
+            label: 'Actions',
+            view: {
+              onClick: async (row: any) => {
+                await refreshPreview(row.id, row.target);
+              },
+              label: 'Preview members',
+            },
+            edit: {
+              onClick: (row: any) => startEdit(row),
+              permission: 'MANAGE_PRODUCTS',
+              label: 'Edit collection',
+            },
+            delete: {
+              onClick: async (row: any) => {
+                await deleteCollection({ variables: { id: row.id } });
+                await refetch();
+              },
+              permission: 'MANAGE_PRODUCTS',
+              label: 'Delete collection',
+              confirmMessage: (row: any) => `Delete collection "${row.name || row.code}"?`,
+            },
+          }}
         />
       </CardContent></Card>
 
