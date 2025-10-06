@@ -1,8 +1,9 @@
 import { useAssignStoreManagerMutation, useBulkAssignStoreManagerMutation, useListManagersQuery, useStoresQuery, useStoresWithInvalidManagersLazyQuery } from '../generated/graphql';
-import { Alert, Button, Stack, TextField, Typography, Select, MenuItem } from '@mui/material';
+import { Alert, Button, Stack, TextField, Typography, Select, MenuItem, Box } from '@mui/material';
 import React, { useMemo } from 'react';
 import { useApolloClient } from '@apollo/client';
 import TableList from '../shared/TableList';
+import { ListingHero } from '../shared/ListingLayout';
 
 
 export default function Stores() {
@@ -31,14 +32,42 @@ export default function Stores() {
   const managers = mgrsData?.listManagers ?? [];
   // Fallback for React-router-only environment: implement useLazyQuery manually via useApolloClient if needed
   return (
-    <Stack spacing={2}>
-      <Typography variant="h5">Stores</Typography>
+    <Stack spacing={3}>
+      <Box>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Stores
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Manage store locations, manager assignments, and diagnostics.
+        </Typography>
+      </Box>
+
+      <ListingHero
+        search={{ value: query, onChange: setQuery, placeholder: 'Search store name or location' }}
+        trailing={(
+          <Stack direction="row" spacing={1} alignItems="center">
+            <TextField
+              label="Take"
+              type="number"
+              size="small"
+              value={take}
+              onChange={(e) => setTake(Number(e.target.value) || 20)}
+              sx={{ width: 120 }}
+            />
+            <Button variant="outlined" size="small" onClick={() => runDiag?.()} sx={{ borderRadius: 999 }}>
+              Check Manager Links
+            </Button>
+          </Stack>
+        )}
+        action={(
+          <Button variant="outlined" size="small" onClick={() => refetch()} sx={{ borderRadius: 999 }}>
+            Refresh
+          </Button>
+        )}
+        density="compact"
+      />
+
       {error && <Alert severity="error" onClick={() => refetch()} sx={{ cursor: 'pointer' }}>{error.message} (click to retry)</Alert>}
-      <Stack direction="row" spacing={2}>
-        <TextField label="Take" type="number" size="small" value={take} onChange={(e) => setTake(Number(e.target.value) || 20)} sx={{ width: 120 }} />
-        <TextField label="Search (name/location)" size="small" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <Button variant="outlined" onClick={() => runDiag?.()}>Check Manager Links</Button>
-      </Stack>
       {errorDiag && <Alert severity="error">{String(errorDiag.message || errorDiag)}</Alert>}
       {loadingDiag && <Alert severity="info">Checking manager links…</Alert>}
       {!!(diag?.storesWithInvalidManagers?.length) && (
@@ -82,17 +111,25 @@ export default function Stores() {
           />
         </>
       )}
-      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-        <Select size="small" value={managerFilter} onChange={(e) => setManagerFilter(e.target.value)} displayEmpty sx={{ minWidth: 260 }}>
-          <MenuItem value=""><em>Filter by manager…</em></MenuItem>
-          {managers.map((m: any) => (
-            <MenuItem key={m.id} value={m.id}>{m.customerProfile?.fullName ? `${m.customerProfile.fullName} (${m.email})` : m.email}</MenuItem>
-          ))}
-        </Select>
-        {managerFilter && (
-          <Button size="small" onClick={() => setManagerFilter('')}>Clear</Button>
-        )}
-      </Stack>
+      <ListingHero density="compact">
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
+          <Select size="small" value={managerFilter} onChange={(e) => setManagerFilter(e.target.value)} displayEmpty sx={{ minWidth: 260, borderRadius: 999 }}>
+            <MenuItem value="">
+              <em>Filter by manager…</em>
+            </MenuItem>
+            {managers.map((m: any) => (
+              <MenuItem key={m.id} value={m.id}>
+                {m.customerProfile?.fullName ? `${m.customerProfile.fullName} (${m.email})` : m.email}
+              </MenuItem>
+            ))}
+          </Select>
+          {managerFilter && (
+            <Button size="small" onClick={() => setManagerFilter('')}>
+              Clear
+            </Button>
+          )}
+        </Stack>
+      </ListingHero>
       <TableList
         columns={useMemo(() => ([
           { key: 'name', label: 'Name', sort: true, filter: true },
@@ -114,7 +151,7 @@ export default function Stores() {
                 }
               }}
               displayEmpty
-              sx={{ minWidth: 220 }}
+              fullWidth
             >
               <MenuItem value=""><em>Select manager…</em></MenuItem>
               {managers.map((m: any) => (
@@ -129,9 +166,7 @@ export default function Stores() {
         getRowKey={(s: any) => s.id}
         defaultSortKey="name"
         showFilters
-        globalSearch
-        globalSearchPlaceholder="Search stores"
-        globalSearchKeys={['name','location','manager']}
+        globalSearch={false}
         enableUrlState
         urlKey="stores"
       />

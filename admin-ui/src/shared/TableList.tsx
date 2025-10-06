@@ -404,47 +404,33 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
   const baseBorderColor = React.useMemo(() => alpha(theme.palette.success.main, 0.08), [theme.palette.success.main]);
 
   const rowBaseSx = React.useMemo(() => ({
-    position: 'relative',
     cursor: clickable ? 'pointer' : 'default',
-    backgroundColor: 'transparent',
-    '&::before': {
-      content: '""',
-      position: 'absolute',
-      inset: selectable ? '6px 8px' : '6px 4px',
-      borderRadius: rowRadius,
-      border: `1px solid ${baseBorderColor}`,
-      backgroundColor: '#ffffff',
-      boxShadow: '0 22px 45px rgba(13, 74, 49, 0.08)',
-      transition: 'transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, border-color 160ms ease',
-      transform: 'translateZ(0)',
-      zIndex: -1,
-    },
-    '&:hover::before': {
-      transform: clickable ? 'translateY(-2px)' : 'none',
-      boxShadow: clickable
-        ? '0 32px 60px rgba(13, 74, 49, 0.16)'
-        : '0 22px 45px rgba(13, 74, 49, 0.08)',
-    },
     '& td': {
-      borderBottom: 'none',
-      backgroundColor: 'transparent',
-      py: 1.8,
-      px: selectable ? theme.spacing(2) : theme.spacing(2.5),
+      borderBottom: '1px solid',
+      borderBottomColor: baseBorderColor,
+      backgroundColor: '#fff',
+      py: 1.6,
+      px: theme.spacing(2.5),
       fontSize: 14,
       fontWeight: 500,
       color: theme.palette.text.primary,
     },
+    '&:hover td': {
+      backgroundColor: alpha(theme.palette.success.main, clickable ? 0.06 : 0.03),
+    },
     '& td:first-of-type': {
       borderTopLeftRadius: rowRadius,
       borderBottomLeftRadius: rowRadius,
-      paddingLeft: selectable ? theme.spacing(2) : theme.spacing(3),
     },
     '& td:last-of-type': {
       borderTopRightRadius: rowRadius,
       borderBottomRightRadius: rowRadius,
-      paddingRight: theme.spacing(3),
     },
-  }), [baseBorderColor, clickable, selectable, theme]);
+    '& td.MuiTableCell-paddingCheckbox': {
+      paddingLeft: theme.spacing(1.5),
+      paddingRight: theme.spacing(1.5),
+    },
+  }), [baseBorderColor, clickable, theme]);
 
   const rowsPerPageChoices = React.useMemo(() => {
     if (!paginated) return rowsPerPageOptions;
@@ -500,6 +486,9 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
       component={Paper}
       elevation={0}
       sx={{
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
         borderRadius: 4,
         p: { xs: 2, md: 3 },
         boxShadow: '0 32px 60px rgba(16, 94, 62, 0.10)',
@@ -660,7 +649,7 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
           borderCollapse: 'collapse',
           width: '100%',
           tableLayout: 'auto',
-          minWidth: 0,
+          minWidth: '100%',
         }}
       >
         <TableHead
@@ -675,6 +664,12 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
                 letterSpacing: 0.8,
                 fontSize: 13,
                 py: 1.6,
+                paddingLeft: theme.spacing(2.5),
+                paddingRight: theme.spacing(2.5),
+              },
+              '& .MuiTableCell-paddingCheckbox': {
+                paddingLeft: theme.spacing(1.5),
+                paddingRight: theme.spacing(1.5),
               },
               '& .MuiTableCell-root:first-of-type': {
                 borderTopLeftRadius: 18,
@@ -745,6 +740,8 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
                     pt: 1.25,
                     pb: 1.5,
                     borderTop: `1px solid ${alpha(theme.palette.common.white, 0.25)}`,
+                    pl: theme.spacing(2.5),
+                    pr: theme.spacing(2.5),
                     '& .MuiInputBase-root': {
                       color: '#fff',
                       '& .MuiOutlinedInput-notchedOutline': {
@@ -850,6 +847,7 @@ export default function TableList<Row = any>({ columns: initialColumns, rows, lo
                 <TableCell
                   key={c.key}
                   align={c.align}
+                  sx={{ width: c.width }}
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest('button, input, select, a, textarea')) e.stopPropagation();
                   }}
