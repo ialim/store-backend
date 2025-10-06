@@ -353,4 +353,49 @@ export class OnboardingService {
       include: { user: true, biller: true, requestedBiller: true },
     });
   }
+
+  async updateMyProfile(userId: string, input: UpdateCustomerProfileInput) {
+    const profileData: Prisma.CustomerProfileUncheckedCreateInput = {
+      fullName: input.fullName,
+      phone: input.phone || null,
+      email: input.email || null,
+      gender: input.gender || null,
+      birthday: input.birthday || null,
+      preferredStoreId: input.preferredStoreId || null,
+      userId,
+    };
+
+    if (input.email) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { email: input.email },
+      });
+    }
+
+    const existing = await this.prisma.customerProfile.findUnique({
+      where: { userId },
+    });
+
+    if (existing) {
+      const updated = await this.prisma.customerProfile.update({
+        where: { userId },
+        data: {
+          fullName: profileData.fullName,
+          phone: profileData.phone,
+          email: profileData.email,
+          gender: profileData.gender,
+          birthday: profileData.birthday,
+          preferredStoreId: profileData.preferredStoreId,
+        },
+        include: { preferredStore: true },
+      });
+      return updated;
+    }
+
+    const created = await this.prisma.customerProfile.create({
+      data: profileData,
+      include: { preferredStore: true },
+    });
+    return created;
+  }
 }

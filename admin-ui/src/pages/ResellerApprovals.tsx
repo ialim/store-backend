@@ -1,33 +1,56 @@
-import { useActivateResellerMutation, useApproveResellerMutation, useListBillersQuery, usePendingResellerApplicationsQuery, useRejectResellerMutation } from '../generated/graphql';
+import {
+  useActivateResellerMutation,
+  useApproveResellerMutation,
+  useApplyResellerMutation,
+  useListBillersQuery,
+  usePendingResellerApplicationsQuery,
+  useRejectResellerMutation,
+  UserTier,
+} from '../generated/graphql';
 import {
   Alert,
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   MenuItem,
   Select,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { notify } from '../shared/notify';
 import TableList from '../shared/TableList';
+import { ListingHero } from '../shared/ListingLayout';
 
 export default function ResellerApprovals() {
-  const [q, setQ] = useState('');
+  const [search, setSearch] = useState('');
+  const [appliedQ, setAppliedQ] = useState('');
   const { data, loading, error, refetch } = usePendingResellerApplicationsQuery({
-    variables: { take: 50, q },
+    variables: { take: 50, q: appliedQ },
     fetchPolicy: 'cache-and-network' as any,
   });
   const { data: billersData } = useListBillersQuery({ fetchPolicy: 'cache-first' as any });
   const [approve] = useApproveResellerMutation();
   const [activate] = useActivateResellerMutation();
   const [reject] = useRejectResellerMutation();
+  const [applyReseller, { loading: creating }] = useApplyResellerMutation();
 
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rowError, setRowError] = useState<Record<string, string | null>>({});
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    email: '',
+    password: '',
+    tier: UserTier.Bronze as UserTier,
+    creditLimit: '0',
+    requestedBillerId: '',
+  });
 
   const list = data?.pendingResellerApplications ?? [];
   const billers = billersData?.listBillers ?? [];
@@ -71,7 +94,7 @@ export default function ResellerApprovals() {
         },
       });
       notify(`Approved ${row?.user?.email}`, 'success');
-      await refetch();
+      await refetch({ take: 50, q: appliedQ });
     } catch (e: any) {
       const msg = e?.message || 'Approval failed';
       setRowError((er) => ({ ...er, [row.userId]: msg }));
@@ -98,7 +121,7 @@ export default function ResellerApprovals() {
         variables: { resellerId: row.userId, billerId: billerId || null },
       });
       notify(`Activated ${row?.user?.email}`, 'success');
-      await refetch();
+      await refetch({ take: 50, q: appliedQ });
     } catch (e: any) {
       const msg = e?.message || 'Activation failed';
       setRowError((er) => ({ ...er, [row.userId]: msg }));
@@ -116,7 +139,7 @@ export default function ResellerApprovals() {
     try {
       await reject({ variables: { resellerId: row.userId, reason } });
       notify(`Rejected ${row?.user?.email}`, 'success');
-      await refetch();
+      await refetch({ take: 50, q: appliedQ });
     } catch (e: any) {
       const msg = e?.message || 'Rejection failed';
       setRowError((er) => ({ ...er, [row.userId]: msg }));
@@ -247,24 +270,62 @@ export default function ResellerApprovals() {
     [billers, approvingId, activatingId, rejectingId, edits],
   );
 
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setAppliedQ(search.trim());
+    }, 250);
+    return () => window.clearTimeout(handle);
+  }, [search]);
+
   return (
-    <Stack spacing={2}>
-      <Typography variant="h5">Reseller Approvals</Typography>
-      {error && <Alert severity="error">{error.message}</Alert>}
+    <Stack spacing={3}>
       <Box>
-        <TextField
-          size="small"
-          label="Search email"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') refetch({ q });
-          }}
-        />
-        <Button sx={{ ml: 1 }} onClick={() => refetch({ q })}>
-          Search
-        </Button>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Reseller Approvals
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Manage pending reseller applications, approvals, and activations.
+        </Typography>
       </Box>
+
+      <ListingHero
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: 'Search by email or biller',
+          onSubmit: () => setAppliedQ(search.trim()),
+        }}
+        action={(
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => refetch({ take: 50, q: appliedQ })}
+              sx={{ borderRadius: 999 }}
+            >
+              Refresh
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => {
+                setCreateForm({
+                  email: '',
+                  password: '',
+                  tier: UserTier.Bronze,
+                  creditLimit: '0',
+                  requestedBillerId: '',
+                });
+                setCreateOpen(true);
+              }}
+            >
+              New Reseller
+            </Button>
+          </Stack>
+        )}
+        density="compact"
+      />
+      {error && <Alert severity="error">{error.message}</Alert>}
       <TableList
         columns={columns as any}
         rows={list}
@@ -274,9 +335,7 @@ export default function ResellerApprovals() {
         defaultSortKey="email"
         rowsPerPageOptions={[10, 25, 50, 100]}
         showFilters
-        globalSearch
-        globalSearchPlaceholder="Search email/biller"
-        globalSearchKeys={['email', 'requestedBiller']}
+        globalSearch={false}
         enableUrlState
         urlKey="approvals"
       />
@@ -284,6 +343,91 @@ export default function ResellerApprovals() {
         <Alert severity="error">
           Some actions failed. Check rows for details.
         </Alert>
+      )}
+      {createOpen && (
+        <Dialog open onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Create Reseller</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <TextField
+                label="Email"
+                type="email"
+                required
+                value={createForm.email}
+                onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
+              />
+              <TextField
+                label="Temporary Password"
+                type="password"
+                required
+                value={createForm.password}
+                onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+              />
+              <TextField
+                label="Credit Limit"
+                type="number"
+                required
+                value={createForm.creditLimit}
+                onChange={(e) => setCreateForm((f) => ({ ...f, creditLimit: e.target.value }))}
+              />
+              <TextField
+                label="Tier"
+                select
+                value={createForm.tier}
+                onChange={(e) => setCreateForm((f) => ({ ...f, tier: e.target.value as UserTier }))}
+              >
+                {[UserTier.Bronze, UserTier.Silver, UserTier.Gold, UserTier.Platinum].map((tier) => (
+                  <MenuItem key={tier} value={tier}>
+                    {tier}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Select
+                value={createForm.requestedBillerId}
+                onChange={(e) => setCreateForm((f) => ({ ...f, requestedBillerId: e.target.value as string }))}
+                displayEmpty
+              >
+                <MenuItem value="">
+                  <em>No requested biller</em>
+                </MenuItem>
+                {billers.map((b) => (
+                  <MenuItem key={b.id} value={b.id}>
+                    {b.email}
+                  </MenuItem>
+                ))}
+              </Select>
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              disabled={creating || !createForm.email || !createForm.password}
+              onClick={async () => {
+                try {
+                  await applyReseller({
+                    variables: {
+                      input: {
+                        email: createForm.email.trim(),
+                        password: createForm.password,
+                        creditLimit: Number(createForm.creditLimit) || 0,
+                        tier: createForm.tier,
+                        requestedBillerId: createForm.requestedBillerId || undefined,
+                      },
+                    },
+                  });
+                  notify('Reseller application created', 'success');
+                  setCreateOpen(false);
+                  await refetch({ take: 50, q: appliedQ });
+                } catch (e: any) {
+                  notify(e?.message || 'Failed to create reseller', 'error');
+                }
+              }}
+            >
+              {creating ? 'Creating…' : 'Create'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       )}
     </Stack>
   );

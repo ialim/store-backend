@@ -5666,6 +5666,7 @@ type Mutation {
   retryOutboxFailed(limit: Int, type: String): Int!
   signupCustomer(input: CreateUserInput!): AuthResponse!
   completeCustomerProfile(input: UpdateCustomerProfileInput!): CustomerProfile!
+  updateMyProfile(input: UpdateCustomerProfileInput!): CustomerProfile!
   applyReseller(input: ApplyResellerInput!): ResellerProfile!
   approveReseller(resellerId: String!, input: ApproveResellerInput!): ResellerProfile!
   activateReseller(resellerId: String!, billerId: String): ResellerProfile!

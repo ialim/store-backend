@@ -23,6 +23,11 @@ export const Me = gql`
         name
         permissions { id name module action }
       }
+      customerProfile {
+        fullName
+        email
+        phone
+      }
     }
   }
 `;
@@ -30,5 +35,20 @@ export const Me = gql`
 export const ChangePassword = gql`
   mutation ChangePassword($input: ChangePasswordInput!) {
     changePassword(input: $input)
+  }
+`;
+
+export const UpdateMyProfile = gql`
+  mutation UpdateMyProfile($input: UpdateCustomerProfileInput!) {
+    updateMyProfile(input: $input) {
+      userId
+      fullName
+      email
+      phone
+      preferredStore {
+        id
+        name
+      }
+    }
   }
 `;

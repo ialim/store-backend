@@ -8,6 +8,12 @@ export const Stock = gql`
       storeId
       quantity
       reserved
+      productVariant {
+        id
+        name
+        barcode
+        product { id name }
+      }
       store { id name }
     }
   }

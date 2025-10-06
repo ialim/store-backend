@@ -1,16 +1,34 @@
-import { useAssignFacetToVariantMutation, useListFacetsQuery, useProductVariantsCountQuery, useVariantFacetsQuery, useRemoveFacetFromVariantMutation, useBulkAssignFacetToVariantsMutation, useBulkRemoveFacetFromVariantsMutation } from '../generated/graphql';
+import {
+  useListFacetsQuery,
+  useProductVariantsCountQuery,
+  useVariantFacetsQuery,
+  useBulkAssignFacetToVariantsMutation,
+  useBulkRemoveFacetFromVariantsMutation,
+} from '../generated/graphql';
 import { useVariantsQuery } from '../generated/graphql';
-import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
+import {
+  Alert,
+  Avatar,
+  Button,
+  Chip,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Typography,
+  Box,
+} from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/AuthProvider';
 import React from 'react';
 import TableList from '../shared/TableList';
 import { notify } from '../shared/notify';
-
-
 export default function Variants() {
   const auth = useAuth();
-  const isManager = auth.hasRole('SUPERADMIN','ADMIN','MANAGER') || auth.hasPermission('MANAGE_PRODUCTS');
+  const isManager =
+    auth.hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || auth.hasPermission('MANAGE_PRODUCTS');
   const navigate = useNavigate();
   const [take, setTake] = React.useState(50);
   const [page, setPage] = React.useState(1);
@@ -24,20 +42,19 @@ export default function Variants() {
   const [gender, setGender] = React.useState('');
   const [brand, setBrand] = React.useState('');
   const where = React.useMemo(() => {
-    const sq = (q || '').trim();
-    const w: any = {};
+    const sq = q.trim();
+    const filters: any = {};
     if (sq.length >= 2) {
-      w.OR = [
+      filters.OR = [
         { name: { contains: sq, mode: 'insensitive' } },
         { barcode: { contains: sq, mode: 'insensitive' } },
         { product: { is: { name: { contains: sq, mode: 'insensitive' } } } },
       ];
     }
     if (filterFacetId && filterFacetValue) {
-      // Filter by facet code/value
       const facet = allFacets.find((f) => f.id === filterFacetId);
       if (facet) {
-        w.AND = (w.AND || []).concat({
+        filters.AND = (filters.AND || []).concat({
           facets: {
             some: {
               facet: { is: { code: { equals: facet.code } } },
@@ -48,16 +65,36 @@ export default function Variants() {
       }
     }
     if (gender) {
-      w.AND = (w.AND || []).concat({ facets: { some: { facet: { is: { code: { equals: 'gender' } } }, value: { equals: gender } } } });
+      filters.AND = (filters.AND || []).concat({
+        facets: {
+          some: {
+            facet: { is: { code: { equals: 'gender' } } },
+            value: { equals: gender },
+          },
+        },
+      });
     }
     if (brand) {
-      w.AND = (w.AND || []).concat({ facets: { some: { facet: { is: { code: { equals: 'brand' } } }, value: { equals: brand } } } });
+      filters.AND = (filters.AND || []).concat({
+        facets: {
+          some: {
+            facet: { is: { code: { equals: 'brand' } } },
+            value: { equals: brand },
+          },
+        },
+      });
     }
-    return Object.keys(w).length ? w : undefined;
+    return Object.keys(filters).length ? filters : undefined;
   }, [q, filterFacetId, filterFacetValue, allFacets, gender, brand]);
   const skip = Math.max(0, (page - 1) * take);
-  const { data, loading, error, refetch } = useVariantsQuery({ variables: { take, skip, where }, fetchPolicy: 'cache-and-network' as any });
-  const { data: countData, refetch: refetchVariantCount } = useProductVariantsCountQuery({ variables: { where }, fetchPolicy: 'cache-and-network' as any });
+  const { data, loading, error, refetch } = useVariantsQuery({
+    variables: { take, skip, where },
+    fetchPolicy: 'cache-and-network' as any,
+  });
+  const { data: countData, refetch: refetchVariantCount } = useProductVariantsCountQuery({
+    variables: { where },
+    fetchPolicy: 'cache-and-network' as any,
+  });
   const list = data?.listProductVariants ?? [];
   const total = countData?.productVariantsCount ?? 0;
   const canPrev = page > 1;
@@ -84,7 +121,7 @@ export default function Variants() {
     }, 300);
     return () => clearTimeout(h);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, filterFacetId, filterFacetValue, gender, brand, take]);
+  }, [q, filterFacetId, filterFacetValue, gender, brand]);
 
   // Selection for bulk operations via TableList API
   const [selectedIds, setSelectedIds] = React.useState<Array<string | number>>([]);
@@ -95,58 +132,279 @@ export default function Variants() {
   const [bulkValue, setBulkValue] = React.useState('');
   const [bulkAssign, { loading: bulkAssignLoading }] = useBulkAssignFacetToVariantsMutation();
   const [bulkRemove, { loading: bulkRemoveLoading }] = useBulkRemoveFacetFromVariantsMutation();
+
+  const currencyFormatter = React.useMemo(() => {
+    try {
+      return new Intl.NumberFormat('en-NG', {
+        style: 'currency',
+        currency: 'NGN',
+        maximumFractionDigits: 2,
+        minimumFractionDigits: 0,
+      });
+    } catch (err) {
+      return null;
+    }
+  }, []);
+
+  const formatCurrency = React.useCallback(
+    (value?: number | null) => {
+      if (value == null) return '—';
+      if (currencyFormatter) return currencyFormatter.format(value);
+      return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    },
+    [currencyFormatter],
+  );
+
+  const dateFormatter = React.useMemo(
+    () =>
+      new Intl.DateTimeFormat(undefined, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      }),
+    [],
+  );
+
+  const getAvailableStock = React.useCallback((variant: any) => {
+    if (!Array.isArray(variant?.stockItems) || !variant.stockItems.length) return 0;
+    return variant.stockItems.reduce(
+      (acc: number, item: any) => acc + (item?.quantity ?? 0) - (item?.reserved ?? 0),
+      0,
+    );
+  }, []);
+
+  const filtersRow = (
+    <Stack
+      direction={{ xs: 'column', sm: 'row' }}
+      spacing={1.5}
+      alignItems={{ sm: 'center' }}
+      sx={{ flexWrap: 'wrap' }}
+    >
+      <Select
+        size="small"
+        value={gender}
+        onChange={(e) => setGender(e.target.value)}
+        displayEmpty
+        sx={{ minWidth: 160, borderRadius: 999 }}
+      >
+        <MenuItem value="">
+          <em>Gender</em>
+        </MenuItem>
+        {(allFacets.find((f) => f.code.toLowerCase() === 'gender')?.values || ['Male', 'Female', 'Unisex']).map((v) => (
+          <MenuItem key={v} value={v}>
+            {v}
+          </MenuItem>
+        ))}
+      </Select>
+      <Select
+        size="small"
+        value={brand}
+        onChange={(e) => setBrand(e.target.value)}
+        displayEmpty
+        sx={{ minWidth: 160, borderRadius: 999 }}
+      >
+        <MenuItem value="">
+          <em>Brand</em>
+        </MenuItem>
+        {(allFacets.find((f) => f.code.toLowerCase() === 'brand')?.values || []).map((v) => (
+          <MenuItem key={v} value={v}>
+            {v}
+          </MenuItem>
+        ))}
+      </Select>
+      <Select
+        size="small"
+        value={filterFacetId}
+        onChange={(e) => {
+          setFilterFacetId(e.target.value);
+          setFilterFacetValue('');
+        }}
+        displayEmpty
+        sx={{ minWidth: 200, borderRadius: 999 }}
+      >
+        <MenuItem value="">
+          <em>Facet filter…</em>
+        </MenuItem>
+        {allFacets.map((f) => (
+          <MenuItem key={f.id} value={f.id}>
+            {f.name} ({f.code})
+          </MenuItem>
+        ))}
+      </Select>
+      {(() => {
+        const f = allFacets.find((x) => x.id === filterFacetId);
+        if (f && Array.isArray(f.values) && f.values.length) {
+          return (
+            <Select
+              size="small"
+              value={filterFacetValue}
+              onChange={(e) => setFilterFacetValue(e.target.value)}
+              displayEmpty
+              sx={{ minWidth: 180, borderRadius: 999 }}
+            >
+              <MenuItem value="">
+                <em>Value…</em>
+              </MenuItem>
+              {f.values.map((v) => (
+                <MenuItem key={v} value={v}>
+                  {v}
+                </MenuItem>
+              ))}
+            </Select>
+          );
+        }
+        if (filterFacetId) {
+          return (
+            <TextField
+              size="small"
+              label="Value"
+              value={filterFacetValue}
+              onChange={(e) => setFilterFacetValue(e.target.value)}
+            />
+          );
+        }
+        return null;
+      })()}
+      <Button
+        size="small"
+        variant="text"
+        onClick={async () => {
+          setQ('');
+          setFilterFacetId('');
+          setFilterFacetValue('');
+          setGender('');
+          setBrand('');
+          setPage(1);
+          await refetch({ take, skip: 0, where: undefined });
+          await refetchVariantCount({ where: undefined });
+        }}
+      >
+        Clear
+      </Button>
+    </Stack>
+  );
+
+  const paginationRow = (
+    <Stack
+      direction={{ xs: 'column', md: 'row' }}
+      spacing={1}
+      alignItems={{ xs: 'flex-start', md: 'center' }}
+      justifyContent="space-between"
+      sx={{ rowGap: 1.5 }}
+    >
+      <Typography variant="body2" color="text.secondary">
+        {total ? `${rangeStart}–${rangeEnd} of ${total}` : 'No variants found'}
+      </Typography>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Button
+          size="small"
+          disabled={!canPrev}
+          onClick={async () => {
+            if (!canPrev) return;
+            const nextPage = Math.max(1, page - 1);
+            setPage(nextPage);
+            const newSkip = (nextPage - 1) * take;
+            await refetch({ take, skip: newSkip, where });
+          }}
+        >
+          Prev
+        </Button>
+        <Typography variant="body2">Page {page}</Typography>
+        <Button
+          size="small"
+          disabled={!canNext}
+          onClick={async () => {
+            if (!canNext) return;
+            const nextPage = page + 1;
+            setPage(nextPage);
+            const newSkip = (nextPage - 1) * take;
+            await refetch({ take, skip: newSkip, where });
+          }}
+        >
+          Next
+        </Button>
+      </Stack>
+    </Stack>
+  );
+  const toolbarSx = {
+    px: { xs: 1.25, sm: 1.5, md: 2 },
+    py: { xs: 1, sm: 1.25 },
+    borderRadius: 2,
+    border: '1px solid',
+    borderColor: 'divider',
+    bgcolor: 'background.paper',
+    boxShadow: 1,
+  } as const;
+
+  const pageSizeOptions = React.useMemo(() => {
+    const presets = [10, 25, 50, 100];
+    if (presets.includes(take)) return presets;
+    return [...presets, take].sort((a, b) => a - b);
+  }, [take]);
+
+  const handleTakeChange = React.useCallback(
+    async (next: number) => {
+      const safeValue = Math.max(1, Number.isFinite(next) ? next : 50);
+      setPage(1);
+      setTake(safeValue);
+      try {
+        await refetch({ take: safeValue, skip: 0, where });
+        await refetchVariantCount({ where });
+      } catch (err) {
+        console.error('Failed to update page size', err);
+      }
+    },
+    [refetch, refetchVariantCount, where],
+  );
+
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Variants</Typography>
       {error && <Alert severity="error" onClick={() => refetch()} sx={{ cursor: 'pointer' }}>{error.message} (click to retry)</Alert>}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-        <TextField label="Page size" type="number" size="small" value={take} onChange={(e) => { const v = Math.max(1, Number(e.target.value) || 50); setPage(1); setTake(v); refetch(); refetchVariantCount(); }} sx={{ width: 120 }} />
-        <TextField label="Search (name/sku/barcode/product)" size="small" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') refetch(); }} />
-        {(() => {
-          const genderFacet = allFacets.find((f) => f.code.toLowerCase() === 'gender');
-          const brandFacet = allFacets.find((f) => f.code.toLowerCase() === 'brand');
-          return (
-            <>
-              <Select size="small" value={gender} onChange={(e) => setGender(e.target.value)} displayEmpty sx={{ minWidth: 160 }}>
-                <MenuItem value=""><em>Gender</em></MenuItem>
-                {(genderFacet?.values || ['Male','Female','Unisex']).map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
+      <Stack spacing={1.25}>
+        <Box sx={toolbarSx}>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ md: 'center' }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search variants"
+              label="Search (name/sku/barcode/product)"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setPage(1);
+                  void refetch({ take, skip: 0, where });
+                  void refetchVariantCount({ where });
+                }
+              }}
+            />
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: { md: 200 } }}>
+              <Typography variant="body2" color="text.secondary">
+                Show
+              </Typography>
+              <Select
+                size="small"
+                value={take}
+                onChange={(event) => {
+                  void handleTakeChange(Number(event.target.value));
+                }}
+                sx={{ minWidth: 96, borderRadius: 999 }}
+              >
+                {pageSizeOptions.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
               </Select>
-              <Select size="small" value={brand} onChange={(e) => setBrand(e.target.value)} displayEmpty sx={{ minWidth: 160 }}>
-                <MenuItem value=""><em>Brand</em></MenuItem>
-                {(brandFacet?.values || []).map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
-              </Select>
-            </>
-          );
-        })()}
-        <Select size="small" value={filterFacetId} onChange={(e) => { setFilterFacetId(e.target.value); setFilterFacetValue(''); }} displayEmpty sx={{ minWidth: 220 }}>
-          <MenuItem value=""><em>Facet filter…</em></MenuItem>
-          {allFacets.map((f) => (<MenuItem key={f.id} value={f.id}>{f.name} ({f.code})</MenuItem>))}
-        </Select>
-        {filterFacetId && (() => {
-          const f = allFacets.find((x) => x.id === filterFacetId);
-          if (f && Array.isArray(f.values) && f.values.length) {
-            return (
-              <Select size="small" value={filterFacetValue} onChange={(e) => setFilterFacetValue(e.target.value)} displayEmpty sx={{ minWidth: 180 }}>
-                <MenuItem value=""><em>Value…</em></MenuItem>
-                {f.values.map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
-              </Select>
-            );
-          }
-          return (
-            <TextField size="small" label="Value" value={filterFacetValue} onChange={(e) => setFilterFacetValue(e.target.value)} />
-          );
-        })()}
-        <Button variant="text" onClick={async () => {
-          setQ(''); setFilterFacetId(''); setFilterFacetValue(''); setGender(''); setBrand(''); setPage(1);
-          await refetch({ take, skip: 0, where: undefined });
-          await refetchVariantCount({ where: undefined });
-        }}>Clear</Button>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
-          <Button size="small" disabled={!canPrev} onClick={async () => { if (!canPrev) return; const p = Math.max(1, page - 1); setPage(p); await refetch({ take, skip: (p - 1) * take, where }); }}>Prev</Button>
-          <Typography variant="body2">Page {page}</Typography>
-          <Button size="small" disabled={!canNext} onClick={async () => { if (!canNext) return; const p = page + 1; setPage(p); await refetch({ take, skip: (p - 1) * take, where }); }}>Next</Button>
-          <Typography variant="body2" sx={{ ml: 1, minWidth: 110, textAlign: 'right' }}>{total ? `${rangeStart}–${rangeEnd} of ${total}` : '0 of 0'}</Typography>
-        </Stack>
+              <Typography variant="body2" color="text.secondary">
+                per page
+              </Typography>
+            </Stack>
+          </Stack>
+        </Box>
+        <Box sx={toolbarSx}>{filtersRow}</Box>
+        <Box sx={toolbarSx}>{paginationRow}</Box>
       </Stack>
       {selectedIds.length > 0 && (
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
@@ -220,15 +478,217 @@ export default function Variants() {
       )}
       <TableList
         columns={[
-          { key: 'name', label: 'Name', render: (v: any) => v.name || v.product?.name || v.barcode || '—', sort: true, filter: true, accessor: (v: any) => v.name || v.product?.name || v.barcode || '' },
-          { key: 'product', label: 'Product', render: (v: any) => v.product?.name || '—', sort: true, accessor: (v: any) => v.product?.name || '', filter: true },
-          { key: 'tags', label: 'Brand/Gender', render: (v: any) => (<BrandGenderChips variantId={v.id} />) },
-          { key: 'barcode', label: 'Barcode', render: (v: any) => v.barcode || '—', sort: true, filter: true },
-          { key: 'price', label: 'Price', render: (v: any) => v.price ?? '—', sort: true, accessor: (v: any) => v.price || 0 },
-          { key: 'resellerPrice', label: 'Reseller Price', render: (v: any) => v.resellerPrice ?? '—', sort: true, accessor: (v: any) => v.resellerPrice || 0 },
-          { key: 'createdAt', label: 'Created', render: (v: any) => new Date(v.createdAt).toLocaleString(), sort: true, accessor: (v: any) => new Date(v.createdAt || 0) },
-          { key: 'facets', label: 'Facets', render: (v: any) => (<VariantFacetsChips variantId={v.id} />) },
-          ...(isManager ? [{ key: 'actions', label: 'Actions', render: (v: any) => (<VariantFacetsButton variantId={v.id} />) }] as any[] : []),
+          {
+            key: 'sl',
+            label: 'SL',
+            width: 72,
+            align: 'center',
+            render: (_variant: any, idx: number) => (
+              <Box
+                sx={(theme) => ({
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  fontWeight: 700,
+                  bgcolor: alpha(theme.palette.success.main, 0.14),
+                  color: theme.palette.success.dark,
+                })}
+              >
+                {skip + idx + 1}
+              </Box>
+            ),
+          },
+          {
+            key: 'image',
+            label: 'Image',
+            width: 96,
+            align: 'center',
+            render: (variant: any) => {
+              const candidates: Array<any> = [
+                variant.imageUrl,
+                variant.thumbnailUrl,
+                typeof variant.image === 'string' ? variant.image : variant.image?.url,
+                Array.isArray(variant.images) ? variant.images[0]?.url : undefined,
+                Array.isArray(variant.media) ? variant.media[0]?.url : undefined,
+                variant.product?.imageUrl,
+                variant.product?.thumbnailUrl,
+                variant.product && typeof variant.product.image === 'object'
+                  ? (variant.product.image as any)?.url
+                  : typeof variant.product?.image === 'string'
+                    ? variant.product.image
+                    : undefined,
+              ];
+              const imageUrl = candidates.find((src) => typeof src === 'string' && src.length > 0) as string | undefined;
+              return (
+                <Avatar
+                  variant="rounded"
+                  src={imageUrl}
+                  alt={variant.name || variant.product?.name || 'Variant preview placeholder'}
+                  sx={(theme) => ({
+                    width: 48,
+                    height: 48,
+                    borderRadius: 2,
+                    border: `1px solid ${alpha(theme.palette.success.main, 0.18)}`,
+                    bgcolor: imageUrl
+                      ? '#fff'
+                      : alpha(theme.palette.success.main, 0.12),
+                    color: theme.palette.success.dark,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    '& .MuiSvgIcon-root': {
+                      fontSize: 22,
+                    },
+                  })}
+                >
+                  {!imageUrl && <ImageOutlinedIcon />}
+                </Avatar>
+              );
+            },
+          },
+          {
+            key: 'title',
+            label: 'Title',
+            sort: true,
+            filter: true,
+            filterPlaceholder: 'Filter title',
+            accessor: (variant: any) => variant.name || variant.product?.name || '',
+            render: (variant: any) => {
+              const primary = variant.name || '—';
+              const parent =
+                variant.product?.name && variant.product?.name !== variant.name
+                  ? variant.product.name
+                  : '';
+              const initial = typeof primary === 'string' && primary.length ? primary.charAt(0).toUpperCase() : '?';
+              return (
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Avatar
+                    variant="rounded"
+                    sx={(theme) => ({
+                      width: 44,
+                      height: 44,
+                      fontWeight: 700,
+                      bgcolor: alpha(theme.palette.success.main, 0.12),
+                      color: theme.palette.success.dark,
+                      textTransform: 'uppercase',
+                    })}
+                  >
+                    {initial}
+                  </Avatar>
+                  <Stack spacing={0.4} sx={{ minWidth: 0 }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 700,
+                        lineHeight: 1.2,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {primary}
+                    </Typography>
+                    {parent ? (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
+                        {parent}
+                      </Typography>
+                    ) : null}
+                    <Box sx={{ pt: 0.2 }}>
+                      <BrandGenderChips variantId={variant.id} hidePlaceholder />
+                    </Box>
+                  </Stack>
+                </Stack>
+              );
+            },
+          },
+          {
+            key: 'barcode',
+            label: 'Barcode',
+            sort: true,
+            filter: true,
+            accessor: (variant: any) => variant.barcode || '',
+            render: (variant: any) => (
+              <Typography variant="body2" color="text.secondary">
+                {variant.barcode || '—'}
+              </Typography>
+            ),
+          },
+          {
+            key: 'price',
+            label: 'Price',
+            align: 'right',
+            sort: true,
+            filter: true,
+            filterPlaceholder: 'Filter price',
+            accessor: (variant: any) => variant.price || 0,
+            render: (variant: any) => (
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {formatCurrency(variant.price)}
+              </Typography>
+            ),
+          },
+          {
+            key: 'stock',
+            label: 'Stock',
+            align: 'center',
+            sort: true,
+            filter: true,
+            filterPlaceholder: 'Filter stock',
+            accessor: (variant: any) => getAvailableStock(variant),
+            render: (variant: any) => {
+              const available = getAvailableStock(variant);
+              return (
+                <Typography variant="body2" sx={{ fontWeight: 600, color: available > 0 ? 'success.main' : 'error.main' }}>
+                  {available}
+                </Typography>
+              );
+            },
+          },
+          {
+            key: 'status',
+            label: 'Status',
+            align: 'center',
+            sort: true,
+            accessor: (variant: any) => getAvailableStock(variant),
+            render: (variant: any) => {
+              const available = getAvailableStock(variant);
+              const active = available > 0;
+              return (
+                <Chip
+                  size="small"
+                  label={active ? 'Active' : 'Inactive'}
+                  sx={(theme) => ({
+                    fontWeight: 600,
+                    borderRadius: 1.5,
+                    px: 1.5,
+                    bgcolor: active
+                      ? alpha(theme.palette.success.main, 0.16)
+                      : alpha(theme.palette.error.main, 0.16),
+                    color: active ? theme.palette.success.dark : theme.palette.error.dark,
+                  })}
+                />
+              );
+            },
+          },
+          {
+            key: 'createdAt',
+            label: 'Created',
+            align: 'right',
+            sort: true,
+            accessor: (variant: any) => new Date(variant.createdAt || 0),
+            render: (variant: any) => (
+              <Typography variant="body2" color="text.secondary">
+                {variant.createdAt ? dateFormatter.format(new Date(variant.createdAt)) : '—'}
+              </Typography>
+            ),
+          },
         ] as any}
         rows={list}
         loading={loading}
@@ -242,127 +702,35 @@ export default function Variants() {
         selectable
         selectedIds={selectedIds}
         onSelectedIdsChange={(ids) => setSelectedIds(ids)}
+        size="medium"
+        paginated={false}
+        rowAccent={(variant: any) => {
+          const available = getAvailableStock(variant);
+          if (available <= 0) return 'danger';
+          if (available < 5) return 'warning';
+          return 'default';
+        }}
+        actions={{
+          view: {
+            onClick: (variant: any) => navigate(`/variants/${variant.id}`),
+            label: 'View variant detail',
+          },
+        }}
       />
     </Stack>
   );
 }
 
-function VariantFacetsChips({ variantId }: { variantId: string }) {
-  const { data, loading } = useVariantFacetsQuery({ variables: { productVariantId: variantId }, fetchPolicy: 'cache-first' as any });
-  const assigns: Array<{ facet: any; value: string }> = data?.variantFacets ?? [];
-  if (loading) return null;
-  if (!assigns.length) return <>—</>;
-  return (
-    <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
-      {assigns.map((a, i) => (<Chip key={`${a.facet?.id}_${a.value}_${i}`} size="small" label={`${a.facet?.code}: ${a.value}`} />))}
-    </Stack>
-  );
-}
-
-function VariantFacetsButton({ variantId }: { variantId: string }) {
-  const [open, setOpen] = React.useState(false);
-  return (
-    <>
-      <Button size="small" onClick={(e) => { e.stopPropagation(); setOpen(true); }}>Manage Facets</Button>
-      {open && <VariantFacetsDialog variantId={variantId} onClose={() => setOpen(false)} />}
-    </>
-  );
-}
-
-function VariantFacetsDialog({ variantId, onClose }: { variantId: string; onClose: () => void }) {
-  const { data: facetsData } = useListFacetsQuery({ fetchPolicy: 'cache-first' as any });
-  const allFacets: Array<{ id: string; name: string; code: string; values?: string[]; isPrivate?: boolean }>
-    = facetsData?.listFacets ?? [];
-  const { data, refetch } = useVariantFacetsQuery({ variables: { productVariantId: variantId }, fetchPolicy: 'cache-and-network' as any });
-  const assigns: Array<{ facet: any; value: string }> = data?.variantFacets ?? [];
-  const [assign] = useAssignFacetToVariantMutation();
-  const [remove] = useRemoveFacetFromVariantMutation();
-  const [selFacetId, setSelFacetId] = React.useState('');
-  const [selValue, setSelValue] = React.useState('');
-  return (
-    <Dialog open onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Variant Facets</DialogTitle>
-      <DialogContent>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1 }}>
-          <Select size="small" value={selFacetId} onChange={(e) => { setSelFacetId(e.target.value); setSelValue(''); }} displayEmpty sx={{ minWidth: 220 }}>
-            <MenuItem value=""><em>Select facet…</em></MenuItem>
-            {allFacets.map((f) => (<MenuItem key={f.id} value={f.id}>{f.name} ({f.code})</MenuItem>))}
-          </Select>
-          {(() => {
-            const f = allFacets.find((x) => x.id === selFacetId);
-            if (f && Array.isArray(f.values) && f.values.length) {
-              return (
-                <Select size="small" value={selValue} onChange={(e) => setSelValue(e.target.value)} displayEmpty sx={{ minWidth: 180 }}>
-                  <MenuItem value=""><em>Value…</em></MenuItem>
-                  {f.values.map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
-                </Select>
-              );
-            }
-            return (<TextField size="small" label="Value" value={selValue} onChange={(e) => setSelValue(e.target.value)} />);
-          })()}
-          <Button
-            size="small"
-            variant="contained"
-            disabled={!selFacetId || !selValue}
-            onClick={async () => {
-              try {
-                await assign({
-                  variables: {
-                    productVariantId: variantId,
-                    facetId: selFacetId,
-                    value: selValue,
-                  },
-                });
-                notify('Facet assigned', 'success');
-                setSelValue('');
-                await refetch();
-              } catch (err: any) {
-                notify(err?.message || 'Failed to assign facet', 'error');
-              }
-            }}
-          >
-            Assign
-          </Button>
-        </Stack>
-        <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
-          {assigns.map((a, i) => (
-            <Chip
-              key={`${a.facet?.id}_${a.value}_${i}`}
-              label={`${a.facet?.name || a.facet?.code}: ${a.value}`}
-              onDelete={async () => {
-                try {
-                  await remove({
-                    variables: {
-                      productVariantId: variantId,
-                      facetId: a.facet?.id,
-                      value: a.value,
-                    },
-                  });
-                  notify('Facet removed', 'success');
-                  await refetch();
-                } catch (err: any) {
-                  notify(err?.message || 'Failed to remove facet', 'error');
-                }
-              }}
-            />
-          ))}
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Close</Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
-
-function BrandGenderChips({ variantId }: { variantId: string }) {
+function BrandGenderChips({ variantId, hidePlaceholder = false }: { variantId: string; hidePlaceholder?: boolean }) {
   const { data, loading } = useVariantFacetsQuery({ variables: { productVariantId: variantId }, fetchPolicy: 'cache-first' as any });
   if (loading) return null;
   const assigns: Array<{ facet: any; value: string }> = data?.variantFacets ?? [];
   const lower = assigns.map((a) => ({ code: String(a.facet?.code || '').toLowerCase(), value: a.value }));
   const gender = lower.find((x) => x.code === 'gender')?.value;
   const brand = lower.find((x) => x.code === 'brand')?.value;
-  if (!gender && !brand) return <>—</>;
+  if (!gender && !brand) {
+    return hidePlaceholder ? null : <>—</>;
+  }
   return (
     <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
       {brand && <Chip size="small" label={brand} />}

@@ -1,6 +1,35 @@
 import React from 'react';
-import { Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TableSortLabel, TablePagination, TextField, Box, Button, Stack, Select, MenuItem, Checkbox, Typography } from '@mui/material';
+import {
+  Alert,
+  Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TableSortLabel,
+  TextField,
+  Box,
+  Button,
+  Stack,
+  Select,
+  MenuItem,
+  Checkbox,
+  Typography,
+  InputBase,
+  IconButton,
+  Tooltip,
+  Pagination,
+} from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
+import SearchIcon from '@mui/icons-material/Search';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import { useSearchParams } from 'react-router-dom';
+import { useAuth } from './AuthProvider';
 
 type Column<Row> = {
   key: string;
@@ -12,6 +41,22 @@ type Column<Row> = {
   accessor?: (row: Row) => any;
   filter?: boolean;
   filterPlaceholder?: string;
+};
+
+type ActionConfig<Row> = {
+  onClick: (row: Row) => void | Promise<void>;
+  permission?: string | string[];
+  label?: string;
+  hidden?: (row: Row) => boolean;
+  disabled?: (row: Row) => boolean;
+  confirmMessage?: string | ((row: Row) => string | undefined);
+};
+
+type ActionsConfig<Row> = {
+  label?: string;
+  view?: ActionConfig<Row>;
+  edit?: ActionConfig<Row>;
+  delete?: ActionConfig<Row>;
 };
 
 type Props<Row> = {
@@ -42,15 +87,104 @@ type Props<Row> = {
   selectable?: boolean; // show selection checkbox column and header select-all
   selectedIds?: Array<string | number>; // controlled mode; if omitted, internal state is used
   onSelectedIdsChange?: (ids: Array<string | number>) => void;
+  actions?: ActionsConfig<Row>;
+  rowAccent?: (row: Row, index: number) => 'default' | 'success' | 'warning' | 'info' | 'danger' | null | undefined;
 };
-
-export default function TableList<Row = any>({ columns, rows, loading, error, emptyMessage, onRowClick, getRowKey, size = 'small', paginated = true, rowsPerPageOptions = [10, 25, 50], defaultRowsPerPage = 25, defaultSortKey, defaultSortDir = 'asc', showFilters = false, globalSearch = false, globalSearchPlaceholder = 'Search', globalSearchKeys, enableUrlState = false, urlKey = 'tbl', onRowsProcessed, onExport, exportLabel = 'Export CSV', exportScopeControl = false, selectable = false, selectedIds, onSelectedIdsChange }: Props<Row>) {
+export default function TableList<Row = any>({ columns: initialColumns, rows, loading, error, emptyMessage, onRowClick, getRowKey, size = 'small', paginated = true, rowsPerPageOptions = [10, 25, 50], defaultRowsPerPage = 25, defaultSortKey, defaultSortDir = 'asc', showFilters = false, globalSearch = false, globalSearchPlaceholder = 'Search', globalSearchKeys, enableUrlState = false, urlKey = 'tbl', onRowsProcessed, onExport, exportLabel = 'Export CSV', exportScopeControl = false, selectable = false, selectedIds, onSelectedIdsChange, actions, rowAccent }: Props<Row>) {
+  const theme = useTheme();
+  const { hasPermission } = useAuth();
   const key = getRowKey || ((_: any, i: number) => i);
   const clickable = Boolean(onRowClick);
   const [searchParams, setSearchParams] = useSearchParams();
   const param = (name: string) => `${urlKey}_${name}`;
   const lastApplied = React.useRef<string | null>(null);
-  const initialSortKey = defaultSortKey && columns.find(c => c.key === defaultSortKey && c.sort) ? defaultSortKey : undefined;
+
+  const can = React.useCallback(
+    (perm?: string | string[]) => {
+      if (!perm) return true;
+      if (Array.isArray(perm)) return perm.length ? hasPermission(...perm) : true;
+      return hasPermission(perm);
+    },
+    [hasPermission]
+  );
+
+  const shouldHideAction = React.useCallback(
+    (cfg: ActionConfig<Row> | undefined, row: Row) => {
+      if (!cfg || typeof cfg.onClick !== 'function') return true;
+      if (!can(cfg.permission)) return true;
+      if (cfg.hidden?.(row)) return true;
+      return false;
+    },
+    [can]
+  );
+
+  const renderActions = React.useCallback(
+    (row: Row) => {
+      if (!actions) return null;
+      const actionDefs: Array<{ type: 'view' | 'edit' | 'delete'; cfg: ActionConfig<Row> | undefined; Icon: React.ComponentType<any>; color: 'primary' | 'warning' | 'error'; fallbackLabel: string; }> = [
+        { type: 'view', cfg: actions.view, Icon: VisibilityOutlinedIcon, color: 'primary', fallbackLabel: 'View' },
+        { type: 'edit', cfg: actions.edit, Icon: EditOutlinedIcon, color: 'warning', fallbackLabel: 'Edit' },
+        { type: 'delete', cfg: actions.delete, Icon: DeleteOutlineOutlinedIcon, color: 'error', fallbackLabel: 'Delete' },
+      ];
+      const items = actionDefs
+        .filter(({ cfg }) => !shouldHideAction(cfg, row))
+        .map((item) => ({ ...item, cfg: item.cfg! }));
+      if (!items.length) return <Typography variant="body2" color="text.secondary">—</Typography>;
+      return (
+        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+          {items.map(({ cfg, Icon, color, fallbackLabel, type }) => {
+            const label = cfg.label || fallbackLabel;
+            const disabled = cfg.disabled?.(row) ?? false;
+            const handleClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+              event.stopPropagation();
+              if (disabled) return;
+              if (cfg.confirmMessage) {
+                const message = typeof cfg.confirmMessage === 'function' ? cfg.confirmMessage(row) : cfg.confirmMessage;
+                if (message && !window.confirm(message)) return;
+              }
+              await cfg.onClick(row);
+            };
+            return (
+              <Tooltip key={type} title={label} placement="top" arrow>
+                <span>
+                  <IconButton
+                    size="small"
+                    color={color}
+                    onClick={handleClick}
+                    disabled={disabled}
+                    aria-label={label}
+                  >
+                    <Icon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            );
+          })}
+        </Stack>
+      );
+    },
+    [actions, shouldHideAction]
+  );
+
+  const hasActions = React.useMemo(() => Boolean(actions && (actions.view || actions.edit || actions.delete)), [actions]);
+
+  const actionsColumn = React.useMemo<Column<Row> | null>(() => {
+    if (!hasActions) return null;
+    return {
+      key: '__actions',
+      label: actions?.label ?? 'Actions',
+      align: 'right',
+      width: 140,
+      render: (row) => renderActions(row),
+    } as Column<Row>;
+  }, [actions, hasActions, renderActions]);
+
+  const columns = React.useMemo(() => {
+    if (!actionsColumn) return initialColumns;
+    return [...initialColumns, actionsColumn];
+  }, [actionsColumn, initialColumns]);
+
+  const initialSortKey = defaultSortKey && columns.find((c) => c.key === defaultSortKey && c.sort) ? defaultSortKey : undefined;
   const [orderBy, setOrderBy] = React.useState<string | undefined>(initialSortKey);
   const [order, setOrder] = React.useState<'asc' | 'desc'>(defaultSortDir);
   const [page, setPage] = React.useState(0);
@@ -226,68 +360,328 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
   const pageAllSelected = pagedRows.length > 0 && pagedRows.every((row: any, i: number) => selectedSet.has(keyFn(row, i + page * rowsPerPage)));
   const pageSomeSelected = pagedRows.some((row: any, i: number) => selectedSet.has(keyFn(row, i + page * rowsPerPage)));
 
+  const filtersActive = React.useMemo(
+    () => Object.values(filters).some((v) => (v ?? '').toString().trim().length > 0),
+    [filters]
+  );
+  const showClearButton = Boolean(q || filtersActive);
+  const showResetButton = Boolean(
+    orderBy !== initialSortKey ||
+    order !== defaultSortDir ||
+    page !== 0 ||
+    rowsPerPage !== defaultRowsPerPage
+  );
+  const hasToolbar = globalSearch || showClearButton || showResetButton || onExport || selectable;
+
+  const rowRadius = 12;
+
+  const accentPalette = React.useMemo(
+    () => ({
+      success: {
+        background: alpha(theme.palette.success.main, 0.12),
+        hoverBackground: alpha(theme.palette.success.main, 0.18),
+        border: alpha(theme.palette.success.main, 0.24),
+      },
+      warning: {
+        background: alpha(theme.palette.warning.main, 0.14),
+        hoverBackground: alpha(theme.palette.warning.main, 0.2),
+        border: alpha(theme.palette.warning.main, 0.24),
+      },
+      info: {
+        background: alpha(theme.palette.info.main, 0.14),
+        hoverBackground: alpha(theme.palette.info.main, 0.22),
+        border: alpha(theme.palette.info.main, 0.24),
+      },
+      danger: {
+        background: alpha(theme.palette.error.main, 0.14),
+        hoverBackground: alpha(theme.palette.error.main, 0.22),
+        border: alpha(theme.palette.error.main, 0.26),
+      },
+    }),
+    [theme.palette.error.main, theme.palette.info.main, theme.palette.success.main, theme.palette.warning.main]
+  );
+
+  const baseBorderColor = React.useMemo(() => alpha(theme.palette.success.main, 0.08), [theme.palette.success.main]);
+
+  const rowBaseSx = React.useMemo(() => ({
+    cursor: clickable ? 'pointer' : 'default',
+    '& td': {
+      borderBottom: '1px solid',
+      borderBottomColor: baseBorderColor,
+      backgroundColor: '#fff',
+      py: 1.6,
+      px: theme.spacing(2.5),
+      fontSize: 14,
+      fontWeight: 500,
+      color: theme.palette.text.primary,
+    },
+    '&:hover td': {
+      backgroundColor: alpha(theme.palette.success.main, clickable ? 0.06 : 0.03),
+    },
+    '& td:first-of-type': {
+      borderTopLeftRadius: rowRadius,
+      borderBottomLeftRadius: rowRadius,
+    },
+    '& td:last-of-type': {
+      borderTopRightRadius: rowRadius,
+      borderBottomRightRadius: rowRadius,
+    },
+    '& td.MuiTableCell-paddingCheckbox': {
+      paddingLeft: theme.spacing(1.5),
+      paddingRight: theme.spacing(1.5),
+    },
+  }), [baseBorderColor, clickable, theme]);
+
+  const rowsPerPageChoices = React.useMemo(() => {
+    if (!paginated) return rowsPerPageOptions;
+    const opts = new Set<number>(rowsPerPageOptions);
+    opts.add(rowsPerPage);
+    return Array.from(opts).sort((a, b) => a - b);
+  }, [paginated, rowsPerPageOptions, rowsPerPage]);
+
+  const searchInput = globalSearch ? (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
+        width: '100%',
+        maxWidth: { xs: '100%', md: 420 },
+        bgcolor: alpha(theme.palette.success.main, 0.08),
+        borderRadius: 999,
+        px: 2,
+        py: 1,
+      }}
+    >
+      <SearchIcon sx={{ color: theme.palette.success.main, opacity: 0.75 }} />
+      <InputBase
+        fullWidth
+        placeholder={globalSearchPlaceholder}
+        value={q}
+        onChange={(event) => {
+          setQ(event.target.value);
+          setPage(0);
+        }}
+        sx={{ fontWeight: 500 }}
+      />
+    </Box>
+  ) : null;
+
+  const emptyStateColSpan = columns.length + (selectable ? 1 : 0);
+
+  const totalSorted = sortedRows.length;
+  const displayFrom = totalSorted === 0 ? 0 : (paginated ? page * rowsPerPage + 1 : 1);
+  const displayTo = totalSorted === 0 ? 0 : (paginated ? Math.min(totalSorted, page * rowsPerPage + pagedRows.length) : totalSorted);
+  const pageCount = paginated ? Math.max(1, Math.ceil(totalSorted / rowsPerPage)) : 1;
+
+  React.useEffect(() => {
+    if (!paginated) return;
+    if (page > pageCount - 1) {
+      setPage(Math.max(0, pageCount - 1));
+    }
+  }, [paginated, page, pageCount]);
+
   return (
-    <TableContainer component={Paper}>
+    <TableContainer
+      component={Paper}
+      elevation={0}
+      sx={{
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: 4,
+        p: { xs: 2, md: 3 },
+        boxShadow: '0 32px 60px rgba(16, 94, 62, 0.10)',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, #ffffff 100%)',
+        border: `1px solid ${alpha(theme.palette.success.main, 0.1)}`,
+      }}
+    >
       {error && <Alert severity="error">{error}</Alert>}
-      {(globalSearch || showFilters || onExport || selectable) && (
-        <Box sx={{ p: 1 }}>
-          <Stack direction="row" spacing={1} alignItems="center">
-            {globalSearch && (
-              <TextField
-                size="small"
-                placeholder={globalSearchPlaceholder}
-                value={q}
-                onChange={(e) => { setQ(e.target.value); setPage(0); }}
-                fullWidth
-              />
+
+      {hasToolbar && (
+        <Box
+          sx={{
+            mb: 3,
+            mt: 1,
+            backgroundColor: theme.palette.success.main,
+            borderRadius: 2,
+            color: '#fff',
+            px: { xs: 1.5, md: 2 },
+            py: { xs: 1, md: 1.25 },
+          }}
+        >
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={1.5}
+            alignItems={{ xs: 'stretch', md: 'center' }}
+            justifyContent="space-between"
+            flexWrap="wrap"
+            rowGap={1.25}
+          >
+            {searchInput && (
+              <Box sx={{ flexGrow: 1, minWidth: { xs: '100%', sm: 260 } }}>{searchInput}</Box>
             )}
-            {(q || Object.values(filters).some(Boolean)) && (
-              <Button onClick={() => { setQ(''); setDq(''); setFilters({}); setPage(0); }} size="small">Clear</Button>
-            )}
-            {((orderBy && orderBy !== defaultSortKey) || page !== 0 || rowsPerPage !== defaultRowsPerPage || order !== defaultSortDir) && (
-              <Button onClick={() => { setOrderBy(defaultSortKey); setOrder(defaultSortDir); setPage(0); setRowsPerPage(defaultRowsPerPage); }} size="small">Reset</Button>
-            )}
-            {onExport && (
-              <>
-                {exportScopeControl && (
-                  <Select
-                    size="small"
-                    value={exportScope}
-                    onChange={(e) => setExportScope(e.target.value as any)}
-                    sx={{ minWidth: 140, ml: 'auto' }}
-                  >
-                    <MenuItem value="all">Export: All Rows</MenuItem>
-                    <MenuItem value="page">Export: Current Page</MenuItem>
-                  </Select>
-                )}
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1}
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+              justifyContent="flex-end"
+              flexWrap="wrap"
+              sx={{
+                flexGrow: searchInput ? 0 : 1,
+                ml: searchInput ? { md: 'auto' } : undefined,
+                minWidth: { xs: '100%', md: 'auto' },
+              }}
+            >
+              {showClearButton && (
                 <Button
-                  variant="outlined"
                   size="small"
                   onClick={() => {
-                    if (!lastProcessedRef.current) return;
-                    const payload = exportScopeControl && exportScope === 'page'
-                      ? { ...lastProcessedRef.current, sorted: lastProcessedRef.current.paged }
-                      : lastProcessedRef.current;
-                    onExport(payload);
+                    setQ('');
+                    setDq('');
+                    setFilters({});
+                    setPage(0);
                   }}
-                  disabled={!sortedRows.length}
+                  sx={{ color: '#fff' }}
                 >
-                  {exportLabel}
+                  Clear Filters
                 </Button>
-              </>
-            )}
-            {selectable && (
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
-                <Typography variant="body2">Selected: {selectedCount}</Typography>
-                <Button size="small" onClick={selectAllFiltered} disabled={!filteredRows.length}>Select All Filtered</Button>
-                <Button size="small" onClick={clearSelection} disabled={!selectedCount}>Clear Selection</Button>
-              </Stack>
-            )}
+              )}
+              {showResetButton && (
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setOrderBy(initialSortKey);
+                    setOrder(defaultSortDir);
+                    setPage(0);
+                    setRowsPerPage(defaultRowsPerPage);
+                  }}
+                  sx={{ color: '#fff' }}
+                >
+                  Reset View
+                </Button>
+              )}
+              {onExport && (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  {exportScopeControl && (
+                    <Select
+                      size="small"
+                      value={exportScope}
+                      onChange={(e) => setExportScope(e.target.value as any)}
+                      sx={{
+                        minWidth: 160,
+                        color: '#fff',
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.4)' },
+                        '& .MuiSvgIcon-root': { color: '#fff' },
+                      }}
+                    >
+                      <MenuItem value="all">Export: All Rows</MenuItem>
+                      <MenuItem value="page">Export: Current Page</MenuItem>
+                    </Select>
+                  )}
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => {
+                      if (!lastProcessedRef.current) return;
+                      const payload =
+                        exportScopeControl && exportScope === 'page'
+                          ? { ...lastProcessedRef.current, sorted: lastProcessedRef.current.paged }
+                          : lastProcessedRef.current;
+                      onExport(payload);
+                    }}
+                    disabled={!sortedRows.length}
+                    sx={{
+                      color: '#fff',
+                      borderColor: 'rgba(255,255,255,0.6)',
+                      '&:hover': {
+                        borderColor: 'rgba(255,255,255,0.9)',
+                      },
+                    }}
+                  >
+                    {exportLabel}
+                  </Button>
+                </Stack>
+              )}
+              {selectable && (
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={0.75}
+                  alignItems={{ xs: 'flex-start', sm: 'center' }}
+                  flexWrap="wrap"
+                  sx={{
+                    pl: { sm: 1 },
+                    ml: { sm: 0.5 },
+                    borderLeft: { sm: '1px solid rgba(255,255,255,0.2)' },
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Selected: {selectedCount}
+                  </Typography>
+                  <Stack direction="row" spacing={0.75} flexWrap="wrap">
+                    <Button
+                      size="small"
+                      onClick={selectAllFiltered}
+                      disabled={!filteredRows.length}
+                      sx={{ color: '#fff' }}
+                    >
+                      Select All Filtered
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={clearSelection}
+                      disabled={!selectedCount}
+                      sx={{ color: '#fff' }}
+                    >
+                      Clear Selection
+                    </Button>
+                  </Stack>
+                </Stack>
+              )}
+            </Stack>
           </Stack>
         </Box>
       )}
-      <Table size={size}>
-        <TableHead>
+
+      <Table
+        size={size}
+        sx={{
+          borderCollapse: 'collapse',
+          width: '100%',
+          tableLayout: 'auto',
+          minWidth: '100%',
+        }}
+      >
+        <TableHead
+          sx={{
+            '& .MuiTableRow-root': {
+              backgroundColor: theme.palette.success.main,
+              '& .MuiTableCell-root': {
+                color: '#fff',
+                fontWeight: 700,
+                borderBottom: 'none',
+                textTransform: 'uppercase',
+                letterSpacing: 0.8,
+                fontSize: 13,
+                py: 1.6,
+                paddingLeft: theme.spacing(2.5),
+                paddingRight: theme.spacing(2.5),
+              },
+              '& .MuiTableCell-paddingCheckbox': {
+                paddingLeft: theme.spacing(1.5),
+                paddingRight: theme.spacing(1.5),
+              },
+              '& .MuiTableCell-root:first-of-type': {
+                borderTopLeftRadius: 18,
+                borderBottomLeftRadius: 18,
+              },
+              '& .MuiTableCell-root:last-of-type': {
+                borderTopRightRadius: 18,
+                borderBottomRightRadius: 18,
+              },
+            },
+          }}
+        >
           <TableRow>
             {selectable && (
               <TableCell padding="checkbox">
@@ -295,6 +689,7 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
                   indeterminate={!pageAllSelected && pageSomeSelected}
                   checked={pageAllSelected}
                   onChange={(e) => togglePage(e.target.checked)}
+                  sx={{ color: '#fff' }}
                 />
               </TableCell>
             )}
@@ -309,7 +704,17 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
                       direction={active ? order : 'asc'}
                       onClick={() => {
                         if (active) setOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
-                        else { setOrderBy(c.key); setOrder('asc'); }
+                        else {
+                          setOrderBy(c.key);
+                          setOrder('asc');
+                        }
+                      }}
+                      sx={{
+                        color: '#fff',
+                        '&.Mui-active': { color: '#fff' },
+                        '& .MuiTableSortLabel-icon': {
+                          color: '#fff !important',
+                        },
                       }}
                     >
                       {c.label}
@@ -323,15 +728,56 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
           </TableRow>
           {showFilters && (
             <TableRow>
-              {selectable && (<TableCell padding="checkbox" />)}
+              {selectable && <TableCell padding="checkbox" />}
               {columns.map((c) => (
-                <TableCell key={`f-${c.key}`} align={c.align}>
+                <TableCell
+                  key={`f-${c.key}`}
+                  align={c.align}
+                  sx={(theme) => ({
+                    bgcolor: theme.palette.success.main,
+                    color: '#fff',
+                    borderBottom: 'none',
+                    pt: 1.25,
+                    pb: 1.5,
+                    borderTop: `1px solid ${alpha(theme.palette.common.white, 0.25)}`,
+                    pl: theme.spacing(2.5),
+                    pr: theme.spacing(2.5),
+                    '& .MuiInputBase-root': {
+                      color: '#fff',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(255,255,255,0.35)',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(255,255,255,0.65)',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#fff',
+                      },
+                    },
+                    '& .MuiSvgIcon-root': {
+                      color: '#fff',
+                    },
+                  })}
+                >
                   {c.filter ? (
                     <TextField
                       size="small"
+                      fullWidth
                       placeholder={c.filterPlaceholder || 'Filter'}
                       value={filters[c.key] || ''}
-                      onChange={(e) => { setFilters((f) => ({ ...f, [c.key]: e.target.value })); setPage(0); }}
+                      onChange={(e) => {
+                        setFilters((f) => ({ ...f, [c.key]: e.target.value }));
+                        setPage(0);
+                      }}
+                      InputProps={{
+                        sx: {
+                          color: '#fff',
+                          '& input::placeholder': {
+                            color: 'rgba(255,255,255,0.75)',
+                            opacity: 1,
+                          },
+                        },
+                      }}
                     />
                   ) : null}
                 </TableCell>
@@ -342,17 +788,23 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
         <TableBody>
           {loading && rows.length === 0 && (
             [...Array(3)].map((_, i) => (
-              <TableRow key={`s-${i}`}>
-                {selectable && (<TableCell padding="checkbox"><Skeleton variant="rectangular" width={18} height={18} /></TableCell>)}
+              <TableRow key={`s-${i}`} sx={{ ...rowBaseSx, cursor: 'default' }}>
+                {selectable && (
+                  <TableCell padding="checkbox">
+                    <Skeleton variant="circular" width={20} height={20} />
+                  </TableCell>
+                )}
                 {columns.map((c) => (
-                  <TableCell key={c.key}><Skeleton variant="text" /></TableCell>
+                  <TableCell key={`${c.key}-sk-${i}`}>
+                    <Skeleton variant="text" />
+                  </TableCell>
                 ))}
               </TableRow>
             ))
           )}
           {!loading && rows.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={columns.length + (selectable ? 1 : 0)} align="center" sx={{ color: 'text.secondary' }}>
+            <TableRow sx={rowBaseSx}>
+              <TableCell colSpan={emptyStateColSpan} align="center" sx={{ py: 3, fontSize: 14, color: theme.palette.text.secondary }}>
                 {emptyMessage || 'No records'}
               </TableCell>
             </TableRow>
@@ -361,11 +813,30 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
             <TableRow
               key={key(row, idx + page * rowsPerPage)}
               hover={clickable}
-              sx={{ cursor: clickable ? 'pointer' : 'default' }}
+              sx={{
+                ...rowBaseSx,
+                ...(rowAccent
+                  ? (() => {
+                      const tone = rowAccent(row, idx);
+                      if (!tone || tone === 'default') return {};
+                      const palette = accentPalette[tone];
+                      if (!palette) return {};
+                      return {
+                        '&::before': {
+                          backgroundColor: palette.background,
+                          borderColor: palette.border,
+                        },
+                        '&:hover::before': {
+                          backgroundColor: palette.hoverBackground,
+                        },
+                      };
+                    })()
+                  : {}),
+              }}
               onClick={clickable ? () => onRowClick!(row) : undefined}
             >
               {selectable && (
-                <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()} sx={{ width: 52 }}>
                   <Checkbox
                     checked={selectedSet.has(key(row, idx + page * rowsPerPage))}
                     onChange={(e) => toggleOne(row, idx + page * rowsPerPage, e.target.checked)}
@@ -373,7 +844,14 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
                 </TableCell>
               )}
               {columns.map((c) => (
-                <TableCell key={c.key} align={c.align} onClick={(e) => { /* prevent bubbling from interactive controls */ if ((e.target as HTMLElement).closest('button, input, select, a, textarea')) e.stopPropagation(); }}>
+                <TableCell
+                  key={c.key}
+                  align={c.align}
+                  sx={{ width: c.width }}
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest('button, input, select, a, textarea')) e.stopPropagation();
+                  }}
+                >
                   {c.render ? c.render(row, idx) : (row as any)[c.key]}
                 </TableCell>
               ))}
@@ -381,16 +859,87 @@ export default function TableList<Row = any>({ columns, rows, loading, error, em
           ))}
         </TableBody>
       </Table>
+
       {paginated && (
-        <TablePagination
-          component="div"
-          count={rows.length}
-          page={page}
-          onPageChange={(_, p) => setPage(p)}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-          rowsPerPageOptions={rowsPerPageOptions}
-        />
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={1.5}
+          alignItems={{ xs: 'flex-start', md: 'center' }}
+          justifyContent="space-between"
+          sx={{
+            mt: 3,
+            px: { xs: 0, md: 1 },
+          }}
+        >
+          <Typography variant="body2" color="text.secondary">
+            {totalSorted
+              ? `Showing ${displayFrom} to ${displayTo} of ${totalSorted} entries`
+              : 'No entries'}
+          </Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="body2" color="text.secondary">
+                Show
+              </Typography>
+              <Select
+                size="small"
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(parseInt(e.target.value as string, 10));
+                  setPage(0);
+                }}
+                sx={{
+                  minWidth: 92,
+                  borderRadius: 999,
+                  '& .MuiSelect-select': {
+                    py: 0.75,
+                  },
+                }}
+              >
+                {rowsPerPageChoices.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Typography variant="body2" color="text.secondary">
+                entries
+              </Typography>
+            </Stack>
+            {pageCount > 1 && (
+              <Pagination
+                count={pageCount}
+                page={page + 1}
+                onChange={(_, value) => setPage(value - 1)}
+                shape="rounded"
+                color="primary"
+                sx={{
+                  '& .MuiPaginationItem-root': {
+                    borderRadius: 999,
+                    border: `1px solid ${alpha(theme.palette.success.main, 0.25)}`,
+                    color: theme.palette.success.dark,
+                    fontWeight: 600,
+                    minWidth: 36,
+                    height: 36,
+                    transition: 'all 160ms ease',
+                  },
+                  '& .MuiPaginationItem-root.Mui-selected': {
+                    backgroundColor: theme.palette.success.main,
+                    color: '#fff',
+                    boxShadow: '0 18px 30px rgba(13, 74, 49, 0.25)',
+                    borderColor: theme.palette.success.main,
+                    '&:hover': {
+                      backgroundColor: theme.palette.success.dark,
+                    },
+                  },
+                  '& .MuiPaginationItem-root:hover': {
+                    backgroundColor: alpha(theme.palette.success.main, 0.12),
+                  },
+                }}
+              />
+            )}
+          </Stack>
+        </Stack>
       )}
     </TableContainer>
   );

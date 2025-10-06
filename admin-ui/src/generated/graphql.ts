@@ -5108,6 +5108,7 @@ export type Mutation = {
   updateManyProductVariant?: Maybe<AffectedRows>;
   updateManyStore?: Maybe<AffectedRows>;
   updateManyUser?: Maybe<AffectedRows>;
+  updateMyProfile: CustomerProfile;
   updateProduct?: Maybe<Product>;
   updateProductVariant?: Maybe<ProductVariant>;
   updatePurchaseOrderPhase: PurchaseOrder;
@@ -5716,6 +5717,11 @@ export type MutationUpdateManyUserArgs = {
   data: UserUpdateManyMutationInput;
   limit?: InputMaybe<Scalars['Int']['input']>;
   where?: InputMaybe<UserWhereInput>;
+};
+
+
+export type MutationUpdateMyProfileArgs = {
+  input: UpdateCustomerProfileInput;
 };
 
 
@@ -26951,7 +26957,7 @@ export type LoginMutation = { __typename?: 'Mutation', login: { __typename?: 'Au
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = { __typename?: 'Query', me: { __typename?: 'User', id: string, email: string, role: { __typename?: 'Role', id: string, name: string, permissions?: Array<{ __typename?: 'Permission', id: string, name: string, module: string, action: string }> | null } } };
+export type MeQuery = { __typename?: 'Query', me: { __typename?: 'User', id: string, email: string, role: { __typename?: 'Role', id: string, name: string, permissions?: Array<{ __typename?: 'Permission', id: string, name: string, module: string, action: string }> | null }, customerProfile?: { __typename?: 'CustomerProfile', fullName: string, email?: string | null, phone?: string | null } | null } };
 
 export type ChangePasswordMutationVariables = Exact<{
   input: ChangePasswordInput;
@@ -26959,6 +26965,13 @@ export type ChangePasswordMutationVariables = Exact<{
 
 
 export type ChangePasswordMutation = { __typename?: 'Mutation', changePassword: boolean };
+
+export type UpdateMyProfileMutationVariables = Exact<{
+  input: UpdateCustomerProfileInput;
+}>;
+
+
+export type UpdateMyProfileMutation = { __typename?: 'Mutation', updateMyProfile: { __typename?: 'CustomerProfile', userId: string, fullName: string, email?: string | null, phone?: string | null, preferredStore?: { __typename?: 'Store', id: string, name: string } | null } };
 
 export type CollectionsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -27202,6 +27215,11 @@ export type CreateAndIssuePreferredMutationVariables = Exact<{
 
 
 export type CreateAndIssuePreferredMutation = { __typename?: 'Mutation', createLowStockRequisitionAndIssuePreferred?: string | null };
+
+export type HeaderNotificationsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type HeaderNotificationsQuery = { __typename?: 'Query', notifications: Array<{ __typename?: 'Notification', id: string, isRead: boolean, type: string, message: string, createdAt: any }> };
 
 export type OutboxStatusQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -27665,7 +27683,7 @@ export type StockQueryVariables = Exact<{
 }>;
 
 
-export type StockQuery = { __typename?: 'Query', stock: Array<{ __typename?: 'Stock', id: string, productVariantId: string, storeId: string, quantity: number, reserved: number, store: { __typename?: 'Store', id: string, name: string } }> };
+export type StockQuery = { __typename?: 'Query', stock: Array<{ __typename?: 'Stock', id: string, productVariantId: string, storeId: string, quantity: number, reserved: number, productVariant: { __typename?: 'ProductVariant', id: string, name?: string | null, barcode?: string | null, product?: { __typename?: 'Product', id: string, name: string } | null }, store: { __typename?: 'Store', id: string, name: string } }> };
 
 export type StoresQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -28173,6 +28191,11 @@ export const MeDocument = gql`
         action
       }
     }
+    customerProfile {
+      fullName
+      email
+      phone
+    }
   }
 }
     `;
@@ -28239,6 +28262,46 @@ export function useChangePasswordMutation(baseOptions?: Apollo.MutationHookOptio
 export type ChangePasswordMutationHookResult = ReturnType<typeof useChangePasswordMutation>;
 export type ChangePasswordMutationResult = Apollo.MutationResult<ChangePasswordMutation>;
 export type ChangePasswordMutationOptions = Apollo.BaseMutationOptions<ChangePasswordMutation, ChangePasswordMutationVariables>;
+export const UpdateMyProfileDocument = gql`
+    mutation UpdateMyProfile($input: UpdateCustomerProfileInput!) {
+  updateMyProfile(input: $input) {
+    userId
+    fullName
+    email
+    phone
+    preferredStore {
+      id
+      name
+    }
+  }
+}
+    `;
+export type UpdateMyProfileMutationFn = Apollo.MutationFunction<UpdateMyProfileMutation, UpdateMyProfileMutationVariables>;
+
+/**
+ * __useUpdateMyProfileMutation__
+ *
+ * To run a mutation, you first call `useUpdateMyProfileMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateMyProfileMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateMyProfileMutation, { data, loading, error }] = useUpdateMyProfileMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateMyProfileMutation(baseOptions?: Apollo.MutationHookOptions<UpdateMyProfileMutation, UpdateMyProfileMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateMyProfileMutation, UpdateMyProfileMutationVariables>(UpdateMyProfileDocument, options);
+      }
+export type UpdateMyProfileMutationHookResult = ReturnType<typeof useUpdateMyProfileMutation>;
+export type UpdateMyProfileMutationResult = Apollo.MutationResult<UpdateMyProfileMutation>;
+export type UpdateMyProfileMutationOptions = Apollo.BaseMutationOptions<UpdateMyProfileMutation, UpdateMyProfileMutationVariables>;
 export const CollectionsDocument = gql`
     query Collections {
   collections {
@@ -29587,6 +29650,49 @@ export function useCreateAndIssuePreferredMutation(baseOptions?: Apollo.Mutation
 export type CreateAndIssuePreferredMutationHookResult = ReturnType<typeof useCreateAndIssuePreferredMutation>;
 export type CreateAndIssuePreferredMutationResult = Apollo.MutationResult<CreateAndIssuePreferredMutation>;
 export type CreateAndIssuePreferredMutationOptions = Apollo.BaseMutationOptions<CreateAndIssuePreferredMutation, CreateAndIssuePreferredMutationVariables>;
+export const HeaderNotificationsDocument = gql`
+    query HeaderNotifications {
+  notifications {
+    id
+    isRead
+    type
+    message
+    createdAt
+  }
+}
+    `;
+
+/**
+ * __useHeaderNotificationsQuery__
+ *
+ * To run a query within a React component, call `useHeaderNotificationsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useHeaderNotificationsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useHeaderNotificationsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useHeaderNotificationsQuery(baseOptions?: Apollo.QueryHookOptions<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>(HeaderNotificationsDocument, options);
+      }
+export function useHeaderNotificationsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>(HeaderNotificationsDocument, options);
+        }
+export function useHeaderNotificationsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>(HeaderNotificationsDocument, options);
+        }
+export type HeaderNotificationsQueryHookResult = ReturnType<typeof useHeaderNotificationsQuery>;
+export type HeaderNotificationsLazyQueryHookResult = ReturnType<typeof useHeaderNotificationsLazyQuery>;
+export type HeaderNotificationsSuspenseQueryHookResult = ReturnType<typeof useHeaderNotificationsSuspenseQuery>;
+export type HeaderNotificationsQueryResult = Apollo.QueryResult<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>;
 export const OutboxStatusDocument = gql`
     query OutboxStatus {
   outboxStatus {
@@ -32072,6 +32178,15 @@ export const StockDocument = gql`
     storeId
     quantity
     reserved
+    productVariant {
+      id
+      name
+      barcode
+      product {
+        id
+        name
+      }
+    }
     store {
       id
       name
