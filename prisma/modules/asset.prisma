@@ -1,0 +1,49 @@
+// asset.prisma
+
+enum AssetKind {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  OTHER
+}
+
+enum AssetEntityType {
+  PRODUCT
+  PRODUCT_VARIANT
+  USER
+  COLLECTION
+  HERO
+  PAGE
+}
+
+model Asset {
+  id          String           @id @default(uuid())
+  kind        AssetKind        @default(IMAGE)
+  bucket      String
+  key         String           @unique
+  url         String
+  filename    String?
+  mimetype    String?
+  size        Int?
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  assignments AssetAssignment[]
+}
+
+model AssetAssignment {
+  id         String          @id @default(uuid())
+  assetId    String
+  entityType AssetEntityType
+  entityId   String
+  isPrimary  Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([entityType, entityId])
+  @@unique([assetId, entityType, entityId])
+}
+

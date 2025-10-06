@@ -36,6 +36,7 @@ import UndoIcon from '@mui/icons-material/Undo';
 import InsightsIcon from '@mui/icons-material/Insights';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import SearchIcon from '@mui/icons-material/Search';
@@ -107,6 +108,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         { label: 'Products', to: '/products', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <Inventory2Icon fontSize="small" /> },
         { label: 'Variants', to: '/variants', show: true, icon: <Inventory2Icon fontSize="small" /> },
         { label: 'Import Variants', to: '/variants/import', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <CloudUploadIcon fontSize="small" /> },
+        { label: 'Assets', to: '/assets', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <PhotoLibraryIcon fontSize="small" /> },
         { label: 'Collections', to: '/collections', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <AssignmentIcon fontSize="small" /> },
         { label: 'Facets', to: '/facets', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <AssignmentIcon fontSize="small" /> },
         { label: 'Stock', to: '/stock', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <Inventory2Icon fontSize="small" /> },
