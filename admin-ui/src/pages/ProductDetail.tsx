@@ -5,7 +5,6 @@ import {
   useListFacetsQuery,
   useProductFacetsQuery,
   useProductQuery,
-  useCreateProductVariantMutation,
   useUpdateProductMutation,
   useUpdateProductVariantMutation,
   useVariantsQuery,
@@ -29,7 +28,6 @@ export default function ProductDetail() {
   const id = params.id ?? '';
   const hasId = Boolean(params.id);
   const { data, loading, error, refetch } = useProductQuery({ variables: { id }, skip: !hasId, fetchPolicy: 'cache-and-network' as any });
-  const [createVariant, { loading: creating }] = useCreateProductVariantMutation();
   const p = data?.findUniqueProduct;
   // Categories removed; facets will be used for classification going forward.
   const { data: vData, loading: vLoading, error: vError, refetch: refetchVariants } = useVariantsQuery({ variables: { where: { productId: { equals: id } } }, skip: !hasId, fetchPolicy: 'cache-and-network' as any });
@@ -52,11 +50,8 @@ export default function ProductDetail() {
   const [selFacetId, setSelFacetId] = React.useState('');
   const [selFacetValue, setSelFacetValue] = React.useState('');
 
-  const [variantName, setVariantName] = React.useState('');
-  const [vBarcode, setVBarcode] = React.useState('');
-  const [price, setPrice] = React.useState<number>(0);
-  const [resellerPrice, setResellerPrice] = React.useState<number>(0);
-  const canAdd = !!variantName && price > 0 && resellerPrice > 0 && hasId;
+  const [assignQuery, setAssignQuery] = React.useState('');
+  const [assignSelection, setAssignSelection] = React.useState<{ id: string; name?: string | null; barcode?: string | null } | null>(null);
   const [editVariant, setEditVariant] = React.useState<Variant | null>(null);
   const [invVariant, setInvVariant] = React.useState<any | null>(null);
   // Hooks must not be conditional; keep before any early return
@@ -68,6 +63,24 @@ export default function ProductDetail() {
     return map;
   }, [totalsDataAll, totalsDataStore, storeTotalsFilter]);
   const variants = vData?.listProductVariants ?? p?.variants ?? [];
+  const assignWhere = React.useMemo(() => {
+    const term = assignQuery.trim();
+    if (term.length < 2) return undefined;
+    return {
+      productId: { equals: null },
+      OR: [
+        { name: { contains: term, mode: 'insensitive' } },
+        { barcode: { contains: term, mode: 'insensitive' } },
+        { legacyArticleCode: { contains: term, mode: 'insensitive' } },
+      ],
+    } as any;
+  }, [assignQuery]);
+  const { data: assignData, loading: assignLoading } = useVariantsQuery({
+    variables: { take: 10, where: assignWhere },
+    skip: !assignWhere,
+    fetchPolicy: 'network-only' as any,
+  });
+  const assignOptions: Array<{ id: string; name?: string | null; barcode?: string | null }> = assignData?.listProductVariants ?? [];
 
   if ((loading || vLoading) && !p) return <Skeleton variant="rectangular" height={200} />;
   if (error || vError) return <Alert severity="error">{error?.message || vError?.message}</Alert>;
@@ -147,32 +160,62 @@ export default function ProductDetail() {
         </Grid>
         <Grid item xs={12} md={6}>
           <Card><CardContent>
-            <Typography variant="subtitle1">Add Variant</Typography>
-            <Stack spacing={1} sx={{ mt: 1 }}>
-              <TextField label="Name" size="small" value={variantName} onChange={(e) => setVariantName(e.target.value)} />
-              <TextField label="Barcode (optional)" size="small" value={vBarcode} onChange={(e) => setVBarcode(e.target.value)} />
-              <Stack direction="row" spacing={1}>
-                <TextField label="Price" type="number" size="small" value={price} onChange={(e) => setPrice(Number(e.target.value) || 0)} />
-                <TextField label="Reseller Price" type="number" size="small" value={resellerPrice} onChange={(e) => setResellerPrice(Number(e.target.value) || 0)} />
-              </Stack>
-              <Box>
-                <Button variant="contained" disabled={creating || !canAdd} onClick={async () => {
-                try {
-                  if (!hasId) return;
-                  await createVariant({ variables: { data: {
-                    name: variantName || null,
-                    barcode: vBarcode || null,
-                    price, resellerPrice,
-                    product: { connect: { id } },
-                    } } });
-                    setVariantName(''); setVBarcode(''); setPrice(0); setResellerPrice(0);
-                    await refetch();
-                  } catch {}
-                }}>{creating ? 'Adding…' : 'Add Variant'}</Button>
-              </Box>
+            <Typography variant="subtitle1">Assign Existing Variant</Typography>
+            <Stack spacing={1.5} sx={{ mt: 1 }}>
+              <Autocomplete
+                value={assignSelection}
+                onChange={(_e, value) => setAssignSelection(value)}
+                inputValue={assignQuery}
+                onInputChange={(_e, value) => setAssignQuery(value)}
+                options={assignOptions}
+                loading={assignLoading}
+                getOptionLabel={(option) => option?.name || option?.barcode || option?.id || ''}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Search variants"
+                    placeholder="Type at least 2 characters"
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {assignLoading ? <CircularProgress size={18} color="inherit" /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+              />
+              <Button
+                variant="contained"
+                disabled={!assignSelection}
+                onClick={async () => {
+                  if (!assignSelection || !hasId) return;
+                  try {
+                    await updateVariant({
+                      variables: {
+                        id: assignSelection.id,
+                        data: { product: { connect: { id } } },
+                      },
+                    });
+                    notify('Variant assigned to product', 'success');
+                    setAssignSelection(null);
+                    setAssignQuery('');
+                    refetchVariants();
+                  } catch (err: any) {
+                    notify(err?.message || 'Failed to assign variant', 'error');
+                  }
+                }}
+              >
+                Assign Variant
+              </Button>
+              <Typography variant="caption" color="text.secondary">
+                Only variants not currently linked to a product are listed.
+              </Typography>
             </Stack>
           </CardContent></Card>
-      </Grid>
+        </Grid>
     </Grid>
 
       <Card sx={{ mt: 2 }}><CardContent>
