@@ -27567,6 +27567,14 @@ export type RemoveAssetMutationVariables = Exact<{
 
 export type RemoveAssetMutation = { __typename?: 'Mutation', removeAsset: boolean };
 
+export type AssetsQueryVariables = Exact<{
+  take?: InputMaybe<Scalars['Int']['input']>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type AssetsQuery = { __typename?: 'Query', assets: Array<{ __typename?: 'Asset', id: string, kind: AssetKind, bucket: string, key: string, url: string, filename?: string | null, mimetype?: string | null, size?: number | null, createdAt: any, updatedAt: any, assignments?: Array<{ __typename?: 'AssetAssignment', id: string, entityType: AssetEntityType, entityId: string, isPrimary: boolean }> | null }> };
+
 export type LoginMutationVariables = Exact<{
   input: LoginInput;
 }>;
@@ -28972,6 +28980,62 @@ export function useRemoveAssetMutation(baseOptions?: Apollo.MutationHookOptions<
 export type RemoveAssetMutationHookResult = ReturnType<typeof useRemoveAssetMutation>;
 export type RemoveAssetMutationResult = Apollo.MutationResult<RemoveAssetMutation>;
 export type RemoveAssetMutationOptions = Apollo.BaseMutationOptions<RemoveAssetMutation, RemoveAssetMutationVariables>;
+export const AssetsDocument = gql`
+    query Assets($take: Int, $skip: Int) {
+  assets(take: $take, skip: $skip, orderBy: [{createdAt: desc}]) {
+    id
+    kind
+    bucket
+    key
+    url
+    filename
+    mimetype
+    size
+    createdAt
+    updatedAt
+    assignments {
+      id
+      entityType
+      entityId
+      isPrimary
+    }
+  }
+}
+    `;
+
+/**
+ * __useAssetsQuery__
+ *
+ * To run a query within a React component, call `useAssetsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useAssetsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useAssetsQuery({
+ *   variables: {
+ *      take: // value for 'take'
+ *      skip: // value for 'skip'
+ *   },
+ * });
+ */
+export function useAssetsQuery(baseOptions?: Apollo.QueryHookOptions<AssetsQuery, AssetsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<AssetsQuery, AssetsQueryVariables>(AssetsDocument, options);
+      }
+export function useAssetsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<AssetsQuery, AssetsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<AssetsQuery, AssetsQueryVariables>(AssetsDocument, options);
+        }
+export function useAssetsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<AssetsQuery, AssetsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<AssetsQuery, AssetsQueryVariables>(AssetsDocument, options);
+        }
+export type AssetsQueryHookResult = ReturnType<typeof useAssetsQuery>;
+export type AssetsLazyQueryHookResult = ReturnType<typeof useAssetsLazyQuery>;
+export type AssetsSuspenseQueryHookResult = ReturnType<typeof useAssetsSuspenseQuery>;
+export type AssetsQueryResult = Apollo.QueryResult<AssetsQuery, AssetsQueryVariables>;
 export const LoginDocument = gql`
     mutation Login($input: LoginInput!) {
   login(input: $input) {

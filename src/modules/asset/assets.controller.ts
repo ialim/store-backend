@@ -37,13 +37,15 @@ const coerceEnum = <T extends Record<string, string>>(
   return enumType[upper as keyof T];
 };
 
-const parseMetadata = (value?: string | string[]): Prisma.JsonValue | undefined => {
+const parseMetadata = (
+  value?: string | string[],
+): Prisma.JsonValue | undefined => {
   if (!value) return undefined;
   const input = Array.isArray(value) ? value[0] : value;
   if (!input.trim()) return undefined;
   try {
     return JSON.parse(input) as Prisma.JsonValue;
-  } catch (error) {
+  } catch {
     throw new BadRequestException('metadata must be valid JSON');
   }
 };
@@ -93,13 +95,14 @@ export class AssetsController {
       );
     }
 
-    const assignment = entityType && entityId
-      ? {
-          entityType,
-          entityId,
-          isPrimary: parseBoolean(body.isPrimary),
-        }
-      : undefined;
+    const assignment =
+      entityType && entityId
+        ? {
+            entityType,
+            entityId,
+            isPrimary: parseBoolean(body.isPrimary),
+          }
+        : undefined;
 
     return this.assetService.uploadAsset(file, {
       kind,

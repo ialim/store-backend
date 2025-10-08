@@ -87,13 +87,7 @@ export const RemoveAssetDocument = gql`
 
 export const AssetsDocument = gql`
   query Assets($take: Int, $skip: Int) {
-    assets(
-      args: {
-        take: $take
-        skip: $skip
-        orderBy: { createdAt: desc }
-      }
-    ) {
+    assets(take: $take, skip: $skip, orderBy: [{ createdAt: desc }]) {
       id
       kind
       bucket

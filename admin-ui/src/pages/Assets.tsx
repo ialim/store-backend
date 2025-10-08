@@ -57,11 +57,11 @@ export default function Assets() {
   const [uploading, setUploading] = React.useState(false);
   const { data, loading, refetch } = useAssetsQuery({
     variables: { take: DEFAULT_PAGE_SIZE },
-    fetchPolicy: 'cache-and-network' as any,
+    fetchPolicy: 'cache-and-network',
   });
   const [removeAsset] = useRemoveAssetMutation();
 
-  const assets = data?.findManyAsset ?? [];
+  const assets = data?.assets ?? [];
 
   const handleUpload: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
     const file = event.target.files?.[0];

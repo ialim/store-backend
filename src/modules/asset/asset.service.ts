@@ -164,7 +164,9 @@ export class AssetService extends BaseCrudService<
   }
 
   async deleteAssetById(assetId: string): Promise<boolean> {
-    const asset = await this.prisma.asset.findUnique({ where: { id: assetId } });
+    const asset = await this.prisma.asset.findUnique({
+      where: { id: assetId },
+    });
     if (!asset) {
       return false;
     }
