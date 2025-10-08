@@ -22,7 +22,8 @@
     "src/**/*.ts",
     "test/**/*.ts",
     "prisma/**/*.ts",
-    "shared/**/*.ts"
+    "shared/**/*.ts",
+    "types/**/*.d.ts"
   ],
   "exclude": [
     "admin-ui",
