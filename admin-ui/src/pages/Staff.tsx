@@ -3,7 +3,7 @@ import {
   useAssignStoreManagerMutation,
   useCreateStaffMutation,
   useUsersQuery,
-  RoleName,
+  useRolesQuery,
 } from '../generated/graphql';
 import { Alert, Card, CardContent, Grid, MenuItem, Stack, TextField, Typography, Button, Box } from '@mui/material';
 import { UserSelect, StoreSelect } from '../shared/IdSelects';
@@ -17,7 +17,7 @@ import { ListingHero } from '../shared/ListingLayout';
 export default function Staff() {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
-  const [role, setRole] = React.useState<RoleName>(RoleName.Manager);
+  const [roleId, setRoleId] = React.useState('');
   const [createStaff, { loading: creating, error: createErr }] = useCreateStaffMutation();
 
   const [userId, setUserId] = React.useState('');
@@ -33,12 +33,28 @@ export default function Staff() {
     error: usersError,
     refetch: refetchUsers,
   } = useUsersQuery({ variables: { take: 200 }, fetchPolicy: 'cache-and-network' as any });
+  const { data: rolesData } = useRolesQuery({ fetchPolicy: 'cache-first' as any });
+  const availableRoles = React.useMemo(
+    () =>
+      (rolesData?.roles ?? []).filter(
+        (role) =>
+          role?.name &&
+          !['CUSTOMER', 'RESELLER'].includes(role.name.toUpperCase()),
+      ),
+    [rolesData?.roles],
+  );
+  React.useEffect(() => {
+    if (!roleId && availableRoles.length > 0) {
+      setRoleId(availableRoles[0]?.id ?? '');
+    }
+  }, [availableRoles, roleId]);
   const navigate = useNavigate();
   const staffUsers = React.useMemo(
     () =>
-      (usersData?.listUsers ?? []).filter((u) =>
-        ['MANAGER', 'ADMIN', 'BILLER'].includes(u.role?.name ?? ''),
-      ),
+      (usersData?.listUsers ?? []).filter((u) => {
+        const roleName = (u.role?.name ?? '').toUpperCase();
+        return roleName && !['CUSTOMER', 'RESELLER'].includes(roleName);
+      }),
     [usersData?.listUsers],
   );
   const [search, setSearch] = React.useState('');
@@ -62,7 +78,7 @@ export default function Staff() {
     e.preventDefault();
     if (!email || !password) return;
     try {
-      await createStaff({ variables: { input: { email, password, role } } });
+      await createStaff({ variables: { input: { email, password, roleId } } });
       notify('Staff account created', 'success');
       setEmail('');
       setPassword('');
@@ -130,14 +146,19 @@ export default function Staff() {
                   label="Role"
                   size="small"
                   select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as RoleName)}
+                  value={roleId}
+                  onChange={(e) => setRoleId(e.target.value)}
                 >
-                  {[RoleName.Admin, RoleName.Biller, RoleName.Manager].map((r) => (
-                    <MenuItem key={r} value={r}>{r}</MenuItem>
-                  ))}
+                  {availableRoles.map(
+                    (role) =>
+                      role && (
+                        <MenuItem key={role.id} value={role.id}>
+                          {role.name}
+                        </MenuItem>
+                      ),
+                  )}
                 </TextField>
-                <Button type="submit" variant="contained" disabled={creating || !email || !password}>Create</Button>
+                <Button type="submit" variant="contained" disabled={creating || !email || !password || !roleId}>Create</Button>
               </Stack>
             </CardContent>
           </Card>

@@ -2523,6 +2523,8 @@ type Query {
   groupByAsset(where: AssetWhereInput, orderBy: [AssetOrderByWithAggregationInput!], by: [AssetScalarFieldEnum!]!, having: AssetScalarWhereWithAggregatesInput, take: Int, skip: Int, _count: AssetCountAggregateInput, _avg: AssetAvgAggregateInput, _sum: AssetSumAggregateInput, _min: AssetMinAggregateInput, _max: AssetMaxAggregateInput): [AssetGroupBy!]!
   assetAssignments(input: AssetAssignmentsByEntityInput!): [AssetAssignment!]!
   primaryAssetAssignment(input: AssetAssignmentsByEntityInput!): AssetAssignment
+  rolePermissions: [Permission!]!
+  roles: [Role!]!
 }
 
 input ProductWhereInput {
@@ -6245,6 +6247,10 @@ type Mutation {
   removeAsset(assetId: String!): Boolean!
   assignAsset(input: AssignAssetInput!): AssetAssignment!
   unassignAsset(input: AssignAssetInput!): Boolean!
+  createRole(input: CreateRoleInput!): Role!
+  updateRole(roleId: String!, input: UpdateRoleInput!): Role!
+  deleteRole(roleId: String!): Boolean!
+  assignRole(input: AssignRoleInput!): Boolean!
 }
 
 input LoginInput {
@@ -25443,13 +25449,7 @@ input SetReorderSettingsInput {
 input CreateStaffInput {
   email: String!
   password: String!
-  role: RoleName!
-}
-
-enum RoleName {
-  ADMIN
-  BILLER
-  MANAGER
+  roleId: String!
 }
 
 input AssignBillerInput {
@@ -25818,4 +25818,21 @@ input AssignAssetInput {
   entityType: AssetEntityType!
   entityId: String!
   isPrimary: Boolean
+}
+
+input CreateRoleInput {
+  name: String!
+  description: String
+  permissionNames: [String!]!
+}
+
+input UpdateRoleInput {
+  name: String
+  description: String
+  permissionNames: [String!]
+}
+
+input AssignRoleInput {
+  userId: String!
+  roleId: String!
 }

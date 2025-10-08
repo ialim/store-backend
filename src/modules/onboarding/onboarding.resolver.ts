@@ -5,6 +5,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../shared/permissions';
 import { AuthResponse } from '../auth/dto/auth-response.output';
 import { OnboardingService } from './onboarding.service';
 import { CreateUserInput } from '../users/dto/create-user.input';
@@ -59,7 +60,7 @@ export class OnboardingResolver {
 
   @Mutation(() => ResellerProfile)
   @UseGuards(GqlAuthGuard, PermissionsGuard)
-  @Permissions('APPROVE_RESELLER')
+  @Permissions(PERMISSIONS.resellerProfile.APPROVE as string)
   approveReseller(
     @Args('resellerId') resellerId: string,
     @Args('input') input: ApproveResellerInput,
@@ -69,7 +70,7 @@ export class OnboardingResolver {
 
   @Query(() => [ResellerProfile])
   @UseGuards(GqlAuthGuard, PermissionsGuard)
-  @Permissions('APPROVE_RESELLER')
+  @Permissions(PERMISSIONS.resellerProfile.APPROVE as string)
   pendingResellerApplications(
     @Args('take', { type: () => Int, nullable: true }) take?: number,
     @Args('skip', { type: () => Int, nullable: true }) skip?: number,
@@ -84,14 +85,15 @@ export class OnboardingResolver {
 
   @Query(() => [User])
   @UseGuards(GqlAuthGuard, PermissionsGuard)
-  @Permissions('APPROVE_RESELLER')
+  @Permissions(PERMISSIONS.resellerProfile.APPROVE as string)
   listBillers() {
     return this.onboardingService.listBillers();
   }
 
   @Query(() => [ResellerProfile])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.resellerProfile.READ as string)
   resellers(
     @Args('status', { nullable: true })
     status?: 'PENDING' | 'ACTIVE' | 'REJECTED',
@@ -103,15 +105,16 @@ export class OnboardingResolver {
   }
 
   @Query(() => ResellerProfile, { nullable: true })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.resellerProfile.READ as string)
   resellerProfile(@Args('userId') userId: string) {
     return this.onboardingService.getResellerProfile(userId);
   }
 
   @Mutation(() => ResellerProfile)
   @UseGuards(GqlAuthGuard, PermissionsGuard)
-  @Permissions('APPROVE_RESELLER')
+  @Permissions(PERMISSIONS.resellerProfile.APPROVE as string)
   activateReseller(
     @Args('resellerId') resellerId: string,
     @Args('billerId', { nullable: true }) billerId?: string,
@@ -121,7 +124,7 @@ export class OnboardingResolver {
 
   @Mutation(() => ResellerProfile)
   @UseGuards(GqlAuthGuard, PermissionsGuard)
-  @Permissions('APPROVE_RESELLER')
+  @Permissions(PERMISSIONS.resellerProfile.APPROVE as string)
   rejectReseller(
     @Args('resellerId') resellerId: string,
     @Args('reason', { nullable: true }) reason?: string,
@@ -130,8 +133,9 @@ export class OnboardingResolver {
   }
 
   @Mutation(() => CustomerProfile)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.customerProfile.UPDATE as string)
   adminUpdateCustomerProfile(
     @Args('userId') userId: string,
     @Args('input') input: AdminUpdateCustomerProfileInput,
@@ -140,8 +144,9 @@ export class OnboardingResolver {
   }
 
   @Mutation(() => User)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.user.CREATE as string)
   adminCreateCustomer(@Args('input') input: AdminCreateCustomerInput) {
     return this.onboardingService.adminCreateCustomer(input);
   }

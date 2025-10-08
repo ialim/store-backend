@@ -3,6 +3,9 @@ import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../shared/permissions';
 import { OutboxDispatcherService } from './services/outbox-dispatcher.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OutboxStatusCounts } from './types/outbox-status-counts.type';
@@ -21,8 +24,9 @@ export class EventsResolver {
   ) {}
 
   @Mutation(() => Int)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.event.UPDATE as string)
   processOutbox(
     @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     @Args('type', { nullable: true }) type?: string,
@@ -33,8 +37,9 @@ export class EventsResolver {
   }
 
   @Query(() => OutboxStatusCounts)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.event.READ as string)
   async outboxStatus() {
     const [pending, failed, published] = await Promise.all([
       this.prisma.outboxEvent.count({
@@ -51,8 +56,9 @@ export class EventsResolver {
   }
 
   @Query(() => [OutboxTypeCount])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.event.READ as string)
   async outboxStatusByType(
     @Args({ name: 'types', type: () => [String], nullable: true })
     types?: string[],
@@ -86,8 +92,9 @@ export class EventsResolver {
   }
 
   @Query(() => [OutboxDayStatus])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.event.READ as string)
   async outboxStatusSeries(
     @Args('start', { type: () => GraphQLISODateTime }) start: Date,
     @Args('end', { type: () => GraphQLISODateTime }) end: Date,
@@ -121,8 +128,9 @@ export class EventsResolver {
   }
 
   @Query(() => [OutboxEvent])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.event.READ as string)
   lastFailedOutboxEvents(
     @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     @Args('type', { nullable: true }) type?: string,
@@ -139,8 +147,9 @@ export class EventsResolver {
   }
 
   @Mutation(() => Int)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.event.UPDATE as string)
   async retryOutboxFailed(
     @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     @Args('type', { nullable: true }) type?: string,

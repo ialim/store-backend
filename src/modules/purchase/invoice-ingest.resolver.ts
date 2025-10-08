@@ -10,6 +10,9 @@ import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../shared/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { InvoiceIngestService } from './invoice-ingest.service';
 import { StockService } from '../stock/stock.service';
@@ -86,8 +89,9 @@ export class InvoiceIngestResolver {
   ) {}
 
   @Mutation(() => ProcessInvoiceResult)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.purchase.CREATE as string)
   async adminProcessInvoiceUrl(
     @Args('input') input: ProcessInvoiceUrlInput,
   ): Promise<ProcessInvoiceResult> {

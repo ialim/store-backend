@@ -10,6 +10,7 @@ import { UseGuards } from '@nestjs/common';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
+import { PERMISSIONS } from '../../../shared/permissions';
 
 @Resolver()
 export class StaffResolver {
@@ -17,21 +18,21 @@ export class StaffResolver {
 
   @Mutation(() => User)
   @UseGuards(GqlAuthGuard, PermissionsGuard)
-  @Permissions('CREATE_STAFF')
+  @Permissions(PERMISSIONS.staff.CREATE as string)
   createStaff(@Args('input') input: CreateStaffInput) {
     return this.staffService.createStaff(input);
   }
 
   @Mutation(() => Store)
   @UseGuards(GqlAuthGuard, PermissionsGuard)
-  @Permissions('ASSIGN_MANAGER')
+  @Permissions(PERMISSIONS.store.UPDATE as string)
   assignStoreManager(@Args('input') input: AssignStoreManagerInput) {
     return this.staffService.assignStoreManager(input);
   }
 
   @Mutation(() => ResellerProfile)
   @UseGuards(GqlAuthGuard, PermissionsGuard)
-  @Permissions('ASSIGN_BILLER')
+  @Permissions(PERMISSIONS.resellerProfile.UPDATE as string)
   assignBiller(@Args('input') input: AssignBillerInput) {
     return this.staffService.assignBiller(input);
   }

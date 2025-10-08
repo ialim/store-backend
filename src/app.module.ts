@@ -26,6 +26,7 @@ import { DevToolsModule } from './modules/devtools/devtools.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { HealthController } from './modules/health/health.controller';
 import { AssetModule } from './modules/asset/asset.module';
+import { RolesModule } from './modules/roles/roles.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { AssetModule } from './modules/asset/asset.module';
     DevToolsModule,
     SyncModule,
     AssetModule,
+    RolesModule,
   ],
   controllers: [HealthController],
 })

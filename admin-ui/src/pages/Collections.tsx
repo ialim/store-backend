@@ -3,6 +3,7 @@ import { Alert, Box, Button, Card, CardContent, Dialog, DialogActions, DialogCon
 import TableList from '../shared/TableList';
 import { ListingHero } from '../shared/ListingLayout';
 import { useCollectionsQuery, useCreateCollectionMutation, useUpdateCollectionMutation, useDeleteCollectionMutation, useListFacetsQuery, useCollectionMembersCountLazyQuery, useCollectionVariantsLazyQuery, useCollectionProductsLazyQuery } from '../generated/graphql';
+import { PERMISSIONS, permissionList } from '../shared/permissions';
 
 type FacetFilter = { facetId: string; value: string };
 
@@ -138,7 +139,10 @@ export default function Collections() {
             },
             edit: {
               onClick: (row: any) => startEdit(row),
-              permission: 'MANAGE_PRODUCTS',
+              permission: permissionList(
+                PERMISSIONS.product.UPDATE,
+                PERMISSIONS.product.DELETE,
+              ),
               label: 'Edit collection',
             },
             delete: {
@@ -146,7 +150,10 @@ export default function Collections() {
                 await deleteCollection({ variables: { id: row.id } });
                 await refetch();
               },
-              permission: 'MANAGE_PRODUCTS',
+              permission: permissionList(
+                PERMISSIONS.product.DELETE,
+                PERMISSIONS.product.UPDATE,
+              ),
               label: 'Delete collection',
               confirmMessage: (row: any) => `Delete collection "${row.name || row.code}"?`,
             },

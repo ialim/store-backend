@@ -18,6 +18,9 @@ import { CollectionService, FacetFilter } from './collection.service';
 import { GraphQLJSON } from 'graphql-type-json';
 import { Product } from '../../../shared/prismagraphql/product';
 import { ProductVariant } from '../../../shared/prismagraphql/product-variant';
+import { PermissionsGuard } from '../../auth/guards/permissions.guard';
+import { Permissions } from '../../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../../shared/permissions';
 
 export enum CollectionTarget {
   PRODUCT = 'PRODUCT',
@@ -80,46 +83,53 @@ export class CollectionResolver {
   constructor(private readonly service: CollectionService) {}
 
   @Query(() => [CollectionGQL])
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.product.READ as string)
   collections() {
     return this.service.list();
   }
 
   @Query(() => CollectionGQL)
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.product.READ as string)
   collection(@Args('id') id: string) {
     return this.service.byId(id);
   }
 
   @Mutation(() => CollectionGQL)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.product.CREATE as string)
   createCollection(@Args('input') input: CreateCollectionInput) {
     return this.service.create({ ...input, filters: input.filters });
   }
 
   @Mutation(() => CollectionGQL)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.product.UPDATE as string)
   updateCollection(@Args('input') input: UpdateCollectionInput) {
     return this.service.update(input);
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.product.DELETE as string)
   deleteCollection(@Args('id') id: string) {
     return this.service.delete(id);
   }
 
   @Query(() => Int)
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.product.READ as string)
   collectionMembersCount(@Args('id') id: string) {
     return this.service.membersCount(id);
   }
 
   @Query(() => [ProductVariant])
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.product.READ as string)
   collectionVariants(
     @Args('id') id: string,
     @Args('take', { type: () => Int, nullable: true }) take?: number,
@@ -129,7 +139,8 @@ export class CollectionResolver {
   }
 
   @Query(() => [Product])
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.product.READ as string)
   collectionProducts(
     @Args('id') id: string,
     @Args('take', { type: () => Int, nullable: true }) take?: number,

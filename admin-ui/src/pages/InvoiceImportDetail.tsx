@@ -28,6 +28,7 @@ import {
 import { UserSelect } from '../shared/IdSelects';
 import { notify } from '../shared/notify';
 import { useAuth } from '../shared/AuthProvider';
+import { PERMISSIONS, permissionList } from '../shared/permissions';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import TableList from '../shared/TableList';
@@ -36,7 +37,13 @@ export default function InvoiceImportDetail() {
   const auth = useAuth();
   const canManage =
     auth.hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-    auth.hasPermission('MANAGE_PRODUCTS', 'VIEW_REPORTS');
+    auth.hasPermission(
+      ...permissionList(
+        PERMISSIONS.product.UPDATE,
+        PERMISSIONS.product.CREATE,
+        PERMISSIONS.analytics.READ,
+      ),
+    );
   const { id } = useParams();
   const navigate = useNavigate();
   const skip = !id;

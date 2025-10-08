@@ -3,6 +3,9 @@ import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../shared/permissions';
 import { ReturnsService } from './returns.service';
 import { CreateSalesReturnInput } from './dto/create-sales-return.input';
 import { UpdateSalesReturnStatusInput } from './dto/update-sales-return-status.input';
@@ -25,55 +28,63 @@ export class ReturnsResolver {
 
   // Update sales return status (accept/reject/fulfill)
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.return.UPDATE as string)
   updateSalesReturnStatus(@Args('input') input: UpdateSalesReturnStatusInput) {
     return this.returns.updateSalesReturnStatus(input);
   }
 
   // Create a sales return using orderId (helper)
   @Mutation(() => String)
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.return.CREATE as string)
   createSalesReturnForOrder(@Args('input') input: CreateOrderReturnInput) {
     return this.returns.createSalesReturnForOrder(input);
   }
 
   // Create a purchase return (partial or full)
   @Mutation(() => String)
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.return.CREATE as string)
   createPurchaseReturn(@Args('input') input: CreatePurchaseReturnInput) {
     return this.returns.createPurchaseReturn(input);
   }
 
   // Fulfill purchase return (apply stock movement)
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.return.UPDATE as string)
   fulfillPurchaseReturn(@Args('input') input: FulfillPurchaseReturnInput) {
     return this.returns.fulfillPurchaseReturn(input);
   }
 
   // Listings
   @Query(() => [SalesReturn])
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.return.READ as string)
   salesReturnsByStore(@Args('storeId') storeId: string) {
     return this.returns.salesReturnsByStore(storeId);
   }
 
   @Query(() => [SalesReturn])
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.return.READ as string)
   salesReturnsByConsumerSale(@Args('consumerSaleId') consumerSaleId: string) {
     return this.returns.salesReturnsByConsumerSale(consumerSaleId);
   }
 
   @Query(() => [SalesReturn])
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.return.READ as string)
   salesReturnsByResellerSale(@Args('resellerSaleId') resellerSaleId: string) {
     return this.returns.salesReturnsByResellerSale(resellerSaleId);
   }
 
   @Query(() => [PurchaseReturn])
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.return.READ as string)
   purchaseReturnsBySupplier(@Args('supplierId') supplierId: string) {
     return this.returns.purchaseReturnsBySupplier(supplierId);
   }

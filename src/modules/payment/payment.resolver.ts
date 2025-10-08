@@ -5,6 +5,9 @@ import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../shared/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PaymentOrderSummary } from './types/payment-order-summary.type';
 import { StorePaymentsSummary } from './types/store-payments-summary.type';
@@ -45,7 +48,8 @@ export class PaymentResolver {
 
   // Lists
   @Query(() => [ConsumerPayment])
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.payment.READ as string)
   consumerPaymentsByOrder(@Args('saleOrderId') saleOrderId: string) {
     return this.prisma.consumerPayment.findMany({
       where: { saleOrderId },
@@ -54,7 +58,8 @@ export class PaymentResolver {
   }
 
   @Query(() => [ResellerPayment])
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.payment.READ as string)
   resellerPaymentsByOrder(@Args('saleOrderId') saleOrderId: string) {
     return this.prisma.resellerPayment.findMany({
       where: { saleOrderId },
@@ -63,7 +68,8 @@ export class PaymentResolver {
   }
 
   @Query(() => [SupplierPayment])
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.payment.READ as string)
   supplierPaymentsByPO(@Args('purchaseOrderId') purchaseOrderId: string) {
     return this.prisma.supplierPayment.findMany({
       where: { purchaseOrderId },
@@ -73,8 +79,9 @@ export class PaymentResolver {
 
   // Aggregates
   @Query(() => PaymentOrderSummary)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.payment.READ as string)
   async orderPaymentSummary(@Args('saleOrderId') saleOrderId: string) {
     const order = await this.prisma.saleOrder.findUnique({
       where: { id: saleOrderId },
@@ -116,8 +123,9 @@ export class PaymentResolver {
   }
 
   @Query(() => StorePaymentsSummary)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.payment.READ as string)
   async storePaymentsSummary(
     @Args('storeId') storeId: string,
     @Args('month', { nullable: true }) month?: string,
@@ -149,8 +157,9 @@ export class PaymentResolver {
   }
 
   @Query(() => SupplierPaymentsSummary)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.payment.READ as string)
   async supplierPaymentsSummary(
     @Args('supplierId') supplierId: string,
     @Args('month', { nullable: true }) month?: string,
@@ -181,8 +190,9 @@ export class PaymentResolver {
   }
 
   @Query(() => BillerPaymentsSummary)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.payment.READ as string)
   async billerPaymentsSummary(
     @Args('billerId') billerId: string,
     @Args('storeId', { nullable: true }) storeId?: string,
@@ -242,8 +252,9 @@ export class PaymentResolver {
   }
 
   @Query(() => [PaymentDaySeries])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.payment.READ as string)
   async dailyPaymentsSeries(
     @Args('month', { nullable: true }) month?: string,
     @Args('storeId', { nullable: true }) storeId?: string,
@@ -314,8 +325,9 @@ export class PaymentResolver {
   }
 
   @Query(() => [BillerPaymentsSummary])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.payment.READ as string)
   async billerPaymentsSummaryByStore(
     @Args('storeId') storeId: string,
     @Args('month', { nullable: true }) month?: string,
@@ -385,8 +397,9 @@ export class PaymentResolver {
   }
 
   @Query(() => [PaymentMethodBreakdownEntry])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.payment.READ as string)
   async paymentMethodBreakdown(
     @Args('month', { nullable: true }) month?: string,
     @Args('storeId', { nullable: true }) storeId?: string,
@@ -462,8 +475,9 @@ export class PaymentResolver {
 
   // Supplier payment methods
   @Query(() => [SupplierPaymentMethodBreakdownEntry])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.payment.READ as string)
   async supplierPaymentMethodBreakdown(
     @Args('month', { nullable: true }) month?: string,
     @Args('supplierId', { nullable: true }) supplierId?: string,
@@ -496,8 +510,9 @@ export class PaymentResolver {
 
   // Date-range variants
   @Query(() => StorePaymentsSummary)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.payment.READ as string)
   async storePaymentsSummaryRange(
     @Args('storeId') storeId: string,
     @Args('start', { type: () => GraphQLISODateTime }) start: Date,
@@ -534,8 +549,9 @@ export class PaymentResolver {
   }
 
   @Query(() => BillerPaymentsSummary)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.payment.READ as string)
   async billerPaymentsSummaryRange(
     @Args('billerId') billerId: string,
     @Args('start', { type: () => GraphQLISODateTime }) start: Date,
@@ -584,8 +600,9 @@ export class PaymentResolver {
   }
 
   @Query(() => [PaymentMethodBreakdownEntry])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.payment.READ as string)
   async paymentMethodBreakdownRange(
     @Args('start', { type: () => GraphQLISODateTime }) start: Date,
     @Args('end', { type: () => GraphQLISODateTime }) end: Date,
@@ -659,8 +676,9 @@ export class PaymentResolver {
   }
 
   @Query(() => [PaymentDaySeries])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.payment.READ as string)
   async dailyPaymentsSeriesRange(
     @Args('start', { type: () => GraphQLISODateTime }) start: Date,
     @Args('end', { type: () => GraphQLISODateTime }) end: Date,

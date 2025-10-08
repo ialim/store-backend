@@ -3,6 +3,7 @@ import { Alert, Box, Button, Card, CardContent, Stack, Typography, List, ListIte
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DownloadIcon from '@mui/icons-material/Download';
 import { useAuth } from '../shared/AuthProvider';
+import { PERMISSIONS, permissionList } from '../shared/permissions';
 
 const GRAPHQL_URL = (import.meta as any).env.VITE_GRAPHQL_URL || '/graphql';
 const API_BASE = (import.meta as any).env.VITE_API_BASE || (() => {
@@ -31,8 +32,16 @@ export default function VariantImport() {
 
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
+  const productWriteAccess = permissionList(
+    PERMISSIONS.product.CREATE,
+    PERMISSIONS.product.UPDATE,
+    PERMISSIONS.product.DELETE,
+  );
+
   const canImport = Boolean(
-    token && (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS')),
+    token &&
+      (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+        hasPermission(...productWriteAccess)),
   );
 
   const handleSubmit = async () => {

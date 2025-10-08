@@ -13,6 +13,9 @@ import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../shared/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { InvoiceIngestService } from './invoice-ingest.service';
 import { StockService } from '../stock/stock.service';
@@ -132,8 +135,9 @@ export class InvoiceImportResolver {
   }
 
   @Query(() => [InvoiceImport])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.purchase.READ as string)
   async invoiceImports(): Promise<InvoiceImport[]> {
     return this.prisma.invoiceImport.findMany({
       orderBy: { createdAt: 'desc' },
@@ -141,15 +145,17 @@ export class InvoiceImportResolver {
   }
 
   @Query(() => InvoiceImport, { nullable: true })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.purchase.READ as string)
   async invoiceImport(@Args('id') id: string): Promise<InvoiceImport | null> {
     return this.prisma.invoiceImport.findUnique({ where: { id } });
   }
 
   @Mutation(() => InvoiceImport)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.purchase.CREATE as string)
   async adminCreateInvoiceImport(
     @Args('input') input: CreateInvoiceImportInput,
   ): Promise<InvoiceImport> {
@@ -183,8 +189,9 @@ export class InvoiceImportResolver {
   }
 
   @Mutation(() => InvoiceImport)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.purchase.UPDATE as string)
   async adminReprocessInvoiceImport(
     @Args('id') id: string,
   ): Promise<InvoiceImport> {
@@ -209,8 +216,9 @@ export class InvoiceImportResolver {
   // vendor normalization moved to vendor-rules.ts
 
   @Mutation(() => InvoiceImport)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.purchase.UPDATE as string)
   async adminUpdateInvoiceImport(
     @Args('input') input: UpdateInvoiceImportInput,
   ): Promise<InvoiceImport> {
@@ -241,8 +249,9 @@ export class InvoiceImportResolver {
   }
 
   @Mutation(() => ApproveInvoiceResult)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.purchase.APPROVE as string)
   async adminApproveInvoiceImport(
     @Args('input') input: ApproveInvoiceImportInput,
   ): Promise<ApproveInvoiceResult> {
