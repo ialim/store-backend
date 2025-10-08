@@ -104,7 +104,7 @@ export class FacetResolver {
   @Permissions(PERMISSIONS.product.UPDATE as string)
   updateFacet(@Args('input') input: UpdateFacetInput) {
     const { id, ...patch } = input;
-   return this.service.update(id, patch);
+    return this.service.update(id, patch);
   }
 
   @Mutation(() => String)

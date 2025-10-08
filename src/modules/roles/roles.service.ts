@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateRoleInput } from './dto/create-role.input';
 import { UpdateRoleInput } from './dto/update-role.input';
@@ -27,7 +31,9 @@ export class RolesService {
     });
   }
 
-  private async resolvePermissionConnections(permissionNames: string[] | undefined) {
+  private async resolvePermissionConnections(
+    permissionNames: string[] | undefined,
+  ) {
     if (!permissionNames) {
       return undefined;
     }
