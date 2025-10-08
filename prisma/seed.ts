@@ -242,6 +242,11 @@ async function main() {
       PERMISSIONS.store.APPROVE,
       PERMISSIONS.stock.READ,
       PERMISSIONS.stock.UPDATE,
+      PERMISSIONS.product.CREATE,
+      PERMISSIONS.product.READ,
+      PERMISSIONS.product.UPDATE,
+      PERMISSIONS.product.DELETE,
+      PERMISSIONS.product.APPROVE,
       PERMISSIONS.purchase.CREATE,
       PERMISSIONS.purchase.READ,
       PERMISSIONS.purchase.UPDATE,
@@ -283,6 +288,7 @@ async function main() {
       PERMISSIONS.return.READ,
       PERMISSIONS.return.UPDATE,
       PERMISSIONS.asset.READ,
+      PERMISSIONS.product.READ,
     ].filter(Boolean) as PermissionName[],
     BILLER: [
       PERMISSIONS.resellerProfile.CREATE,
@@ -297,6 +303,7 @@ async function main() {
       PERMISSIONS.order.CREATE,
       PERMISSIONS.order.READ,
       PERMISSIONS.order.UPDATE,
+      PERMISSIONS.product.READ,
     ].filter(Boolean) as PermissionName[],
     MANAGER: [
       PERMISSIONS.store.READ,
@@ -307,6 +314,11 @@ async function main() {
       PERMISSIONS.resellerProfile.APPROVE,
       PERMISSIONS.stock.READ,
       PERMISSIONS.stock.UPDATE,
+      PERMISSIONS.product.CREATE,
+      PERMISSIONS.product.READ,
+      PERMISSIONS.product.UPDATE,
+      PERMISSIONS.product.DELETE,
+      PERMISSIONS.product.APPROVE,
       PERMISSIONS.purchase.READ,
       PERMISSIONS.purchase.UPDATE,
       PERMISSIONS.purchase.APPROVE,
@@ -340,6 +352,7 @@ async function main() {
       PERMISSIONS.order.READ,
       PERMISSIONS.order.UPDATE,
       PERMISSIONS.return.READ,
+      PERMISSIONS.product.READ,
     ].filter(Boolean) as PermissionName[],
     CUSTOMER: [
       PERMISSIONS.customerProfile.READ,
@@ -349,6 +362,7 @@ async function main() {
       PERMISSIONS.order.CREATE,
       PERMISSIONS.order.READ,
       PERMISSIONS.order.UPDATE,
+      PERMISSIONS.product.READ,
     ].filter(Boolean) as PermissionName[],
   };
 
