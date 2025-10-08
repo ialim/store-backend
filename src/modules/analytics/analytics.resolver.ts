@@ -1,6 +1,9 @@
 import { Resolver, Query, Args, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../shared/permissions';
 import { AnalyticsReadService } from './analytics.service';
 import { VariantMonthlySales } from './types/variant-monthly-sales.type';
 import { CustomerAffinityEntry } from './types/customer-affinity-entry.type';
@@ -22,7 +25,8 @@ export class AnalyticsResolver {
   }
 
   @Query(() => [VariantMonthlySales])
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.analytics.READ as string)
   topSellingVariants(
     @Args('month', { nullable: true }) month?: string,
     @Args('limit', { type: () => Int, nullable: true }) limit?: number,
@@ -36,7 +40,8 @@ export class AnalyticsResolver {
   }
 
   @Query(() => [CustomerAffinityEntry])
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.analytics.READ as string)
   customerAffinity(
     @Args('customerId') customerId: string,
     @Args('limit', { type: () => Int, nullable: true }) limit?: number,
@@ -46,7 +51,8 @@ export class AnalyticsResolver {
   }
 
   @Query(() => MonthlySalesSummary)
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.analytics.READ as string)
   monthlySalesSummary(@Args('month', { nullable: true }) month?: string) {
     const m = month || currentMonth();
     return this.read.monthlySalesSummary({ month: m });
@@ -54,7 +60,8 @@ export class AnalyticsResolver {
 
   // Detailed variants (with product info)
   @Query(() => [VariantSalesWithDetails])
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.analytics.READ as string)
   async topSellingVariantsDetailed(
     @Args('month', { nullable: true }) month?: string,
     @Args('limit', { type: () => Int, nullable: true }) limit?: number,
@@ -69,7 +76,8 @@ export class AnalyticsResolver {
   }
 
   @Query(() => [VariantSalesWithDetails])
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.analytics.READ as string)
   async topSellingVariantsByStore(
     @Args('storeId') storeId: string,
     @Args('month', { nullable: true }) month?: string,
@@ -86,7 +94,8 @@ export class AnalyticsResolver {
   }
 
   @Query(() => MonthlySalesSummary)
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.analytics.READ as string)
   monthlySalesSummaryByStore(
     @Args('storeId') storeId: string,
     @Args('month', { nullable: true }) month?: string,

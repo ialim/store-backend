@@ -14,6 +14,7 @@ import { VariantImportService } from './variant-import.service';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
 import type { AuthenticatedUser } from '../../auth/auth.service';
+import { PERMISSIONS } from '../../../../shared/permissions';
 
 type RequestWithUser = Request & { user?: AuthenticatedUser };
 
@@ -41,12 +42,17 @@ export class VariantImportController {
     const hasPrivilegedRole = roleName
       ? ['SUPERADMIN', 'ADMIN', 'MANAGER'].includes(roleName)
       : false;
-    const hasManageProductsPermission = Boolean(
-      user?.role?.permissions?.some(
-        (permission) => permission.name === 'MANAGE_PRODUCTS',
+    const productMaintenancePermissions = [
+      PERMISSIONS.product.CREATE,
+      PERMISSIONS.product.UPDATE,
+      PERMISSIONS.product.DELETE,
+    ].filter(Boolean) as string[];
+    const hasProductMaintenancePermission = Boolean(
+      user?.role?.permissions?.some((permission) =>
+        productMaintenancePermissions.includes(permission.name),
       ),
     );
-    if (!hasPrivilegedRole && !hasManageProductsPermission) {
+    if (!hasPrivilegedRole && !hasProductMaintenancePermission) {
       throw new ForbiddenException('Insufficient permissions');
     }
     const summary = await this.variantImportService.importFromCsv(file.buffer);

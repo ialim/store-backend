@@ -2,6 +2,12 @@ import { PrismaClient, UserTier, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
+import {
+  ALL_PERMISSION_NAMES,
+  PERMISSION_DEFINITIONS,
+  PERMISSIONS,
+  PermissionName,
+} from '../shared/permissions';
 
 const prisma = new PrismaClient();
 
@@ -179,25 +185,13 @@ async function seedVariantsFromCsv(options: {
 
 async function main() {
   // --- Permissions ---
-  const permissions = [
-    { name: 'MANAGE_USERS', module: 'User', action: 'ALL' },
-    { name: 'MANAGE_PRODUCTS', module: 'Product', action: 'ALL' },
-    { name: 'VIEW_REPORTS', module: 'Analytics', action: 'READ' },
-    {
-      name: 'COMPLETE_CUSTOMER_PROFILE',
-      module: 'CustomerProfile',
-      action: 'UPDATE',
-    },
-    { name: 'APPLY_RESELLER', module: 'ResellerProfile', action: 'CREATE' },
-    { name: 'APPROVE_RESELLER', module: 'ResellerProfile', action: 'UPDATE' },
-    { name: 'CREATE_STAFF', module: 'Staff', action: 'CREATE' },
-    { name: 'ASSIGN_MANAGER', module: 'Store', action: 'UPDATE' },
-    { name: 'ASSIGN_BILLER', module: 'ResellerProfile', action: 'UPDATE' },
-  ];
-  for (const perm of permissions) {
+  for (const perm of PERMISSION_DEFINITIONS) {
     await prisma.permission.upsert({
       where: { name: perm.name },
-      update: {},
+      update: {
+        module: perm.module,
+        action: perm.action,
+      },
       create: perm,
     });
   }
@@ -225,46 +219,155 @@ async function main() {
 
   // Assign permissions to roles
   const allPerms = await prisma.permission.findMany();
-  // SUPERADMIN gets all
-  await prisma.role.update({
-    where: { name: 'SUPERADMIN' },
-    data: { permissions: { connect: allPerms.map((p) => ({ id: p.id })) } },
-  });
-  // ADMIN
-  const adminPerms = allPerms.filter((p) =>
-    ['MANAGE_USERS', 'VIEW_REPORTS', 'APPROVE_RESELLER'].includes(p.name),
-  );
-  await prisma.role.update({
-    where: { name: 'ADMIN' },
-    data: { permissions: { connect: adminPerms.map((p) => ({ id: p.id })) } },
-  });
-  // BILLER
-  const billerPerms = allPerms.filter((p) =>
-    ['APPLY_RESELLER', 'COMPLETE_CUSTOMER_PROFILE'].includes(p.name),
-  );
-  await prisma.role.update({
-    where: { name: 'BILLER' },
-    data: { permissions: { connect: billerPerms.map((p) => ({ id: p.id })) } },
-  });
-  // MANAGER
-  const managerPerms = allPerms.filter((p) =>
-    ['ASSIGN_MANAGER', 'ASSIGN_BILLER', 'APPROVE_RESELLER'].includes(p.name),
-  );
-  await prisma.role.update({
-    where: { name: 'MANAGER' },
-    data: { permissions: { connect: managerPerms.map((p) => ({ id: p.id })) } },
-  });
+  const permByName = new Map(allPerms.map((perm) => [perm.name, perm.id]));
 
-  // ACCOUNTANT
-  const accountantPerms = allPerms.filter((p) =>
-    ['VIEW_REPORTS'].includes(p.name),
-  );
-  await prisma.role.update({
-    where: { name: 'ACCOUNTANT' },
-    data: {
-      permissions: { connect: accountantPerms.map((p) => ({ id: p.id })) },
-    },
-  });
+  const rolePermissions: Record<string, PermissionName[]> = {
+    SUPERADMIN: [...ALL_PERMISSION_NAMES],
+    ADMIN: [
+      PERMISSIONS.user.CREATE,
+      PERMISSIONS.user.READ,
+      PERMISSIONS.user.UPDATE,
+      PERMISSIONS.user.DELETE,
+      PERMISSIONS.analytics.READ,
+      PERMISSIONS.resellerProfile.READ,
+      PERMISSIONS.resellerProfile.UPDATE,
+      PERMISSIONS.resellerProfile.APPROVE,
+      PERMISSIONS.customerProfile.READ,
+      PERMISSIONS.customerProfile.UPDATE,
+      PERMISSIONS.role.READ,
+      PERMISSIONS.store.CREATE,
+      PERMISSIONS.store.READ,
+      PERMISSIONS.store.UPDATE,
+      PERMISSIONS.store.DELETE,
+      PERMISSIONS.store.APPROVE,
+      PERMISSIONS.stock.READ,
+      PERMISSIONS.stock.UPDATE,
+      PERMISSIONS.purchase.CREATE,
+      PERMISSIONS.purchase.READ,
+      PERMISSIONS.purchase.UPDATE,
+      PERMISSIONS.purchase.APPROVE,
+      PERMISSIONS.payment.READ,
+      PERMISSIONS.event.READ,
+      PERMISSIONS.event.UPDATE,
+      PERMISSIONS.sale.CREATE,
+      PERMISSIONS.sale.READ,
+      PERMISSIONS.sale.UPDATE,
+      PERMISSIONS.sale.APPROVE,
+      PERMISSIONS.order.CREATE,
+      PERMISSIONS.order.READ,
+      PERMISSIONS.order.UPDATE,
+      PERMISSIONS.order.APPROVE,
+      PERMISSIONS.return.CREATE,
+      PERMISSIONS.return.READ,
+      PERMISSIONS.return.UPDATE,
+      PERMISSIONS.asset.CREATE,
+      PERMISSIONS.asset.READ,
+      PERMISSIONS.asset.UPDATE,
+      PERMISSIONS.asset.DELETE,
+      PERMISSIONS.devtool.READ,
+      PERMISSIONS.devtool.UPDATE,
+      PERMISSIONS.support.READ,
+      PERMISSIONS.support.UPDATE,
+    ].filter(Boolean) as PermissionName[],
+    ACCOUNTANT: [
+      PERMISSIONS.analytics.READ,
+      PERMISSIONS.payment.READ,
+      PERMISSIONS.event.READ,
+      PERMISSIONS.event.UPDATE,
+      PERMISSIONS.sale.READ,
+      PERMISSIONS.sale.UPDATE,
+      PERMISSIONS.sale.APPROVE,
+      PERMISSIONS.order.READ,
+      PERMISSIONS.order.UPDATE,
+      PERMISSIONS.order.APPROVE,
+      PERMISSIONS.return.READ,
+      PERMISSIONS.return.UPDATE,
+      PERMISSIONS.asset.READ,
+    ].filter(Boolean) as PermissionName[],
+    BILLER: [
+      PERMISSIONS.resellerProfile.CREATE,
+      PERMISSIONS.resellerProfile.READ,
+      PERMISSIONS.resellerProfile.UPDATE,
+      PERMISSIONS.customerProfile.READ,
+      PERMISSIONS.customerProfile.UPDATE,
+      PERMISSIONS.sale.CREATE,
+      PERMISSIONS.sale.READ,
+      PERMISSIONS.sale.UPDATE,
+      PERMISSIONS.sale.APPROVE,
+      PERMISSIONS.order.CREATE,
+      PERMISSIONS.order.READ,
+      PERMISSIONS.order.UPDATE,
+    ].filter(Boolean) as PermissionName[],
+    MANAGER: [
+      PERMISSIONS.store.READ,
+      PERMISSIONS.store.UPDATE,
+      PERMISSIONS.store.APPROVE,
+      PERMISSIONS.resellerProfile.READ,
+      PERMISSIONS.resellerProfile.UPDATE,
+      PERMISSIONS.resellerProfile.APPROVE,
+      PERMISSIONS.stock.READ,
+      PERMISSIONS.stock.UPDATE,
+      PERMISSIONS.purchase.READ,
+      PERMISSIONS.purchase.UPDATE,
+      PERMISSIONS.purchase.APPROVE,
+      PERMISSIONS.payment.READ,
+      PERMISSIONS.event.READ,
+      PERMISSIONS.event.UPDATE,
+      PERMISSIONS.sale.CREATE,
+      PERMISSIONS.sale.READ,
+      PERMISSIONS.sale.UPDATE,
+      PERMISSIONS.sale.APPROVE,
+      PERMISSIONS.order.CREATE,
+      PERMISSIONS.order.READ,
+      PERMISSIONS.order.UPDATE,
+      PERMISSIONS.order.APPROVE,
+      PERMISSIONS.return.READ,
+      PERMISSIONS.return.UPDATE,
+      PERMISSIONS.asset.CREATE,
+      PERMISSIONS.asset.READ,
+      PERMISSIONS.asset.UPDATE,
+      PERMISSIONS.asset.DELETE,
+      PERMISSIONS.support.READ,
+      PERMISSIONS.support.UPDATE,
+    ].filter(Boolean) as PermissionName[],
+    RESELLER: [
+      PERMISSIONS.resellerProfile.READ,
+      PERMISSIONS.customerProfile.READ,
+      PERMISSIONS.sale.CREATE,
+      PERMISSIONS.sale.READ,
+      PERMISSIONS.sale.UPDATE,
+      PERMISSIONS.order.CREATE,
+      PERMISSIONS.order.READ,
+      PERMISSIONS.order.UPDATE,
+      PERMISSIONS.return.READ,
+    ].filter(Boolean) as PermissionName[],
+    CUSTOMER: [
+      PERMISSIONS.customerProfile.READ,
+      PERMISSIONS.sale.CREATE,
+      PERMISSIONS.sale.READ,
+      PERMISSIONS.sale.UPDATE,
+      PERMISSIONS.order.CREATE,
+      PERMISSIONS.order.READ,
+      PERMISSIONS.order.UPDATE,
+    ].filter(Boolean) as PermissionName[],
+  };
+
+  for (const [roleName, permissionNames] of Object.entries(rolePermissions)) {
+    const connect = permissionNames
+      .map((permissionName) => permByName.get(permissionName))
+      .filter((id): id is string => Boolean(id))
+      .map((id) => ({ id }));
+
+    await prisma.role.update({
+      where: { name: roleName },
+      data: {
+        permissions: {
+          set: [],
+          connect,
+        },
+      },
+    });
+  }
 
   // --- Users & Profiles ---
   const passwordHash = await bcrypt.hash('Password123!', 10);

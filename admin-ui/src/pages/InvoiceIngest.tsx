@@ -4,6 +4,7 @@ import { Alert, Box, Button, Card, CardContent, Stack, TextField, Typography, Se
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import TableList from '../shared/TableList';
+import { useAuth } from '../shared/AuthProvider';
 // Compute API base robustly even if VITE_GRAPHQL_URL is relative (e.g. "/graphql")
 const GRAPHQL_URL = (import.meta as any).env.VITE_GRAPHQL_URL || '/graphql';
 const API_BASE = (import.meta as any).env.VITE_API_BASE || (() => {
@@ -40,6 +41,7 @@ const AdminProcessInvoiceUrlDocument = gql`
 
 export default function InvoiceIngest() {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const [url, setUrl] = React.useState('');
   const [storeId, setStoreId] = React.useState('');
   const [createPO, setCreatePO] = React.useState(true);
@@ -67,7 +69,14 @@ export default function InvoiceIngest() {
               const fd = new FormData();
               fd.append('file', file);
               try {
-                const res = await fetch(`${API_BASE}/uploads/invoices`, { method: 'POST', body: fd });
+                const headers: HeadersInit = token
+                  ? { Authorization: `Bearer ${token}` }
+                  : {};
+                const res = await fetch(`${API_BASE}/uploads/invoices`, {
+                  method: 'POST',
+                  body: fd,
+                  headers,
+                });
                 const json = await res.json();
                 if (json?.url) {
                   setUrl(json.url);

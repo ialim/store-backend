@@ -33,11 +33,19 @@ import React from 'react';
 import TableList from '../shared/TableList';
 import { notify } from '../shared/notify';
 import { ListingHero, ListingSelectionCard } from '../shared/ListingLayout';
+import { PERMISSIONS, permissionList } from '../shared/permissions';
 export default function Variants() {
   const theme = useTheme();
   const auth = useAuth();
+  const productManagePermissions = permissionList(
+    PERMISSIONS.product.READ,
+    PERMISSIONS.product.CREATE,
+    PERMISSIONS.product.UPDATE,
+    PERMISSIONS.product.DELETE,
+  );
   const isManager =
-    auth.hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || auth.hasPermission('MANAGE_PRODUCTS');
+    auth.hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+    auth.hasPermission(...productManagePermissions);
   const navigate = useNavigate();
   const [take, setTake] = React.useState(50);
   const [page, setPage] = React.useState(1);

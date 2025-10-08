@@ -18,6 +18,9 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../shared/permissions';
 
 function ensureDev() {
   const env = (process.env.ENV ?? process.env.NODE_ENV ?? '').toLowerCase();
@@ -69,8 +72,9 @@ export class DevToolsResolver {
   constructor(private readonly prisma: PrismaService) {}
 
   @Query(() => DevCounts)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN')
+  @Permissions(PERMISSIONS.devtool.READ as string)
   async devCounts(): Promise<DevCounts> {
     ensureDev();
     const [invoiceImports, purchaseOrders, orphanVariants] = await Promise.all([
@@ -82,8 +86,9 @@ export class DevToolsResolver {
   }
 
   @Mutation(() => Int)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN')
+  @Permissions(PERMISSIONS.devtool.UPDATE as string)
   async devPurgeInvoiceImports(
     @Args('filter', { nullable: true }) filter?: DevPurgeFilter,
   ): Promise<number> {
@@ -109,8 +114,9 @@ export class DevToolsResolver {
   }
 
   @Mutation(() => Int)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN')
+  @Permissions(PERMISSIONS.devtool.UPDATE as string)
   async devPurgePurchaseOrders(
     @Args('filter', { nullable: true }) filter?: DevPurgeFilter,
   ): Promise<number> {
@@ -149,8 +155,9 @@ export class DevToolsResolver {
   }
 
   @Query(() => String)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN')
+  @Permissions(PERMISSIONS.devtool.READ as string)
   async devExportSnapshot(
     @Args('tables', { type: () => [String] }) tables: string[],
     @Args('filter', { nullable: true }) filter?: DevPurgeFilter,
@@ -216,8 +223,9 @@ export class DevToolsResolver {
   }
 
   @Mutation(() => String)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN')
+  @Permissions(PERMISSIONS.devtool.UPDATE as string)
   async devImportSnapshot(
     @Args('json') json: string,
     @Args('preview', { nullable: true }) preview?: boolean,
@@ -298,8 +306,9 @@ export class DevToolsResolver {
   }
 
   @Mutation(() => String)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN')
+  @Permissions(PERMISSIONS.devtool.UPDATE as string)
   async devSeedFixtures(): Promise<string> {
     ensureDev();
     const pv1 = await this.prisma.productVariant.create({
@@ -344,8 +353,9 @@ export class DevToolsResolver {
   }
 
   @Mutation(() => Int)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN')
+  @Permissions(PERMISSIONS.devtool.UPDATE as string)
   async devPurgeOrphanVariants(
     @Args('filter', { nullable: true }) filter?: DevPurgeFilter,
   ): Promise<number> {
@@ -422,8 +432,9 @@ export class DevToolsResolver {
   }
 
   @Mutation(() => Int)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN')
+  @Permissions(PERMISSIONS.devtool.UPDATE as string)
   async devPurgeProducts(
     @Args('filter', { nullable: true }) filter?: DevPurgeFilter,
   ): Promise<number> {

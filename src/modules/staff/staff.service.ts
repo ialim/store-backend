@@ -19,9 +19,9 @@ export class StaffService {
 
   async createStaff(data: CreateStaffInput) {
     const role = await this.prisma.role.findUnique({
-      where: { name: data.role },
+      where: { id: data.roleId },
     });
-    if (!role) throw new NotFoundException(`Role ${data.role} not found`);
+    if (!role) throw new NotFoundException(`Role not found`);
     const user = await this.prisma.user.create({
       data: {
         email: data.email,
@@ -33,7 +33,7 @@ export class StaffService {
     await this.notificationService.createNotification(
       user.id,
       'STAFF_CREATED',
-      `Your account as ${data.role} has been created.`,
+      `Your account as ${role.name} has been created.`,
     );
 
     try {

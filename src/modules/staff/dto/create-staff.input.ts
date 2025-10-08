@@ -1,5 +1,4 @@
 import { InputType, Field } from '@nestjs/graphql';
-import { RoleName } from '../staff.model';
 @InputType()
 export class CreateStaffInput {
   @Field()
@@ -8,6 +7,6 @@ export class CreateStaffInput {
   @Field()
   password: string;
 
-  @Field(() => RoleName)
-  role: RoleName;
+  @Field()
+  roleId: string;
 }

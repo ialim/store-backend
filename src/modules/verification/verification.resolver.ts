@@ -6,6 +6,9 @@ import { VerificationService } from './verification.service';
 import { AuthenticatedUser } from '../auth/auth.service';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../shared/permissions';
 
 @Resolver()
 export class VerificationResolver {
@@ -23,8 +26,9 @@ export class VerificationResolver {
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN')
+  @Permissions(PERMISSIONS.user.UPDATE as string)
   sendUserEmailVerification(@Args('userId') userId: string) {
     return this.verificationService.sendEmailVerification(userId);
   }

@@ -10,6 +10,9 @@ import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../shared/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 @ObjectType()
@@ -32,8 +35,9 @@ export class CatalogueDiagnosticsResolver {
     description:
       'List product variants whose product linkage is invalid or missing',
   })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.product.READ as string)
   async variantsWithInvalidProducts(): Promise<OrphanVariantDiagnostic[]> {
     // Pull a lightweight projection of variants
     const variants = await this.prisma.productVariant.findMany({
@@ -65,8 +69,9 @@ export class CatalogueDiagnosticsResolver {
   @Mutation(() => Boolean, {
     description: 'Attach a variant to a product by setting productId',
   })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.product.UPDATE as string)
   async attachVariantToProduct(
     @Args('variantId') variantId: string,
     @Args('productId') productId: string,

@@ -30,48 +30,57 @@ import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../shared/permissions';
 @Resolver(() => Store)
 export class StoresResolver {
   constructor(private readonly StoreService: StoreService) {}
 
   @Query(() => Store, { nullable: false })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.store.READ as string)
   findFirstStore(@Args() args: FindFirstStoreArgs) {
     return this.StoreService.findFirst(args);
   }
 
   @Query(() => Store, { nullable: false })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.store.READ as string)
   findUniqueStore(@Args() args: FindUniqueStoreArgs) {
     return this.StoreService.findUnique(args);
   }
 
   @Query(() => [Store], { nullable: false })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.store.READ as string)
   listStores(@Args() args: FindManyStoreArgs) {
     return this.StoreService.findMany(args);
   }
 
   @Query(() => [StoreGroupBy], { nullable: false })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.store.READ as string)
   groupByStore(@Args() args: StoreGroupByArgs) {
     return this.StoreService.groupBy(args);
   }
 
   @Query(() => AggregateStore, { nullable: false })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.store.READ as string)
   aggregateStore(@Args() args: StoreAggregateArgs) {
     return this.StoreService.aggregate(args);
   }
 
   @Mutation(() => Store, { nullable: true })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.store.CREATE as string)
   createStore(@Args() args: CreateOneStoreArgs) {
     const Store = this.StoreService.create(args);
     console.log(args, Store);
@@ -79,36 +88,41 @@ export class StoresResolver {
   }
 
   @Mutation(() => AffectedRows, { nullable: true })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.store.CREATE as string)
   createManyStore(@Args() args: CreateManyStoreArgs) {
     return this.StoreService.createMany(args);
   }
 
   @Mutation(() => Store, { nullable: true })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.store.UPDATE as string)
   updateStore(@Args() args: UpdateOneStoreArgs) {
     return this.StoreService.update(args);
   }
 
   @Mutation(() => AffectedRows, { nullable: true })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.store.UPDATE as string)
   updateManyStore(@Args() args: UpdateManyStoreArgs) {
     return this.StoreService.updateMany(args);
   }
 
   @Mutation(() => Store, { nullable: true })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.store.DELETE as string)
   deleteStore(@Args() args: DeleteOneStoreArgs) {
     return this.StoreService.delete(args);
   }
 
   @Mutation(() => AffectedRows, { nullable: true })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.store.DELETE as string)
   deleteManyStore(@Args() args: DeleteManyStoreArgs) {
     return this.StoreService.deleteMany(args);
   }
@@ -152,8 +166,9 @@ export class StoreDiagnosticsResolver {
   @Query(() => [StoreManagerDiagnostic], {
     description: 'List stores whose managerId does not resolve to a User',
   })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.store.READ as string)
   async storesWithInvalidManagers(): Promise<StoreManagerDiagnostic[]> {
     const stores = await this.storeService.prisma.store.findMany({
       select: { id: true, name: true, managerId: true },
@@ -175,8 +190,9 @@ export class StoreDiagnosticsResolver {
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.store.UPDATE as string)
   async assignStoreManager(
     @Args('storeId') storeId: string,
     @Args('managerId') managerId: string,
@@ -189,8 +205,9 @@ export class StoreDiagnosticsResolver {
   }
 
   @Mutation(() => Number)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.store.UPDATE as string)
   async bulkAssignStoreManager(
     @Args({ name: 'storeIds', type: () => [String] }) storeIds: string[],
     @Args('managerId') managerId: string,

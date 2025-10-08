@@ -4,6 +4,9 @@ import type { Request } from 'express';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../shared/permissions';
 import { SupportService } from './support.service';
 import {
   SendSupportMessageInput,
@@ -25,15 +28,17 @@ export class SupportResolver {
   }
 
   @Query(() => [SupportMessage])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.support.READ as string)
   supportConversation(@Args('userId') userId: string) {
     return this.support.conversation(userId);
   }
 
   @Query(() => [SupportMessage])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.support.READ as string)
   recentSupportThreads(
     @Args('limit', { type: () => Int, nullable: true }) limit?: number,
   ) {
@@ -50,8 +55,9 @@ export class SupportResolver {
   }
 
   @Mutation(() => SupportMessage)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.support.UPDATE as string)
   adminSendSupportMessage(
     @Context('req') req: RequestWithUser,
     @Args('input') input: AdminSendSupportMessageInput,

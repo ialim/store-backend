@@ -50,10 +50,44 @@ const VariantImport = lazy(() => import('./pages/VariantImport'));
 const DevDbTools = lazy(() => import('./pages/DevDbTools'));
 const Facets = lazy(() => import('./pages/Facets'));
 const Collections = lazy(() => import('./pages/Collections'));
+const Roles = lazy(() => import('./pages/Roles'));
 const Assets = lazy(() => import('./pages/Assets'));
 const RequisitionDetail = lazy(() => import('./pages/RequisitionDetail'));
+import { PERMISSIONS, permissionList } from './shared/permissions';
 
 export default function App() {
+  const analyticsReadAccess = permissionList(PERMISSIONS.analytics.READ);
+  const productReadAccess = permissionList(PERMISSIONS.product.READ);
+  const productWriteAccess = permissionList(
+    PERMISSIONS.product.CREATE,
+    PERMISSIONS.product.UPDATE,
+    PERMISSIONS.product.DELETE,
+  );
+  const userManageAccess = permissionList(
+    PERMISSIONS.user.CREATE,
+    PERMISSIONS.user.READ,
+    PERMISSIONS.user.UPDATE,
+    PERMISSIONS.user.DELETE,
+  );
+  const resellerApprovalAccess = permissionList(
+    PERMISSIONS.resellerProfile.APPROVE,
+  );
+  const assignmentAccess = permissionList(
+    PERMISSIONS.store.UPDATE,
+    PERMISSIONS.resellerProfile.UPDATE,
+  );
+  const staffManageAccess = permissionList(
+    PERMISSIONS.staff.CREATE,
+    PERMISSIONS.store.UPDATE,
+    PERMISSIONS.resellerProfile.UPDATE,
+  );
+  const roleManageAccess = permissionList(
+    PERMISSIONS.role.READ,
+    PERMISSIONS.role.CREATE,
+    PERMISSIONS.role.UPDATE,
+    PERMISSIONS.role.DELETE,
+  );
+
   return (
     <Box>
       <SidebarLayout>
@@ -71,7 +105,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT']}
-                  perms={['VIEW_REPORTS']}
+                  perms={analyticsReadAccess}
                   element={<Outbox />}
                 />
               }
@@ -81,7 +115,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
-                  perms={['MANAGE_PRODUCTS', 'VIEW_REPORTS']}
+                  perms={[...productReadAccess, ...analyticsReadAccess]}
                   element={<LowStock />}
                 />
               }
@@ -91,7 +125,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER']}
-                  perms={['ASSIGN_MANAGER', 'ASSIGN_BILLER']}
+                  perms={assignmentAccess}
                   element={<Fulfillment />}
                 />
               }
@@ -141,7 +175,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
-                  perms={['MANAGE_PRODUCTS']}
+                  perms={[...productReadAccess, ...productWriteAccess]}
                   element={<Products />}
                 />
               }
@@ -152,7 +186,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
-                  perms={['MANAGE_PRODUCTS']}
+                  perms={productWriteAccess}
                   element={<Assets />}
                 />
               }
@@ -162,7 +196,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
-                  perms={['MANAGE_PRODUCTS']}
+                  perms={productWriteAccess}
                   element={<VariantImport />}
                 />
               }
@@ -182,7 +216,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
-                  perms={['MANAGE_PRODUCTS']}
+                  perms={productWriteAccess}
                   element={<Facets />}
                 />
               }
@@ -192,7 +226,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
-                  perms={['MANAGE_PRODUCTS']}
+                  perms={productWriteAccess}
                   element={<Collections />}
                 />
               }
@@ -238,7 +272,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
-                  perms={['MANAGE_PRODUCTS']}
+                  perms={[...productReadAccess, ...productWriteAccess]}
                   element={<ProductDetail />}
                 />
               }
@@ -257,7 +291,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN']}
-                  perms={['MANAGE_USERS']}
+                  perms={userManageAccess}
                   element={<Users />}
                 />
               }
@@ -267,7 +301,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN']}
-                  perms={['MANAGE_USERS']}
+                  perms={userManageAccess}
                   element={<Customers />}
                 />
               }
@@ -277,7 +311,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN']}
-                  perms={['MANAGE_USERS']}
+                  perms={userManageAccess}
                   element={<CustomerDetail />}
                 />
               }
@@ -294,7 +328,7 @@ export default function App() {
               path="/reseller-approvals"
               element={
                 <ProtectedRoute
-                  perms={['APPROVE_RESELLER']}
+                  perms={resellerApprovalAccess}
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
                   element={<ResellerApprovals />}
                 />
@@ -325,7 +359,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT']}
-                  perms={['VIEW_REPORTS']}
+                  perms={analyticsReadAccess}
                   element={<Analytics />}
                 />
               }
@@ -348,7 +382,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN']}
-                  perms={['CREATE_STAFF', 'ASSIGN_MANAGER', 'ASSIGN_BILLER']}
+                  perms={staffManageAccess}
                   element={<Staff />}
                 />
               }
@@ -358,8 +392,18 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN']}
-                  perms={['CREATE_STAFF', 'ASSIGN_MANAGER', 'ASSIGN_BILLER']}
+                  perms={staffManageAccess}
                   element={<StaffDetail />}
+                />
+              }
+            />
+            <Route
+              path="/roles"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN']}
+                  perms={roleManageAccess}
+                  element={<Roles />}
                 />
               }
             />

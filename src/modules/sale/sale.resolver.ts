@@ -3,6 +3,9 @@ import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../shared/permissions';
 
 import { ConsumerSale } from '../../shared/prismagraphql/consumer-sale';
 import { ConsumerPayment } from '../../shared/prismagraphql/consumer-payment';
@@ -45,8 +48,9 @@ export class SalesResolver {
   @Mutation(() => Quotation, {
     description: 'Deprecated: use order.createQuotationDraft',
   })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('RESELLER', 'BILLER', 'CONSUMER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.CREATE as string)
   createQuotationDraft(@Args('input') input: CreateQuotationDraftInput) {
     return this.salesService.createQuotationDraft(input);
   }
@@ -54,15 +58,17 @@ export class SalesResolver {
   @Mutation(() => Quotation, {
     description: 'Deprecated: use order.updateQuotationStatus',
   })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('RESELLER', 'BILLER', 'CONSUMER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.UPDATE as string)
   updateQuotationStatus(@Args('input') input: UpdateQuotationStatusInput) {
     return this.salesService.updateQuotationStatus(input);
   }
 
   @Mutation(() => ConsumerSale)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('CONSUMER', 'BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.CREATE as string)
   checkoutConsumerQuotation(
     @Args('input') input: CheckoutConsumerQuotationInput,
   ) {
@@ -70,8 +76,9 @@ export class SalesResolver {
   }
 
   @Mutation(() => ResellerSale)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('RESELLER', 'BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.UPDATE as string)
   confirmResellerQuotation(
     @Args('input') input: ConfirmResellerQuotationInput,
   ) {
@@ -79,8 +86,9 @@ export class SalesResolver {
   }
 
   @Mutation(() => Quotation)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.APPROVE as string)
   billerConvertConfirmedQuotation(
     @Args('input') input: BillerConvertQuotationInput,
   ) {
@@ -88,57 +96,65 @@ export class SalesResolver {
   }
 
   @Mutation(() => ConsumerSale)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.CREATE as string)
   createConsumerSale(@Args('input') input: CreateConsumerSaleInput) {
     return this.salesService.createConsumerSale(input);
   }
 
   @Mutation(() => ConsumerPayment)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('BILLER', 'ACCOUNTANT', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.UPDATE as string)
   registerConsumerPayment(@Args('input') input: CreateConsumerPaymentInput) {
     return this.salesService.registerConsumerPayment(input);
   }
 
   @Mutation(() => ConsumerPayment)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ACCOUNTANT', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.APPROVE as string)
   confirmConsumerPayment(@Args('input') input: ConfirmConsumerPaymentInput) {
     return this.salesService.confirmConsumerPayment(input);
   }
 
   @Mutation(() => ConsumerReceipt)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.CREATE as string)
   createConsumerReceipt(@Args('input') input: CreateConsumerReceiptInput) {
     return this.salesService.createConsumerReceipt(input);
   }
 
   @Mutation(() => ConsumerSale)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.UPDATE as string)
   fulfillConsumerSale(@Args('input') input: FulfillConsumerSaleInput) {
     return this.salesService.fulfillConsumerSale(input);
   }
 
   @Mutation(() => ResellerSale)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.CREATE as string)
   createResellerSale(@Args('input') input: CreateResellerSaleInput) {
     return this.salesService.createResellerSale(input);
   }
 
   @Mutation(() => ResellerPayment)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('BILLER', 'ACCOUNTANT', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.UPDATE as string)
   registerResellerPayment(@Args('input') input: CreateResellerPaymentInput) {
     return this.salesService.registerResellerPayment(input);
   }
 
   @Mutation(() => ResellerPayment)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ACCOUNTANT', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.APPROVE as string)
   confirmResellerPayment(@Args('paymentId') paymentId: string) {
     return this.salesService.confirmResellerPayment(paymentId);
   }
@@ -147,8 +163,9 @@ export class SalesResolver {
     description:
       'Assign delivery personnel to a fulfillment and set status to ASSIGNED',
   })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.CREATE as string)
   createFulfillment(@Args('input') input: CreateFulfillmentInput) {
     return this.salesService.createFulfillment(input);
   }
@@ -157,8 +174,9 @@ export class SalesResolver {
     description:
       'Update fulfillment status (ASSIGNED, IN_TRANSIT, DELIVERED, CANCELLED). If DELIVERED and a PIN is set, confirmationPin is required.',
   })
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.UPDATE as string)
   assignFulfillmentPersonnel(
     @Args('input') input: AssignFulfillmentPersonnelInput,
   ) {
@@ -166,23 +184,26 @@ export class SalesResolver {
   }
 
   @Mutation(() => Fulfillment)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.UPDATE as string)
   updateFulfillmentStatus(@Args('input') input: UpdateFulfillmentStatusInput) {
     return this.salesService.updateFulfillmentStatus(input);
   }
 
   @Mutation(() => SaleOrder)
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.APPROVE as string)
   adminRevertOrderToQuotation(@Args('saleOrderId') saleOrderId: string) {
     return this.salesService.adminRevertOrderToQuotation(saleOrderId);
   }
 
   // Admin queries for customer history
   @Query(() => [ConsumerSale])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.READ as string)
   consumerSalesByCustomer(
     @Args('customerId') customerId: string,
     @Args('take', { type: () => Int, nullable: true }) take?: number,
@@ -212,8 +233,9 @@ export class SalesResolver {
   }
 
   @Query(() => [ConsumerReceipt])
-  @UseGuards(GqlAuthGuard, RolesGuard)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.READ as string)
   consumerReceiptsByCustomer(
     @Args('customerId') customerId: string,
     @Args('take', { type: () => Int, nullable: true }) take?: number,

@@ -44,6 +44,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { useAuth } from './AuthProvider';
 import { notify } from './notify';
 import { useHeaderNotificationsQuery, useMeQuery } from '../generated/graphql';
+import { PERMISSIONS, permissionList } from './permissions';
 
 const drawerWidth = 272;
 
@@ -57,6 +58,31 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
   const [searchTerm, setSearchTerm] = React.useState('');
   const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
   const { data: meData } = useMeQuery({ skip: !token, fetchPolicy: 'cache-and-network' as any });
+
+  const analyticsRead = permissionList(PERMISSIONS.analytics.READ);
+  const assignmentAccess = permissionList(
+    PERMISSIONS.store.UPDATE,
+    PERMISSIONS.resellerProfile.UPDATE,
+  );
+  const productRead = permissionList(PERMISSIONS.product.READ);
+  const productWrite = permissionList(
+    PERMISSIONS.product.CREATE,
+    PERMISSIONS.product.UPDATE,
+    PERMISSIONS.product.DELETE,
+  );
+  const userManage = permissionList(
+    PERMISSIONS.user.CREATE,
+    PERMISSIONS.user.READ,
+    PERMISSIONS.user.UPDATE,
+    PERMISSIONS.user.DELETE,
+  );
+  const resellerApprove = permissionList(PERMISSIONS.resellerProfile.APPROVE);
+  const roleManage = permissionList(
+    PERMISSIONS.role.READ,
+    PERMISSIONS.role.CREATE,
+    PERMISSIONS.role.UPDATE,
+    PERMISSIONS.role.DELETE,
+  );
 
   const toggleMobileDrawer = () => setMobileOpen((prev) => !prev);
 
@@ -72,19 +98,25 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         {
           label: 'Outbox',
           to: '/outbox',
-          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT') || hasPermission('VIEW_REPORTS'),
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT') ||
+            hasPermission(...analyticsRead),
           icon: <DashboardIcon fontSize="small" />,
         },
         {
           label: 'Fulfillment',
           to: '/fulfillment',
-          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER') || hasPermission('ASSIGN_MANAGER', 'ASSIGN_BILLER'),
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER') ||
+            hasPermission(...assignmentAccess),
           icon: <LocalShippingIcon fontSize="small" />,
         },
         {
           label: 'Low Stock',
           to: '/low-stock',
-          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS', 'VIEW_REPORTS'),
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+            hasPermission(...productRead, ...analyticsRead),
           icon: <ListAltIcon fontSize="small" />,
         },
       ],
@@ -105,12 +137,47 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       key: 'catalog',
       label: 'Catalog & Stock',
       items: [
-        { label: 'Products', to: '/products', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <Inventory2Icon fontSize="small" /> },
+        {
+          label: 'Products',
+          to: '/products',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+            hasPermission(...productRead, ...productWrite),
+          icon: <Inventory2Icon fontSize="small" />,
+        },
         { label: 'Variants', to: '/variants', show: true, icon: <Inventory2Icon fontSize="small" /> },
-        { label: 'Import Variants', to: '/variants/import', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <CloudUploadIcon fontSize="small" /> },
-        { label: 'Assets', to: '/assets', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <PhotoLibraryIcon fontSize="small" /> },
-        { label: 'Collections', to: '/collections', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <AssignmentIcon fontSize="small" /> },
-        { label: 'Facets', to: '/facets', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('MANAGE_PRODUCTS'), icon: <AssignmentIcon fontSize="small" /> },
+        {
+          label: 'Import Variants',
+          to: '/variants/import',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+            hasPermission(...productWrite),
+          icon: <CloudUploadIcon fontSize="small" />,
+        },
+        {
+          label: 'Assets',
+          to: '/assets',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+            hasPermission(...productWrite),
+          icon: <PhotoLibraryIcon fontSize="small" />,
+        },
+        {
+          label: 'Collections',
+          to: '/collections',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+            hasPermission(...productWrite),
+          icon: <AssignmentIcon fontSize="small" />,
+        },
+        {
+          label: 'Facets',
+          to: '/facets',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+            hasPermission(...productWrite),
+          icon: <AssignmentIcon fontSize="small" />,
+        },
         { label: 'Stock', to: '/stock', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <Inventory2Icon fontSize="small" /> },
         { label: 'Stores', to: '/stores', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <StoreIcon fontSize="small" /> },
       ],
@@ -123,7 +190,14 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         { label: 'Supplier Payments', to: '/supplier-payments', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'), icon: <PaidIcon fontSize="small" /> },
         { label: 'Supplier Statements', to: '/supplier-statements', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'), icon: <PaidIcon fontSize="small" /> },
         { label: 'Supplier Aging', to: '/supplier-aging', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'), icon: <PaidIcon fontSize="small" /> },
-        { label: 'Analytics', to: '/analytics', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT') || hasPermission('VIEW_REPORTS'), icon: <InsightsIcon fontSize="small" /> },
+        {
+          label: 'Analytics',
+          to: '/analytics',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT') ||
+            hasPermission(...analyticsRead),
+          icon: <InsightsIcon fontSize="small" />,
+        },
       ],
     },
     {
@@ -137,12 +211,37 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       key: 'admin',
       label: 'Admin',
       items: [
-        { label: 'Users', to: '/users', show: hasRole('SUPERADMIN', 'ADMIN') || hasPermission('MANAGE_USERS'), icon: <PeopleIcon fontSize="small" /> },
-        { label: 'Customers', to: '/customers', show: hasRole('SUPERADMIN', 'ADMIN') || hasPermission('MANAGE_USERS'), icon: <PeopleIcon fontSize="small" /> },
+        {
+          label: 'Users',
+          to: '/users',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN') || hasPermission(...userManage),
+          icon: <PeopleIcon fontSize="small" />,
+        },
+        {
+          label: 'Customers',
+          to: '/customers',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN') || hasPermission(...userManage),
+          icon: <PeopleIcon fontSize="small" />,
+        },
         { label: 'Resellers', to: '/resellers', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <PeopleIcon fontSize="small" /> },
-        { label: 'Reseller Approvals', to: '/reseller-approvals', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') || hasPermission('APPROVE_RESELLER'), icon: <AssignmentIcon fontSize="small" /> },
+        {
+          label: 'Reseller Approvals',
+          to: '/reseller-approvals',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+            hasPermission(...resellerApprove),
+          icon: <AssignmentIcon fontSize="small" />,
+        },
         { label: 'Support', to: '/support', show: true, icon: <AssignmentIcon fontSize="small" /> },
         { label: 'Staff', to: '/staff', show: hasRole('SUPERADMIN', 'ADMIN'), icon: <PeopleIcon fontSize="small" /> },
+        {
+          label: 'Roles',
+          to: '/roles',
+          show: hasRole('SUPERADMIN') || hasPermission(...roleManage),
+          icon: <AssignmentIcon fontSize="small" />,
+        },
         { label: 'Dev DB Tools', to: '/dev/db-tools', show: hasRole('SUPERADMIN'), icon: <AssignmentIcon fontSize="small" /> },
       ],
     },
