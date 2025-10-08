@@ -218,6 +218,15 @@ export type AffectedRows = {
   count: Scalars['Int']['output'];
 };
 
+export type AggregateAsset = {
+  __typename?: 'AggregateAsset';
+  _avg?: Maybe<AssetAvgAggregate>;
+  _count?: Maybe<AssetCountAggregate>;
+  _max?: Maybe<AssetMaxAggregate>;
+  _min?: Maybe<AssetMinAggregate>;
+  _sum?: Maybe<AssetSumAggregate>;
+};
+
 export type AggregateProduct = {
   __typename?: 'AggregateProduct';
   _count?: Maybe<ProductCountAggregate>;
@@ -279,6 +288,369 @@ export type ApproveResellerInput = {
   billerId?: InputMaybe<Scalars['String']['input']>;
   creditLimit: Scalars['Float']['input'];
   tier: UserTier;
+};
+
+export type Asset = {
+  __typename?: 'Asset';
+  _count: AssetCount;
+  assignments?: Maybe<Array<AssetAssignment>>;
+  bucket: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  filename?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  key: Scalars['String']['output'];
+  kind: AssetKind;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  mimetype?: Maybe<Scalars['String']['output']>;
+  size?: Maybe<Scalars['Int']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  url: Scalars['String']['output'];
+};
+
+export type AssetAssignment = {
+  __typename?: 'AssetAssignment';
+  asset: Asset;
+  assetId: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  entityId: Scalars['String']['output'];
+  entityType: AssetEntityType;
+  id: Scalars['ID']['output'];
+  isPrimary: Scalars['Boolean']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type AssetAssignmentListRelationFilter = {
+  every?: InputMaybe<AssetAssignmentWhereInput>;
+  none?: InputMaybe<AssetAssignmentWhereInput>;
+  some?: InputMaybe<AssetAssignmentWhereInput>;
+};
+
+export type AssetAssignmentOrderByRelationAggregateInput = {
+  _count?: InputMaybe<SortOrder>;
+};
+
+export type AssetAssignmentWhereInput = {
+  AND?: InputMaybe<Array<AssetAssignmentWhereInput>>;
+  NOT?: InputMaybe<Array<AssetAssignmentWhereInput>>;
+  OR?: InputMaybe<Array<AssetAssignmentWhereInput>>;
+  asset?: InputMaybe<AssetScalarRelationFilter>;
+  assetId?: InputMaybe<StringFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  entityId?: InputMaybe<StringFilter>;
+  entityType?: InputMaybe<EnumAssetEntityTypeFilter>;
+  id?: InputMaybe<StringFilter>;
+  isPrimary?: InputMaybe<BoolFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+};
+
+export type AssetAssignmentsByEntityInput = {
+  entityId: Scalars['String']['input'];
+  entityType: AssetEntityType;
+};
+
+export type AssetAvgAggregate = {
+  __typename?: 'AssetAvgAggregate';
+  size?: Maybe<Scalars['Float']['output']>;
+};
+
+export type AssetAvgAggregateInput = {
+  size?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type AssetAvgOrderByAggregateInput = {
+  size?: InputMaybe<SortOrder>;
+};
+
+export type AssetCount = {
+  __typename?: 'AssetCount';
+  assignments: Scalars['Int']['output'];
+};
+
+export type AssetCountAggregate = {
+  __typename?: 'AssetCountAggregate';
+  _all: Scalars['Int']['output'];
+  bucket: Scalars['Int']['output'];
+  createdAt: Scalars['Int']['output'];
+  filename: Scalars['Int']['output'];
+  id: Scalars['Int']['output'];
+  key: Scalars['Int']['output'];
+  kind: Scalars['Int']['output'];
+  metadata: Scalars['Int']['output'];
+  mimetype: Scalars['Int']['output'];
+  size: Scalars['Int']['output'];
+  updatedAt: Scalars['Int']['output'];
+  url: Scalars['Int']['output'];
+};
+
+export type AssetCountAggregateInput = {
+  _all?: InputMaybe<Scalars['Boolean']['input']>;
+  bucket?: InputMaybe<Scalars['Boolean']['input']>;
+  createdAt?: InputMaybe<Scalars['Boolean']['input']>;
+  filename?: InputMaybe<Scalars['Boolean']['input']>;
+  id?: InputMaybe<Scalars['Boolean']['input']>;
+  key?: InputMaybe<Scalars['Boolean']['input']>;
+  kind?: InputMaybe<Scalars['Boolean']['input']>;
+  metadata?: InputMaybe<Scalars['Boolean']['input']>;
+  mimetype?: InputMaybe<Scalars['Boolean']['input']>;
+  size?: InputMaybe<Scalars['Boolean']['input']>;
+  updatedAt?: InputMaybe<Scalars['Boolean']['input']>;
+  url?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type AssetCountOrderByAggregateInput = {
+  bucket?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  filename?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  key?: InputMaybe<SortOrder>;
+  kind?: InputMaybe<SortOrder>;
+  metadata?: InputMaybe<SortOrder>;
+  mimetype?: InputMaybe<SortOrder>;
+  size?: InputMaybe<SortOrder>;
+  updatedAt?: InputMaybe<SortOrder>;
+  url?: InputMaybe<SortOrder>;
+};
+
+export enum AssetEntityType {
+  Collection = 'COLLECTION',
+  Hero = 'HERO',
+  Page = 'PAGE',
+  Product = 'PRODUCT',
+  ProductVariant = 'PRODUCT_VARIANT',
+  User = 'USER'
+}
+
+export type AssetGroupBy = {
+  __typename?: 'AssetGroupBy';
+  _avg?: Maybe<AssetAvgAggregate>;
+  _count?: Maybe<AssetCountAggregate>;
+  _max?: Maybe<AssetMaxAggregate>;
+  _min?: Maybe<AssetMinAggregate>;
+  _sum?: Maybe<AssetSumAggregate>;
+  bucket: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  filename?: Maybe<Scalars['String']['output']>;
+  id: Scalars['String']['output'];
+  key: Scalars['String']['output'];
+  kind: AssetKind;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  mimetype?: Maybe<Scalars['String']['output']>;
+  size?: Maybe<Scalars['Int']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  url: Scalars['String']['output'];
+};
+
+export enum AssetKind {
+  Document = 'DOCUMENT',
+  Image = 'IMAGE',
+  Other = 'OTHER',
+  Video = 'VIDEO'
+}
+
+export type AssetMaxAggregate = {
+  __typename?: 'AssetMaxAggregate';
+  bucket?: Maybe<Scalars['String']['output']>;
+  createdAt?: Maybe<Scalars['DateTime']['output']>;
+  filename?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
+  key?: Maybe<Scalars['String']['output']>;
+  kind?: Maybe<AssetKind>;
+  mimetype?: Maybe<Scalars['String']['output']>;
+  size?: Maybe<Scalars['Int']['output']>;
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  url?: Maybe<Scalars['String']['output']>;
+};
+
+export type AssetMaxAggregateInput = {
+  bucket?: InputMaybe<Scalars['Boolean']['input']>;
+  createdAt?: InputMaybe<Scalars['Boolean']['input']>;
+  filename?: InputMaybe<Scalars['Boolean']['input']>;
+  id?: InputMaybe<Scalars['Boolean']['input']>;
+  key?: InputMaybe<Scalars['Boolean']['input']>;
+  kind?: InputMaybe<Scalars['Boolean']['input']>;
+  mimetype?: InputMaybe<Scalars['Boolean']['input']>;
+  size?: InputMaybe<Scalars['Boolean']['input']>;
+  updatedAt?: InputMaybe<Scalars['Boolean']['input']>;
+  url?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type AssetMaxOrderByAggregateInput = {
+  bucket?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  filename?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  key?: InputMaybe<SortOrder>;
+  kind?: InputMaybe<SortOrder>;
+  mimetype?: InputMaybe<SortOrder>;
+  size?: InputMaybe<SortOrder>;
+  updatedAt?: InputMaybe<SortOrder>;
+  url?: InputMaybe<SortOrder>;
+};
+
+export type AssetMinAggregate = {
+  __typename?: 'AssetMinAggregate';
+  bucket?: Maybe<Scalars['String']['output']>;
+  createdAt?: Maybe<Scalars['DateTime']['output']>;
+  filename?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
+  key?: Maybe<Scalars['String']['output']>;
+  kind?: Maybe<AssetKind>;
+  mimetype?: Maybe<Scalars['String']['output']>;
+  size?: Maybe<Scalars['Int']['output']>;
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  url?: Maybe<Scalars['String']['output']>;
+};
+
+export type AssetMinAggregateInput = {
+  bucket?: InputMaybe<Scalars['Boolean']['input']>;
+  createdAt?: InputMaybe<Scalars['Boolean']['input']>;
+  filename?: InputMaybe<Scalars['Boolean']['input']>;
+  id?: InputMaybe<Scalars['Boolean']['input']>;
+  key?: InputMaybe<Scalars['Boolean']['input']>;
+  kind?: InputMaybe<Scalars['Boolean']['input']>;
+  mimetype?: InputMaybe<Scalars['Boolean']['input']>;
+  size?: InputMaybe<Scalars['Boolean']['input']>;
+  updatedAt?: InputMaybe<Scalars['Boolean']['input']>;
+  url?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type AssetMinOrderByAggregateInput = {
+  bucket?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  filename?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  key?: InputMaybe<SortOrder>;
+  kind?: InputMaybe<SortOrder>;
+  mimetype?: InputMaybe<SortOrder>;
+  size?: InputMaybe<SortOrder>;
+  updatedAt?: InputMaybe<SortOrder>;
+  url?: InputMaybe<SortOrder>;
+};
+
+export type AssetOrderByWithAggregationInput = {
+  _avg?: InputMaybe<AssetAvgOrderByAggregateInput>;
+  _count?: InputMaybe<AssetCountOrderByAggregateInput>;
+  _max?: InputMaybe<AssetMaxOrderByAggregateInput>;
+  _min?: InputMaybe<AssetMinOrderByAggregateInput>;
+  _sum?: InputMaybe<AssetSumOrderByAggregateInput>;
+  bucket?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  filename?: InputMaybe<SortOrderInput>;
+  id?: InputMaybe<SortOrder>;
+  key?: InputMaybe<SortOrder>;
+  kind?: InputMaybe<SortOrder>;
+  metadata?: InputMaybe<SortOrderInput>;
+  mimetype?: InputMaybe<SortOrderInput>;
+  size?: InputMaybe<SortOrderInput>;
+  updatedAt?: InputMaybe<SortOrder>;
+  url?: InputMaybe<SortOrder>;
+};
+
+export type AssetOrderByWithRelationInput = {
+  assignments?: InputMaybe<AssetAssignmentOrderByRelationAggregateInput>;
+  bucket?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  filename?: InputMaybe<SortOrderInput>;
+  id?: InputMaybe<SortOrder>;
+  key?: InputMaybe<SortOrder>;
+  kind?: InputMaybe<SortOrder>;
+  metadata?: InputMaybe<SortOrderInput>;
+  mimetype?: InputMaybe<SortOrderInput>;
+  size?: InputMaybe<SortOrderInput>;
+  updatedAt?: InputMaybe<SortOrder>;
+  url?: InputMaybe<SortOrder>;
+};
+
+export enum AssetScalarFieldEnum {
+  Bucket = 'bucket',
+  CreatedAt = 'createdAt',
+  Filename = 'filename',
+  Id = 'id',
+  Key = 'key',
+  Kind = 'kind',
+  Metadata = 'metadata',
+  Mimetype = 'mimetype',
+  Size = 'size',
+  UpdatedAt = 'updatedAt',
+  Url = 'url'
+}
+
+export type AssetScalarRelationFilter = {
+  is?: InputMaybe<AssetWhereInput>;
+  isNot?: InputMaybe<AssetWhereInput>;
+};
+
+export type AssetScalarWhereWithAggregatesInput = {
+  AND?: InputMaybe<Array<AssetScalarWhereWithAggregatesInput>>;
+  NOT?: InputMaybe<Array<AssetScalarWhereWithAggregatesInput>>;
+  OR?: InputMaybe<Array<AssetScalarWhereWithAggregatesInput>>;
+  bucket?: InputMaybe<StringWithAggregatesFilter>;
+  createdAt?: InputMaybe<DateTimeWithAggregatesFilter>;
+  filename?: InputMaybe<StringNullableWithAggregatesFilter>;
+  id?: InputMaybe<StringWithAggregatesFilter>;
+  key?: InputMaybe<StringWithAggregatesFilter>;
+  kind?: InputMaybe<EnumAssetKindWithAggregatesFilter>;
+  metadata?: InputMaybe<JsonNullableWithAggregatesFilter>;
+  mimetype?: InputMaybe<StringNullableWithAggregatesFilter>;
+  size?: InputMaybe<IntNullableWithAggregatesFilter>;
+  updatedAt?: InputMaybe<DateTimeWithAggregatesFilter>;
+  url?: InputMaybe<StringWithAggregatesFilter>;
+};
+
+export type AssetSumAggregate = {
+  __typename?: 'AssetSumAggregate';
+  size?: Maybe<Scalars['Int']['output']>;
+};
+
+export type AssetSumAggregateInput = {
+  size?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type AssetSumOrderByAggregateInput = {
+  size?: InputMaybe<SortOrder>;
+};
+
+export type AssetWhereInput = {
+  AND?: InputMaybe<Array<AssetWhereInput>>;
+  NOT?: InputMaybe<Array<AssetWhereInput>>;
+  OR?: InputMaybe<Array<AssetWhereInput>>;
+  assignments?: InputMaybe<AssetAssignmentListRelationFilter>;
+  bucket?: InputMaybe<StringFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  filename?: InputMaybe<StringNullableFilter>;
+  id?: InputMaybe<StringFilter>;
+  key?: InputMaybe<StringFilter>;
+  kind?: InputMaybe<EnumAssetKindFilter>;
+  metadata?: InputMaybe<JsonNullableFilter>;
+  mimetype?: InputMaybe<StringNullableFilter>;
+  size?: InputMaybe<IntNullableFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  url?: InputMaybe<StringFilter>;
+};
+
+export type AssetWhereUniqueInput = {
+  AND?: InputMaybe<Array<AssetWhereInput>>;
+  NOT?: InputMaybe<Array<AssetWhereInput>>;
+  OR?: InputMaybe<Array<AssetWhereInput>>;
+  assignments?: InputMaybe<AssetAssignmentListRelationFilter>;
+  bucket?: InputMaybe<StringFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  filename?: InputMaybe<StringNullableFilter>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  key?: InputMaybe<Scalars['String']['input']>;
+  kind?: InputMaybe<EnumAssetKindFilter>;
+  metadata?: InputMaybe<JsonNullableFilter>;
+  mimetype?: InputMaybe<StringNullableFilter>;
+  size?: InputMaybe<IntNullableFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  url?: InputMaybe<StringFilter>;
+};
+
+export type AssignAssetInput = {
+  assetId: Scalars['String']['input'];
+  entityId: Scalars['String']['input'];
+  entityType: AssetEntityType;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 export type AssignBillerInput = {
@@ -3706,6 +4078,30 @@ export type EnumAdjustmentTypeNullableFilter = {
   notIn?: InputMaybe<Array<AdjustmentType>>;
 };
 
+export type EnumAssetEntityTypeFilter = {
+  equals?: InputMaybe<AssetEntityType>;
+  in?: InputMaybe<Array<AssetEntityType>>;
+  not?: InputMaybe<NestedEnumAssetEntityTypeFilter>;
+  notIn?: InputMaybe<Array<AssetEntityType>>;
+};
+
+export type EnumAssetKindFilter = {
+  equals?: InputMaybe<AssetKind>;
+  in?: InputMaybe<Array<AssetKind>>;
+  not?: InputMaybe<NestedEnumAssetKindFilter>;
+  notIn?: InputMaybe<Array<AssetKind>>;
+};
+
+export type EnumAssetKindWithAggregatesFilter = {
+  _count?: InputMaybe<NestedIntFilter>;
+  _max?: InputMaybe<NestedEnumAssetKindFilter>;
+  _min?: InputMaybe<NestedEnumAssetKindFilter>;
+  equals?: InputMaybe<AssetKind>;
+  in?: InputMaybe<Array<AssetKind>>;
+  not?: InputMaybe<NestedEnumAssetKindWithAggregatesFilter>;
+  notIn?: InputMaybe<Array<AssetKind>>;
+};
+
 export type EnumFulfillmentStatusFieldUpdateOperationsInput = {
   set?: InputMaybe<FulfillmentStatus>;
 };
@@ -4551,6 +4947,22 @@ export type IntNullableFilter = {
   notIn?: InputMaybe<Array<Scalars['Int']['input']>>;
 };
 
+export type IntNullableWithAggregatesFilter = {
+  _avg?: InputMaybe<NestedFloatNullableFilter>;
+  _count?: InputMaybe<NestedIntNullableFilter>;
+  _max?: InputMaybe<NestedIntNullableFilter>;
+  _min?: InputMaybe<NestedIntNullableFilter>;
+  _sum?: InputMaybe<NestedIntNullableFilter>;
+  equals?: InputMaybe<Scalars['Int']['input']>;
+  gt?: InputMaybe<Scalars['Int']['input']>;
+  gte?: InputMaybe<Scalars['Int']['input']>;
+  in?: InputMaybe<Array<Scalars['Int']['input']>>;
+  lt?: InputMaybe<Scalars['Int']['input']>;
+  lte?: InputMaybe<Scalars['Int']['input']>;
+  not?: InputMaybe<NestedIntNullableWithAggregatesFilter>;
+  notIn?: InputMaybe<Array<Scalars['Int']['input']>>;
+};
+
 export type InvoiceImport = {
   __typename?: 'InvoiceImport';
   createdAt: Scalars['DateTime']['output'];
@@ -4809,6 +5221,26 @@ export type JsonNullableFilter = {
   string_starts_with?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type JsonNullableWithAggregatesFilter = {
+  _count?: InputMaybe<NestedIntNullableFilter>;
+  _max?: InputMaybe<NestedJsonNullableFilter>;
+  _min?: InputMaybe<NestedJsonNullableFilter>;
+  array_contains?: InputMaybe<Scalars['JSON']['input']>;
+  array_ends_with?: InputMaybe<Scalars['JSON']['input']>;
+  array_starts_with?: InputMaybe<Scalars['JSON']['input']>;
+  equals?: InputMaybe<Scalars['JSON']['input']>;
+  gt?: InputMaybe<Scalars['JSON']['input']>;
+  gte?: InputMaybe<Scalars['JSON']['input']>;
+  lt?: InputMaybe<Scalars['JSON']['input']>;
+  lte?: InputMaybe<Scalars['JSON']['input']>;
+  mode?: InputMaybe<QueryMode>;
+  not?: InputMaybe<Scalars['JSON']['input']>;
+  path?: InputMaybe<Array<Scalars['String']['input']>>;
+  string_contains?: InputMaybe<Scalars['String']['input']>;
+  string_ends_with?: InputMaybe<Scalars['String']['input']>;
+  string_starts_with?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type LegacyStoreMapping = {
   __typename?: 'LegacyStoreMapping';
   id: Scalars['ID']['output'];
@@ -5005,6 +5437,7 @@ export type Mutation = {
   applyReseller: ResellerProfile;
   approvePurchaseRequisition: Scalars['Boolean']['output'];
   approveReseller: ResellerProfile;
+  assignAsset: AssetAssignment;
   assignBiller: ResellerProfile;
   assignFacetToProduct: Scalars['String']['output'];
   assignFacetToVariant: Scalars['String']['output'];
@@ -5086,6 +5519,7 @@ export type Mutation = {
   rejectPurchaseRequisition: Scalars['Boolean']['output'];
   rejectReseller: ResellerProfile;
   rejectSupplierQuote: Scalars['Boolean']['output'];
+  removeAsset: Scalars['Boolean']['output'];
   removeFacetFromProduct: Scalars['String']['output'];
   removeFacetFromVariant: Scalars['String']['output'];
   retryOutboxFailed: Scalars['Int']['output'];
@@ -5100,6 +5534,7 @@ export type Mutation = {
   submitPurchaseRequisition: Scalars['Boolean']['output'];
   submitSupplierQuote: Scalars['String']['output'];
   transferStock: StockTransfer;
+  unassignAsset: Scalars['Boolean']['output'];
   unlinkVariantFromProduct: ProductVariant;
   updateCollection: CollectionGql;
   updateFacet: FacetGql;
@@ -5197,6 +5632,11 @@ export type MutationApprovePurchaseRequisitionArgs = {
 export type MutationApproveResellerArgs = {
   input: ApproveResellerInput;
   resellerId: Scalars['String']['input'];
+};
+
+
+export type MutationAssignAssetArgs = {
+  input: AssignAssetInput;
 };
 
 
@@ -5612,6 +6052,11 @@ export type MutationRejectSupplierQuoteArgs = {
 };
 
 
+export type MutationRemoveAssetArgs = {
+  assetId: Scalars['String']['input'];
+};
+
+
 export type MutationRemoveFacetFromProductArgs = {
   facetId: Scalars['String']['input'];
   productId: Scalars['String']['input'];
@@ -5669,6 +6114,11 @@ export type MutationSubmitSupplierQuoteArgs = {
 
 export type MutationTransferStockArgs = {
   input: TransferStockInput;
+};
+
+
+export type MutationUnassignAssetArgs = {
+  input: AssignAssetInput;
 };
 
 
@@ -5871,6 +6321,30 @@ export type NestedEnumAdjustmentTypeNullableFilter = {
   in?: InputMaybe<Array<AdjustmentType>>;
   not?: InputMaybe<NestedEnumAdjustmentTypeNullableFilter>;
   notIn?: InputMaybe<Array<AdjustmentType>>;
+};
+
+export type NestedEnumAssetEntityTypeFilter = {
+  equals?: InputMaybe<AssetEntityType>;
+  in?: InputMaybe<Array<AssetEntityType>>;
+  not?: InputMaybe<NestedEnumAssetEntityTypeFilter>;
+  notIn?: InputMaybe<Array<AssetEntityType>>;
+};
+
+export type NestedEnumAssetKindFilter = {
+  equals?: InputMaybe<AssetKind>;
+  in?: InputMaybe<Array<AssetKind>>;
+  not?: InputMaybe<NestedEnumAssetKindFilter>;
+  notIn?: InputMaybe<Array<AssetKind>>;
+};
+
+export type NestedEnumAssetKindWithAggregatesFilter = {
+  _count?: InputMaybe<NestedIntFilter>;
+  _max?: InputMaybe<NestedEnumAssetKindFilter>;
+  _min?: InputMaybe<NestedEnumAssetKindFilter>;
+  equals?: InputMaybe<AssetKind>;
+  in?: InputMaybe<Array<AssetKind>>;
+  not?: InputMaybe<NestedEnumAssetKindWithAggregatesFilter>;
+  notIn?: InputMaybe<Array<AssetKind>>;
 };
 
 export type NestedEnumFulfillmentStatusFilter = {
@@ -6102,6 +6576,39 @@ export type NestedIntNullableFilter = {
   lte?: InputMaybe<Scalars['Int']['input']>;
   not?: InputMaybe<NestedIntNullableFilter>;
   notIn?: InputMaybe<Array<Scalars['Int']['input']>>;
+};
+
+export type NestedIntNullableWithAggregatesFilter = {
+  _avg?: InputMaybe<NestedFloatNullableFilter>;
+  _count?: InputMaybe<NestedIntNullableFilter>;
+  _max?: InputMaybe<NestedIntNullableFilter>;
+  _min?: InputMaybe<NestedIntNullableFilter>;
+  _sum?: InputMaybe<NestedIntNullableFilter>;
+  equals?: InputMaybe<Scalars['Int']['input']>;
+  gt?: InputMaybe<Scalars['Int']['input']>;
+  gte?: InputMaybe<Scalars['Int']['input']>;
+  in?: InputMaybe<Array<Scalars['Int']['input']>>;
+  lt?: InputMaybe<Scalars['Int']['input']>;
+  lte?: InputMaybe<Scalars['Int']['input']>;
+  not?: InputMaybe<NestedIntNullableWithAggregatesFilter>;
+  notIn?: InputMaybe<Array<Scalars['Int']['input']>>;
+};
+
+export type NestedJsonNullableFilter = {
+  array_contains?: InputMaybe<Scalars['JSON']['input']>;
+  array_ends_with?: InputMaybe<Scalars['JSON']['input']>;
+  array_starts_with?: InputMaybe<Scalars['JSON']['input']>;
+  equals?: InputMaybe<Scalars['JSON']['input']>;
+  gt?: InputMaybe<Scalars['JSON']['input']>;
+  gte?: InputMaybe<Scalars['JSON']['input']>;
+  lt?: InputMaybe<Scalars['JSON']['input']>;
+  lte?: InputMaybe<Scalars['JSON']['input']>;
+  mode?: InputMaybe<QueryMode>;
+  not?: InputMaybe<Scalars['JSON']['input']>;
+  path?: InputMaybe<Array<Scalars['String']['input']>>;
+  string_contains?: InputMaybe<Scalars['String']['input']>;
+  string_ends_with?: InputMaybe<Scalars['String']['input']>;
+  string_starts_with?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type NestedStringFilter = {
@@ -11252,10 +11759,14 @@ export type Query = {
   __typename?: 'Query';
   adminProcurementDashboard: AdminProcurementDashboard;
   adminProcurementDashboardByStore: AdminProcurementDashboard;
+  aggregateAsset: AggregateAsset;
   aggregateProduct: AggregateProduct;
   aggregateProductVariant: AggregateProductVariant;
   aggregateStore: AggregateStore;
   aggregateUser: AggregateUser;
+  asset?: Maybe<Asset>;
+  assetAssignments: Array<AssetAssignment>;
+  assets: Array<Asset>;
   billerPaymentsSummary: BillerPaymentsSummary;
   billerPaymentsSummaryByStore: Array<BillerPaymentsSummary>;
   billerPaymentsSummaryRange: BillerPaymentsSummary;
@@ -11272,6 +11783,7 @@ export type Query = {
   dailyPaymentsSeriesRange: Array<PaymentDaySeries>;
   devCounts: DevCounts;
   devExportSnapshot: Scalars['String']['output'];
+  findFirstAsset?: Maybe<Asset>;
   findFirstProduct?: Maybe<Product>;
   findFirstProductVariant?: Maybe<ProductVariant>;
   findFirstStore: Store;
@@ -11280,6 +11792,7 @@ export type Query = {
   findUniqueProductVariant?: Maybe<ProductVariant>;
   findUniqueStore: Store;
   findUniqueUser: User;
+  groupByAsset: Array<AssetGroupBy>;
   groupByProduct: Array<ProductGroupBy>;
   groupByProductVariant: Array<ProductVariantGroupBy>;
   groupByStore: Array<StoreGroupBy>;
@@ -11312,6 +11825,7 @@ export type Query = {
   paymentMethodBreakdown: Array<PaymentMethodBreakdownEntry>;
   paymentMethodBreakdownRange: Array<PaymentMethodBreakdownEntry>;
   pendingResellerApplications: Array<ResellerProfile>;
+  primaryAssetAssignment?: Maybe<AssetAssignment>;
   productFacets: Array<FacetAssignment>;
   productVariantsCount: Scalars['Int']['output'];
   purchaseOrder: PurchaseOrder;
@@ -11387,6 +11901,20 @@ export type QueryAdminProcurementDashboardByStoreArgs = {
 };
 
 
+export type QueryAggregateAssetArgs = {
+  _avg?: InputMaybe<AssetAvgAggregateInput>;
+  _count?: InputMaybe<AssetCountAggregateInput>;
+  _max?: InputMaybe<AssetMaxAggregateInput>;
+  _min?: InputMaybe<AssetMinAggregateInput>;
+  _sum?: InputMaybe<AssetSumAggregateInput>;
+  cursor?: InputMaybe<AssetWhereUniqueInput>;
+  orderBy?: InputMaybe<Array<AssetOrderByWithRelationInput>>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AssetWhereInput>;
+};
+
+
 export type QueryAggregateProductArgs = {
   _count?: InputMaybe<ProductCountAggregateInput>;
   _max?: InputMaybe<ProductMaxAggregateInput>;
@@ -11434,6 +11962,26 @@ export type QueryAggregateUserArgs = {
   skip?: InputMaybe<Scalars['Int']['input']>;
   take?: InputMaybe<Scalars['Int']['input']>;
   where?: InputMaybe<UserWhereInput>;
+};
+
+
+export type QueryAssetArgs = {
+  where: AssetWhereUniqueInput;
+};
+
+
+export type QueryAssetAssignmentsArgs = {
+  input: AssetAssignmentsByEntityInput;
+};
+
+
+export type QueryAssetsArgs = {
+  cursor?: InputMaybe<AssetWhereUniqueInput>;
+  distinct?: InputMaybe<Array<AssetScalarFieldEnum>>;
+  orderBy?: InputMaybe<Array<AssetOrderByWithRelationInput>>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AssetWhereInput>;
 };
 
 
@@ -11532,6 +12080,16 @@ export type QueryDevExportSnapshotArgs = {
 };
 
 
+export type QueryFindFirstAssetArgs = {
+  cursor?: InputMaybe<AssetWhereUniqueInput>;
+  distinct?: InputMaybe<Array<AssetScalarFieldEnum>>;
+  orderBy?: InputMaybe<Array<AssetOrderByWithRelationInput>>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AssetWhereInput>;
+};
+
+
 export type QueryFindFirstProductArgs = {
   cursor?: InputMaybe<ProductWhereUniqueInput>;
   distinct?: InputMaybe<Array<ProductScalarFieldEnum>>;
@@ -11589,6 +12147,21 @@ export type QueryFindUniqueStoreArgs = {
 
 export type QueryFindUniqueUserArgs = {
   where: UserWhereUniqueInput;
+};
+
+
+export type QueryGroupByAssetArgs = {
+  _avg?: InputMaybe<AssetAvgAggregateInput>;
+  _count?: InputMaybe<AssetCountAggregateInput>;
+  _max?: InputMaybe<AssetMaxAggregateInput>;
+  _min?: InputMaybe<AssetMinAggregateInput>;
+  _sum?: InputMaybe<AssetSumAggregateInput>;
+  by: Array<AssetScalarFieldEnum>;
+  having?: InputMaybe<AssetScalarWhereWithAggregatesInput>;
+  orderBy?: InputMaybe<Array<AssetOrderByWithAggregationInput>>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AssetWhereInput>;
 };
 
 
@@ -11775,6 +12348,11 @@ export type QueryPendingResellerApplicationsArgs = {
   q?: InputMaybe<Scalars['String']['input']>;
   skip?: InputMaybe<Scalars['Int']['input']>;
   take?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryPrimaryAssetAssignmentArgs = {
+  input: AssetAssignmentsByEntityInput;
 };
 
 
@@ -26947,6 +27525,56 @@ export type TopSellingVariantsByStoreQueryVariables = Exact<{
 
 export type TopSellingVariantsByStoreQuery = { __typename?: 'Query', topSellingVariantsByStore: Array<{ __typename?: 'VariantSalesWithDetails', productVariantId: string, productName?: string | null, quantity: number }> };
 
+export type AssetAssignmentsQueryVariables = Exact<{
+  entityType: AssetEntityType;
+  entityId: Scalars['String']['input'];
+}>;
+
+
+export type AssetAssignmentsQuery = { __typename?: 'Query', assetAssignments: Array<{ __typename?: 'AssetAssignment', id: string, assetId: string, entityType: AssetEntityType, entityId: string, isPrimary: boolean, createdAt: any, updatedAt: any, asset: { __typename?: 'Asset', id: string, kind: AssetKind, url: string, filename?: string | null, mimetype?: string | null, size?: number | null, metadata?: any | null, createdAt: any } }> };
+
+export type PrimaryAssetAssignmentQueryVariables = Exact<{
+  entityType: AssetEntityType;
+  entityId: Scalars['String']['input'];
+}>;
+
+
+export type PrimaryAssetAssignmentQuery = { __typename?: 'Query', primaryAssetAssignment?: { __typename?: 'AssetAssignment', id: string, assetId: string, entityType: AssetEntityType, entityId: string, isPrimary: boolean, asset: { __typename?: 'Asset', id: string, kind: AssetKind, url: string, filename?: string | null, mimetype?: string | null } } | null };
+
+export type AssignAssetMutationVariables = Exact<{
+  assetId: Scalars['String']['input'];
+  entityType: AssetEntityType;
+  entityId: Scalars['String']['input'];
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+}>;
+
+
+export type AssignAssetMutation = { __typename?: 'Mutation', assignAsset: { __typename?: 'AssetAssignment', id: string, assetId: string, entityType: AssetEntityType, entityId: string, isPrimary: boolean } };
+
+export type UnassignAssetMutationVariables = Exact<{
+  assetId: Scalars['String']['input'];
+  entityType: AssetEntityType;
+  entityId: Scalars['String']['input'];
+}>;
+
+
+export type UnassignAssetMutation = { __typename?: 'Mutation', unassignAsset: boolean };
+
+export type RemoveAssetMutationVariables = Exact<{
+  assetId: Scalars['String']['input'];
+}>;
+
+
+export type RemoveAssetMutation = { __typename?: 'Mutation', removeAsset: boolean };
+
+export type AssetsQueryVariables = Exact<{
+  take?: InputMaybe<Scalars['Int']['input']>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type AssetsQuery = { __typename?: 'Query', assets: Array<{ __typename?: 'Asset', id: string, kind: AssetKind, bucket: string, key: string, url: string, filename?: string | null, mimetype?: string | null, size?: number | null, createdAt: any, updatedAt: any, assignments?: Array<{ __typename?: 'AssetAssignment', id: string, entityType: AssetEntityType, entityId: string, isPrimary: boolean }> | null }> };
+
 export type LoginMutationVariables = Exact<{
   input: LoginInput;
 }>;
@@ -28135,6 +28763,279 @@ export type TopSellingVariantsByStoreQueryHookResult = ReturnType<typeof useTopS
 export type TopSellingVariantsByStoreLazyQueryHookResult = ReturnType<typeof useTopSellingVariantsByStoreLazyQuery>;
 export type TopSellingVariantsByStoreSuspenseQueryHookResult = ReturnType<typeof useTopSellingVariantsByStoreSuspenseQuery>;
 export type TopSellingVariantsByStoreQueryResult = Apollo.QueryResult<TopSellingVariantsByStoreQuery, TopSellingVariantsByStoreQueryVariables>;
+export const AssetAssignmentsDocument = gql`
+    query AssetAssignments($entityType: AssetEntityType!, $entityId: String!) {
+  assetAssignments(input: {entityType: $entityType, entityId: $entityId}) {
+    id
+    assetId
+    entityType
+    entityId
+    isPrimary
+    createdAt
+    updatedAt
+    asset {
+      id
+      kind
+      url
+      filename
+      mimetype
+      size
+      metadata
+      createdAt
+    }
+  }
+}
+    `;
+
+/**
+ * __useAssetAssignmentsQuery__
+ *
+ * To run a query within a React component, call `useAssetAssignmentsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useAssetAssignmentsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useAssetAssignmentsQuery({
+ *   variables: {
+ *      entityType: // value for 'entityType'
+ *      entityId: // value for 'entityId'
+ *   },
+ * });
+ */
+export function useAssetAssignmentsQuery(baseOptions: Apollo.QueryHookOptions<AssetAssignmentsQuery, AssetAssignmentsQueryVariables> & ({ variables: AssetAssignmentsQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<AssetAssignmentsQuery, AssetAssignmentsQueryVariables>(AssetAssignmentsDocument, options);
+      }
+export function useAssetAssignmentsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<AssetAssignmentsQuery, AssetAssignmentsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<AssetAssignmentsQuery, AssetAssignmentsQueryVariables>(AssetAssignmentsDocument, options);
+        }
+export function useAssetAssignmentsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<AssetAssignmentsQuery, AssetAssignmentsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<AssetAssignmentsQuery, AssetAssignmentsQueryVariables>(AssetAssignmentsDocument, options);
+        }
+export type AssetAssignmentsQueryHookResult = ReturnType<typeof useAssetAssignmentsQuery>;
+export type AssetAssignmentsLazyQueryHookResult = ReturnType<typeof useAssetAssignmentsLazyQuery>;
+export type AssetAssignmentsSuspenseQueryHookResult = ReturnType<typeof useAssetAssignmentsSuspenseQuery>;
+export type AssetAssignmentsQueryResult = Apollo.QueryResult<AssetAssignmentsQuery, AssetAssignmentsQueryVariables>;
+export const PrimaryAssetAssignmentDocument = gql`
+    query PrimaryAssetAssignment($entityType: AssetEntityType!, $entityId: String!) {
+  primaryAssetAssignment(input: {entityType: $entityType, entityId: $entityId}) {
+    id
+    assetId
+    entityType
+    entityId
+    isPrimary
+    asset {
+      id
+      kind
+      url
+      filename
+      mimetype
+    }
+  }
+}
+    `;
+
+/**
+ * __usePrimaryAssetAssignmentQuery__
+ *
+ * To run a query within a React component, call `usePrimaryAssetAssignmentQuery` and pass it any options that fit your needs.
+ * When your component renders, `usePrimaryAssetAssignmentQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = usePrimaryAssetAssignmentQuery({
+ *   variables: {
+ *      entityType: // value for 'entityType'
+ *      entityId: // value for 'entityId'
+ *   },
+ * });
+ */
+export function usePrimaryAssetAssignmentQuery(baseOptions: Apollo.QueryHookOptions<PrimaryAssetAssignmentQuery, PrimaryAssetAssignmentQueryVariables> & ({ variables: PrimaryAssetAssignmentQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<PrimaryAssetAssignmentQuery, PrimaryAssetAssignmentQueryVariables>(PrimaryAssetAssignmentDocument, options);
+      }
+export function usePrimaryAssetAssignmentLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<PrimaryAssetAssignmentQuery, PrimaryAssetAssignmentQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<PrimaryAssetAssignmentQuery, PrimaryAssetAssignmentQueryVariables>(PrimaryAssetAssignmentDocument, options);
+        }
+export function usePrimaryAssetAssignmentSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<PrimaryAssetAssignmentQuery, PrimaryAssetAssignmentQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<PrimaryAssetAssignmentQuery, PrimaryAssetAssignmentQueryVariables>(PrimaryAssetAssignmentDocument, options);
+        }
+export type PrimaryAssetAssignmentQueryHookResult = ReturnType<typeof usePrimaryAssetAssignmentQuery>;
+export type PrimaryAssetAssignmentLazyQueryHookResult = ReturnType<typeof usePrimaryAssetAssignmentLazyQuery>;
+export type PrimaryAssetAssignmentSuspenseQueryHookResult = ReturnType<typeof usePrimaryAssetAssignmentSuspenseQuery>;
+export type PrimaryAssetAssignmentQueryResult = Apollo.QueryResult<PrimaryAssetAssignmentQuery, PrimaryAssetAssignmentQueryVariables>;
+export const AssignAssetDocument = gql`
+    mutation AssignAsset($assetId: String!, $entityType: AssetEntityType!, $entityId: String!, $isPrimary: Boolean) {
+  assignAsset(
+    input: {assetId: $assetId, entityType: $entityType, entityId: $entityId, isPrimary: $isPrimary}
+  ) {
+    id
+    assetId
+    entityType
+    entityId
+    isPrimary
+  }
+}
+    `;
+export type AssignAssetMutationFn = Apollo.MutationFunction<AssignAssetMutation, AssignAssetMutationVariables>;
+
+/**
+ * __useAssignAssetMutation__
+ *
+ * To run a mutation, you first call `useAssignAssetMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useAssignAssetMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [assignAssetMutation, { data, loading, error }] = useAssignAssetMutation({
+ *   variables: {
+ *      assetId: // value for 'assetId'
+ *      entityType: // value for 'entityType'
+ *      entityId: // value for 'entityId'
+ *      isPrimary: // value for 'isPrimary'
+ *   },
+ * });
+ */
+export function useAssignAssetMutation(baseOptions?: Apollo.MutationHookOptions<AssignAssetMutation, AssignAssetMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<AssignAssetMutation, AssignAssetMutationVariables>(AssignAssetDocument, options);
+      }
+export type AssignAssetMutationHookResult = ReturnType<typeof useAssignAssetMutation>;
+export type AssignAssetMutationResult = Apollo.MutationResult<AssignAssetMutation>;
+export type AssignAssetMutationOptions = Apollo.BaseMutationOptions<AssignAssetMutation, AssignAssetMutationVariables>;
+export const UnassignAssetDocument = gql`
+    mutation UnassignAsset($assetId: String!, $entityType: AssetEntityType!, $entityId: String!) {
+  unassignAsset(
+    input: {assetId: $assetId, entityType: $entityType, entityId: $entityId}
+  )
+}
+    `;
+export type UnassignAssetMutationFn = Apollo.MutationFunction<UnassignAssetMutation, UnassignAssetMutationVariables>;
+
+/**
+ * __useUnassignAssetMutation__
+ *
+ * To run a mutation, you first call `useUnassignAssetMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUnassignAssetMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [unassignAssetMutation, { data, loading, error }] = useUnassignAssetMutation({
+ *   variables: {
+ *      assetId: // value for 'assetId'
+ *      entityType: // value for 'entityType'
+ *      entityId: // value for 'entityId'
+ *   },
+ * });
+ */
+export function useUnassignAssetMutation(baseOptions?: Apollo.MutationHookOptions<UnassignAssetMutation, UnassignAssetMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UnassignAssetMutation, UnassignAssetMutationVariables>(UnassignAssetDocument, options);
+      }
+export type UnassignAssetMutationHookResult = ReturnType<typeof useUnassignAssetMutation>;
+export type UnassignAssetMutationResult = Apollo.MutationResult<UnassignAssetMutation>;
+export type UnassignAssetMutationOptions = Apollo.BaseMutationOptions<UnassignAssetMutation, UnassignAssetMutationVariables>;
+export const RemoveAssetDocument = gql`
+    mutation RemoveAsset($assetId: String!) {
+  removeAsset(assetId: $assetId)
+}
+    `;
+export type RemoveAssetMutationFn = Apollo.MutationFunction<RemoveAssetMutation, RemoveAssetMutationVariables>;
+
+/**
+ * __useRemoveAssetMutation__
+ *
+ * To run a mutation, you first call `useRemoveAssetMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useRemoveAssetMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [removeAssetMutation, { data, loading, error }] = useRemoveAssetMutation({
+ *   variables: {
+ *      assetId: // value for 'assetId'
+ *   },
+ * });
+ */
+export function useRemoveAssetMutation(baseOptions?: Apollo.MutationHookOptions<RemoveAssetMutation, RemoveAssetMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<RemoveAssetMutation, RemoveAssetMutationVariables>(RemoveAssetDocument, options);
+      }
+export type RemoveAssetMutationHookResult = ReturnType<typeof useRemoveAssetMutation>;
+export type RemoveAssetMutationResult = Apollo.MutationResult<RemoveAssetMutation>;
+export type RemoveAssetMutationOptions = Apollo.BaseMutationOptions<RemoveAssetMutation, RemoveAssetMutationVariables>;
+export const AssetsDocument = gql`
+    query Assets($take: Int, $skip: Int) {
+  assets(take: $take, skip: $skip, orderBy: [{createdAt: desc}]) {
+    id
+    kind
+    bucket
+    key
+    url
+    filename
+    mimetype
+    size
+    createdAt
+    updatedAt
+    assignments {
+      id
+      entityType
+      entityId
+      isPrimary
+    }
+  }
+}
+    `;
+
+/**
+ * __useAssetsQuery__
+ *
+ * To run a query within a React component, call `useAssetsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useAssetsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useAssetsQuery({
+ *   variables: {
+ *      take: // value for 'take'
+ *      skip: // value for 'skip'
+ *   },
+ * });
+ */
+export function useAssetsQuery(baseOptions?: Apollo.QueryHookOptions<AssetsQuery, AssetsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<AssetsQuery, AssetsQueryVariables>(AssetsDocument, options);
+      }
+export function useAssetsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<AssetsQuery, AssetsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<AssetsQuery, AssetsQueryVariables>(AssetsDocument, options);
+        }
+export function useAssetsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<AssetsQuery, AssetsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<AssetsQuery, AssetsQueryVariables>(AssetsDocument, options);
+        }
+export type AssetsQueryHookResult = ReturnType<typeof useAssetsQuery>;
+export type AssetsLazyQueryHookResult = ReturnType<typeof useAssetsLazyQuery>;
+export type AssetsSuspenseQueryHookResult = ReturnType<typeof useAssetsSuspenseQuery>;
+export type AssetsQueryResult = Apollo.QueryResult<AssetsQuery, AssetsQueryVariables>;
 export const LoginDocument = gql`
     mutation Login($input: LoginInput!) {
   login(input: $input) {

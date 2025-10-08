@@ -5,6 +5,12 @@ import {
   useVariantFacetsQuery,
   useVariantQuery,
   useVariantsQuery,
+  useAssetAssignmentsQuery,
+  useAssignAssetMutation,
+  useUnassignAssetMutation,
+  useRemoveAssetMutation,
+  AssetEntityType,
+  AssetKind,
 } from '../generated/graphql';
 import {
   Alert,
@@ -19,6 +25,9 @@ import {
   Select,
   MenuItem,
   Autocomplete,
+  Card,
+  CardContent,
+  CircularProgress,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { Link, useNavigate } from 'react-router-dom';
@@ -26,6 +35,7 @@ import { useAuth } from '../shared/AuthProvider';
 import React from 'react';
 import { notify } from '../shared/notify';
 import { useParams } from 'react-router-dom';
+import { uploadAsset } from '../shared/assets';
 
 export default function VariantDetail() {
   const params = useParams<{ id?: string }>();
@@ -205,6 +215,7 @@ export default function VariantDetail() {
           </Button>
         </Stack>
       </Box>
+      <VariantAssetsSection variantId={id} />
       <RelatedVariants currentId={id} brand={brand} gender={gender} />
 
       <Drawer anchor="right" open={openCart} onClose={() => setOpenCart(false)}>
@@ -244,6 +255,195 @@ export default function VariantDetail() {
         </Box>
       </Drawer>
     </Stack>
+  );
+}
+
+function VariantAssetsSection({ variantId }: { variantId: string }) {
+  const [uploading, setUploading] = React.useState(false);
+  const { data, loading, error, refetch } = useAssetAssignmentsQuery({
+    variables: {
+      entityType: AssetEntityType.ProductVariant,
+      entityId: variantId,
+    },
+    skip: !variantId,
+    fetchPolicy: 'cache-and-network' as any,
+  });
+  const [assignAsset] = useAssignAssetMutation();
+  const [unassignAsset] = useUnassignAssetMutation();
+  const [removeAsset] = useRemoveAssetMutation();
+
+  const assignments = data?.assetAssignments ?? [];
+
+  return (
+    <Card>
+      <CardContent>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          justifyContent="space-between"
+        >
+          <Typography variant="subtitle1">Assets</Typography>
+          <Button
+            component="label"
+            variant="outlined"
+            size="small"
+            disabled={uploading}
+          >
+            {uploading ? 'Uploading…' : 'Upload asset'}
+            <input
+              type="file"
+              hidden
+              accept="image/*"
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+                event.target.value = '';
+                if (!file) return;
+                setUploading(true);
+                try {
+                  await uploadAsset({
+                    file,
+                    kind: AssetKind.Image,
+                    entityType: AssetEntityType.ProductVariant,
+                    entityId: variantId,
+                    isPrimary: assignments.length === 0,
+                  });
+                  notify('Asset uploaded', 'success');
+                  await refetch();
+                } catch (err: any) {
+                  notify(err?.message || 'Failed to upload asset', 'error');
+                } finally {
+                  setUploading(false);
+                }
+              }}
+            />
+          </Button>
+        </Stack>
+
+        {loading && !assignments.length && (
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 2 }}>
+            <CircularProgress size={20} />
+            <Typography color="text.secondary">Loading assets…</Typography>
+          </Stack>
+        )}
+        {error && <Alert severity="error" sx={{ mt: 2 }}>{String(error.message)}</Alert>}
+
+        <Stack direction="row" spacing={2} sx={{ mt: 2, flexWrap: 'wrap' }}>
+          {assignments.length ? (
+            assignments.map((assignment) => {
+              const asset = assignment.asset;
+              const isPrimary = assignment.isPrimary;
+              return (
+                <Card
+                  key={assignment.id}
+                  variant="outlined"
+                  sx={{ width: 220, display: 'flex', flexDirection: 'column' }}
+                >
+                  {asset?.url ? (
+                    <Box
+                      component="img"
+                      src={asset.url}
+                      alt={asset?.filename || 'Asset'}
+                      sx={{ width: '100%', height: 140, objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        width: '100%',
+                        height: 140,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: 'grey.100',
+                        color: 'text.secondary',
+                      }}
+                    >
+                      No preview
+                    </Box>
+                  )}
+                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Typography variant="body2" noWrap>{asset?.filename || assignment.assetId}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {asset?.mimetype || 'Unknown type'}
+                    </Typography>
+                    {isPrimary && (
+                      <Chip size="small" color="success" label="Primary" sx={{ alignSelf: 'flex-start' }} />
+                    )}
+                    <Stack direction="column" spacing={0.5} sx={{ mt: 'auto' }}>
+                      {!isPrimary && (
+                        <Button
+                          size="small"
+                          onClick={async () => {
+                            try {
+                              await assignAsset({
+                                variables: {
+                                  assetId: assignment.assetId,
+                                  entityType: AssetEntityType.ProductVariant,
+                                  entityId: variantId,
+                                  isPrimary: true,
+                                },
+                              });
+                              notify('Primary asset updated', 'success');
+                              await refetch();
+                            } catch (err: any) {
+                              notify(err?.message || 'Failed to set primary asset', 'error');
+                            }
+                          }}
+                        >
+                          Set as primary
+                        </Button>
+                      )}
+                      <Button
+                        size="small"
+                        color="warning"
+                        onClick={async () => {
+                          if (!window.confirm('Unassign this asset from the variant?')) return;
+                          try {
+                            await unassignAsset({
+                              variables: {
+                                assetId: assignment.assetId,
+                                entityType: AssetEntityType.ProductVariant,
+                                entityId: variantId,
+                              },
+                            });
+                            notify('Asset unassigned', 'info');
+                            await refetch();
+                          } catch (err: any) {
+                            notify(err?.message || 'Failed to unassign asset', 'error');
+                          }
+                        }}
+                      >
+                        Unassign
+                      </Button>
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={async () => {
+                          if (!window.confirm('Delete this asset from storage? This affects all assignments.')) return;
+                          try {
+                            await removeAsset({ variables: { assetId: assignment.assetId } });
+                            notify('Asset deleted', 'success');
+                            await refetch();
+                          } catch (err: any) {
+                            notify(err?.message || 'Failed to delete asset', 'error');
+                          }
+                        }}
+                      >
+                        Delete asset
+                      </Button>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              );
+            })
+          ) : (
+            !loading && !error && (
+              <Typography color="text.secondary">No assets yet.</Typography>
+            )
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
   );
 }
 

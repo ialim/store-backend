@@ -25,6 +25,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { DevToolsModule } from './modules/devtools/devtools.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { HealthController } from './modules/health/health.controller';
+import { AssetModule } from './modules/asset/asset.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { HealthController } from './modules/health/health.controller';
     UploadsModule,
     DevToolsModule,
     SyncModule,
+    AssetModule,
   ],
   controllers: [HealthController],
 })

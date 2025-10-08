@@ -2261,6 +2261,129 @@ type DevCounts {
   orphanVariants: Int!
 }
 
+type AssetCountAggregate {
+  id: Int!
+  kind: Int!
+  bucket: Int!
+  key: Int!
+  url: Int!
+  filename: Int!
+  mimetype: Int!
+  size: Int!
+  metadata: Int!
+  createdAt: Int!
+  updatedAt: Int!
+  _all: Int!
+}
+
+type AssetAvgAggregate {
+  size: Float
+}
+
+type AssetSumAggregate {
+  size: Int
+}
+
+type AssetMinAggregate {
+  id: String
+  kind: AssetKind
+  bucket: String
+  key: String
+  url: String
+  filename: String
+  mimetype: String
+  size: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum AssetKind {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  OTHER
+}
+
+type AssetMaxAggregate {
+  id: String
+  kind: AssetKind
+  bucket: String
+  key: String
+  url: String
+  filename: String
+  mimetype: String
+  size: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type AggregateAsset {
+  _count: AssetCountAggregate
+  _avg: AssetAvgAggregate
+  _sum: AssetSumAggregate
+  _min: AssetMinAggregate
+  _max: AssetMaxAggregate
+}
+
+type AssetCount {
+  assignments: Int!
+}
+
+type AssetGroupBy {
+  id: String!
+  kind: AssetKind!
+  bucket: String!
+  key: String!
+  url: String!
+  filename: String
+  mimetype: String
+  size: Int
+  metadata: JSON
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  _count: AssetCountAggregate
+  _avg: AssetAvgAggregate
+  _sum: AssetSumAggregate
+  _min: AssetMinAggregate
+  _max: AssetMaxAggregate
+}
+
+type AssetAssignment {
+  id: ID!
+  assetId: String!
+  entityType: AssetEntityType!
+  entityId: String!
+  isPrimary: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  asset: Asset!
+}
+
+enum AssetEntityType {
+  PRODUCT
+  PRODUCT_VARIANT
+  USER
+  COLLECTION
+  HERO
+  PAGE
+}
+
+type Asset {
+  id: ID!
+  kind: AssetKind!
+  bucket: String!
+  key: String!
+  url: String!
+  filename: String
+  mimetype: String
+  size: Int
+  metadata: JSON
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  assignments: [AssetAssignment!]
+  _count: AssetCount!
+}
+
 type Query {
   me: User!
   findFirstProduct(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, distinct: [ProductScalarFieldEnum!]): Product
@@ -2393,6 +2516,13 @@ type Query {
   listManagers: [User!]!
   devCounts: DevCounts!
   devExportSnapshot(tables: [String!]!, filter: DevPurgeFilter): String!
+  assets(where: AssetWhereInput, orderBy: [AssetOrderByWithRelationInput!], cursor: AssetWhereUniqueInput, take: Int, skip: Int, distinct: [AssetScalarFieldEnum!]): [Asset!]!
+  asset(where: AssetWhereUniqueInput!): Asset
+  findFirstAsset(where: AssetWhereInput, orderBy: [AssetOrderByWithRelationInput!], cursor: AssetWhereUniqueInput, take: Int, skip: Int, distinct: [AssetScalarFieldEnum!]): Asset
+  aggregateAsset(where: AssetWhereInput, orderBy: [AssetOrderByWithRelationInput!], cursor: AssetWhereUniqueInput, take: Int, skip: Int, _count: AssetCountAggregateInput, _avg: AssetAvgAggregateInput, _sum: AssetSumAggregateInput, _min: AssetMinAggregateInput, _max: AssetMaxAggregateInput): AggregateAsset!
+  groupByAsset(where: AssetWhereInput, orderBy: [AssetOrderByWithAggregationInput!], by: [AssetScalarFieldEnum!]!, having: AssetScalarWhereWithAggregatesInput, take: Int, skip: Int, _count: AssetCountAggregateInput, _avg: AssetAvgAggregateInput, _sum: AssetSumAggregateInput, _min: AssetMinAggregateInput, _max: AssetMaxAggregateInput): [AssetGroupBy!]!
+  assetAssignments(input: AssetAssignmentsByEntityInput!): [AssetAssignment!]!
+  primaryAssetAssignment(input: AssetAssignmentsByEntityInput!): AssetAssignment
 }
 
 input ProductWhereInput {
@@ -5624,6 +5754,355 @@ input DevPurgeFilter {
   orphanOnly: Boolean
 }
 
+input AssetWhereInput {
+  AND: [AssetWhereInput!]
+  OR: [AssetWhereInput!]
+  NOT: [AssetWhereInput!]
+  id: StringFilter
+  kind: EnumAssetKindFilter
+  bucket: StringFilter
+  key: StringFilter
+  url: StringFilter
+  filename: StringNullableFilter
+  mimetype: StringNullableFilter
+  size: IntNullableFilter
+  metadata: JsonNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  assignments: AssetAssignmentListRelationFilter
+}
+
+input EnumAssetKindFilter {
+  equals: AssetKind
+  in: [AssetKind!]
+  notIn: [AssetKind!]
+  not: NestedEnumAssetKindFilter
+}
+
+input NestedEnumAssetKindFilter {
+  equals: AssetKind
+  in: [AssetKind!]
+  notIn: [AssetKind!]
+  not: NestedEnumAssetKindFilter
+}
+
+input AssetAssignmentListRelationFilter {
+  every: AssetAssignmentWhereInput
+  some: AssetAssignmentWhereInput
+  none: AssetAssignmentWhereInput
+}
+
+input AssetAssignmentWhereInput {
+  AND: [AssetAssignmentWhereInput!]
+  OR: [AssetAssignmentWhereInput!]
+  NOT: [AssetAssignmentWhereInput!]
+  id: StringFilter
+  assetId: StringFilter
+  entityType: EnumAssetEntityTypeFilter
+  entityId: StringFilter
+  isPrimary: BoolFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  asset: AssetScalarRelationFilter
+}
+
+input EnumAssetEntityTypeFilter {
+  equals: AssetEntityType
+  in: [AssetEntityType!]
+  notIn: [AssetEntityType!]
+  not: NestedEnumAssetEntityTypeFilter
+}
+
+input NestedEnumAssetEntityTypeFilter {
+  equals: AssetEntityType
+  in: [AssetEntityType!]
+  notIn: [AssetEntityType!]
+  not: NestedEnumAssetEntityTypeFilter
+}
+
+input AssetScalarRelationFilter {
+  is: AssetWhereInput
+  isNot: AssetWhereInput
+}
+
+input AssetOrderByWithRelationInput {
+  id: SortOrder
+  kind: SortOrder
+  bucket: SortOrder
+  key: SortOrder
+  url: SortOrder
+  filename: SortOrderInput
+  mimetype: SortOrderInput
+  size: SortOrderInput
+  metadata: SortOrderInput
+  createdAt: SortOrder
+  updatedAt: SortOrder
+  assignments: AssetAssignmentOrderByRelationAggregateInput
+}
+
+input AssetAssignmentOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input AssetWhereUniqueInput {
+  id: String
+  key: String
+  AND: [AssetWhereInput!]
+  OR: [AssetWhereInput!]
+  NOT: [AssetWhereInput!]
+  kind: EnumAssetKindFilter
+  bucket: StringFilter
+  url: StringFilter
+  filename: StringNullableFilter
+  mimetype: StringNullableFilter
+  size: IntNullableFilter
+  metadata: JsonNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  assignments: AssetAssignmentListRelationFilter
+}
+
+enum AssetScalarFieldEnum {
+  id
+  kind
+  bucket
+  key
+  url
+  filename
+  mimetype
+  size
+  metadata
+  createdAt
+  updatedAt
+}
+
+input AssetCountAggregateInput {
+  id: Boolean
+  kind: Boolean
+  bucket: Boolean
+  key: Boolean
+  url: Boolean
+  filename: Boolean
+  mimetype: Boolean
+  size: Boolean
+  metadata: Boolean
+  createdAt: Boolean
+  updatedAt: Boolean
+  _all: Boolean
+}
+
+input AssetAvgAggregateInput {
+  size: Boolean
+}
+
+input AssetSumAggregateInput {
+  size: Boolean
+}
+
+input AssetMinAggregateInput {
+  id: Boolean
+  kind: Boolean
+  bucket: Boolean
+  key: Boolean
+  url: Boolean
+  filename: Boolean
+  mimetype: Boolean
+  size: Boolean
+  createdAt: Boolean
+  updatedAt: Boolean
+}
+
+input AssetMaxAggregateInput {
+  id: Boolean
+  kind: Boolean
+  bucket: Boolean
+  key: Boolean
+  url: Boolean
+  filename: Boolean
+  mimetype: Boolean
+  size: Boolean
+  createdAt: Boolean
+  updatedAt: Boolean
+}
+
+input AssetOrderByWithAggregationInput {
+  id: SortOrder
+  kind: SortOrder
+  bucket: SortOrder
+  key: SortOrder
+  url: SortOrder
+  filename: SortOrderInput
+  mimetype: SortOrderInput
+  size: SortOrderInput
+  metadata: SortOrderInput
+  createdAt: SortOrder
+  updatedAt: SortOrder
+  _count: AssetCountOrderByAggregateInput
+  _avg: AssetAvgOrderByAggregateInput
+  _max: AssetMaxOrderByAggregateInput
+  _min: AssetMinOrderByAggregateInput
+  _sum: AssetSumOrderByAggregateInput
+}
+
+input AssetCountOrderByAggregateInput {
+  id: SortOrder
+  kind: SortOrder
+  bucket: SortOrder
+  key: SortOrder
+  url: SortOrder
+  filename: SortOrder
+  mimetype: SortOrder
+  size: SortOrder
+  metadata: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
+}
+
+input AssetAvgOrderByAggregateInput {
+  size: SortOrder
+}
+
+input AssetMaxOrderByAggregateInput {
+  id: SortOrder
+  kind: SortOrder
+  bucket: SortOrder
+  key: SortOrder
+  url: SortOrder
+  filename: SortOrder
+  mimetype: SortOrder
+  size: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
+}
+
+input AssetMinOrderByAggregateInput {
+  id: SortOrder
+  kind: SortOrder
+  bucket: SortOrder
+  key: SortOrder
+  url: SortOrder
+  filename: SortOrder
+  mimetype: SortOrder
+  size: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
+}
+
+input AssetSumOrderByAggregateInput {
+  size: SortOrder
+}
+
+input AssetScalarWhereWithAggregatesInput {
+  AND: [AssetScalarWhereWithAggregatesInput!]
+  OR: [AssetScalarWhereWithAggregatesInput!]
+  NOT: [AssetScalarWhereWithAggregatesInput!]
+  id: StringWithAggregatesFilter
+  kind: EnumAssetKindWithAggregatesFilter
+  bucket: StringWithAggregatesFilter
+  key: StringWithAggregatesFilter
+  url: StringWithAggregatesFilter
+  filename: StringNullableWithAggregatesFilter
+  mimetype: StringNullableWithAggregatesFilter
+  size: IntNullableWithAggregatesFilter
+  metadata: JsonNullableWithAggregatesFilter
+  createdAt: DateTimeWithAggregatesFilter
+  updatedAt: DateTimeWithAggregatesFilter
+}
+
+input EnumAssetKindWithAggregatesFilter {
+  equals: AssetKind
+  in: [AssetKind!]
+  notIn: [AssetKind!]
+  not: NestedEnumAssetKindWithAggregatesFilter
+  _count: NestedIntFilter
+  _min: NestedEnumAssetKindFilter
+  _max: NestedEnumAssetKindFilter
+}
+
+input NestedEnumAssetKindWithAggregatesFilter {
+  equals: AssetKind
+  in: [AssetKind!]
+  notIn: [AssetKind!]
+  not: NestedEnumAssetKindWithAggregatesFilter
+  _count: NestedIntFilter
+  _min: NestedEnumAssetKindFilter
+  _max: NestedEnumAssetKindFilter
+}
+
+input IntNullableWithAggregatesFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: NestedIntNullableWithAggregatesFilter
+  _count: NestedIntNullableFilter
+  _avg: NestedFloatNullableFilter
+  _sum: NestedIntNullableFilter
+  _min: NestedIntNullableFilter
+  _max: NestedIntNullableFilter
+}
+
+input NestedIntNullableWithAggregatesFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: NestedIntNullableWithAggregatesFilter
+  _count: NestedIntNullableFilter
+  _avg: NestedFloatNullableFilter
+  _sum: NestedIntNullableFilter
+  _min: NestedIntNullableFilter
+  _max: NestedIntNullableFilter
+}
+
+input JsonNullableWithAggregatesFilter {
+  equals: JSON
+  path: [String!]
+  mode: QueryMode
+  string_contains: String
+  string_starts_with: String
+  string_ends_with: String
+  array_starts_with: JSON
+  array_ends_with: JSON
+  array_contains: JSON
+  lt: JSON
+  lte: JSON
+  gt: JSON
+  gte: JSON
+  not: JSON
+  _count: NestedIntNullableFilter
+  _min: NestedJsonNullableFilter
+  _max: NestedJsonNullableFilter
+}
+
+input NestedJsonNullableFilter {
+  equals: JSON
+  path: [String!]
+  mode: QueryMode
+  string_contains: String
+  string_starts_with: String
+  string_ends_with: String
+  array_starts_with: JSON
+  array_ends_with: JSON
+  array_contains: JSON
+  lt: JSON
+  lte: JSON
+  gt: JSON
+  gte: JSON
+  not: JSON
+}
+
+input AssetAssignmentsByEntityInput {
+  entityType: AssetEntityType!
+  entityId: String!
+}
+
 type Mutation {
   login(input: LoginInput!): AuthResponse!
   changePassword(input: ChangePasswordInput!): Boolean!
@@ -5763,6 +6242,9 @@ type Mutation {
   devSeedFixtures: String!
   devPurgeOrphanVariants(filter: DevPurgeFilter): Int!
   devPurgeProducts(filter: DevPurgeFilter): Int!
+  removeAsset(assetId: String!): Boolean!
+  assignAsset(input: AssignAssetInput!): AssetAssignment!
+  unassignAsset(input: AssignAssetInput!): Boolean!
 }
 
 input LoginInput {
@@ -25329,4 +25811,11 @@ input UserUpdateManyMutationInput {
   isEmailVerified: BoolFieldUpdateOperationsInput
   emailVerificationToken: NullableStringFieldUpdateOperationsInput
   emailVerificationTokenExpiry: NullableDateTimeFieldUpdateOperationsInput
+}
+
+input AssignAssetInput {
+  assetId: String!
+  entityType: AssetEntityType!
+  entityId: String!
+  isPrimary: Boolean
 }
