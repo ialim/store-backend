@@ -6,6 +6,7 @@ import { UpdateQuotationStatusInput } from '../sale/dto/update-quotation-status.
 import { CreateConsumerPaymentInput } from '../sale/dto/create-consumer-payment.input';
 import { CreateResellerPaymentInput } from '../sale/dto/create-reseller-payment.input';
 import { ConfirmConsumerPaymentInput } from '../sale/dto/confirm-consumer-payment.input';
+import { UpdateQuotationInput } from '../sale/dto/update-quotation.input';
 
 @Injectable()
 export class OrderService {
@@ -28,6 +29,30 @@ export class OrderService {
     return o;
   }
 
+  async quotations() {
+    return this.sales.quotations();
+  }
+
+  async quotation(id: string) {
+    return this.sales.quotation(id);
+  }
+
+  async consumerSales() {
+    return this.sales.consumerSales();
+  }
+
+  async consumerSale(id: string) {
+    return this.sales.consumerSale(id);
+  }
+
+  async resellerSales() {
+    return this.sales.resellerSales();
+  }
+
+  async resellerSale(id: string) {
+    return this.sales.resellerSale(id);
+  }
+
   // Quotation lifecycle
   createQuotationDraft(input: CreateQuotationDraftInput) {
     return this.sales.createQuotationDraft(input);
@@ -35,6 +60,10 @@ export class OrderService {
 
   updateQuotationStatus(input: UpdateQuotationStatusInput) {
     return this.sales.updateQuotationStatus(input);
+  }
+
+  updateQuotation(input: UpdateQuotationInput) {
+    return this.sales.updateQuotation(input);
   }
 
   // Payments

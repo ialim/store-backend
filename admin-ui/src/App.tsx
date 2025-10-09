@@ -53,6 +53,16 @@ const Collections = lazy(() => import('./pages/Collections'));
 const Roles = lazy(() => import('./pages/Roles'));
 const Assets = lazy(() => import('./pages/Assets'));
 const RequisitionDetail = lazy(() => import('./pages/RequisitionDetail'));
+const Orders = lazy(() => import('./pages/Orders'));
+const OrdersQuotations = lazy(() => import('./pages/OrdersQuotations'));
+const OrdersSales = lazy(() => import('./pages/OrdersSales'));
+const OrderDetail = lazy(() => import('./pages/OrderDetail'));
+const OrdersQuotationDetail = lazy(() => import('./pages/OrdersQuotationDetail'));
+const OrdersSaleDetail = lazy(() => import('./pages/OrdersSaleDetail'));
+const OrdersQuotationCreate = lazy(() => import('./pages/OrdersQuotationCreate'));
+const OrdersQuotationEdit = lazy(() => import('./pages/OrdersQuotationEdit'));
+const CustomerSales = lazy(() => import('./pages/CustomerSales'));
+const ResellerSalesPage = lazy(() => import('./pages/ResellerSalesPage'));
 import { PERMISSIONS, permissionList } from './shared/permissions';
 
 export default function App() {
@@ -76,6 +86,7 @@ export default function App() {
     PERMISSIONS.store.UPDATE,
     PERMISSIONS.resellerProfile.UPDATE,
   );
+  const orderReadAccess = permissionList(PERMISSIONS.order.READ);
   const staffManageAccess = permissionList(
     PERMISSIONS.staff.CREATE,
     PERMISSIONS.store.UPDATE,
@@ -181,6 +192,86 @@ export default function App() {
               }
             />
             <Route path="/variants" element={<Variants />} />
+            <Route
+              path="/orders"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  perms={orderReadAccess}
+                  element={<Orders />}
+                />
+              }
+            />
+            <Route
+              path="/orders/quotations"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  perms={orderReadAccess}
+                  element={<OrdersQuotations />}
+                />
+              }
+            />
+            <Route
+              path="/orders/quotations/new"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  perms={orderReadAccess}
+                  element={<OrdersQuotationCreate />}
+                />
+              }
+            />
+            <Route
+              path="/orders/quotations/:id"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  perms={orderReadAccess}
+                  element={<OrdersQuotationDetail />}
+                />
+              }
+            />
+            <Route
+              path="/orders/quotations/:id/edit"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  perms={orderReadAccess}
+                  element={<OrdersQuotationEdit />}
+                />
+              }
+            />
+            <Route
+              path="/orders/sales"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  perms={orderReadAccess}
+                  element={<OrdersSales />}
+                />
+              }
+            />
+            <Route
+              path="/orders/sales/:kind/:id"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  perms={orderReadAccess}
+                  element={<OrdersSaleDetail />}
+                />
+              }
+            />
+            <Route
+              path="/orders/:id"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  perms={orderReadAccess}
+                  element={<OrderDetail />}
+                />
+              }
+            />
             <Route
               path="/assets"
               element={
@@ -307,6 +398,16 @@ export default function App() {
               }
             />
             <Route
+              path="/customers/sales"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  perms={orderReadAccess}
+                  element={<CustomerSales />}
+                />
+              }
+            />
+            <Route
               path="/customers/:id"
               element={
                 <ProtectedRoute
@@ -318,11 +419,31 @@ export default function App() {
             />
             <Route
               path="/resellers"
-              element={<ProtectedRoute roles={['SUPERADMIN','ADMIN','MANAGER']} element={<Resellers />} />}
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<Resellers />}
+                />
+              }
+            />
+            <Route
+              path="/resellers/sales"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  perms={orderReadAccess}
+                  element={<ResellerSalesPage />}
+                />
+              }
             />
             <Route
               path="/resellers/:id"
-              element={<ProtectedRoute roles={['SUPERADMIN','ADMIN','MANAGER']} element={<ResellerDetail />} />}
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<ResellerDetail />}
+                />
+              }
             />
             <Route
               path="/reseller-approvals"

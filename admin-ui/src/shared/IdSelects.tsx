@@ -72,7 +72,14 @@ export function StoreSelect({ value, onChange, label = 'Store', placeholder = 'S
 
 const SEARCH_VARIANTS = gql`
   query SearchVariants($where: ProductVariantWhereInput, $take: Int) {
-    listProductVariants(where: $where, take: $take) { id name barcode }
+    listProductVariants(where: $where, take: $take) {
+      id
+      name
+      barcode
+      price
+      resellerPrice
+      product { id name }
+    }
   }
 `;
 
@@ -82,26 +89,79 @@ const SEARCH_SUPPLIERS = gql`
   }
 `;
 
-export function VariantSelect({ value, onChange, label = 'Variant', placeholder = 'Search by barcode or ID' }: { value: string; onChange: (id: string) => void; label?: string; placeholder?: string }) {
+type VariantSelectOption = {
+  id: string;
+  label: string;
+  variant?: {
+    id: string;
+    name?: string | null;
+    barcode?: string | null;
+    price: number;
+    resellerPrice: number;
+    product?: { id: string; name: string } | null;
+  };
+};
+
+export function VariantSelect({
+  value,
+  onChange,
+  onVariantSelect,
+  label = 'Variant',
+  placeholder = 'Search by name, barcode, or ID',
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  onVariantSelect?: (variant: VariantSelectOption['variant'] | null) => void;
+  label?: string;
+  placeholder?: string;
+}) {
   const [q, setQ] = React.useState('');
   const [load, { data }] = useLazyQuery(SEARCH_VARIANTS);
   React.useEffect(() => {
     const h = setTimeout(() => {
       if (q.trim().length >= 2) {
-        load({ variables: { where: { OR: [{ barcode: { contains: q, mode: 'insensitive' } }, { id: { equals: q } }] }, take: 10 } });
+        const term = q.trim();
+        load({
+          variables: {
+            where: {
+              OR: [
+                { name: { contains: term, mode: 'insensitive' } },
+                { product: { is: { name: { contains: term, mode: 'insensitive' } } } },
+                { barcode: { contains: term, mode: 'insensitive' } },
+                { id: { equals: term } },
+              ],
+            },
+            take: 10,
+          },
+        });
       }
     }, 250);
     return () => clearTimeout(h);
   }, [q, load]);
-  const options = (data?.listProductVariants ?? []).map((v: any) => ({ id: v.id, label: v.name || v.barcode || v.id }));
-  const current = options.find((o: any) => o.id === value) || (value ? { id: value, label: value } : null);
+  const options: VariantSelectOption[] = (data?.listProductVariants ?? []).map((v: any) => ({
+    id: v.id,
+    label: v.name || v.product?.name || v.barcode || v.id,
+    variant: v,
+  }));
+  const fallbackOption = value ? ({ id: value, label: value } as VariantSelectOption) : null;
+  const current = options.find((o) => o.id === value) || fallbackOption;
   return (
-    <Autocomplete
+    <Autocomplete<VariantSelectOption, false, false, true>
       options={options}
       value={current}
       inputValue={q}
       onInputChange={(_, v) => setQ(v)}
-      onChange={(_, v: any) => onChange(v?.id || '')}
+      onChange={(_, newValue) => {
+        const option = typeof newValue === 'string' ? null : newValue;
+        const nextId =
+          typeof newValue === 'string'
+            ? newValue
+            : option?.id || '';
+        onChange(nextId);
+        if (onVariantSelect) {
+          onVariantSelect(option?.variant ?? null);
+        }
+      }}
       renderInput={(params) => <TextField {...params} label={label} size="small" placeholder={placeholder} />}
       isOptionEqualToValue={(a, b) => a.id === b.id}
       clearOnBlur={false}

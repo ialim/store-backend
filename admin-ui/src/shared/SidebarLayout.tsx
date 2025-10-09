@@ -27,6 +27,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import LocalMallIcon from '@mui/icons-material/LocalMall';
 import StoreIcon from '@mui/icons-material/Store';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import PeopleIcon from '@mui/icons-material/People';
@@ -41,6 +42,8 @@ import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { useAuth } from './AuthProvider';
 import { notify } from './notify';
 import { useHeaderNotificationsQuery, useMeQuery } from '../generated/graphql';
@@ -70,6 +73,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     PERMISSIONS.product.UPDATE,
     PERMISSIONS.product.DELETE,
   );
+  const orderRead = permissionList(PERMISSIONS.order.READ);
   const userManage = permissionList(
     PERMISSIONS.user.CREATE,
     PERMISSIONS.user.READ,
@@ -85,57 +89,22 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
   );
 
   const toggleMobileDrawer = () => setMobileOpen((prev) => !prev);
+  const [collapsedSections, setCollapsedSections] = React.useState<Record<string, boolean>>({});
+
+  const toggleSectionCollapse = React.useCallback((key: string) => {
+    setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
 
   const sections: Array<{
     key: string;
     label: string;
     items: { label: string; to: string; show: boolean; icon: React.ReactNode }[];
+    collapsible?: boolean;
   }> = [
-    {
-      key: 'ops',
-      label: 'Operations',
-      items: [
-        {
-          label: 'Outbox',
-          to: '/outbox',
-          show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT') ||
-            hasPermission(...analyticsRead),
-          icon: <DashboardIcon fontSize="small" />,
-        },
-        {
-          label: 'Fulfillment',
-          to: '/fulfillment',
-          show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER') ||
-            hasPermission(...assignmentAccess),
-          icon: <LocalShippingIcon fontSize="small" />,
-        },
-        {
-          label: 'Low Stock',
-          to: '/low-stock',
-          show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-            hasPermission(...productRead, ...analyticsRead),
-          icon: <ListAltIcon fontSize="small" />,
-        },
-      ],
-    },
-    {
-      key: 'proc',
-      label: 'Procurement',
-      items: [
-        { label: 'Suppliers', to: '/suppliers', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <StoreIcon fontSize="small" /> },
-        { label: 'Requisitions', to: '/requisitions', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <AssignmentIcon fontSize="small" /> },
-        { label: 'Purchase Orders', to: '/purchase-orders', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <AssignmentIcon fontSize="small" /> },
-        { label: 'Receive Stock', to: '/receive-stock', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <Inventory2Icon fontSize="small" /> },
-        { label: 'Invoice Ingest', to: '/invoice-ingest', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <AssignmentIcon fontSize="small" /> },
-        { label: 'Invoice Imports', to: '/invoice-imports', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <AssignmentIcon fontSize="small" /> },
-      ],
-    },
     {
       key: 'catalog',
       label: 'Catalog & Stock',
+      collapsible: true,
       items: [
         {
           label: 'Products',
@@ -183,13 +152,165 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       ],
     },
     {
+      key: 'orders',
+      label: 'Orders',
+      collapsible: true,
+      items: [
+        {
+          label: 'Orders',
+          to: '/orders',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
+            hasPermission(...orderRead),
+          icon: <ReceiptLongIcon fontSize="small" />,
+        },
+        {
+          label: 'Quotations',
+          to: '/orders/quotations',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
+            hasPermission(...orderRead),
+          icon: <AssignmentIcon fontSize="small" />,
+        },
+        {
+          label: 'Sales',
+          to: '/orders/sales',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
+            hasPermission(...orderRead),
+          icon: <LocalMallIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'proc',
+      label: 'Procurement',
+      collapsible: true,
+      items: [
+        {
+          label: 'Requisitions',
+          to: '/requisitions',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <AssignmentIcon fontSize="small" />,
+        },
+        {
+          label: 'Purchase Orders',
+          to: '/purchase-orders',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <AssignmentIcon fontSize="small" />,
+        },
+        {
+          label: 'Receive Stock',
+          to: '/receive-stock',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <Inventory2Icon fontSize="small" />,
+        },
+        {
+          label: 'Invoice Ingest',
+          to: '/invoice-ingest',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <AssignmentIcon fontSize="small" />,
+        },
+        {
+          label: 'Invoice Imports',
+          to: '/invoice-imports',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <AssignmentIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'customers',
+      label: 'Customer Management',
+      collapsible: true,
+      items: [
+        {
+          label: 'Customers',
+          to: '/customers',
+          show: hasRole('SUPERADMIN', 'ADMIN') || hasPermission(...userManage),
+          icon: <PeopleIcon fontSize="small" />,
+        },
+        {
+          label: 'Customer Sales',
+          to: '/customers/sales',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
+            hasPermission(...orderRead),
+          icon: <LocalMallIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'resellers',
+      label: 'Reseller Management',
+      collapsible: true,
+      items: [
+        {
+          label: 'Resellers',
+          to: '/resellers',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <PeopleIcon fontSize="small" />,
+        },
+        {
+          label: 'Reseller Sales',
+          to: '/resellers/sales',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
+            hasPermission(...orderRead),
+          icon: <ReceiptLongIcon fontSize="small" />,
+        },
+        {
+          label: 'Reseller Approvals',
+          to: '/reseller-approvals',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+            hasPermission(...resellerApprove),
+          icon: <AssignmentIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'suppliers',
+      label: 'Supplier Management',
+      collapsible: true,
+      items: [
+        {
+          label: 'Suppliers',
+          to: '/suppliers',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <StoreIcon fontSize="small" />,
+        },
+        {
+          label: 'Supplier Payments',
+          to: '/supplier-payments',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'),
+          icon: <PaidIcon fontSize="small" />,
+        },
+        {
+          label: 'Supplier Statements',
+          to: '/supplier-statements',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'),
+          icon: <AssignmentIcon fontSize="small" />,
+        },
+        {
+          label: 'Supplier Aging',
+          to: '/supplier-aging',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'),
+          icon: <AssignmentIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
       key: 'finance',
       label: 'Finance',
+      collapsible: true,
       items: [
-        { label: 'Payments', to: '/payments', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'), icon: <PaidIcon fontSize="small" /> },
-        { label: 'Supplier Payments', to: '/supplier-payments', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'), icon: <PaidIcon fontSize="small" /> },
-        { label: 'Supplier Statements', to: '/supplier-statements', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'), icon: <PaidIcon fontSize="small" /> },
-        { label: 'Supplier Aging', to: '/supplier-aging', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'), icon: <PaidIcon fontSize="small" /> },
+        {
+          label: 'Payments',
+          to: '/payments',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT'),
+          icon: <PaidIcon fontSize="small" />,
+        },
         {
           label: 'Analytics',
           to: '/analytics',
@@ -203,46 +324,83 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     {
       key: 'returns',
       label: 'Returns',
+      collapsible: true,
       items: [
         { label: 'Returns', to: '/returns', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <UndoIcon fontSize="small" /> },
       ],
     },
     {
-      key: 'admin',
-      label: 'Admin',
+      key: 'ops',
+      label: 'Operations',
+      collapsible: true,
+      items: [
+        {
+          label: 'Outbox',
+          to: '/outbox',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT') ||
+            hasPermission(...analyticsRead),
+          icon: <DashboardIcon fontSize="small" />,
+        },
+        {
+          label: 'Fulfillment',
+          to: '/fulfillment',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER') ||
+            hasPermission(...assignmentAccess),
+          icon: <LocalShippingIcon fontSize="small" />,
+        },
+        {
+          label: 'Low Stock',
+          to: '/low-stock',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+            hasPermission(...productRead, ...analyticsRead),
+          icon: <ListAltIcon fontSize="small" />,
+        },
+        {
+          label: 'Support',
+          to: '/support',
+          show: true,
+          icon: <AssignmentIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'administration',
+      label: 'Administration',
+      collapsible: true,
       items: [
         {
           label: 'Users',
           to: '/users',
-          show:
-            hasRole('SUPERADMIN', 'ADMIN') || hasPermission(...userManage),
+          show: hasRole('SUPERADMIN', 'ADMIN') || hasPermission(...userManage),
           icon: <PeopleIcon fontSize="small" />,
         },
         {
           label: 'Customers',
           to: '/customers',
-          show:
-            hasRole('SUPERADMIN', 'ADMIN') || hasPermission(...userManage),
+          show: hasRole('SUPERADMIN', 'ADMIN') || hasPermission(...userManage),
           icon: <PeopleIcon fontSize="small" />,
         },
-        { label: 'Resellers', to: '/resellers', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <PeopleIcon fontSize="small" /> },
         {
-          label: 'Reseller Approvals',
-          to: '/reseller-approvals',
-          show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-            hasPermission(...resellerApprove),
-          icon: <AssignmentIcon fontSize="small" />,
+          label: 'Staff',
+          to: '/staff',
+          show: hasRole('SUPERADMIN', 'ADMIN'),
+          icon: <PeopleIcon fontSize="small" />,
         },
-        { label: 'Support', to: '/support', show: true, icon: <AssignmentIcon fontSize="small" /> },
-        { label: 'Staff', to: '/staff', show: hasRole('SUPERADMIN', 'ADMIN'), icon: <PeopleIcon fontSize="small" /> },
         {
           label: 'Roles',
           to: '/roles',
           show: hasRole('SUPERADMIN') || hasPermission(...roleManage),
           icon: <AssignmentIcon fontSize="small" />,
         },
-        { label: 'Dev DB Tools', to: '/dev/db-tools', show: hasRole('SUPERADMIN'), icon: <AssignmentIcon fontSize="small" /> },
+        {
+          label: 'Dev DB Tools',
+          to: '/dev/db-tools',
+          show: hasRole('SUPERADMIN'),
+          icon: <AssignmentIcon fontSize="small" />,
+        },
       ],
     },
   ];
@@ -358,50 +516,96 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         {sections.map((section) => {
           const visible = section.items.filter((item) => item.show);
           if (!visible.length) return null;
+          const collapsible = Boolean(section.collapsible);
+          const collapsed = collapsible ? collapsedSections[section.key] ?? false : false;
+          const listNode = (
+            <List disablePadding sx={{ mt: collapsible ? 1 : 0 }}>
+              {visible.map((item) => {
+                const selected = location.pathname.startsWith(item.to);
+                return (
+                  <ListItemButton
+                    key={item.to}
+                    component={Link}
+                    to={item.to}
+                    onClick={() => setMobileOpen(false)}
+                    selected={selected}
+                    sx={{
+                      mb: 0.5,
+                      borderRadius: 2,
+                      px: 1.75,
+                      py: 1.25,
+                      color: selected ? theme.palette.success.main : 'text.secondary',
+                      bgcolor: selected ? alpha(theme.palette.success.main, 0.15) : 'transparent',
+                      boxShadow: selected ? '0 12px 24px rgba(16, 94, 62, 0.12)' : 'none',
+                      '&:hover': {
+                        bgcolor: alpha(theme.palette.success.main, 0.12),
+                        color: theme.palette.success.main,
+                      },
+                      '&.Mui-selected:hover': {
+                        bgcolor: alpha(theme.palette.success.main, 0.18),
+                      },
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 42, color: 'inherit' }}>{item.icon}</ListItemIcon>
+                    <ListItemText
+                      primary={item.label}
+                      primaryTypographyProps={{ fontWeight: selected ? 700 : 500 }}
+                    />
+                  </ListItemButton>
+                );
+              })}
+            </List>
+          );
           return (
             <Box key={section.key} sx={{ mb: 3.5 }}>
-              <Typography
-                variant="overline"
-                sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1.4, mb: 1.5, display: 'block' }}
+              <ButtonBase
+                onClick={
+                  collapsible
+                    ? () => {
+                        toggleSectionCollapse(section.key);
+                      }
+                    : undefined
+                }
+                disableRipple={!collapsible}
+                sx={{
+                  width: '100%',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: collapsible ? 0.75 : 1.5,
+                  px: 0,
+                  py: collapsible ? 0.5 : 0,
+                  cursor: collapsible ? 'pointer' : 'default',
+                }}
               >
-                {section.label}
-              </Typography>
-              <List disablePadding>
-                {visible.map((item) => {
-                  const selected = location.pathname.startsWith(item.to);
-                  return (
-                    <ListItemButton
-                      key={item.to}
-                      component={Link}
-                      to={item.to}
-                      onClick={() => setMobileOpen(false)}
-                      selected={selected}
-                      sx={{
-                        mb: 0.5,
-                        borderRadius: 2,
-                        px: 1.75,
-                        py: 1.25,
-                        color: selected ? theme.palette.success.main : 'text.secondary',
-                        bgcolor: selected ? alpha(theme.palette.success.main, 0.15) : 'transparent',
-                        boxShadow: selected ? '0 12px 24px rgba(16, 94, 62, 0.12)' : 'none',
-                        '&:hover': {
-                          bgcolor: alpha(theme.palette.success.main, 0.12),
-                          color: theme.palette.success.main,
-                        },
-                        '&.Mui-selected:hover': {
-                          bgcolor: alpha(theme.palette.success.main, 0.18),
-                        },
-                      }}
-                    >
-                      <ListItemIcon sx={{ minWidth: 42, color: 'inherit' }}>{item.icon}</ListItemIcon>
-                      <ListItemText
-                        primary={item.label}
-                        primaryTypographyProps={{ fontWeight: selected ? 700 : 500 }}
-                      />
-                    </ListItemButton>
-                  );
-                })}
-              </List>
+                <Typography
+                  variant="overline"
+                  sx={{
+                    color: 'text.secondary',
+                    fontWeight: 700,
+                    letterSpacing: 1.4,
+                    display: 'block',
+                  }}
+                >
+                  {section.label}
+                </Typography>
+                {collapsible && (
+                  <ExpandMoreIcon
+                    fontSize="small"
+                    sx={{
+                      transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                      transition: 'transform 160ms ease',
+                      color: 'text.secondary',
+                    }}
+                  />
+                )}
+              </ButtonBase>
+              {collapsible ? (
+                <Collapse in={!collapsed} timeout={160} unmountOnExit>
+                  {listNode}
+                </Collapse>
+              ) : (
+                listNode
+              )}
             </Box>
           );
         })}
