@@ -126,12 +126,6 @@ export const QuotationDetail = gql`
         productVariantId
         quantity
         unitPrice
-        productVariant {
-          id
-          name
-          barcode
-          product { id name }
-        }
       }
       SaleOrder {
         id
@@ -139,24 +133,37 @@ export const QuotationDetail = gql`
         phase
         totalAmount
       }
-      store {
-        id
-        name
-        location
-      }
-      consumer {
-        id
-        fullName
-        email
-      }
-      reseller {
-        id
-        email
-      }
-      biller {
-        id
-        email
-      }
+    }
+  }
+`;
+
+export const StoreSummary = gql`
+  query StoreSummary($id: String!) {
+    listStores(where: { id: { equals: $id } }, take: 1) {
+      id
+      name
+      location
+    }
+  }
+`;
+
+export const UsersByIds = gql`
+  query UsersByIds($ids: [String!]!, $take: Int) {
+    listUsers(where: { id: { in: $ids } }, take: $take) {
+      id
+      email
+      customerProfile { fullName email }
+    }
+  }
+`;
+
+export const ProductVariantsByIds = gql`
+  query ProductVariantsByIds($ids: [String!]!, $take: Int) {
+    listProductVariants(where: { id: { in: $ids } }, take: $take) {
+      id
+      name
+      barcode
+      product { id name }
     }
   }
 `;

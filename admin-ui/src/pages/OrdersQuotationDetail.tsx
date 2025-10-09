@@ -20,31 +20,22 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import LaunchIcon from '@mui/icons-material/Launch';
 import TableList from '../shared/TableList';
 import { formatMoney } from '../shared/format';
-import { QuotationDetail } from '../operations/orders';
+import {
+  QuotationDetail,
+  StoreSummary,
+  UsersByIds,
+  ProductVariantsByIds,
+} from '../operations/orders';
 
 type QuotationDetailData = {
   quotation: {
     id: string;
     type: string;
     channel: string;
-    store: {
-      id: string;
-      name: string;
-      location?: string | null;
-    };
-    consumer?: {
-      id: string;
-      fullName: string;
-      email?: string | null;
-    } | null;
-    reseller?: {
-      id: string;
-      email: string;
-    } | null;
-    biller?: {
-      id: string;
-      email: string;
-    } | null;
+    storeId: string;
+    consumerId?: string | null;
+    resellerId?: string | null;
+    billerId?: string | null;
     status: string;
     totalAmount: number;
     saleOrderId?: string | null;
@@ -54,15 +45,6 @@ type QuotationDetailData = {
       productVariantId: string;
       quantity: number;
       unitPrice: number;
-      productVariant?: {
-        id: string;
-        name?: string | null;
-        barcode?: string | null;
-        product?: {
-          id: string;
-          name?: string | null;
-        } | null;
-      } | null;
     }>;
     SaleOrder?: {
       id: string;
@@ -71,6 +53,37 @@ type QuotationDetailData = {
       totalAmount: number;
     } | null;
   };
+};
+
+type StoreSummaryData = {
+  listStores: Array<{
+    id: string;
+    name: string;
+    location?: string | null;
+  }>;
+};
+
+type UsersByIdsData = {
+  listUsers: Array<{
+    id: string;
+    email: string;
+    customerProfile?: {
+      fullName: string;
+      email?: string | null;
+    } | null;
+  }>;
+};
+
+type ProductVariantsByIdsData = {
+  listProductVariants: Array<{
+    id: string;
+    name?: string | null;
+    barcode?: string | null;
+    product?: {
+      id: string;
+      name?: string | null;
+    } | null;
+  }>;
 };
 
 function formatDate(value?: string | null) {
@@ -104,26 +117,88 @@ export default function OrdersQuotationDetail() {
   );
 
   const quotation = data?.quotation;
-  const storeLabel = quotation
-    ? `${quotation.store.name}${
-        quotation.store.location ? ` • ${quotation.store.location}` : ''
-      }`
+
+  const storeId = quotation?.storeId ?? '';
+  const { data: storeData } = useQuery<StoreSummaryData>(StoreSummary, {
+    variables: { id: storeId },
+    skip: !storeId,
+  });
+  const storeInfo = storeData?.listStores?.[0] ?? null;
+
+  const userIds = React.useMemo(() => {
+    const ids = new Set<string>();
+    if (quotation?.consumerId) ids.add(quotation.consumerId);
+    if (quotation?.resellerId) ids.add(quotation.resellerId);
+    if (quotation?.billerId) ids.add(quotation.billerId);
+    return Array.from(ids);
+  }, [quotation?.consumerId, quotation?.resellerId, quotation?.billerId]);
+
+  const { data: usersData } = useQuery<UsersByIdsData>(UsersByIds, {
+    variables: { ids: userIds, take: userIds.length },
+    skip: userIds.length === 0,
+  });
+
+  const userMap = React.useMemo(() => {
+    const map: Record<string, UsersByIdsData['listUsers'][number]> = {};
+    (usersData?.listUsers ?? []).forEach((user) => {
+      map[user.id] = user;
+    });
+    return map;
+  }, [usersData?.listUsers]);
+
+  const variantIds = React.useMemo(() => {
+    if (!quotation) return [] as string[];
+    const ids = new Set<string>();
+    quotation.items.forEach((item) => {
+      if (item.productVariantId) ids.add(item.productVariantId);
+    });
+    return Array.from(ids);
+  }, [quotation]);
+
+  const { data: variantsData } = useQuery<ProductVariantsByIdsData>(ProductVariantsByIds, {
+    variables: { ids: variantIds, take: variantIds.length },
+    skip: variantIds.length === 0,
+  });
+
+  const variantMap = React.useMemo(() => {
+    const map: Record<string, ProductVariantsByIdsData['listProductVariants'][number]> = {};
+    (variantsData?.listProductVariants ?? []).forEach((variant) => {
+      map[variant.id] = variant;
+    });
+    return map;
+  }, [variantsData?.listProductVariants]);
+
+  const storeLabel = storeInfo
+    ? `${storeInfo.name}${storeInfo.location ? ` • ${storeInfo.location}` : ''}`
     : '—';
-  const storeIdLabel = quotation?.store.id ?? '—';
-  const billerLabel = quotation?.biller?.email ?? '—';
-  const billerId = quotation?.biller?.id ?? null;
-  const partyLabel =
-    quotation?.type === 'RESELLER'
-      ? quotation?.reseller?.email || '—'
-      : quotation?.consumer
-      ? `${quotation.consumer.fullName}${
-          quotation.consumer.email ? ` (${quotation.consumer.email})` : ''
+  const storeIdLabel = storeInfo?.id ?? quotation?.storeId ?? '—';
+
+  const consumerUser = quotation?.consumerId
+    ? userMap[quotation.consumerId]
+    : undefined;
+  const resellerUser = quotation?.resellerId
+    ? userMap[quotation.resellerId]
+    : undefined;
+  const billerUser = quotation?.billerId ? userMap[quotation.billerId] : undefined;
+
+  const consumerLabel = consumerUser
+    ? consumerUser.customerProfile?.fullName
+      ? `${consumerUser.customerProfile.fullName}${
+          consumerUser.email ? ` (${consumerUser.email})` : ''
         }`
-      : '—';
+      : consumerUser.email
+    : '—';
+
+  const resellerLabel = resellerUser?.email ?? '—';
+  const billerLabel = billerUser?.email ?? '—';
+  const billerId = quotation?.billerId ?? null;
+
+  const partyLabel =
+    quotation?.type === 'RESELLER' ? resellerLabel : consumerLabel;
   const partyId =
     quotation?.type === 'RESELLER'
-      ? quotation?.reseller?.id || '—'
-      : quotation?.consumer?.id || '—';
+      ? quotation?.resellerId || '—'
+      : quotation?.consumerId || '—';
 
   type QuotationItemRow = NonNullable<QuotationDetailData['quotation']>['items'][number];
 
@@ -133,17 +208,18 @@ export default function OrdersQuotationDetail() {
         key: 'variant',
         label: 'Product Variant',
         render: (row: QuotationItemRow) => {
+          const variant = variantMap[row.productVariantId];
           const baseName =
-            row.productVariant?.name ||
-            row.productVariant?.product?.name ||
-            row.productVariant?.barcode ||
+            variant?.name ||
+            variant?.product?.name ||
+            variant?.barcode ||
             row.productVariantId;
           const details: string[] = [];
           if (
-            row.productVariant?.barcode &&
-            row.productVariant?.barcode !== baseName
+            variant?.barcode &&
+            variant?.barcode !== baseName
           ) {
-            details.push(row.productVariant.barcode);
+            details.push(variant.barcode);
           }
           if (row.productVariantId && row.productVariantId !== baseName) {
             details.push(`#${row.productVariantId}`);
@@ -170,7 +246,7 @@ export default function OrdersQuotationDetail() {
         align: 'right' as const,
       },
     ],
-    [],
+    [variantMap],
   );
 
   return (
