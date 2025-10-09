@@ -1,20 +1,11 @@
 import React from 'react';
 import {
+  Alert,
   Box,
   Button,
-  Card,
-  CardContent,
-  CircularProgress,
   IconButton,
   Link as MuiLink,
-  Paper,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -26,9 +17,12 @@ import { notify } from '../shared/notify';
 import { uploadAsset } from '../shared/assets';
 import {
   AssetKind,
+  type AssetsQuery,
   useAssetsQuery,
   useRemoveAssetMutation,
 } from '../generated/graphql';
+import TableList from '../shared/TableList';
+import { ListingHero } from '../shared/ListingLayout';
 
 const DEFAULT_PAGE_SIZE = 200;
 
@@ -55,13 +49,37 @@ function formatDate(value?: string | null): string {
 
 export default function Assets() {
   const [uploading, setUploading] = React.useState(false);
-  const { data, loading, refetch } = useAssetsQuery({
+  const [search, setSearch] = React.useState('');
+  const { data, loading, error, refetch } = useAssetsQuery({
     variables: { take: DEFAULT_PAGE_SIZE },
     fetchPolicy: 'cache-and-network',
   });
   const [removeAsset] = useRemoveAssetMutation();
 
   const assets = data?.assets ?? [];
+
+  type AssetRow = NonNullable<AssetsQuery['assets']>[number];
+
+  const filteredAssets = React.useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return assets as AssetRow[];
+    return (assets as AssetRow[]).filter((asset) => {
+      const haystack = [
+        asset.filename,
+        asset.key,
+        asset.url,
+        asset.mimetype,
+        asset.kind,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [assets, search]);
+
+  const assetCount = assets.length;
+  const filteredCount = filteredAssets.length;
 
   const handleUpload: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
     const file = event.target.files?.[0];
@@ -79,153 +97,205 @@ export default function Assets() {
     }
   };
 
+  const handleCopyUrl = React.useCallback(async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      notify('Asset URL copied', 'success');
+    } catch {
+      notify('Copy failed', 'error');
+    }
+  }, []);
+
+  const handleDeleteAsset = React.useCallback(
+    async (asset: AssetRow) => {
+      try {
+        await removeAsset({ variables: { assetId: asset.id } });
+        notify('Asset deleted', 'success');
+        await refetch();
+      } catch (err: any) {
+        notify(err?.message || 'Failed to delete asset', 'error');
+      }
+    },
+    [refetch, removeAsset],
+  );
+
+  const columns = React.useMemo(
+    () => [
+      {
+        key: 'preview',
+        label: 'Preview',
+        width: 112,
+        render: (asset: AssetRow) =>
+          asset.kind === AssetKind.Image ? (
+            <Box
+              component="img"
+              src={asset.url}
+              alt={asset.filename ?? asset.id}
+              sx={{ width: 88, height: 64, objectFit: 'cover', borderRadius: 1, bgcolor: 'grey.100' }}
+            />
+          ) : (
+            <Typography variant="caption" color="text.secondary">
+              {asset.mimetype ?? 'No preview'}
+            </Typography>
+          ),
+      },
+      {
+        key: 'filename',
+        label: 'Filename',
+        sort: true,
+        accessor: (asset: AssetRow) => asset.filename ?? asset.key ?? '',
+        render: (asset: AssetRow) => (
+          <Stack spacing={0.5}>
+            <Typography variant="body2" noWrap>
+              {asset.filename || asset.key}
+            </Typography>
+            <MuiLink href={asset.url} target="_blank" rel="noopener">
+              {asset.url.replace(/^https?:\/\//, '')}
+            </MuiLink>
+          </Stack>
+        ),
+      },
+      {
+        key: 'kind',
+        label: 'Kind',
+        sort: true,
+        accessor: (asset: AssetRow) => asset.kind,
+      },
+      {
+        key: 'size',
+        label: 'Size',
+        sort: true,
+        accessor: (asset: AssetRow) => asset.size ?? 0,
+        render: (asset: AssetRow) => formatBytes(asset.size),
+      },
+      {
+        key: 'assignments',
+        label: 'Assignments',
+        render: (asset: AssetRow) => {
+          const assignmentCount = asset.assignments?.length ?? 0;
+          const primary = asset.assignments?.find((assignment) => assignment.isPrimary);
+          return assignmentCount
+            ? `${assignmentCount} linked${primary ? ' • primary set' : ''}`
+            : '—';
+        },
+      },
+      {
+        key: 'createdAt',
+        label: 'Created',
+        sort: true,
+        accessor: (asset: AssetRow) => new Date(asset.createdAt ?? 0).getTime(),
+        render: (asset: AssetRow) => formatDate(asset.createdAt),
+      },
+      {
+        key: 'actions',
+        label: 'Actions',
+        align: 'right' as const,
+        width: 160,
+        render: (asset: AssetRow) => (
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Tooltip title="Copy URL">
+              <span>
+                <IconButton size="small" onClick={() => handleCopyUrl(asset.url)}>
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Open in new tab">
+              <IconButton
+                size="small"
+                component={MuiLink}
+                href={asset.url}
+                target="_blank"
+                rel="noopener"
+              >
+                <OpenInNewIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete asset">
+              <span>
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={async () => {
+                    if (
+                      window.confirm(
+                        'Delete this asset from storage? This action cannot be undone.',
+                      )
+                    ) {
+                      await handleDeleteAsset(asset);
+                    }
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
+        ),
+      },
+    ],
+    [handleCopyUrl, handleDeleteAsset],
+  );
+
   return (
     <Stack spacing={3}>
-      <Card>
-        <CardContent>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent="space-between">
-            <Stack>
-              <Typography variant="h5">Assets</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Manage uploaded files such as product imagery, hero banners, and documents.
-              </Typography>
-            </Stack>
-            <Button
-              component="label"
-              variant="contained"
-              startIcon={<CloudUploadIcon />}
-              disabled={uploading}
-            >
-              {uploading ? 'Uploading…' : 'Upload Asset'}
-              <input hidden type="file" accept="*/*" onChange={handleUpload} />
-            </Button>
-          </Stack>
-        </CardContent>
-      </Card>
+      <Stack spacing={1}>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Assets
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Manage uploaded files such as product imagery, hero banners, and documents.
+        </Typography>
+      </Stack>
 
-      <Card>
-        <CardContent>
-          {loading && !assets.length ? (
-            <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" sx={{ py: 4 }}>
-              <CircularProgress size={24} />
-              <Typography color="text.secondary">Loading assets…</Typography>
-            </Stack>
-          ) : (
-            <TableContainer component={Paper} variant="outlined">
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell width={100}>Preview</TableCell>
-                    <TableCell>Filename</TableCell>
-                    <TableCell>Kind</TableCell>
-                    <TableCell>Size</TableCell>
-                    <TableCell>Assignments</TableCell>
-                    <TableCell>Created</TableCell>
-                    <TableCell align="right">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {assets.length ? (
-                    assets.map((asset) => {
-                      const assignmentCount = asset.assignments?.length ?? 0;
-                      const primary = asset.assignments?.find((assignment) => assignment.isPrimary);
-                      const preview =
-                        asset.kind === AssetKind.Image ? (
-                          <Box
-                            component="img"
-                            src={asset.url}
-                            alt={asset.filename ?? asset.id}
-                            sx={{ width: 88, height: 64, objectFit: 'cover', borderRadius: 1, bgcolor: 'grey.100' }}
-                          />
-                        ) : (
-                          <Typography variant="caption" color="text.secondary">
-                            {asset.mimetype ?? 'No preview'}
-                          </Typography>
-                        );
+      <ListingHero
+        action={
+          <Button
+            component="label"
+            variant="contained"
+            startIcon={<CloudUploadIcon />}
+            disabled={uploading}
+            sx={{ borderRadius: 999 }}
+          >
+            {uploading ? 'Uploading…' : 'Upload Asset'}
+            <input hidden type="file" accept="*/*" onChange={handleUpload} />
+          </Button>
+        }
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: 'Search by filename, key, or type',
+        }}
+        density="compact"
+      >
+        <Typography variant="body2" color="text.secondary">
+          {assetCount
+            ? search.trim()
+              ? `Showing ${filteredCount} of ${assetCount} assets`
+              : `${assetCount} asset${assetCount === 1 ? '' : 's'} available`
+            : 'No assets uploaded yet'}
+        </Typography>
+      </ListingHero>
 
-                      const assignmentSummary = assignmentCount
-                        ? `${assignmentCount} linked${primary ? ' • primary set' : ''}`
-                        : '—';
+      {error && (
+        <Alert severity="error" onClick={() => refetch()} sx={{ cursor: 'pointer' }}>
+          {error.message} (tap to retry)
+        </Alert>
+      )}
 
-                      return (
-                        <TableRow key={asset.id} hover>
-                          <TableCell>{preview}</TableCell>
-                          <TableCell>
-                            <Stack spacing={0.5}>
-                              <Typography variant="body2" noWrap>
-                                {asset.filename || asset.key}
-                              </Typography>
-                              <MuiLink href={asset.url} target="_blank" rel="noopener">
-                                {asset.url.replace(/^https?:\/\//, '')}
-                              </MuiLink>
-                            </Stack>
-                          </TableCell>
-                          <TableCell>{asset.kind}</TableCell>
-                          <TableCell>{formatBytes(asset.size)}</TableCell>
-                          <TableCell>{assignmentSummary}</TableCell>
-                          <TableCell>{formatDate(asset.createdAt)}</TableCell>
-                          <TableCell align="right">
-                            <Stack direction="row" spacing={1} justifyContent="flex-end">
-                              <Tooltip title="Copy URL">
-                                <span>
-                                  <IconButton
-                                    size="small"
-                                    onClick={async () => {
-                                      try {
-                                        await navigator.clipboard.writeText(asset.url);
-                                        notify('Asset URL copied', 'success');
-                                      } catch {
-                                        notify('Copy failed', 'error');
-                                      }
-                                    }}
-                                  >
-                                    <ContentCopyIcon fontSize="small" />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
-                              <Tooltip title="Open in new tab">
-                                <IconButton size="small" component={MuiLink} href={asset.url} target="_blank" rel="noopener">
-                                  <OpenInNewIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Delete asset">
-                                <span>
-                                  <IconButton
-                                    size="small"
-                                    color="error"
-                                    onClick={async () => {
-                                      if (!window.confirm('Delete this asset from storage? This action cannot be undone.')) return;
-                                      try {
-                                        await removeAsset({ variables: { assetId: asset.id } });
-                                        notify('Asset deleted', 'success');
-                                        await refetch();
-                                      } catch (error: any) {
-                                        notify(error?.message || 'Failed to delete asset', 'error');
-                                      }
-                                    }}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
-                        <Typography color="text.secondary">No assets uploaded yet.</Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
+      <TableList
+        columns={columns}
+        rows={filteredAssets}
+        loading={loading && !assetCount}
+        emptyMessage="No assets uploaded yet."
+        getRowKey={(asset: AssetRow) => asset.id}
+        defaultSortKey="createdAt"
+        defaultSortDir="desc"
+        rowsPerPageOptions={[10, 25, 50, 100, 200]}
+        defaultRowsPerPage={25}
+        showFilters={false}
+        paginated
+      />
     </Stack>
   );
 }
