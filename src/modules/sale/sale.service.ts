@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { NotificationService } from '../notification/notification.service';
 import { CreateConsumerSaleInput } from './dto/create-consumer-sale.input';
 import { CreateResellerSaleInput } from './dto/create-reseller-sale.input';
@@ -32,6 +33,7 @@ import { FulfillConsumerSaleInput } from './dto/fulfill-consumer-sale.input';
 import { DomainEventsService } from '../events/services/domain-events.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { FulfillmentStatus } from '../../shared/prismagraphql/prisma/fulfillment-status.enum';
+import { UpdateQuotationInput } from './dto/update-quotation.input';
 
 @Injectable()
 export class SalesService {
@@ -57,6 +59,111 @@ export class SalesService {
     });
     if (!q) throw new NotFoundException('Quotation not found');
     return q;
+  }
+
+  async updateQuotation(input: UpdateQuotationInput) {
+    return this.prisma.$transaction(async (trx) => {
+      const current = await trx.quotation.findUnique({
+        where: { id: input.id },
+        include: { items: true, SaleOrder: true },
+      });
+      if (!current) throw new NotFoundException('Quotation not found');
+
+      if (
+        current.status !== QuotationStatus.DRAFT &&
+        current.status !== QuotationStatus.SENT
+      ) {
+        throw new BadRequestException(
+          'Only draft or sent quotations can be edited',
+        );
+      }
+
+      const quotationData: Prisma.QuotationUpdateInput = {};
+      const saleOrderData: Prisma.SaleOrderUpdateInput = {};
+
+      if (input.type && input.type !== current.type) {
+        quotationData.type = input.type;
+        saleOrderData.type = input.type;
+      }
+
+      if (input.channel && input.channel !== current.channel) {
+        quotationData.channel = input.channel;
+      }
+
+      if (input.storeId && input.storeId !== current.storeId) {
+        quotationData.store = { connect: { id: input.storeId } };
+        saleOrderData.storeId = input.storeId;
+      }
+
+      if (input.billerId !== undefined) {
+        quotationData.biller = input.billerId
+          ? { connect: { id: input.billerId } }
+          : { disconnect: true };
+        if (current.SaleOrder) {
+          saleOrderData.billerId = input.billerId ?? current.SaleOrder.billerId;
+        }
+      }
+
+      if (input.type === SaleType.CONSUMER || (!input.type && current.type === SaleType.CONSUMER)) {
+        if (input.consumerId !== undefined) {
+          quotationData.consumer = input.consumerId
+            ? { connect: { id: input.consumerId } }
+            : { disconnect: true };
+        }
+        quotationData.reseller = { disconnect: true };
+      }
+
+      if (input.type === SaleType.RESELLER || (!input.type && current.type === SaleType.RESELLER)) {
+        if (input.resellerId !== undefined) {
+          quotationData.reseller = input.resellerId
+            ? { connect: { id: input.resellerId } }
+            : { disconnect: true };
+        }
+        quotationData.consumer = { disconnect: true };
+      }
+
+      if (input.items && input.items.length === 0) {
+        throw new BadRequestException('At least one quotation item is required');
+      }
+
+      if (input.items) {
+        const total = input.items.reduce(
+          (sum, item) => sum + item.quantity * item.unitPrice,
+          0,
+        );
+        quotationData.totalAmount = total;
+        saleOrderData.totalAmount = total;
+      }
+
+      await trx.quotation.update({
+        where: { id: current.id },
+        data: quotationData,
+      });
+
+      if (input.items) {
+        await trx.quotationItem.deleteMany({ where: { quotationId: current.id } });
+        await trx.quotationItem.createMany({
+          data: input.items.map((item) => ({
+            quotationId: current.id,
+            productVariantId: item.productVariantId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+          })),
+        });
+      }
+
+      if (current.saleOrderId && Object.keys(saleOrderData).length) {
+        await trx.saleOrder.update({
+          where: { id: current.saleOrderId },
+          data: saleOrderData,
+        });
+      }
+
+      return trx.quotation.findUnique({
+        where: { id: current.id },
+        include: { items: true, SaleOrder: true },
+      });
+    });
   }
 
   async createQuotationDraft(input: CreateQuotationDraftInput) {

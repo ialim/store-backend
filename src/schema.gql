@@ -2492,6 +2492,12 @@ type Query {
   topSellingVariantsByStore(storeId: String!, month: String, limit: Int): [VariantSalesWithDetails!]!
   monthlySalesSummaryByStore(storeId: String!, month: String): MonthlySalesSummary!
   ordersQuery: [SaleOrder!]!
+  quotations: [Quotation!]!
+  quotation(id: String!): Quotation!
+  consumerSales: [ConsumerSale!]!
+  consumerSale(id: String!): ConsumerSale!
+  resellerSales: [ResellerSale!]!
+  resellerSale(id: String!): ResellerSale!
   order(id: String!): SaleOrder!
   salesReturnsByStore(storeId: String!): [SalesReturn!]!
   salesReturnsByConsumerSale(consumerSaleId: String!): [SalesReturn!]!
@@ -6217,6 +6223,7 @@ type Mutation {
   assignFulfillmentPersonnel(input: AssignFulfillmentPersonnelInput!): Fulfillment!
   updateFulfillmentStatus(input: UpdateFulfillmentStatusInput!): Fulfillment!
   adminRevertOrderToQuotation(saleOrderId: String!): SaleOrder!
+  updateQuotation(input: UpdateQuotationInput!): Quotation!
   adminRevertToQuotation(saleOrderId: String!): SaleOrder!
   createSalesReturn(input: CreateSalesReturnInput!): String!
   updateSalesReturnStatus(input: UpdateSalesReturnStatusInput!): Boolean!
@@ -25569,6 +25576,23 @@ input UpdateFulfillmentStatusInput {
   saleOrderId: String!
   status: FulfillmentStatus!
   confirmationPin: String
+}
+
+input UpdateQuotationInput {
+  id: ID!
+  type: SaleType
+  channel: SaleChannel
+  storeId: ID
+  consumerId: ID
+  resellerId: ID
+  billerId: ID
+  items: [UpdateQuotationItemInput!]
+}
+
+input UpdateQuotationItemInput {
+  productVariantId: ID!
+  quantity: Float!
+  unitPrice: Float!
 }
 
 input CreateSalesReturnInput {

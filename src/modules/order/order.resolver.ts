@@ -12,9 +12,12 @@ import { SaleOrder } from '../../shared/prismagraphql/sale-order/sale-order.mode
 import { Quotation } from '../../shared/prismagraphql/quotation/quotation.model';
 import { ConsumerPayment } from '../../shared/prismagraphql/consumer-payment/consumer-payment.model';
 import { ResellerPayment } from '../../shared/prismagraphql/reseller-payment/reseller-payment.model';
+import { ConsumerSale } from '../../shared/prismagraphql/consumer-sale/consumer-sale.model';
+import { ResellerSale } from '../../shared/prismagraphql/reseller-sale/reseller-sale.model';
 
 import { CreateQuotationDraftInput } from '../sale/dto/create-quotation-draft.input';
 import { UpdateQuotationStatusInput } from '../sale/dto/update-quotation-status.input';
+import { UpdateQuotationInput } from '../sale/dto/update-quotation.input';
 import { CreateConsumerPaymentInput } from '../sale/dto/create-consumer-payment.input';
 import { CreateResellerPaymentInput } from '../sale/dto/create-reseller-payment.input';
 import { ConfirmConsumerPaymentInput } from '../sale/dto/confirm-consumer-payment.input';
@@ -30,6 +33,54 @@ export class OrderResolver {
   @Permissions(PERMISSIONS.order.READ as string)
   ordersQuery() {
     return this.orders.orders();
+  }
+
+  @Query(() => [Quotation])
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.order.READ as string)
+  quotations() {
+    return this.orders.quotations();
+  }
+
+  @Query(() => Quotation)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.order.READ as string)
+  quotation(@Args('id') id: string) {
+    return this.orders.quotation(id);
+  }
+
+  @Query(() => [ConsumerSale])
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.order.READ as string)
+  consumerSales() {
+    return this.orders.consumerSales();
+  }
+
+  @Query(() => ConsumerSale)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.order.READ as string)
+  consumerSale(@Args('id') id: string) {
+    return this.orders.consumerSale(id);
+  }
+
+  @Query(() => [ResellerSale])
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.order.READ as string)
+  resellerSales() {
+    return this.orders.resellerSales();
+  }
+
+  @Query(() => ResellerSale)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.order.READ as string)
+  resellerSale(@Args('id') id: string) {
+    return this.orders.resellerSale(id);
   }
 
   @Query(() => SaleOrder)
@@ -55,6 +106,14 @@ export class OrderResolver {
   @Permissions(PERMISSIONS.order.UPDATE as string)
   updateQuotationStatus(@Args('input') input: UpdateQuotationStatusInput) {
     return this.orders.updateQuotationStatus(input);
+  }
+
+  @Mutation(() => Quotation)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.order.UPDATE as string)
+  updateQuotation(@Args('input') input: UpdateQuotationInput) {
+    return this.orders.updateQuotation(input);
   }
 
   // Payments
