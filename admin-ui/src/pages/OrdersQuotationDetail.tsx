@@ -27,10 +27,24 @@ type QuotationDetailData = {
     id: string;
     type: string;
     channel: string;
-    storeId: string;
-    consumerId?: string | null;
-    resellerId?: string | null;
-    billerId?: string | null;
+    store: {
+      id: string;
+      name: string;
+      location?: string | null;
+    };
+    consumer?: {
+      id: string;
+      fullName: string;
+      email?: string | null;
+    } | null;
+    reseller?: {
+      id: string;
+      email: string;
+    } | null;
+    biller?: {
+      id: string;
+      email: string;
+    } | null;
     status: string;
     totalAmount: number;
     saleOrderId?: string | null;
@@ -40,6 +54,15 @@ type QuotationDetailData = {
       productVariantId: string;
       quantity: number;
       unitPrice: number;
+      productVariant?: {
+        id: string;
+        name?: string | null;
+        barcode?: string | null;
+        product?: {
+          id: string;
+          name?: string | null;
+        } | null;
+      } | null;
     }>;
     SaleOrder?: {
       id: string;
@@ -81,29 +104,68 @@ export default function OrdersQuotationDetail() {
   );
 
   const quotation = data?.quotation;
+  const storeLabel = quotation
+    ? `${quotation.store.name}${
+        quotation.store.location ? ` • ${quotation.store.location}` : ''
+      }`
+    : '—';
+  const storeIdLabel = quotation?.store.id ?? '—';
+  const billerLabel = quotation?.biller?.email ?? '—';
+  const billerId = quotation?.biller?.id ?? null;
+  const partyLabel =
+    quotation?.type === 'RESELLER'
+      ? quotation?.reseller?.email || '—'
+      : quotation?.consumer
+      ? `${quotation.consumer.fullName}${
+          quotation.consumer.email ? ` (${quotation.consumer.email})` : ''
+        }`
+      : '—';
+  const partyId =
+    quotation?.type === 'RESELLER'
+      ? quotation?.reseller?.id || '—'
+      : quotation?.consumer?.id || '—';
+
+  type QuotationItemRow = NonNullable<QuotationDetailData['quotation']>['items'][number];
 
   const itemColumns = React.useMemo(
     () => [
       {
         key: 'variant',
         label: 'Product Variant',
-        render: (row: { productVariantId: string }) => row.productVariantId,
+        render: (row: QuotationItemRow) => {
+          const baseName =
+            row.productVariant?.name ||
+            row.productVariant?.product?.name ||
+            row.productVariant?.barcode ||
+            row.productVariantId;
+          const details: string[] = [];
+          if (
+            row.productVariant?.barcode &&
+            row.productVariant?.barcode !== baseName
+          ) {
+            details.push(row.productVariant.barcode);
+          }
+          if (row.productVariantId && row.productVariantId !== baseName) {
+            details.push(`#${row.productVariantId}`);
+          }
+          return details.length ? `${baseName} (${details.join(' • ')})` : baseName;
+        },
       },
       {
         key: 'quantity',
         label: 'Qty',
-        render: (row: { quantity: number }) => row.quantity,
+        render: (row: QuotationItemRow) => row.quantity,
       },
       {
         key: 'price',
         label: 'Unit Price (₦)',
-        render: (row: { unitPrice: number }) => formatMoney(row.unitPrice),
+        render: (row: QuotationItemRow) => formatMoney(row.unitPrice),
         align: 'right' as const,
       },
       {
         key: 'total',
         label: 'Line Total (₦)',
-        render: (row: { unitPrice: number; quantity: number }) =>
+        render: (row: QuotationItemRow) =>
           formatMoney(row.unitPrice * row.quantity),
         align: 'right' as const,
       },
@@ -201,22 +263,35 @@ export default function OrdersQuotationDetail() {
                 <Typography variant="body2" color="text.secondary">
                   Store
                 </Typography>
-                <Typography variant="subtitle2">{quotation.storeId}</Typography>
+                <Typography variant="subtitle2">
+                  {storeLabel}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {storeIdLabel}
+                </Typography>
               </Grid>
               <Grid item xs={12} md={4}>
                 <Typography variant="body2" color="text.secondary">
                   Biller
                 </Typography>
                 <Typography variant="subtitle2">
-                  {quotation.billerId || '—'}
+                  {billerLabel}
                 </Typography>
+                {billerId && (
+                  <Typography variant="body2" color="text.secondary">
+                    {billerId}
+                  </Typography>
+                )}
               </Grid>
               <Grid item xs={12} md={4}>
                 <Typography variant="body2" color="text.secondary">
                   Customer / Reseller
                 </Typography>
                 <Typography variant="subtitle2">
-                  {quotation.consumerId || quotation.resellerId || '—'}
+                  {partyLabel}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {partyId}
                 </Typography>
               </Grid>
               <Grid item xs={12} md={4}>

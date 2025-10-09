@@ -143,19 +143,23 @@ export function VariantSelect({
     label: v.name || v.product?.name || v.barcode || v.id,
     variant: v,
   }));
-  const current =
-    options.find((o) => o.id === value) ||
-    (value ? { id: value, label: value } : null);
+  const fallbackOption = value ? ({ id: value, label: value } as VariantSelectOption) : null;
+  const current = options.find((o) => o.id === value) || fallbackOption;
   return (
-    <Autocomplete
+    <Autocomplete<VariantSelectOption, false, false, true>
       options={options}
       value={current}
       inputValue={q}
       onInputChange={(_, v) => setQ(v)}
-      onChange={(_, v: VariantSelectOption | null) => {
-        onChange(v?.id || '');
+      onChange={(_, newValue) => {
+        const option = typeof newValue === 'string' ? null : newValue;
+        const nextId =
+          typeof newValue === 'string'
+            ? newValue
+            : option?.id || '';
+        onChange(nextId);
         if (onVariantSelect) {
-          onVariantSelect(v?.variant ?? null);
+          onVariantSelect(option?.variant ?? null);
         }
       }}
       renderInput={(params) => <TextField {...params} label={label} size="small" placeholder={placeholder} />}

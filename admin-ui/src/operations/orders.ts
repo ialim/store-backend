@@ -126,12 +126,36 @@ export const QuotationDetail = gql`
         productVariantId
         quantity
         unitPrice
+        productVariant {
+          id
+          name
+          barcode
+          product { id name }
+        }
       }
       SaleOrder {
         id
         status
         phase
         totalAmount
+      }
+      store {
+        id
+        name
+        location
+      }
+      consumer {
+        id
+        fullName
+        email
+      }
+      reseller {
+        id
+        email
+      }
+      biller {
+        id
+        email
       }
     }
   }
