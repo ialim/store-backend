@@ -72,7 +72,12 @@ export function StoreSelect({ value, onChange, label = 'Store', placeholder = 'S
 
 const SEARCH_VARIANTS = gql`
   query SearchVariants($where: ProductVariantWhereInput, $take: Int) {
-    listProductVariants(where: $where, take: $take) { id name barcode }
+    listProductVariants(where: $where, take: $take) {
+      id
+      name
+      barcode
+      product { id name }
+    }
   }
 `;
 
@@ -88,12 +93,28 @@ export function VariantSelect({ value, onChange, label = 'Variant', placeholder 
   React.useEffect(() => {
     const h = setTimeout(() => {
       if (q.trim().length >= 2) {
-        load({ variables: { where: { OR: [{ barcode: { contains: q, mode: 'insensitive' } }, { id: { equals: q } }] }, take: 10 } });
+        const term = q.trim();
+        load({
+          variables: {
+            where: {
+              OR: [
+                { name: { contains: term, mode: 'insensitive' } },
+                { product: { is: { name: { contains: term, mode: 'insensitive' } } } },
+                { barcode: { contains: term, mode: 'insensitive' } },
+                { id: { equals: term } },
+              ],
+            },
+            take: 10,
+          },
+        });
       }
     }, 250);
     return () => clearTimeout(h);
   }, [q, load]);
-  const options = (data?.listProductVariants ?? []).map((v: any) => ({ id: v.id, label: v.name || v.barcode || v.id }));
+  const options = (data?.listProductVariants ?? []).map((v: any) => ({
+    id: v.id,
+    label: v.name || v.product?.name || v.barcode || v.id,
+  }));
   const current = options.find((o: any) => o.id === value) || (value ? { id: value, label: value } : null);
   return (
     <Autocomplete
