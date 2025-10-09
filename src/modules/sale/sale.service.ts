@@ -104,7 +104,10 @@ export class SalesService {
         }
       }
 
-      if (input.type === SaleType.CONSUMER || (!input.type && current.type === SaleType.CONSUMER)) {
+      if (
+        input.type === SaleType.CONSUMER ||
+        (!input.type && current.type === SaleType.CONSUMER)
+      ) {
         if (input.consumerId !== undefined) {
           quotationData.consumer = input.consumerId
             ? { connect: { id: input.consumerId } }
@@ -113,7 +116,10 @@ export class SalesService {
         quotationData.reseller = { disconnect: true };
       }
 
-      if (input.type === SaleType.RESELLER || (!input.type && current.type === SaleType.RESELLER)) {
+      if (
+        input.type === SaleType.RESELLER ||
+        (!input.type && current.type === SaleType.RESELLER)
+      ) {
         if (input.resellerId !== undefined) {
           quotationData.reseller = input.resellerId
             ? { connect: { id: input.resellerId } }
@@ -123,7 +129,9 @@ export class SalesService {
       }
 
       if (input.items && input.items.length === 0) {
-        throw new BadRequestException('At least one quotation item is required');
+        throw new BadRequestException(
+          'At least one quotation item is required',
+        );
       }
 
       if (input.items) {
@@ -141,7 +149,9 @@ export class SalesService {
       });
 
       if (input.items) {
-        await trx.quotationItem.deleteMany({ where: { quotationId: current.id } });
+        await trx.quotationItem.deleteMany({
+          where: { quotationId: current.id },
+        });
         await trx.quotationItem.createMany({
           data: input.items.map((item) => ({
             quotationId: current.id,

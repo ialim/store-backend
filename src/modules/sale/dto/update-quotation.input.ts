@@ -1,9 +1,4 @@
-import {
-  InputType,
-  Field,
-  ID,
-  Float,
-} from '@nestjs/graphql';
+import { InputType, Field, ID, Float } from '@nestjs/graphql';
 import { SaleType } from '../../../shared/prismagraphql/prisma/sale-type.enum';
 import { SaleChannel } from '../../../shared/prismagraphql/prisma/sale-channel.enum';
 

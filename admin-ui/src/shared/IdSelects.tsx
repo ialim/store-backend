@@ -76,6 +76,8 @@ const SEARCH_VARIANTS = gql`
       id
       name
       barcode
+      price
+      resellerPrice
       product { id name }
     }
   }
@@ -87,7 +89,32 @@ const SEARCH_SUPPLIERS = gql`
   }
 `;
 
-export function VariantSelect({ value, onChange, label = 'Variant', placeholder = 'Search by barcode or ID' }: { value: string; onChange: (id: string) => void; label?: string; placeholder?: string }) {
+type VariantSelectOption = {
+  id: string;
+  label: string;
+  variant?: {
+    id: string;
+    name?: string | null;
+    barcode?: string | null;
+    price: number;
+    resellerPrice: number;
+    product?: { id: string; name: string } | null;
+  };
+};
+
+export function VariantSelect({
+  value,
+  onChange,
+  onVariantSelect,
+  label = 'Variant',
+  placeholder = 'Search by name, barcode, or ID',
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  onVariantSelect?: (variant: VariantSelectOption['variant'] | null) => void;
+  label?: string;
+  placeholder?: string;
+}) {
   const [q, setQ] = React.useState('');
   const [load, { data }] = useLazyQuery(SEARCH_VARIANTS);
   React.useEffect(() => {
@@ -111,18 +138,26 @@ export function VariantSelect({ value, onChange, label = 'Variant', placeholder 
     }, 250);
     return () => clearTimeout(h);
   }, [q, load]);
-  const options = (data?.listProductVariants ?? []).map((v: any) => ({
+  const options: VariantSelectOption[] = (data?.listProductVariants ?? []).map((v: any) => ({
     id: v.id,
     label: v.name || v.product?.name || v.barcode || v.id,
+    variant: v,
   }));
-  const current = options.find((o: any) => o.id === value) || (value ? { id: value, label: value } : null);
+  const current =
+    options.find((o) => o.id === value) ||
+    (value ? { id: value, label: value } : null);
   return (
     <Autocomplete
       options={options}
       value={current}
       inputValue={q}
       onInputChange={(_, v) => setQ(v)}
-      onChange={(_, v: any) => onChange(v?.id || '')}
+      onChange={(_, v: VariantSelectOption | null) => {
+        onChange(v?.id || '');
+        if (onVariantSelect) {
+          onVariantSelect(v?.variant ?? null);
+        }
+      }}
       renderInput={(params) => <TextField {...params} label={label} size="small" placeholder={placeholder} />}
       isOptionEqualToValue={(a, b) => a.id === b.id}
       clearOnBlur={false}

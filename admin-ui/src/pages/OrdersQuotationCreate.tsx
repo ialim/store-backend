@@ -279,6 +279,15 @@ export default function OrdersQuotationCreate() {
                     <VariantSelect
                       value={item.productVariantId}
                       onChange={(value) => handleItemChange(index, 'productVariantId', value)}
+                      onVariantSelect={(variant) => {
+                        if (!variant) {
+                          handleItemChange(index, 'unitPrice', '0');
+                          return;
+                        }
+                        const nextPrice =
+                          type === 'RESELLER' ? variant.resellerPrice : variant.price;
+                        handleItemChange(index, 'unitPrice', String(nextPrice ?? 0));
+                      }}
                       label="Product Variant"
                       placeholder="Search by name or barcode"
                     />
