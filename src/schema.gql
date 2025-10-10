@@ -2746,6 +2746,11 @@ type Query {
 
   """Search address suggestions using the configured geocoding provider."""
   searchAddresses(query: String!, countryCodes: [String!], limit: Int): [AddressSuggestionModel!]!
+
+  """
+  Addresses that require manual review (unverified or manually provided).
+  """
+  addressesNeedingReview(limit: Int): [Address!]!
   findFirstAddress(where: AddressWhereInput, orderBy: [AddressOrderByWithRelationInput!], cursor: AddressWhereUniqueInput, take: Int, skip: Int, distinct: [AddressScalarFieldEnum!]): Address!
   findUniqueAddress(where: AddressWhereUniqueInput!): Address!
   listAddresses(where: AddressWhereInput, orderBy: [AddressOrderByWithRelationInput!], cursor: AddressWhereUniqueInput, take: Int, skip: Int, distinct: [AddressScalarFieldEnum!]): [Address!]!
@@ -7043,6 +7048,9 @@ type Mutation {
   """Archive an address assignment without deleting it."""
   archiveAddressAssignment(id: String!): AddressAssignment!
   createAddressAssignment(data: AddressAssignmentCreateInput!): AddressAssignment
+
+  """Mark an address as verified and optionally adjust its details."""
+  verifyAddress(addressId: String!, patch: VerifyAddressPatchInput): Address!
   createManyAddressAssignment(data: [AddressAssignmentCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
   createUser(data: UserCreateInput!): User
   createManyUser(data: [UserCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
@@ -26846,6 +26854,13 @@ input AddressCreateNestedOneWithoutAssignmentsInput {
   create: AddressCreateWithoutAssignmentsInput
   connectOrCreate: AddressCreateOrConnectWithoutAssignmentsInput
   connect: AddressWhereUniqueInput
+}
+
+input VerifyAddressPatchInput {
+  formattedAddress: String
+  latitude: Float
+  longitude: Float
+  confidence: Float
 }
 
 input AddressAssignmentCreateManyInput {

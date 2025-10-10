@@ -47,3 +47,36 @@ export const AttachAddressToOwner = gql`
     }
   }
 `;
+
+export const AddressesNeedingReview = gql`
+  query AddressesNeedingReview($limit: Int) {
+    addressesNeedingReview(limit: $limit) {
+      id
+      formattedAddress
+      provider
+      confidence
+      verifiedAt
+      createdAt
+      latitude
+      longitude
+      assignments {
+        id
+        ownerType
+        ownerId
+        label
+        isPrimary
+      }
+    }
+  }
+`;
+
+export const VerifyAddress = gql`
+  mutation VerifyAddress($addressId: String!, $patch: VerifyAddressPatchInput) {
+    verifyAddress(addressId: $addressId, patch: $patch) {
+      id
+      formattedAddress
+      confidence
+      verifiedAt
+    }
+  }
+`;

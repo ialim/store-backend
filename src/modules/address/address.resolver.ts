@@ -120,6 +120,21 @@ class AddressSuggestionModel {
 }
 
 @InputType()
+class VerifyAddressPatchInput {
+  @Field({ nullable: true })
+  formattedAddress?: string;
+
+  @Field(() => Number, { nullable: true })
+  latitude?: number | null;
+
+  @Field(() => Number, { nullable: true })
+  longitude?: number | null;
+
+  @Field(() => Number, { nullable: true })
+  confidence?: number | null;
+}
+
+@InputType()
 class AttachAddressInput {
   @Field()
   addressId!: string;
@@ -171,6 +186,20 @@ export class AddressResolver {
       countryCode: suggestion.countryCode ?? null,
       provider: suggestion.provider,
     }));
+  }
+
+  @Query(() => [Address], {
+    nullable: false,
+    description:
+      'Addresses that require manual review (unverified or manually provided).',
+  })
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.address.READ as string)
+  addressesNeedingReview(
+    @Args('limit', { type: () => Int, nullable: true }) limit?: number,
+  ) {
+    return this.addressService.addressesNeedingReview(limit);
   }
 
   @Query(() => Address, { nullable: false })
@@ -385,6 +414,22 @@ export class AddressAssignmentsResolver {
   @Permissions(PERMISSIONS.address.CREATE as string)
   createAddressAssignment(@Args() args: CreateOneAddressAssignmentArgs) {
     return this.addressService.assignments.create(args);
+  }
+
+  @Mutation(() => Address, {
+    nullable: false,
+    description:
+      'Mark an address as verified and optionally adjust its details.',
+  })
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Permissions(PERMISSIONS.address.UPDATE as string)
+  verifyAddress(
+    @Args('addressId') addressId: string,
+    @Args('patch', { type: () => VerifyAddressPatchInput, nullable: true })
+    patch?: VerifyAddressPatchInput,
+  ) {
+    return this.addressService.verifyAddress({ id: addressId, patch });
   }
 
   @Mutation(() => AffectedRows, { nullable: true })

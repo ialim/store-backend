@@ -6618,7 +6618,6 @@ export type Mutation = {
   removeFacetFromVariant: Scalars['String']['output'];
   retryOutboxFailed: Scalars['Int']['output'];
   runLowStockScanNow: Scalars['Boolean']['output'];
-  searchAddresses: Array<AddressSuggestionModel>;
   selectSupplierQuote: Scalars['Boolean']['output'];
   sendEmailVerification: Scalars['Boolean']['output'];
   sendPhoneVerification: Scalars['Boolean']['output'];
@@ -6658,6 +6657,8 @@ export type Mutation = {
   upsertSupplierCatalogBulk: Array<Scalars['String']['output']>;
   upsertVariantSupplierCatalog: SupplierCatalogEntry;
   upsertVariantTierPrice: Scalars['String']['output'];
+  /** Mark an address as verified and optionally adjust its details. */
+  verifyAddress: Address;
   verifyEmail: Scalars['Boolean']['output'];
   verifyPhone: Scalars['Boolean']['output'];
 };
@@ -7258,13 +7259,6 @@ export type MutationRetryOutboxFailedArgs = {
 };
 
 
-export type MutationSearchAddressesArgs = {
-  countryCodes?: InputMaybe<Array<Scalars['String']['input']>>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  query: Scalars['String']['input'];
-};
-
-
 export type MutationSelectSupplierQuoteArgs = {
   input: SelectSupplierQuoteInput;
 };
@@ -7466,6 +7460,12 @@ export type MutationUpsertVariantSupplierCatalogArgs = {
 
 export type MutationUpsertVariantTierPriceArgs = {
   input: UpsertVariantTierPriceInput;
+};
+
+
+export type MutationVerifyAddressArgs = {
+  addressId: Scalars['String']['input'];
+  patch?: InputMaybe<VerifyAddressPatchInput>;
 };
 
 
@@ -13015,6 +13015,8 @@ export type PurchaseSelectionItemInput = {
 
 export type Query = {
   __typename?: 'Query';
+  /** Addresses that require manual review (unverified or manually provided). */
+  addressesNeedingReview: Array<Address>;
   adminProcurementDashboard: AdminProcurementDashboard;
   adminProcurementDashboardByStore: AdminProcurementDashboard;
   aggregateAddress: AggregateAddress;
@@ -13140,6 +13142,8 @@ export type Query = {
   salesReturnsByConsumerSale: Array<SalesReturn>;
   salesReturnsByResellerSale: Array<SalesReturn>;
   salesReturnsByStore: Array<SalesReturn>;
+  /** Search address suggestions using the configured geocoding provider. */
+  searchAddresses: Array<AddressSuggestionModel>;
   stock: Array<Stock>;
   stockMovements: Array<StockMovement>;
   stockTotalsByProduct: Array<VariantStockTotal>;
@@ -13168,6 +13172,11 @@ export type Query = {
   variantsByStore: Array<ProductVariant>;
   /** List product variants whose product linkage is invalid or missing */
   variantsWithInvalidProducts: Array<OrphanVariantDiagnostic>;
+};
+
+
+export type QueryAddressesNeedingReviewArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -13928,6 +13937,13 @@ export type QuerySalesReturnsByResellerSaleArgs = {
 
 export type QuerySalesReturnsByStoreArgs = {
   storeId: Scalars['String']['input'];
+};
+
+
+export type QuerySearchAddressesArgs = {
+  countryCodes?: InputMaybe<Array<Scalars['String']['input']>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  query: Scalars['String']['input'];
 };
 
 
@@ -28915,6 +28931,13 @@ export type VerifiedAddressOwnerInput = {
   ownerType: Scalars['String']['input'];
 };
 
+export type VerifyAddressPatchInput = {
+  confidence?: InputMaybe<Scalars['Float']['input']>;
+  formattedAddress?: InputMaybe<Scalars['String']['input']>;
+  latitude?: InputMaybe<Scalars['Float']['input']>;
+  longitude?: InputMaybe<Scalars['Float']['input']>;
+};
+
 export type SearchAddressesQueryVariables = Exact<{
   query: Scalars['String']['input'];
   countryCodes?: InputMaybe<Array<Scalars['String']['input']> | Scalars['String']['input']>;
@@ -28922,7 +28945,7 @@ export type SearchAddressesQueryVariables = Exact<{
 }>;
 
 
-export type SearchAddressesQuery = { __typename?: 'Query' };
+export type SearchAddressesQuery = { __typename?: 'Query', searchAddresses: Array<{ __typename?: 'AddressSuggestionModel', id: string, formattedAddress: string, latitude?: number | null, longitude?: number | null, countryCode?: string | null, provider: string }> };
 
 export type ListAddressesQueryVariables = Exact<{
   where?: InputMaybe<AddressWhereInput>;
@@ -28946,6 +28969,21 @@ export type AttachAddressMutationVariables = Exact<{
 
 
 export type AttachAddressMutation = { __typename?: 'Mutation', attachAddress: { __typename?: 'AddressAssignment', id: string, addressId: string, ownerType: string, ownerId: string, label?: string | null, isPrimary: boolean } };
+
+export type AddressesNeedingReviewQueryVariables = Exact<{
+  limit?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type AddressesNeedingReviewQuery = { __typename?: 'Query', addressesNeedingReview: Array<{ __typename?: 'Address', id: string, formattedAddress: string, provider: AddressSource, confidence?: number | null, verifiedAt?: any | null, createdAt: any, latitude?: number | null, longitude?: number | null, assignments?: Array<{ __typename?: 'AddressAssignment', id: string, ownerType: string, ownerId: string, label?: string | null, isPrimary: boolean }> | null }> };
+
+export type VerifyAddressMutationVariables = Exact<{
+  addressId: Scalars['String']['input'];
+  patch?: InputMaybe<VerifyAddressPatchInput>;
+}>;
+
+
+export type VerifyAddressMutation = { __typename?: 'Mutation', verifyAddress: { __typename?: 'Address', id: string, formattedAddress: string, confidence?: number | null, verifiedAt?: any | null } };
 
 export type MonthlySalesSummaryQueryVariables = Exact<{
   month?: InputMaybe<Scalars['String']['input']>;
@@ -30356,6 +30394,97 @@ export function useAttachAddressMutation(baseOptions?: Apollo.MutationHookOption
 export type AttachAddressMutationHookResult = ReturnType<typeof useAttachAddressMutation>;
 export type AttachAddressMutationResult = Apollo.MutationResult<AttachAddressMutation>;
 export type AttachAddressMutationOptions = Apollo.BaseMutationOptions<AttachAddressMutation, AttachAddressMutationVariables>;
+export const AddressesNeedingReviewDocument = gql`
+    query AddressesNeedingReview($limit: Int) {
+  addressesNeedingReview(limit: $limit) {
+    id
+    formattedAddress
+    provider
+    confidence
+    verifiedAt
+    createdAt
+    latitude
+    longitude
+    assignments {
+      id
+      ownerType
+      ownerId
+      label
+      isPrimary
+    }
+  }
+}
+    `;
+
+/**
+ * __useAddressesNeedingReviewQuery__
+ *
+ * To run a query within a React component, call `useAddressesNeedingReviewQuery` and pass it any options that fit your needs.
+ * When your component renders, `useAddressesNeedingReviewQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useAddressesNeedingReviewQuery({
+ *   variables: {
+ *      limit: // value for 'limit'
+ *   },
+ * });
+ */
+export function useAddressesNeedingReviewQuery(baseOptions?: Apollo.QueryHookOptions<AddressesNeedingReviewQuery, AddressesNeedingReviewQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<AddressesNeedingReviewQuery, AddressesNeedingReviewQueryVariables>(AddressesNeedingReviewDocument, options);
+      }
+export function useAddressesNeedingReviewLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<AddressesNeedingReviewQuery, AddressesNeedingReviewQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<AddressesNeedingReviewQuery, AddressesNeedingReviewQueryVariables>(AddressesNeedingReviewDocument, options);
+        }
+export function useAddressesNeedingReviewSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<AddressesNeedingReviewQuery, AddressesNeedingReviewQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<AddressesNeedingReviewQuery, AddressesNeedingReviewQueryVariables>(AddressesNeedingReviewDocument, options);
+        }
+export type AddressesNeedingReviewQueryHookResult = ReturnType<typeof useAddressesNeedingReviewQuery>;
+export type AddressesNeedingReviewLazyQueryHookResult = ReturnType<typeof useAddressesNeedingReviewLazyQuery>;
+export type AddressesNeedingReviewSuspenseQueryHookResult = ReturnType<typeof useAddressesNeedingReviewSuspenseQuery>;
+export type AddressesNeedingReviewQueryResult = Apollo.QueryResult<AddressesNeedingReviewQuery, AddressesNeedingReviewQueryVariables>;
+export const VerifyAddressDocument = gql`
+    mutation VerifyAddress($addressId: String!, $patch: VerifyAddressPatchInput) {
+  verifyAddress(addressId: $addressId, patch: $patch) {
+    id
+    formattedAddress
+    confidence
+    verifiedAt
+  }
+}
+    `;
+export type VerifyAddressMutationFn = Apollo.MutationFunction<VerifyAddressMutation, VerifyAddressMutationVariables>;
+
+/**
+ * __useVerifyAddressMutation__
+ *
+ * To run a mutation, you first call `useVerifyAddressMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useVerifyAddressMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [verifyAddressMutation, { data, loading, error }] = useVerifyAddressMutation({
+ *   variables: {
+ *      addressId: // value for 'addressId'
+ *      patch: // value for 'patch'
+ *   },
+ * });
+ */
+export function useVerifyAddressMutation(baseOptions?: Apollo.MutationHookOptions<VerifyAddressMutation, VerifyAddressMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<VerifyAddressMutation, VerifyAddressMutationVariables>(VerifyAddressDocument, options);
+      }
+export type VerifyAddressMutationHookResult = ReturnType<typeof useVerifyAddressMutation>;
+export type VerifyAddressMutationResult = Apollo.MutationResult<VerifyAddressMutation>;
+export type VerifyAddressMutationOptions = Apollo.BaseMutationOptions<VerifyAddressMutation, VerifyAddressMutationVariables>;
 export const MonthlySalesSummaryDocument = gql`
     query MonthlySalesSummary($month: String) {
   monthlySalesSummary(month: $month) {

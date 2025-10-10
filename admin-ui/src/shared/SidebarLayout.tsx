@@ -29,6 +29,7 @@ import Inventory2Icon from '@mui/icons-material/Inventory2';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import LocalMallIcon from '@mui/icons-material/LocalMall';
 import StoreIcon from '@mui/icons-material/Store';
+import PlaceIcon from '@mui/icons-material/Place';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import PeopleIcon from '@mui/icons-material/People';
 import ListAltIcon from '@mui/icons-material/ListAlt';
@@ -87,6 +88,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     PERMISSIONS.role.UPDATE,
     PERMISSIONS.role.DELETE,
   );
+  const addressRead = permissionList(PERMISSIONS.address.READ);
 
   const toggleMobileDrawer = () => setMobileOpen((prev) => !prev);
   const [collapsedSections, setCollapsedSections] = React.useState<Record<string, boolean>>({});
@@ -149,6 +151,14 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         },
         { label: 'Stock', to: '/stock', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <Inventory2Icon fontSize="small" /> },
         { label: 'Stores', to: '/stores', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <StoreIcon fontSize="small" /> },
+        {
+          label: 'Addresses',
+          to: '/addresses',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+            hasPermission(...addressRead),
+          icon: <PlaceIcon fontSize="small" />,
+        },
       ],
     },
     {

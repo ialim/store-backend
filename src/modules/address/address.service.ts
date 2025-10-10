@@ -35,7 +35,7 @@ import {
   AddressAssignmentAggregateArgs,
   AddressAssignmentGroupByArgs,
 } from '../../shared/prismagraphql/address-assignment';
-import { Prisma } from '@prisma/client';
+import { Prisma, AddressSource } from '@prisma/client';
 import {
   GEOCODING_PROVIDER,
   GeocodeRequest,
@@ -248,6 +248,60 @@ export class AddressService extends BaseCrudService<
       where: { id },
       data: { archivedAt: new Date() },
     });
+  }
+
+  async addressesNeedingReview(
+    limit?: number,
+  ): Promise<AddressWithAssignments[]> {
+    return this.prisma.address.findMany({
+      where: {
+        OR: [{ verifiedAt: null }, { provider: AddressSource.MANUAL }],
+      },
+      include: {
+        assignments: {
+          where: { archivedAt: null },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    }) as unknown as Promise<AddressWithAssignments[]>;
+  }
+
+  async verifyAddress(options: {
+    id: string;
+    patch?: {
+      formattedAddress?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+      confidence?: number | null;
+    };
+  }): Promise<AddressWithAssignments> {
+    const data: Prisma.AddressUpdateInput = {
+      verifiedAt: new Date(),
+    };
+
+    if (options.patch) {
+      if (options.patch.formattedAddress !== undefined) {
+        if (options.patch.formattedAddress !== null) {
+          data.formattedAddress = options.patch.formattedAddress;
+        }
+      }
+      if (options.patch.latitude !== undefined) {
+        data.latitude = options.patch.latitude;
+      }
+      if (options.patch.longitude !== undefined) {
+        data.longitude = options.patch.longitude;
+      }
+      if (options.patch.confidence !== undefined) {
+        data.confidence = options.patch.confidence;
+      }
+    }
+
+    return this.prisma.address.update({
+      where: { id: options.id },
+      data,
+      include: { assignments: true },
+    }) as unknown as Promise<AddressWithAssignments>;
   }
 
   async searchSuggestions(
