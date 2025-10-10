@@ -1056,6 +1056,14 @@ type Store {
   InvoiceImport: [InvoiceImport!]
   legacyMappings: [LegacyStoreMapping!]
   _count: StoreCount!
+
+  """
+  Addresses that have been linked to this store via the AddressAssignment table.
+  """
+  addresses: [Address!]!
+
+  """Primary address linked to this store, if available."""
+  primaryAddress: Address
 }
 
 type CustomerProfileCount {
@@ -1464,6 +1472,227 @@ type StoreGroupBy {
   _count: StoreCountAggregate
   _min: StoreMinAggregate
   _max: StoreMaxAggregate
+}
+
+type AddressAssignment {
+  id: ID!
+  addressId: String!
+  ownerType: String!
+  ownerId: String!
+  label: String
+  isPrimary: Boolean!
+  metadata: JSON
+  createdAt: DateTime!
+  archivedAt: DateTime
+  address: Address!
+}
+
+type AddressCount {
+  assignments: Int!
+}
+
+type Address {
+  id: ID!
+  formattedAddress: String!
+  streetLine1: String
+  streetLine2: String
+  city: String
+  state: String
+  postalCode: String
+  countryCode: String!
+  latitude: Float
+  longitude: Float
+  placeId: String
+  plusCode: String
+  provider: AddressSource!
+  externalRaw: JSON
+  confidence: Float
+  verifiedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  assignments: [AddressAssignment!]
+  _count: AddressCount!
+}
+
+enum AddressSource {
+  GOOGLE_PLACES
+  LOCATIONIQ
+  OPENCAGE
+  MANUAL
+  OTHER
+}
+
+type AddressAvgAggregate {
+  latitude: Float
+  longitude: Float
+  confidence: Float
+}
+
+type AddressCountAggregate {
+  id: Int!
+  formattedAddress: Int!
+  streetLine1: Int!
+  streetLine2: Int!
+  city: Int!
+  state: Int!
+  postalCode: Int!
+  countryCode: Int!
+  latitude: Int!
+  longitude: Int!
+  placeId: Int!
+  plusCode: Int!
+  provider: Int!
+  externalRaw: Int!
+  confidence: Int!
+  verifiedAt: Int!
+  createdAt: Int!
+  updatedAt: Int!
+  _all: Int!
+}
+
+type AddressSumAggregate {
+  latitude: Float
+  longitude: Float
+  confidence: Float
+}
+
+type AddressMinAggregate {
+  id: String
+  formattedAddress: String
+  streetLine1: String
+  streetLine2: String
+  city: String
+  state: String
+  postalCode: String
+  countryCode: String
+  latitude: Float
+  longitude: Float
+  placeId: String
+  plusCode: String
+  provider: AddressSource
+  confidence: Float
+  verifiedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type AddressMaxAggregate {
+  id: String
+  formattedAddress: String
+  streetLine1: String
+  streetLine2: String
+  city: String
+  state: String
+  postalCode: String
+  countryCode: String
+  latitude: Float
+  longitude: Float
+  placeId: String
+  plusCode: String
+  provider: AddressSource
+  confidence: Float
+  verifiedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type AddressGroupBy {
+  id: String!
+  formattedAddress: String!
+  streetLine1: String
+  streetLine2: String
+  city: String
+  state: String
+  postalCode: String
+  countryCode: String!
+  latitude: Float
+  longitude: Float
+  placeId: String
+  plusCode: String
+  provider: AddressSource!
+  externalRaw: JSON
+  confidence: Float
+  verifiedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  _count: AddressCountAggregate
+  _avg: AddressAvgAggregate
+  _sum: AddressSumAggregate
+  _min: AddressMinAggregate
+  _max: AddressMaxAggregate
+}
+
+type AggregateAddress {
+  _count: AddressCountAggregate
+  _avg: AddressAvgAggregate
+  _sum: AddressSumAggregate
+  _min: AddressMinAggregate
+  _max: AddressMaxAggregate
+}
+
+type AddressAssignmentCountAggregate {
+  id: Int!
+  addressId: Int!
+  ownerType: Int!
+  ownerId: Int!
+  label: Int!
+  isPrimary: Int!
+  metadata: Int!
+  createdAt: Int!
+  archivedAt: Int!
+  _all: Int!
+}
+
+type AddressAssignmentMinAggregate {
+  id: String
+  addressId: String
+  ownerType: String
+  ownerId: String
+  label: String
+  isPrimary: Boolean
+  createdAt: DateTime
+  archivedAt: DateTime
+}
+
+type AddressAssignmentMaxAggregate {
+  id: String
+  addressId: String
+  ownerType: String
+  ownerId: String
+  label: String
+  isPrimary: Boolean
+  createdAt: DateTime
+  archivedAt: DateTime
+}
+
+type AddressAssignmentGroupBy {
+  id: String!
+  addressId: String!
+  ownerType: String!
+  ownerId: String!
+  label: String
+  isPrimary: Boolean!
+  metadata: JSON
+  createdAt: DateTime!
+  archivedAt: DateTime
+  _count: AddressAssignmentCountAggregate
+  _min: AddressAssignmentMinAggregate
+  _max: AddressAssignmentMaxAggregate
+}
+
+type AggregateAddressAssignment {
+  _count: AddressAssignmentCountAggregate
+  _min: AddressAssignmentMinAggregate
+  _max: AddressAssignmentMaxAggregate
+}
+
+type AddressSuggestionModel {
+  id: String!
+  formattedAddress: String!
+  latitude: Float
+  longitude: Float
+  countryCode: String
+  provider: String!
 }
 
 type StoreManagerDiagnostic {
@@ -2514,6 +2743,18 @@ type Query {
 
   """List stores whose managerId does not resolve to a User"""
   storesWithInvalidManagers: [StoreManagerDiagnostic!]!
+
+  """Search address suggestions using the configured geocoding provider."""
+  searchAddresses(query: String!, countryCodes: [String!], limit: Int): [AddressSuggestionModel!]!
+  findFirstAddress(where: AddressWhereInput, orderBy: [AddressOrderByWithRelationInput!], cursor: AddressWhereUniqueInput, take: Int, skip: Int, distinct: [AddressScalarFieldEnum!]): Address!
+  findUniqueAddress(where: AddressWhereUniqueInput!): Address!
+  listAddresses(where: AddressWhereInput, orderBy: [AddressOrderByWithRelationInput!], cursor: AddressWhereUniqueInput, take: Int, skip: Int, distinct: [AddressScalarFieldEnum!]): [Address!]!
+  groupByAddress(where: AddressWhereInput, orderBy: [AddressOrderByWithAggregationInput!], by: [AddressScalarFieldEnum!]!, having: AddressScalarWhereWithAggregatesInput, take: Int, skip: Int, _count: AddressCountAggregateInput, _avg: AddressAvgAggregateInput, _sum: AddressSumAggregateInput, _min: AddressMinAggregateInput, _max: AddressMaxAggregateInput): [AddressGroupBy!]!
+  aggregateAddress(where: AddressWhereInput, orderBy: [AddressOrderByWithRelationInput!], cursor: AddressWhereUniqueInput, take: Int, skip: Int, _count: AddressCountAggregateInput, _avg: AddressAvgAggregateInput, _sum: AddressSumAggregateInput, _min: AddressMinAggregateInput, _max: AddressMaxAggregateInput): AggregateAddress!
+  listAddressAssignments(where: AddressAssignmentWhereInput, orderBy: [AddressAssignmentOrderByWithRelationInput!], cursor: AddressAssignmentWhereUniqueInput, take: Int, skip: Int, distinct: [AddressAssignmentScalarFieldEnum!]): [AddressAssignment!]!
+  findUniqueAddressAssignment(where: AddressAssignmentWhereUniqueInput!): AddressAssignment!
+  aggregateAddressAssignment(where: AddressAssignmentWhereInput, orderBy: [AddressAssignmentOrderByWithRelationInput!], cursor: AddressAssignmentWhereUniqueInput, take: Int, skip: Int, _count: AddressAssignmentCountAggregateInput, _min: AddressAssignmentMinAggregateInput, _max: AddressAssignmentMaxAggregateInput): AggregateAddressAssignment!
+  groupByAddressAssignment(where: AddressAssignmentWhereInput, orderBy: [AddressAssignmentOrderByWithAggregationInput!], by: [AddressAssignmentScalarFieldEnum!]!, having: AddressAssignmentScalarWhereWithAggregatesInput, take: Int, skip: Int, _count: AddressAssignmentCountAggregateInput, _min: AddressAssignmentMinAggregateInput, _max: AddressAssignmentMaxAggregateInput): [AddressAssignmentGroupBy!]!
   findFirstUser(where: UserWhereInput, orderBy: [UserOrderByWithRelationInput!], cursor: UserWhereUniqueInput, take: Int, skip: Int, distinct: [UserScalarFieldEnum!]): User!
   findUniqueUser(where: UserWhereUniqueInput!): User!
   listUsers(where: UserWhereInput, orderBy: [UserOrderByWithRelationInput!], cursor: UserWhereUniqueInput, take: Int, skip: Int, distinct: [UserScalarFieldEnum!]): [User!]!
@@ -5511,6 +5752,605 @@ input StoreMaxAggregateInput {
   updatedAt: Boolean
 }
 
+input AddressWhereInput {
+  AND: [AddressWhereInput!]
+  OR: [AddressWhereInput!]
+  NOT: [AddressWhereInput!]
+  id: StringFilter
+  formattedAddress: StringFilter
+  streetLine1: StringNullableFilter
+  streetLine2: StringNullableFilter
+  city: StringNullableFilter
+  state: StringNullableFilter
+  postalCode: StringNullableFilter
+  countryCode: StringFilter
+  latitude: FloatNullableFilter
+  longitude: FloatNullableFilter
+  placeId: StringNullableFilter
+  plusCode: StringNullableFilter
+  provider: EnumAddressSourceFilter
+  externalRaw: JsonNullableFilter
+  confidence: FloatNullableFilter
+  verifiedAt: DateTimeNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  assignments: AddressAssignmentListRelationFilter
+}
+
+input EnumAddressSourceFilter {
+  equals: AddressSource
+  in: [AddressSource!]
+  notIn: [AddressSource!]
+  not: NestedEnumAddressSourceFilter
+}
+
+input NestedEnumAddressSourceFilter {
+  equals: AddressSource
+  in: [AddressSource!]
+  notIn: [AddressSource!]
+  not: NestedEnumAddressSourceFilter
+}
+
+input AddressAssignmentListRelationFilter {
+  every: AddressAssignmentWhereInput
+  some: AddressAssignmentWhereInput
+  none: AddressAssignmentWhereInput
+}
+
+input AddressAssignmentWhereInput {
+  AND: [AddressAssignmentWhereInput!]
+  OR: [AddressAssignmentWhereInput!]
+  NOT: [AddressAssignmentWhereInput!]
+  id: StringFilter
+  addressId: StringFilter
+  ownerType: StringFilter
+  ownerId: StringFilter
+  label: StringNullableFilter
+  isPrimary: BoolFilter
+  metadata: JsonNullableFilter
+  createdAt: DateTimeFilter
+  archivedAt: DateTimeNullableFilter
+  address: AddressScalarRelationFilter
+}
+
+input AddressScalarRelationFilter {
+  is: AddressWhereInput
+  isNot: AddressWhereInput
+}
+
+input AddressOrderByWithRelationInput {
+  id: SortOrder
+  formattedAddress: SortOrder
+  streetLine1: SortOrderInput
+  streetLine2: SortOrderInput
+  city: SortOrderInput
+  state: SortOrderInput
+  postalCode: SortOrderInput
+  countryCode: SortOrder
+  latitude: SortOrderInput
+  longitude: SortOrderInput
+  placeId: SortOrderInput
+  plusCode: SortOrderInput
+  provider: SortOrder
+  externalRaw: SortOrderInput
+  confidence: SortOrderInput
+  verifiedAt: SortOrderInput
+  createdAt: SortOrder
+  updatedAt: SortOrder
+  assignments: AddressAssignmentOrderByRelationAggregateInput
+}
+
+input AddressAssignmentOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input AddressWhereUniqueInput {
+  id: String
+  placeId: String
+  AND: [AddressWhereInput!]
+  OR: [AddressWhereInput!]
+  NOT: [AddressWhereInput!]
+  formattedAddress: StringFilter
+  streetLine1: StringNullableFilter
+  streetLine2: StringNullableFilter
+  city: StringNullableFilter
+  state: StringNullableFilter
+  postalCode: StringNullableFilter
+  countryCode: StringFilter
+  latitude: FloatNullableFilter
+  longitude: FloatNullableFilter
+  plusCode: StringNullableFilter
+  provider: EnumAddressSourceFilter
+  externalRaw: JsonNullableFilter
+  confidence: FloatNullableFilter
+  verifiedAt: DateTimeNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  assignments: AddressAssignmentListRelationFilter
+}
+
+enum AddressScalarFieldEnum {
+  id
+  formattedAddress
+  streetLine1
+  streetLine2
+  city
+  state
+  postalCode
+  countryCode
+  latitude
+  longitude
+  placeId
+  plusCode
+  provider
+  externalRaw
+  confidence
+  verifiedAt
+  createdAt
+  updatedAt
+}
+
+input AddressOrderByWithAggregationInput {
+  id: SortOrder
+  formattedAddress: SortOrder
+  streetLine1: SortOrderInput
+  streetLine2: SortOrderInput
+  city: SortOrderInput
+  state: SortOrderInput
+  postalCode: SortOrderInput
+  countryCode: SortOrder
+  latitude: SortOrderInput
+  longitude: SortOrderInput
+  placeId: SortOrderInput
+  plusCode: SortOrderInput
+  provider: SortOrder
+  externalRaw: SortOrderInput
+  confidence: SortOrderInput
+  verifiedAt: SortOrderInput
+  createdAt: SortOrder
+  updatedAt: SortOrder
+  _count: AddressCountOrderByAggregateInput
+  _avg: AddressAvgOrderByAggregateInput
+  _max: AddressMaxOrderByAggregateInput
+  _min: AddressMinOrderByAggregateInput
+  _sum: AddressSumOrderByAggregateInput
+}
+
+input AddressCountOrderByAggregateInput {
+  id: SortOrder
+  formattedAddress: SortOrder
+  streetLine1: SortOrder
+  streetLine2: SortOrder
+  city: SortOrder
+  state: SortOrder
+  postalCode: SortOrder
+  countryCode: SortOrder
+  latitude: SortOrder
+  longitude: SortOrder
+  placeId: SortOrder
+  plusCode: SortOrder
+  provider: SortOrder
+  externalRaw: SortOrder
+  confidence: SortOrder
+  verifiedAt: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
+}
+
+input AddressAvgOrderByAggregateInput {
+  latitude: SortOrder
+  longitude: SortOrder
+  confidence: SortOrder
+}
+
+input AddressMaxOrderByAggregateInput {
+  id: SortOrder
+  formattedAddress: SortOrder
+  streetLine1: SortOrder
+  streetLine2: SortOrder
+  city: SortOrder
+  state: SortOrder
+  postalCode: SortOrder
+  countryCode: SortOrder
+  latitude: SortOrder
+  longitude: SortOrder
+  placeId: SortOrder
+  plusCode: SortOrder
+  provider: SortOrder
+  confidence: SortOrder
+  verifiedAt: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
+}
+
+input AddressMinOrderByAggregateInput {
+  id: SortOrder
+  formattedAddress: SortOrder
+  streetLine1: SortOrder
+  streetLine2: SortOrder
+  city: SortOrder
+  state: SortOrder
+  postalCode: SortOrder
+  countryCode: SortOrder
+  latitude: SortOrder
+  longitude: SortOrder
+  placeId: SortOrder
+  plusCode: SortOrder
+  provider: SortOrder
+  confidence: SortOrder
+  verifiedAt: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
+}
+
+input AddressSumOrderByAggregateInput {
+  latitude: SortOrder
+  longitude: SortOrder
+  confidence: SortOrder
+}
+
+input AddressScalarWhereWithAggregatesInput {
+  AND: [AddressScalarWhereWithAggregatesInput!]
+  OR: [AddressScalarWhereWithAggregatesInput!]
+  NOT: [AddressScalarWhereWithAggregatesInput!]
+  id: StringWithAggregatesFilter
+  formattedAddress: StringWithAggregatesFilter
+  streetLine1: StringNullableWithAggregatesFilter
+  streetLine2: StringNullableWithAggregatesFilter
+  city: StringNullableWithAggregatesFilter
+  state: StringNullableWithAggregatesFilter
+  postalCode: StringNullableWithAggregatesFilter
+  countryCode: StringWithAggregatesFilter
+  latitude: FloatNullableWithAggregatesFilter
+  longitude: FloatNullableWithAggregatesFilter
+  placeId: StringNullableWithAggregatesFilter
+  plusCode: StringNullableWithAggregatesFilter
+  provider: EnumAddressSourceWithAggregatesFilter
+  externalRaw: JsonNullableWithAggregatesFilter
+  confidence: FloatNullableWithAggregatesFilter
+  verifiedAt: DateTimeNullableWithAggregatesFilter
+  createdAt: DateTimeWithAggregatesFilter
+  updatedAt: DateTimeWithAggregatesFilter
+}
+
+input FloatNullableWithAggregatesFilter {
+  equals: Float
+  in: [Float!]
+  notIn: [Float!]
+  lt: Float
+  lte: Float
+  gt: Float
+  gte: Float
+  not: NestedFloatNullableWithAggregatesFilter
+  _count: NestedIntNullableFilter
+  _avg: NestedFloatNullableFilter
+  _sum: NestedFloatNullableFilter
+  _min: NestedFloatNullableFilter
+  _max: NestedFloatNullableFilter
+}
+
+input NestedFloatNullableWithAggregatesFilter {
+  equals: Float
+  in: [Float!]
+  notIn: [Float!]
+  lt: Float
+  lte: Float
+  gt: Float
+  gte: Float
+  not: NestedFloatNullableWithAggregatesFilter
+  _count: NestedIntNullableFilter
+  _avg: NestedFloatNullableFilter
+  _sum: NestedFloatNullableFilter
+  _min: NestedFloatNullableFilter
+  _max: NestedFloatNullableFilter
+}
+
+input EnumAddressSourceWithAggregatesFilter {
+  equals: AddressSource
+  in: [AddressSource!]
+  notIn: [AddressSource!]
+  not: NestedEnumAddressSourceWithAggregatesFilter
+  _count: NestedIntFilter
+  _min: NestedEnumAddressSourceFilter
+  _max: NestedEnumAddressSourceFilter
+}
+
+input NestedEnumAddressSourceWithAggregatesFilter {
+  equals: AddressSource
+  in: [AddressSource!]
+  notIn: [AddressSource!]
+  not: NestedEnumAddressSourceWithAggregatesFilter
+  _count: NestedIntFilter
+  _min: NestedEnumAddressSourceFilter
+  _max: NestedEnumAddressSourceFilter
+}
+
+input JsonNullableWithAggregatesFilter {
+  equals: JSON
+  path: [String!]
+  mode: QueryMode
+  string_contains: String
+  string_starts_with: String
+  string_ends_with: String
+  array_starts_with: JSON
+  array_ends_with: JSON
+  array_contains: JSON
+  lt: JSON
+  lte: JSON
+  gt: JSON
+  gte: JSON
+  not: JSON
+  _count: NestedIntNullableFilter
+  _min: NestedJsonNullableFilter
+  _max: NestedJsonNullableFilter
+}
+
+input NestedJsonNullableFilter {
+  equals: JSON
+  path: [String!]
+  mode: QueryMode
+  string_contains: String
+  string_starts_with: String
+  string_ends_with: String
+  array_starts_with: JSON
+  array_ends_with: JSON
+  array_contains: JSON
+  lt: JSON
+  lte: JSON
+  gt: JSON
+  gte: JSON
+  not: JSON
+}
+
+input DateTimeNullableWithAggregatesFilter {
+  equals: DateTime
+  in: [DateTime!]
+  notIn: [DateTime!]
+  lt: DateTime
+  lte: DateTime
+  gt: DateTime
+  gte: DateTime
+  not: NestedDateTimeNullableWithAggregatesFilter
+  _count: NestedIntNullableFilter
+  _min: NestedDateTimeNullableFilter
+  _max: NestedDateTimeNullableFilter
+}
+
+input NestedDateTimeNullableWithAggregatesFilter {
+  equals: DateTime
+  in: [DateTime!]
+  notIn: [DateTime!]
+  lt: DateTime
+  lte: DateTime
+  gt: DateTime
+  gte: DateTime
+  not: NestedDateTimeNullableWithAggregatesFilter
+  _count: NestedIntNullableFilter
+  _min: NestedDateTimeNullableFilter
+  _max: NestedDateTimeNullableFilter
+}
+
+input AddressCountAggregateInput {
+  id: Boolean
+  formattedAddress: Boolean
+  streetLine1: Boolean
+  streetLine2: Boolean
+  city: Boolean
+  state: Boolean
+  postalCode: Boolean
+  countryCode: Boolean
+  latitude: Boolean
+  longitude: Boolean
+  placeId: Boolean
+  plusCode: Boolean
+  provider: Boolean
+  externalRaw: Boolean
+  confidence: Boolean
+  verifiedAt: Boolean
+  createdAt: Boolean
+  updatedAt: Boolean
+  _all: Boolean
+}
+
+input AddressAvgAggregateInput {
+  latitude: Boolean
+  longitude: Boolean
+  confidence: Boolean
+}
+
+input AddressSumAggregateInput {
+  latitude: Boolean
+  longitude: Boolean
+  confidence: Boolean
+}
+
+input AddressMinAggregateInput {
+  id: Boolean
+  formattedAddress: Boolean
+  streetLine1: Boolean
+  streetLine2: Boolean
+  city: Boolean
+  state: Boolean
+  postalCode: Boolean
+  countryCode: Boolean
+  latitude: Boolean
+  longitude: Boolean
+  placeId: Boolean
+  plusCode: Boolean
+  provider: Boolean
+  confidence: Boolean
+  verifiedAt: Boolean
+  createdAt: Boolean
+  updatedAt: Boolean
+}
+
+input AddressMaxAggregateInput {
+  id: Boolean
+  formattedAddress: Boolean
+  streetLine1: Boolean
+  streetLine2: Boolean
+  city: Boolean
+  state: Boolean
+  postalCode: Boolean
+  countryCode: Boolean
+  latitude: Boolean
+  longitude: Boolean
+  placeId: Boolean
+  plusCode: Boolean
+  provider: Boolean
+  confidence: Boolean
+  verifiedAt: Boolean
+  createdAt: Boolean
+  updatedAt: Boolean
+}
+
+input AddressAssignmentOrderByWithRelationInput {
+  id: SortOrder
+  addressId: SortOrder
+  ownerType: SortOrder
+  ownerId: SortOrder
+  label: SortOrderInput
+  isPrimary: SortOrder
+  metadata: SortOrderInput
+  createdAt: SortOrder
+  archivedAt: SortOrderInput
+  address: AddressOrderByWithRelationInput
+}
+
+input AddressAssignmentWhereUniqueInput {
+  id: String
+  addressId_ownerType_ownerId: AddressAssignmentAddressIdOwnerTypeOwnerIdCompoundUniqueInput
+  AND: [AddressAssignmentWhereInput!]
+  OR: [AddressAssignmentWhereInput!]
+  NOT: [AddressAssignmentWhereInput!]
+  addressId: StringFilter
+  ownerType: StringFilter
+  ownerId: StringFilter
+  label: StringNullableFilter
+  isPrimary: BoolFilter
+  metadata: JsonNullableFilter
+  createdAt: DateTimeFilter
+  archivedAt: DateTimeNullableFilter
+  address: AddressScalarRelationFilter
+}
+
+input AddressAssignmentAddressIdOwnerTypeOwnerIdCompoundUniqueInput {
+  addressId: String!
+  ownerType: String!
+  ownerId: String!
+}
+
+enum AddressAssignmentScalarFieldEnum {
+  id
+  addressId
+  ownerType
+  ownerId
+  label
+  isPrimary
+  metadata
+  createdAt
+  archivedAt
+}
+
+input AddressAssignmentCountAggregateInput {
+  id: Boolean
+  addressId: Boolean
+  ownerType: Boolean
+  ownerId: Boolean
+  label: Boolean
+  isPrimary: Boolean
+  metadata: Boolean
+  createdAt: Boolean
+  archivedAt: Boolean
+  _all: Boolean
+}
+
+input AddressAssignmentMinAggregateInput {
+  id: Boolean
+  addressId: Boolean
+  ownerType: Boolean
+  ownerId: Boolean
+  label: Boolean
+  isPrimary: Boolean
+  createdAt: Boolean
+  archivedAt: Boolean
+}
+
+input AddressAssignmentMaxAggregateInput {
+  id: Boolean
+  addressId: Boolean
+  ownerType: Boolean
+  ownerId: Boolean
+  label: Boolean
+  isPrimary: Boolean
+  createdAt: Boolean
+  archivedAt: Boolean
+}
+
+input AddressAssignmentOrderByWithAggregationInput {
+  id: SortOrder
+  addressId: SortOrder
+  ownerType: SortOrder
+  ownerId: SortOrder
+  label: SortOrderInput
+  isPrimary: SortOrder
+  metadata: SortOrderInput
+  createdAt: SortOrder
+  archivedAt: SortOrderInput
+  _count: AddressAssignmentCountOrderByAggregateInput
+  _max: AddressAssignmentMaxOrderByAggregateInput
+  _min: AddressAssignmentMinOrderByAggregateInput
+}
+
+input AddressAssignmentCountOrderByAggregateInput {
+  id: SortOrder
+  addressId: SortOrder
+  ownerType: SortOrder
+  ownerId: SortOrder
+  label: SortOrder
+  isPrimary: SortOrder
+  metadata: SortOrder
+  createdAt: SortOrder
+  archivedAt: SortOrder
+}
+
+input AddressAssignmentMaxOrderByAggregateInput {
+  id: SortOrder
+  addressId: SortOrder
+  ownerType: SortOrder
+  ownerId: SortOrder
+  label: SortOrder
+  isPrimary: SortOrder
+  createdAt: SortOrder
+  archivedAt: SortOrder
+}
+
+input AddressAssignmentMinOrderByAggregateInput {
+  id: SortOrder
+  addressId: SortOrder
+  ownerType: SortOrder
+  ownerId: SortOrder
+  label: SortOrder
+  isPrimary: SortOrder
+  createdAt: SortOrder
+  archivedAt: SortOrder
+}
+
+input AddressAssignmentScalarWhereWithAggregatesInput {
+  AND: [AddressAssignmentScalarWhereWithAggregatesInput!]
+  OR: [AddressAssignmentScalarWhereWithAggregatesInput!]
+  NOT: [AddressAssignmentScalarWhereWithAggregatesInput!]
+  id: StringWithAggregatesFilter
+  addressId: StringWithAggregatesFilter
+  ownerType: StringWithAggregatesFilter
+  ownerId: StringWithAggregatesFilter
+  label: StringNullableWithAggregatesFilter
+  isPrimary: BoolWithAggregatesFilter
+  metadata: JsonNullableWithAggregatesFilter
+  createdAt: DateTimeWithAggregatesFilter
+  archivedAt: DateTimeNullableWithAggregatesFilter
+}
+
 input UserWhereUniqueInput {
   id: String
   email: String
@@ -5677,34 +6517,6 @@ input NestedEnumUserTierNullableWithAggregatesFilter {
   _count: NestedIntNullableFilter
   _min: NestedEnumUserTierNullableFilter
   _max: NestedEnumUserTierNullableFilter
-}
-
-input DateTimeNullableWithAggregatesFilter {
-  equals: DateTime
-  in: [DateTime!]
-  notIn: [DateTime!]
-  lt: DateTime
-  lte: DateTime
-  gt: DateTime
-  gte: DateTime
-  not: NestedDateTimeNullableWithAggregatesFilter
-  _count: NestedIntNullableFilter
-  _min: NestedDateTimeNullableFilter
-  _max: NestedDateTimeNullableFilter
-}
-
-input NestedDateTimeNullableWithAggregatesFilter {
-  equals: DateTime
-  in: [DateTime!]
-  notIn: [DateTime!]
-  lt: DateTime
-  lte: DateTime
-  gt: DateTime
-  gte: DateTime
-  not: NestedDateTimeNullableWithAggregatesFilter
-  _count: NestedIntNullableFilter
-  _min: NestedDateTimeNullableFilter
-  _max: NestedDateTimeNullableFilter
 }
 
 input UserCountAggregateInput {
@@ -6069,43 +6881,6 @@ input NestedIntNullableWithAggregatesFilter {
   _max: NestedIntNullableFilter
 }
 
-input JsonNullableWithAggregatesFilter {
-  equals: JSON
-  path: [String!]
-  mode: QueryMode
-  string_contains: String
-  string_starts_with: String
-  string_ends_with: String
-  array_starts_with: JSON
-  array_ends_with: JSON
-  array_contains: JSON
-  lt: JSON
-  lte: JSON
-  gt: JSON
-  gte: JSON
-  not: JSON
-  _count: NestedIntNullableFilter
-  _min: NestedJsonNullableFilter
-  _max: NestedJsonNullableFilter
-}
-
-input NestedJsonNullableFilter {
-  equals: JSON
-  path: [String!]
-  mode: QueryMode
-  string_contains: String
-  string_starts_with: String
-  string_ends_with: String
-  array_starts_with: JSON
-  array_ends_with: JSON
-  array_contains: JSON
-  lt: JSON
-  lte: JSON
-  gt: JSON
-  gte: JSON
-  not: JSON
-}
-
 input AssetAssignmentsByEntityInput {
   entityType: AssetEntityType!
   entityId: String!
@@ -6233,12 +7008,42 @@ type Mutation {
   sendSupportMessage(input: SendSupportMessageInput!): SupportMessage!
   adminSendSupportMessage(input: AdminSendSupportMessageInput!): SupportMessage!
   createStore(data: StoreCreateInput!): Store
+
+  """
+  Create a store and attach a verified primary address using the geocoding provider.
+  """
+  createStoreWithAddress(data: StoreCreateInput!, address: StoreAddressInput!): Store!
   createManyStore(data: [StoreCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
   updateStore(data: StoreUpdateInput!, where: StoreWhereUniqueInput!): Store
   updateManyStore(data: StoreUpdateManyMutationInput!, where: StoreWhereInput, limit: Int): AffectedRows
   deleteStore(where: StoreWhereUniqueInput!): Store
   deleteManyStore(where: StoreWhereInput, limit: Int): AffectedRows
   bulkAssignStoreManager(storeIds: [String!]!, managerId: String!): Float!
+  createAddress(data: AddressCreateInput!): Address
+
+  """
+  Resolve and persist an address using the configured geocoding provider.
+  """
+  createVerifiedAddress(input: CreateVerifiedAddressInput!): Address!
+  createManyAddress(data: [AddressCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
+  updateAddress(data: AddressUpdateInput!, where: AddressWhereUniqueInput!): Address
+  updateManyAddress(data: AddressUpdateManyMutationInput!, where: AddressWhereInput, limit: Int): AffectedRows
+  deleteAddress(where: AddressWhereUniqueInput!): Address
+  deleteManyAddress(where: AddressWhereInput, limit: Int): AffectedRows
+
+  """
+  Attach an existing address to an owning entity (store, user, order, etc.)
+  """
+  attachAddress(input: AttachAddressInput!): AddressAssignment!
+  updateAddressAssignment(data: AddressAssignmentUpdateInput!, where: AddressAssignmentWhereUniqueInput!): AddressAssignment
+  updateManyAddressAssignment(data: AddressAssignmentUpdateManyMutationInput!, where: AddressAssignmentWhereInput, limit: Int): AffectedRows
+  deleteAddressAssignment(where: AddressAssignmentWhereUniqueInput!): AddressAssignment
+  deleteManyAddressAssignment(where: AddressAssignmentWhereInput, limit: Int): AffectedRows
+
+  """Archive an address assignment without deleting it."""
+  archiveAddressAssignment(id: String!): AddressAssignment!
+  createAddressAssignment(data: AddressAssignmentCreateInput!): AddressAssignment
+  createManyAddressAssignment(data: [AddressAssignmentCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
   createUser(data: UserCreateInput!): User
   createManyUser(data: [UserCreateManyInput!]!, skipDuplicates: Boolean): AffectedRows
   updateUser(data: UserUpdateInput!, where: UserWhereUniqueInput!): User
@@ -25677,6 +26482,21 @@ input StoreCreateInput {
   legacyMappings: LegacyStoreMappingCreateNestedManyWithoutStoreInput
 }
 
+input StoreAddressInput {
+  query: String!
+  bias: GeocodeBiasInput
+  countryCodes: [String!]
+  label: String
+  isPrimary: Boolean
+  metadata: JSON
+}
+
+input GeocodeBiasInput {
+  latitude: Float!
+  longitude: Float!
+  radiusMeters: Float
+}
+
 input StoreCreateManyInput {
   id: String
   name: String!
@@ -25710,6 +26530,334 @@ input StoreUpdateInput {
   purchaseOrders: PurchaseOrderUpdateManyWithoutStoreNestedInput
   InvoiceImport: InvoiceImportUpdateManyWithoutStoreNestedInput
   legacyMappings: LegacyStoreMappingUpdateManyWithoutStoreNestedInput
+}
+
+input AddressCreateInput {
+  id: String
+  formattedAddress: String!
+  streetLine1: String
+  streetLine2: String
+  city: String
+  state: String
+  postalCode: String
+  countryCode: String!
+  latitude: Float
+  longitude: Float
+  placeId: String
+  plusCode: String
+  provider: AddressSource!
+  externalRaw: JSON
+  confidence: Float
+  verifiedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+  assignments: AddressAssignmentCreateNestedManyWithoutAddressInput
+}
+
+input AddressAssignmentCreateNestedManyWithoutAddressInput {
+  create: [AddressAssignmentCreateWithoutAddressInput!]
+  connectOrCreate: [AddressAssignmentCreateOrConnectWithoutAddressInput!]
+  createMany: AddressAssignmentCreateManyAddressInputEnvelope
+  connect: [AddressAssignmentWhereUniqueInput!]
+}
+
+input AddressAssignmentCreateWithoutAddressInput {
+  id: String
+  ownerType: String!
+  ownerId: String!
+  label: String
+  isPrimary: Boolean
+  metadata: JSON
+  createdAt: DateTime
+  archivedAt: DateTime
+}
+
+input AddressAssignmentCreateOrConnectWithoutAddressInput {
+  where: AddressAssignmentWhereUniqueInput!
+  create: AddressAssignmentCreateWithoutAddressInput!
+}
+
+input AddressAssignmentCreateManyAddressInputEnvelope {
+  data: [AddressAssignmentCreateManyAddressInput!]!
+  skipDuplicates: Boolean
+}
+
+input AddressAssignmentCreateManyAddressInput {
+  id: String
+  ownerType: String!
+  ownerId: String!
+  label: String
+  isPrimary: Boolean
+  metadata: JSON
+  createdAt: DateTime
+  archivedAt: DateTime
+}
+
+input CreateVerifiedAddressInput {
+  query: String!
+  bias: GeocodeBiasInput
+  countryCodes: [String!]
+  owner: VerifiedAddressOwnerInput
+}
+
+input VerifiedAddressOwnerInput {
+  ownerType: String!
+  ownerId: String!
+  label: String
+  isPrimary: Boolean
+  metadata: JSON
+}
+
+input AddressCreateManyInput {
+  id: String
+  formattedAddress: String!
+  streetLine1: String
+  streetLine2: String
+  city: String
+  state: String
+  postalCode: String
+  countryCode: String!
+  latitude: Float
+  longitude: Float
+  placeId: String
+  plusCode: String
+  provider: AddressSource!
+  externalRaw: JSON
+  confidence: Float
+  verifiedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input AddressUpdateInput {
+  id: StringFieldUpdateOperationsInput
+  formattedAddress: StringFieldUpdateOperationsInput
+  streetLine1: NullableStringFieldUpdateOperationsInput
+  streetLine2: NullableStringFieldUpdateOperationsInput
+  city: NullableStringFieldUpdateOperationsInput
+  state: NullableStringFieldUpdateOperationsInput
+  postalCode: NullableStringFieldUpdateOperationsInput
+  countryCode: StringFieldUpdateOperationsInput
+  latitude: NullableFloatFieldUpdateOperationsInput
+  longitude: NullableFloatFieldUpdateOperationsInput
+  placeId: NullableStringFieldUpdateOperationsInput
+  plusCode: NullableStringFieldUpdateOperationsInput
+  provider: EnumAddressSourceFieldUpdateOperationsInput
+  externalRaw: JSON
+  confidence: NullableFloatFieldUpdateOperationsInput
+  verifiedAt: NullableDateTimeFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  assignments: AddressAssignmentUpdateManyWithoutAddressNestedInput
+}
+
+input EnumAddressSourceFieldUpdateOperationsInput {
+  set: AddressSource
+}
+
+input AddressAssignmentUpdateManyWithoutAddressNestedInput {
+  create: [AddressAssignmentCreateWithoutAddressInput!]
+  connectOrCreate: [AddressAssignmentCreateOrConnectWithoutAddressInput!]
+  upsert: [AddressAssignmentUpsertWithWhereUniqueWithoutAddressInput!]
+  createMany: AddressAssignmentCreateManyAddressInputEnvelope
+  set: [AddressAssignmentWhereUniqueInput!]
+  disconnect: [AddressAssignmentWhereUniqueInput!]
+  delete: [AddressAssignmentWhereUniqueInput!]
+  connect: [AddressAssignmentWhereUniqueInput!]
+  update: [AddressAssignmentUpdateWithWhereUniqueWithoutAddressInput!]
+  updateMany: [AddressAssignmentUpdateManyWithWhereWithoutAddressInput!]
+  deleteMany: [AddressAssignmentScalarWhereInput!]
+}
+
+input AddressAssignmentUpsertWithWhereUniqueWithoutAddressInput {
+  where: AddressAssignmentWhereUniqueInput!
+  update: AddressAssignmentUpdateWithoutAddressInput!
+  create: AddressAssignmentCreateWithoutAddressInput!
+}
+
+input AddressAssignmentUpdateWithoutAddressInput {
+  id: StringFieldUpdateOperationsInput
+  ownerType: StringFieldUpdateOperationsInput
+  ownerId: StringFieldUpdateOperationsInput
+  label: NullableStringFieldUpdateOperationsInput
+  isPrimary: BoolFieldUpdateOperationsInput
+  metadata: JSON
+  createdAt: DateTimeFieldUpdateOperationsInput
+  archivedAt: NullableDateTimeFieldUpdateOperationsInput
+}
+
+input AddressAssignmentUpdateWithWhereUniqueWithoutAddressInput {
+  where: AddressAssignmentWhereUniqueInput!
+  data: AddressAssignmentUpdateWithoutAddressInput!
+}
+
+input AddressAssignmentUpdateManyWithWhereWithoutAddressInput {
+  where: AddressAssignmentScalarWhereInput!
+  data: AddressAssignmentUpdateManyMutationInput!
+}
+
+input AddressAssignmentScalarWhereInput {
+  AND: [AddressAssignmentScalarWhereInput!]
+  OR: [AddressAssignmentScalarWhereInput!]
+  NOT: [AddressAssignmentScalarWhereInput!]
+  id: StringFilter
+  addressId: StringFilter
+  ownerType: StringFilter
+  ownerId: StringFilter
+  label: StringNullableFilter
+  isPrimary: BoolFilter
+  metadata: JsonNullableFilter
+  createdAt: DateTimeFilter
+  archivedAt: DateTimeNullableFilter
+}
+
+input AddressAssignmentUpdateManyMutationInput {
+  id: StringFieldUpdateOperationsInput
+  ownerType: StringFieldUpdateOperationsInput
+  ownerId: StringFieldUpdateOperationsInput
+  label: NullableStringFieldUpdateOperationsInput
+  isPrimary: BoolFieldUpdateOperationsInput
+  metadata: JSON
+  createdAt: DateTimeFieldUpdateOperationsInput
+  archivedAt: NullableDateTimeFieldUpdateOperationsInput
+}
+
+input AddressUpdateManyMutationInput {
+  id: StringFieldUpdateOperationsInput
+  formattedAddress: StringFieldUpdateOperationsInput
+  streetLine1: NullableStringFieldUpdateOperationsInput
+  streetLine2: NullableStringFieldUpdateOperationsInput
+  city: NullableStringFieldUpdateOperationsInput
+  state: NullableStringFieldUpdateOperationsInput
+  postalCode: NullableStringFieldUpdateOperationsInput
+  countryCode: StringFieldUpdateOperationsInput
+  latitude: NullableFloatFieldUpdateOperationsInput
+  longitude: NullableFloatFieldUpdateOperationsInput
+  placeId: NullableStringFieldUpdateOperationsInput
+  plusCode: NullableStringFieldUpdateOperationsInput
+  provider: EnumAddressSourceFieldUpdateOperationsInput
+  externalRaw: JSON
+  confidence: NullableFloatFieldUpdateOperationsInput
+  verifiedAt: NullableDateTimeFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+}
+
+input AttachAddressInput {
+  addressId: String!
+  ownerType: String!
+  ownerId: String!
+  label: String
+  isPrimary: Boolean
+  metadata: JSON
+}
+
+input AddressAssignmentUpdateInput {
+  id: StringFieldUpdateOperationsInput
+  ownerType: StringFieldUpdateOperationsInput
+  ownerId: StringFieldUpdateOperationsInput
+  label: NullableStringFieldUpdateOperationsInput
+  isPrimary: BoolFieldUpdateOperationsInput
+  metadata: JSON
+  createdAt: DateTimeFieldUpdateOperationsInput
+  archivedAt: NullableDateTimeFieldUpdateOperationsInput
+  address: AddressUpdateOneRequiredWithoutAssignmentsNestedInput
+}
+
+input AddressUpdateOneRequiredWithoutAssignmentsNestedInput {
+  create: AddressCreateWithoutAssignmentsInput
+  connectOrCreate: AddressCreateOrConnectWithoutAssignmentsInput
+  upsert: AddressUpsertWithoutAssignmentsInput
+  connect: AddressWhereUniqueInput
+  update: AddressUpdateToOneWithWhereWithoutAssignmentsInput
+}
+
+input AddressCreateWithoutAssignmentsInput {
+  id: String
+  formattedAddress: String!
+  streetLine1: String
+  streetLine2: String
+  city: String
+  state: String
+  postalCode: String
+  countryCode: String!
+  latitude: Float
+  longitude: Float
+  placeId: String
+  plusCode: String
+  provider: AddressSource!
+  externalRaw: JSON
+  confidence: Float
+  verifiedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input AddressCreateOrConnectWithoutAssignmentsInput {
+  where: AddressWhereUniqueInput!
+  create: AddressCreateWithoutAssignmentsInput!
+}
+
+input AddressUpsertWithoutAssignmentsInput {
+  update: AddressUpdateWithoutAssignmentsInput!
+  create: AddressCreateWithoutAssignmentsInput!
+  where: AddressWhereInput
+}
+
+input AddressUpdateWithoutAssignmentsInput {
+  id: StringFieldUpdateOperationsInput
+  formattedAddress: StringFieldUpdateOperationsInput
+  streetLine1: NullableStringFieldUpdateOperationsInput
+  streetLine2: NullableStringFieldUpdateOperationsInput
+  city: NullableStringFieldUpdateOperationsInput
+  state: NullableStringFieldUpdateOperationsInput
+  postalCode: NullableStringFieldUpdateOperationsInput
+  countryCode: StringFieldUpdateOperationsInput
+  latitude: NullableFloatFieldUpdateOperationsInput
+  longitude: NullableFloatFieldUpdateOperationsInput
+  placeId: NullableStringFieldUpdateOperationsInput
+  plusCode: NullableStringFieldUpdateOperationsInput
+  provider: EnumAddressSourceFieldUpdateOperationsInput
+  externalRaw: JSON
+  confidence: NullableFloatFieldUpdateOperationsInput
+  verifiedAt: NullableDateTimeFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+}
+
+input AddressUpdateToOneWithWhereWithoutAssignmentsInput {
+  where: AddressWhereInput
+  data: AddressUpdateWithoutAssignmentsInput!
+}
+
+input AddressAssignmentCreateInput {
+  id: String
+  ownerType: String!
+  ownerId: String!
+  label: String
+  isPrimary: Boolean
+  metadata: JSON
+  createdAt: DateTime
+  archivedAt: DateTime
+  address: AddressCreateNestedOneWithoutAssignmentsInput!
+}
+
+input AddressCreateNestedOneWithoutAssignmentsInput {
+  create: AddressCreateWithoutAssignmentsInput
+  connectOrCreate: AddressCreateOrConnectWithoutAssignmentsInput
+  connect: AddressWhereUniqueInput
+}
+
+input AddressAssignmentCreateManyInput {
+  id: String
+  addressId: String!
+  ownerType: String!
+  ownerId: String!
+  label: String
+  isPrimary: Boolean
+  metadata: JSON
+  createdAt: DateTime
+  archivedAt: DateTime
 }
 
 input UserCreateInput {

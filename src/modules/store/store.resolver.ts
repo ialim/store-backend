@@ -23,9 +23,15 @@ import {
   ResolveField,
   Parent,
 } from '@nestjs/graphql';
-import { ObjectType, Field } from '@nestjs/graphql';
+import { ObjectType, Field, InputType } from '@nestjs/graphql';
 import { StoreService } from './store.service';
 import { User } from '../../shared/prismagraphql/user/user.model';
+import { Address } from '../../shared/prismagraphql/address/address.model';
+import { StoreCreateInput } from '../../shared/prismagraphql/store/store-create.input';
+import { AddressService } from '../address/address.service';
+import { GeocodeBiasInput } from '../address/address.resolver';
+import { GraphQLJSON } from 'graphql-type-json';
+import { Prisma } from '@prisma/client';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -33,6 +39,28 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PERMISSIONS } from '../../../shared/permissions';
+
+@InputType()
+class StoreAddressInput {
+  @Field()
+  query!: string;
+
+  @Field(() => GeocodeBiasInput, { nullable: true })
+  bias?: GeocodeBiasInput;
+
+  @Field(() => [String], { nullable: true })
+  countryCodes?: string[];
+
+  @Field({ nullable: true })
+  label?: string;
+
+  @Field({ nullable: true })
+  isPrimary?: boolean;
+
+  @Field(() => GraphQLJSON, { nullable: true })
+  metadata?: Record<string, unknown>;
+}
+
 @Resolver(() => Store)
 export class StoresResolver {
   constructor(private readonly StoreService: StoreService) {}
@@ -87,6 +115,41 @@ export class StoresResolver {
     return Store;
   }
 
+  @Mutation(() => Store, {
+    nullable: false,
+    description:
+      'Create a store and attach a verified primary address using the geocoding provider.',
+  })
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.store.CREATE as string)
+  createStoreWithAddress(
+    @Args('data') data: StoreCreateInput,
+    @Args('address') address: StoreAddressInput,
+  ) {
+    return this.StoreService.createWithAddress({
+      data,
+      addressRequest: {
+        query: address.query,
+        bias: address.bias
+          ? {
+              latitude: address.bias.latitude,
+              longitude: address.bias.longitude,
+              radiusMeters: address.bias.radiusMeters ?? undefined,
+            }
+          : undefined,
+        countryCodes: address.countryCodes ?? undefined,
+      },
+      assignment: {
+        label: address.label ?? 'Primary',
+        isPrimary: address.isPrimary ?? true,
+        metadata: address.metadata
+          ? (address.metadata as Prisma.InputJsonValue)
+          : null,
+      },
+    });
+  }
+
   @Mutation(() => AffectedRows, { nullable: true })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN')
@@ -130,7 +193,10 @@ export class StoresResolver {
 
 @Resolver(() => Store)
 export class StoreFieldsResolver {
-  constructor(private readonly storeService: StoreService) {}
+  constructor(
+    private readonly storeService: StoreService,
+    private readonly addressService: AddressService,
+  ) {}
 
   @ResolveField(() => User)
   async manager(@Parent() store: { managerId: string }): Promise<User> {
@@ -142,6 +208,40 @@ export class StoreFieldsResolver {
       throw new Error('Manager not found');
     }
     return manager;
+  }
+
+  @ResolveField(() => [Address], {
+    description:
+      'Addresses that have been linked to this store via the AddressAssignment table.',
+  })
+  async addresses(@Parent() store: { id: string }): Promise<Address[]> {
+    const assignments =
+      await this.addressService.prisma.addressAssignment.findMany({
+        where: { ownerType: 'Store', ownerId: store.id, archivedAt: null },
+        include: { address: true },
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'desc' }],
+      });
+    return assignments.map((assignment) => assignment.address as Address);
+  }
+
+  @ResolveField(() => Address, {
+    nullable: true,
+    description: 'Primary address linked to this store, if available.',
+  })
+  async primaryAddress(
+    @Parent() store: { id: string },
+  ): Promise<Address | null> {
+    const assignment =
+      await this.addressService.prisma.addressAssignment.findFirst({
+        where: {
+          ownerType: 'Store',
+          ownerId: store.id,
+          archivedAt: null,
+        },
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'desc' }],
+        include: { address: true },
+      });
+    return assignment?.address ?? null;
   }
 }
 

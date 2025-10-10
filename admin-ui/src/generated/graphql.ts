@@ -21,6 +21,995 @@ export type Scalars = {
   JSON: { input: any; output: any; }
 };
 
+export type Address = {
+  __typename?: 'Address';
+  _count: AddressCount;
+  assignments?: Maybe<Array<AddressAssignment>>;
+  city?: Maybe<Scalars['String']['output']>;
+  confidence?: Maybe<Scalars['Float']['output']>;
+  countryCode: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  externalRaw?: Maybe<Scalars['JSON']['output']>;
+  formattedAddress: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  latitude?: Maybe<Scalars['Float']['output']>;
+  longitude?: Maybe<Scalars['Float']['output']>;
+  placeId?: Maybe<Scalars['String']['output']>;
+  plusCode?: Maybe<Scalars['String']['output']>;
+  postalCode?: Maybe<Scalars['String']['output']>;
+  provider: AddressSource;
+  state?: Maybe<Scalars['String']['output']>;
+  streetLine1?: Maybe<Scalars['String']['output']>;
+  streetLine2?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  verifiedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+export type AddressAssignment = {
+  __typename?: 'AddressAssignment';
+  address: Address;
+  addressId: Scalars['String']['output'];
+  archivedAt?: Maybe<Scalars['DateTime']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  isPrimary: Scalars['Boolean']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  ownerId: Scalars['String']['output'];
+  ownerType: Scalars['String']['output'];
+};
+
+export type AddressAssignmentAddressIdOwnerTypeOwnerIdCompoundUniqueInput = {
+  addressId: Scalars['String']['input'];
+  ownerId: Scalars['String']['input'];
+  ownerType: Scalars['String']['input'];
+};
+
+export type AddressAssignmentCountAggregate = {
+  __typename?: 'AddressAssignmentCountAggregate';
+  _all: Scalars['Int']['output'];
+  addressId: Scalars['Int']['output'];
+  archivedAt: Scalars['Int']['output'];
+  createdAt: Scalars['Int']['output'];
+  id: Scalars['Int']['output'];
+  isPrimary: Scalars['Int']['output'];
+  label: Scalars['Int']['output'];
+  metadata: Scalars['Int']['output'];
+  ownerId: Scalars['Int']['output'];
+  ownerType: Scalars['Int']['output'];
+};
+
+export type AddressAssignmentCountAggregateInput = {
+  _all?: InputMaybe<Scalars['Boolean']['input']>;
+  addressId?: InputMaybe<Scalars['Boolean']['input']>;
+  archivedAt?: InputMaybe<Scalars['Boolean']['input']>;
+  createdAt?: InputMaybe<Scalars['Boolean']['input']>;
+  id?: InputMaybe<Scalars['Boolean']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['Boolean']['input']>;
+  metadata?: InputMaybe<Scalars['Boolean']['input']>;
+  ownerId?: InputMaybe<Scalars['Boolean']['input']>;
+  ownerType?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type AddressAssignmentCountOrderByAggregateInput = {
+  addressId?: InputMaybe<SortOrder>;
+  archivedAt?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  isPrimary?: InputMaybe<SortOrder>;
+  label?: InputMaybe<SortOrder>;
+  metadata?: InputMaybe<SortOrder>;
+  ownerId?: InputMaybe<SortOrder>;
+  ownerType?: InputMaybe<SortOrder>;
+};
+
+export type AddressAssignmentCreateInput = {
+  address: AddressCreateNestedOneWithoutAssignmentsInput;
+  archivedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  ownerId: Scalars['String']['input'];
+  ownerType: Scalars['String']['input'];
+};
+
+export type AddressAssignmentCreateManyAddressInput = {
+  archivedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  ownerId: Scalars['String']['input'];
+  ownerType: Scalars['String']['input'];
+};
+
+export type AddressAssignmentCreateManyAddressInputEnvelope = {
+  data: Array<AddressAssignmentCreateManyAddressInput>;
+  skipDuplicates?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type AddressAssignmentCreateManyInput = {
+  addressId: Scalars['String']['input'];
+  archivedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  ownerId: Scalars['String']['input'];
+  ownerType: Scalars['String']['input'];
+};
+
+export type AddressAssignmentCreateNestedManyWithoutAddressInput = {
+  connect?: InputMaybe<Array<AddressAssignmentWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<AddressAssignmentCreateOrConnectWithoutAddressInput>>;
+  create?: InputMaybe<Array<AddressAssignmentCreateWithoutAddressInput>>;
+  createMany?: InputMaybe<AddressAssignmentCreateManyAddressInputEnvelope>;
+};
+
+export type AddressAssignmentCreateOrConnectWithoutAddressInput = {
+  create: AddressAssignmentCreateWithoutAddressInput;
+  where: AddressAssignmentWhereUniqueInput;
+};
+
+export type AddressAssignmentCreateWithoutAddressInput = {
+  archivedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  ownerId: Scalars['String']['input'];
+  ownerType: Scalars['String']['input'];
+};
+
+export type AddressAssignmentGroupBy = {
+  __typename?: 'AddressAssignmentGroupBy';
+  _count?: Maybe<AddressAssignmentCountAggregate>;
+  _max?: Maybe<AddressAssignmentMaxAggregate>;
+  _min?: Maybe<AddressAssignmentMinAggregate>;
+  addressId: Scalars['String']['output'];
+  archivedAt?: Maybe<Scalars['DateTime']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['String']['output'];
+  isPrimary: Scalars['Boolean']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  ownerId: Scalars['String']['output'];
+  ownerType: Scalars['String']['output'];
+};
+
+export type AddressAssignmentListRelationFilter = {
+  every?: InputMaybe<AddressAssignmentWhereInput>;
+  none?: InputMaybe<AddressAssignmentWhereInput>;
+  some?: InputMaybe<AddressAssignmentWhereInput>;
+};
+
+export type AddressAssignmentMaxAggregate = {
+  __typename?: 'AddressAssignmentMaxAggregate';
+  addressId?: Maybe<Scalars['String']['output']>;
+  archivedAt?: Maybe<Scalars['DateTime']['output']>;
+  createdAt?: Maybe<Scalars['DateTime']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
+  isPrimary?: Maybe<Scalars['Boolean']['output']>;
+  label?: Maybe<Scalars['String']['output']>;
+  ownerId?: Maybe<Scalars['String']['output']>;
+  ownerType?: Maybe<Scalars['String']['output']>;
+};
+
+export type AddressAssignmentMaxAggregateInput = {
+  addressId?: InputMaybe<Scalars['Boolean']['input']>;
+  archivedAt?: InputMaybe<Scalars['Boolean']['input']>;
+  createdAt?: InputMaybe<Scalars['Boolean']['input']>;
+  id?: InputMaybe<Scalars['Boolean']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['Boolean']['input']>;
+  ownerId?: InputMaybe<Scalars['Boolean']['input']>;
+  ownerType?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type AddressAssignmentMaxOrderByAggregateInput = {
+  addressId?: InputMaybe<SortOrder>;
+  archivedAt?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  isPrimary?: InputMaybe<SortOrder>;
+  label?: InputMaybe<SortOrder>;
+  ownerId?: InputMaybe<SortOrder>;
+  ownerType?: InputMaybe<SortOrder>;
+};
+
+export type AddressAssignmentMinAggregate = {
+  __typename?: 'AddressAssignmentMinAggregate';
+  addressId?: Maybe<Scalars['String']['output']>;
+  archivedAt?: Maybe<Scalars['DateTime']['output']>;
+  createdAt?: Maybe<Scalars['DateTime']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
+  isPrimary?: Maybe<Scalars['Boolean']['output']>;
+  label?: Maybe<Scalars['String']['output']>;
+  ownerId?: Maybe<Scalars['String']['output']>;
+  ownerType?: Maybe<Scalars['String']['output']>;
+};
+
+export type AddressAssignmentMinAggregateInput = {
+  addressId?: InputMaybe<Scalars['Boolean']['input']>;
+  archivedAt?: InputMaybe<Scalars['Boolean']['input']>;
+  createdAt?: InputMaybe<Scalars['Boolean']['input']>;
+  id?: InputMaybe<Scalars['Boolean']['input']>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['Boolean']['input']>;
+  ownerId?: InputMaybe<Scalars['Boolean']['input']>;
+  ownerType?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type AddressAssignmentMinOrderByAggregateInput = {
+  addressId?: InputMaybe<SortOrder>;
+  archivedAt?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  isPrimary?: InputMaybe<SortOrder>;
+  label?: InputMaybe<SortOrder>;
+  ownerId?: InputMaybe<SortOrder>;
+  ownerType?: InputMaybe<SortOrder>;
+};
+
+export type AddressAssignmentOrderByRelationAggregateInput = {
+  _count?: InputMaybe<SortOrder>;
+};
+
+export type AddressAssignmentOrderByWithAggregationInput = {
+  _count?: InputMaybe<AddressAssignmentCountOrderByAggregateInput>;
+  _max?: InputMaybe<AddressAssignmentMaxOrderByAggregateInput>;
+  _min?: InputMaybe<AddressAssignmentMinOrderByAggregateInput>;
+  addressId?: InputMaybe<SortOrder>;
+  archivedAt?: InputMaybe<SortOrderInput>;
+  createdAt?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  isPrimary?: InputMaybe<SortOrder>;
+  label?: InputMaybe<SortOrderInput>;
+  metadata?: InputMaybe<SortOrderInput>;
+  ownerId?: InputMaybe<SortOrder>;
+  ownerType?: InputMaybe<SortOrder>;
+};
+
+export type AddressAssignmentOrderByWithRelationInput = {
+  address?: InputMaybe<AddressOrderByWithRelationInput>;
+  addressId?: InputMaybe<SortOrder>;
+  archivedAt?: InputMaybe<SortOrderInput>;
+  createdAt?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  isPrimary?: InputMaybe<SortOrder>;
+  label?: InputMaybe<SortOrderInput>;
+  metadata?: InputMaybe<SortOrderInput>;
+  ownerId?: InputMaybe<SortOrder>;
+  ownerType?: InputMaybe<SortOrder>;
+};
+
+export enum AddressAssignmentScalarFieldEnum {
+  AddressId = 'addressId',
+  ArchivedAt = 'archivedAt',
+  CreatedAt = 'createdAt',
+  Id = 'id',
+  IsPrimary = 'isPrimary',
+  Label = 'label',
+  Metadata = 'metadata',
+  OwnerId = 'ownerId',
+  OwnerType = 'ownerType'
+}
+
+export type AddressAssignmentScalarWhereInput = {
+  AND?: InputMaybe<Array<AddressAssignmentScalarWhereInput>>;
+  NOT?: InputMaybe<Array<AddressAssignmentScalarWhereInput>>;
+  OR?: InputMaybe<Array<AddressAssignmentScalarWhereInput>>;
+  addressId?: InputMaybe<StringFilter>;
+  archivedAt?: InputMaybe<DateTimeNullableFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  id?: InputMaybe<StringFilter>;
+  isPrimary?: InputMaybe<BoolFilter>;
+  label?: InputMaybe<StringNullableFilter>;
+  metadata?: InputMaybe<JsonNullableFilter>;
+  ownerId?: InputMaybe<StringFilter>;
+  ownerType?: InputMaybe<StringFilter>;
+};
+
+export type AddressAssignmentScalarWhereWithAggregatesInput = {
+  AND?: InputMaybe<Array<AddressAssignmentScalarWhereWithAggregatesInput>>;
+  NOT?: InputMaybe<Array<AddressAssignmentScalarWhereWithAggregatesInput>>;
+  OR?: InputMaybe<Array<AddressAssignmentScalarWhereWithAggregatesInput>>;
+  addressId?: InputMaybe<StringWithAggregatesFilter>;
+  archivedAt?: InputMaybe<DateTimeNullableWithAggregatesFilter>;
+  createdAt?: InputMaybe<DateTimeWithAggregatesFilter>;
+  id?: InputMaybe<StringWithAggregatesFilter>;
+  isPrimary?: InputMaybe<BoolWithAggregatesFilter>;
+  label?: InputMaybe<StringNullableWithAggregatesFilter>;
+  metadata?: InputMaybe<JsonNullableWithAggregatesFilter>;
+  ownerId?: InputMaybe<StringWithAggregatesFilter>;
+  ownerType?: InputMaybe<StringWithAggregatesFilter>;
+};
+
+export type AddressAssignmentUpdateInput = {
+  address?: InputMaybe<AddressUpdateOneRequiredWithoutAssignmentsNestedInput>;
+  archivedAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  isPrimary?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  label?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  ownerId?: InputMaybe<StringFieldUpdateOperationsInput>;
+  ownerType?: InputMaybe<StringFieldUpdateOperationsInput>;
+};
+
+export type AddressAssignmentUpdateManyMutationInput = {
+  archivedAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  isPrimary?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  label?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  ownerId?: InputMaybe<StringFieldUpdateOperationsInput>;
+  ownerType?: InputMaybe<StringFieldUpdateOperationsInput>;
+};
+
+export type AddressAssignmentUpdateManyWithWhereWithoutAddressInput = {
+  data: AddressAssignmentUpdateManyMutationInput;
+  where: AddressAssignmentScalarWhereInput;
+};
+
+export type AddressAssignmentUpdateManyWithoutAddressNestedInput = {
+  connect?: InputMaybe<Array<AddressAssignmentWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<AddressAssignmentCreateOrConnectWithoutAddressInput>>;
+  create?: InputMaybe<Array<AddressAssignmentCreateWithoutAddressInput>>;
+  createMany?: InputMaybe<AddressAssignmentCreateManyAddressInputEnvelope>;
+  delete?: InputMaybe<Array<AddressAssignmentWhereUniqueInput>>;
+  deleteMany?: InputMaybe<Array<AddressAssignmentScalarWhereInput>>;
+  disconnect?: InputMaybe<Array<AddressAssignmentWhereUniqueInput>>;
+  set?: InputMaybe<Array<AddressAssignmentWhereUniqueInput>>;
+  update?: InputMaybe<Array<AddressAssignmentUpdateWithWhereUniqueWithoutAddressInput>>;
+  updateMany?: InputMaybe<Array<AddressAssignmentUpdateManyWithWhereWithoutAddressInput>>;
+  upsert?: InputMaybe<Array<AddressAssignmentUpsertWithWhereUniqueWithoutAddressInput>>;
+};
+
+export type AddressAssignmentUpdateWithWhereUniqueWithoutAddressInput = {
+  data: AddressAssignmentUpdateWithoutAddressInput;
+  where: AddressAssignmentWhereUniqueInput;
+};
+
+export type AddressAssignmentUpdateWithoutAddressInput = {
+  archivedAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  isPrimary?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  label?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  ownerId?: InputMaybe<StringFieldUpdateOperationsInput>;
+  ownerType?: InputMaybe<StringFieldUpdateOperationsInput>;
+};
+
+export type AddressAssignmentUpsertWithWhereUniqueWithoutAddressInput = {
+  create: AddressAssignmentCreateWithoutAddressInput;
+  update: AddressAssignmentUpdateWithoutAddressInput;
+  where: AddressAssignmentWhereUniqueInput;
+};
+
+export type AddressAssignmentWhereInput = {
+  AND?: InputMaybe<Array<AddressAssignmentWhereInput>>;
+  NOT?: InputMaybe<Array<AddressAssignmentWhereInput>>;
+  OR?: InputMaybe<Array<AddressAssignmentWhereInput>>;
+  address?: InputMaybe<AddressScalarRelationFilter>;
+  addressId?: InputMaybe<StringFilter>;
+  archivedAt?: InputMaybe<DateTimeNullableFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  id?: InputMaybe<StringFilter>;
+  isPrimary?: InputMaybe<BoolFilter>;
+  label?: InputMaybe<StringNullableFilter>;
+  metadata?: InputMaybe<JsonNullableFilter>;
+  ownerId?: InputMaybe<StringFilter>;
+  ownerType?: InputMaybe<StringFilter>;
+};
+
+export type AddressAssignmentWhereUniqueInput = {
+  AND?: InputMaybe<Array<AddressAssignmentWhereInput>>;
+  NOT?: InputMaybe<Array<AddressAssignmentWhereInput>>;
+  OR?: InputMaybe<Array<AddressAssignmentWhereInput>>;
+  address?: InputMaybe<AddressScalarRelationFilter>;
+  addressId?: InputMaybe<StringFilter>;
+  addressId_ownerType_ownerId?: InputMaybe<AddressAssignmentAddressIdOwnerTypeOwnerIdCompoundUniqueInput>;
+  archivedAt?: InputMaybe<DateTimeNullableFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  isPrimary?: InputMaybe<BoolFilter>;
+  label?: InputMaybe<StringNullableFilter>;
+  metadata?: InputMaybe<JsonNullableFilter>;
+  ownerId?: InputMaybe<StringFilter>;
+  ownerType?: InputMaybe<StringFilter>;
+};
+
+export type AddressAvgAggregate = {
+  __typename?: 'AddressAvgAggregate';
+  confidence?: Maybe<Scalars['Float']['output']>;
+  latitude?: Maybe<Scalars['Float']['output']>;
+  longitude?: Maybe<Scalars['Float']['output']>;
+};
+
+export type AddressAvgAggregateInput = {
+  confidence?: InputMaybe<Scalars['Boolean']['input']>;
+  latitude?: InputMaybe<Scalars['Boolean']['input']>;
+  longitude?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type AddressAvgOrderByAggregateInput = {
+  confidence?: InputMaybe<SortOrder>;
+  latitude?: InputMaybe<SortOrder>;
+  longitude?: InputMaybe<SortOrder>;
+};
+
+export type AddressCount = {
+  __typename?: 'AddressCount';
+  assignments: Scalars['Int']['output'];
+};
+
+export type AddressCountAggregate = {
+  __typename?: 'AddressCountAggregate';
+  _all: Scalars['Int']['output'];
+  city: Scalars['Int']['output'];
+  confidence: Scalars['Int']['output'];
+  countryCode: Scalars['Int']['output'];
+  createdAt: Scalars['Int']['output'];
+  externalRaw: Scalars['Int']['output'];
+  formattedAddress: Scalars['Int']['output'];
+  id: Scalars['Int']['output'];
+  latitude: Scalars['Int']['output'];
+  longitude: Scalars['Int']['output'];
+  placeId: Scalars['Int']['output'];
+  plusCode: Scalars['Int']['output'];
+  postalCode: Scalars['Int']['output'];
+  provider: Scalars['Int']['output'];
+  state: Scalars['Int']['output'];
+  streetLine1: Scalars['Int']['output'];
+  streetLine2: Scalars['Int']['output'];
+  updatedAt: Scalars['Int']['output'];
+  verifiedAt: Scalars['Int']['output'];
+};
+
+export type AddressCountAggregateInput = {
+  _all?: InputMaybe<Scalars['Boolean']['input']>;
+  city?: InputMaybe<Scalars['Boolean']['input']>;
+  confidence?: InputMaybe<Scalars['Boolean']['input']>;
+  countryCode?: InputMaybe<Scalars['Boolean']['input']>;
+  createdAt?: InputMaybe<Scalars['Boolean']['input']>;
+  externalRaw?: InputMaybe<Scalars['Boolean']['input']>;
+  formattedAddress?: InputMaybe<Scalars['Boolean']['input']>;
+  id?: InputMaybe<Scalars['Boolean']['input']>;
+  latitude?: InputMaybe<Scalars['Boolean']['input']>;
+  longitude?: InputMaybe<Scalars['Boolean']['input']>;
+  placeId?: InputMaybe<Scalars['Boolean']['input']>;
+  plusCode?: InputMaybe<Scalars['Boolean']['input']>;
+  postalCode?: InputMaybe<Scalars['Boolean']['input']>;
+  provider?: InputMaybe<Scalars['Boolean']['input']>;
+  state?: InputMaybe<Scalars['Boolean']['input']>;
+  streetLine1?: InputMaybe<Scalars['Boolean']['input']>;
+  streetLine2?: InputMaybe<Scalars['Boolean']['input']>;
+  updatedAt?: InputMaybe<Scalars['Boolean']['input']>;
+  verifiedAt?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type AddressCountOrderByAggregateInput = {
+  city?: InputMaybe<SortOrder>;
+  confidence?: InputMaybe<SortOrder>;
+  countryCode?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  externalRaw?: InputMaybe<SortOrder>;
+  formattedAddress?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  latitude?: InputMaybe<SortOrder>;
+  longitude?: InputMaybe<SortOrder>;
+  placeId?: InputMaybe<SortOrder>;
+  plusCode?: InputMaybe<SortOrder>;
+  postalCode?: InputMaybe<SortOrder>;
+  provider?: InputMaybe<SortOrder>;
+  state?: InputMaybe<SortOrder>;
+  streetLine1?: InputMaybe<SortOrder>;
+  streetLine2?: InputMaybe<SortOrder>;
+  updatedAt?: InputMaybe<SortOrder>;
+  verifiedAt?: InputMaybe<SortOrder>;
+};
+
+export type AddressCreateInput = {
+  assignments?: InputMaybe<AddressAssignmentCreateNestedManyWithoutAddressInput>;
+  city?: InputMaybe<Scalars['String']['input']>;
+  confidence?: InputMaybe<Scalars['Float']['input']>;
+  countryCode: Scalars['String']['input'];
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  externalRaw?: InputMaybe<Scalars['JSON']['input']>;
+  formattedAddress: Scalars['String']['input'];
+  id?: InputMaybe<Scalars['String']['input']>;
+  latitude?: InputMaybe<Scalars['Float']['input']>;
+  longitude?: InputMaybe<Scalars['Float']['input']>;
+  placeId?: InputMaybe<Scalars['String']['input']>;
+  plusCode?: InputMaybe<Scalars['String']['input']>;
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+  provider: AddressSource;
+  state?: InputMaybe<Scalars['String']['input']>;
+  streetLine1?: InputMaybe<Scalars['String']['input']>;
+  streetLine2?: InputMaybe<Scalars['String']['input']>;
+  updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  verifiedAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+export type AddressCreateManyInput = {
+  city?: InputMaybe<Scalars['String']['input']>;
+  confidence?: InputMaybe<Scalars['Float']['input']>;
+  countryCode: Scalars['String']['input'];
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  externalRaw?: InputMaybe<Scalars['JSON']['input']>;
+  formattedAddress: Scalars['String']['input'];
+  id?: InputMaybe<Scalars['String']['input']>;
+  latitude?: InputMaybe<Scalars['Float']['input']>;
+  longitude?: InputMaybe<Scalars['Float']['input']>;
+  placeId?: InputMaybe<Scalars['String']['input']>;
+  plusCode?: InputMaybe<Scalars['String']['input']>;
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+  provider: AddressSource;
+  state?: InputMaybe<Scalars['String']['input']>;
+  streetLine1?: InputMaybe<Scalars['String']['input']>;
+  streetLine2?: InputMaybe<Scalars['String']['input']>;
+  updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  verifiedAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+export type AddressCreateNestedOneWithoutAssignmentsInput = {
+  connect?: InputMaybe<AddressWhereUniqueInput>;
+  connectOrCreate?: InputMaybe<AddressCreateOrConnectWithoutAssignmentsInput>;
+  create?: InputMaybe<AddressCreateWithoutAssignmentsInput>;
+};
+
+export type AddressCreateOrConnectWithoutAssignmentsInput = {
+  create: AddressCreateWithoutAssignmentsInput;
+  where: AddressWhereUniqueInput;
+};
+
+export type AddressCreateWithoutAssignmentsInput = {
+  city?: InputMaybe<Scalars['String']['input']>;
+  confidence?: InputMaybe<Scalars['Float']['input']>;
+  countryCode: Scalars['String']['input'];
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  externalRaw?: InputMaybe<Scalars['JSON']['input']>;
+  formattedAddress: Scalars['String']['input'];
+  id?: InputMaybe<Scalars['String']['input']>;
+  latitude?: InputMaybe<Scalars['Float']['input']>;
+  longitude?: InputMaybe<Scalars['Float']['input']>;
+  placeId?: InputMaybe<Scalars['String']['input']>;
+  plusCode?: InputMaybe<Scalars['String']['input']>;
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+  provider: AddressSource;
+  state?: InputMaybe<Scalars['String']['input']>;
+  streetLine1?: InputMaybe<Scalars['String']['input']>;
+  streetLine2?: InputMaybe<Scalars['String']['input']>;
+  updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  verifiedAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+export type AddressGroupBy = {
+  __typename?: 'AddressGroupBy';
+  _avg?: Maybe<AddressAvgAggregate>;
+  _count?: Maybe<AddressCountAggregate>;
+  _max?: Maybe<AddressMaxAggregate>;
+  _min?: Maybe<AddressMinAggregate>;
+  _sum?: Maybe<AddressSumAggregate>;
+  city?: Maybe<Scalars['String']['output']>;
+  confidence?: Maybe<Scalars['Float']['output']>;
+  countryCode: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  externalRaw?: Maybe<Scalars['JSON']['output']>;
+  formattedAddress: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  latitude?: Maybe<Scalars['Float']['output']>;
+  longitude?: Maybe<Scalars['Float']['output']>;
+  placeId?: Maybe<Scalars['String']['output']>;
+  plusCode?: Maybe<Scalars['String']['output']>;
+  postalCode?: Maybe<Scalars['String']['output']>;
+  provider: AddressSource;
+  state?: Maybe<Scalars['String']['output']>;
+  streetLine1?: Maybe<Scalars['String']['output']>;
+  streetLine2?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  verifiedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+export type AddressMaxAggregate = {
+  __typename?: 'AddressMaxAggregate';
+  city?: Maybe<Scalars['String']['output']>;
+  confidence?: Maybe<Scalars['Float']['output']>;
+  countryCode?: Maybe<Scalars['String']['output']>;
+  createdAt?: Maybe<Scalars['DateTime']['output']>;
+  formattedAddress?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
+  latitude?: Maybe<Scalars['Float']['output']>;
+  longitude?: Maybe<Scalars['Float']['output']>;
+  placeId?: Maybe<Scalars['String']['output']>;
+  plusCode?: Maybe<Scalars['String']['output']>;
+  postalCode?: Maybe<Scalars['String']['output']>;
+  provider?: Maybe<AddressSource>;
+  state?: Maybe<Scalars['String']['output']>;
+  streetLine1?: Maybe<Scalars['String']['output']>;
+  streetLine2?: Maybe<Scalars['String']['output']>;
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  verifiedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+export type AddressMaxAggregateInput = {
+  city?: InputMaybe<Scalars['Boolean']['input']>;
+  confidence?: InputMaybe<Scalars['Boolean']['input']>;
+  countryCode?: InputMaybe<Scalars['Boolean']['input']>;
+  createdAt?: InputMaybe<Scalars['Boolean']['input']>;
+  formattedAddress?: InputMaybe<Scalars['Boolean']['input']>;
+  id?: InputMaybe<Scalars['Boolean']['input']>;
+  latitude?: InputMaybe<Scalars['Boolean']['input']>;
+  longitude?: InputMaybe<Scalars['Boolean']['input']>;
+  placeId?: InputMaybe<Scalars['Boolean']['input']>;
+  plusCode?: InputMaybe<Scalars['Boolean']['input']>;
+  postalCode?: InputMaybe<Scalars['Boolean']['input']>;
+  provider?: InputMaybe<Scalars['Boolean']['input']>;
+  state?: InputMaybe<Scalars['Boolean']['input']>;
+  streetLine1?: InputMaybe<Scalars['Boolean']['input']>;
+  streetLine2?: InputMaybe<Scalars['Boolean']['input']>;
+  updatedAt?: InputMaybe<Scalars['Boolean']['input']>;
+  verifiedAt?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type AddressMaxOrderByAggregateInput = {
+  city?: InputMaybe<SortOrder>;
+  confidence?: InputMaybe<SortOrder>;
+  countryCode?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  formattedAddress?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  latitude?: InputMaybe<SortOrder>;
+  longitude?: InputMaybe<SortOrder>;
+  placeId?: InputMaybe<SortOrder>;
+  plusCode?: InputMaybe<SortOrder>;
+  postalCode?: InputMaybe<SortOrder>;
+  provider?: InputMaybe<SortOrder>;
+  state?: InputMaybe<SortOrder>;
+  streetLine1?: InputMaybe<SortOrder>;
+  streetLine2?: InputMaybe<SortOrder>;
+  updatedAt?: InputMaybe<SortOrder>;
+  verifiedAt?: InputMaybe<SortOrder>;
+};
+
+export type AddressMinAggregate = {
+  __typename?: 'AddressMinAggregate';
+  city?: Maybe<Scalars['String']['output']>;
+  confidence?: Maybe<Scalars['Float']['output']>;
+  countryCode?: Maybe<Scalars['String']['output']>;
+  createdAt?: Maybe<Scalars['DateTime']['output']>;
+  formattedAddress?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
+  latitude?: Maybe<Scalars['Float']['output']>;
+  longitude?: Maybe<Scalars['Float']['output']>;
+  placeId?: Maybe<Scalars['String']['output']>;
+  plusCode?: Maybe<Scalars['String']['output']>;
+  postalCode?: Maybe<Scalars['String']['output']>;
+  provider?: Maybe<AddressSource>;
+  state?: Maybe<Scalars['String']['output']>;
+  streetLine1?: Maybe<Scalars['String']['output']>;
+  streetLine2?: Maybe<Scalars['String']['output']>;
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  verifiedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+export type AddressMinAggregateInput = {
+  city?: InputMaybe<Scalars['Boolean']['input']>;
+  confidence?: InputMaybe<Scalars['Boolean']['input']>;
+  countryCode?: InputMaybe<Scalars['Boolean']['input']>;
+  createdAt?: InputMaybe<Scalars['Boolean']['input']>;
+  formattedAddress?: InputMaybe<Scalars['Boolean']['input']>;
+  id?: InputMaybe<Scalars['Boolean']['input']>;
+  latitude?: InputMaybe<Scalars['Boolean']['input']>;
+  longitude?: InputMaybe<Scalars['Boolean']['input']>;
+  placeId?: InputMaybe<Scalars['Boolean']['input']>;
+  plusCode?: InputMaybe<Scalars['Boolean']['input']>;
+  postalCode?: InputMaybe<Scalars['Boolean']['input']>;
+  provider?: InputMaybe<Scalars['Boolean']['input']>;
+  state?: InputMaybe<Scalars['Boolean']['input']>;
+  streetLine1?: InputMaybe<Scalars['Boolean']['input']>;
+  streetLine2?: InputMaybe<Scalars['Boolean']['input']>;
+  updatedAt?: InputMaybe<Scalars['Boolean']['input']>;
+  verifiedAt?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type AddressMinOrderByAggregateInput = {
+  city?: InputMaybe<SortOrder>;
+  confidence?: InputMaybe<SortOrder>;
+  countryCode?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  formattedAddress?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  latitude?: InputMaybe<SortOrder>;
+  longitude?: InputMaybe<SortOrder>;
+  placeId?: InputMaybe<SortOrder>;
+  plusCode?: InputMaybe<SortOrder>;
+  postalCode?: InputMaybe<SortOrder>;
+  provider?: InputMaybe<SortOrder>;
+  state?: InputMaybe<SortOrder>;
+  streetLine1?: InputMaybe<SortOrder>;
+  streetLine2?: InputMaybe<SortOrder>;
+  updatedAt?: InputMaybe<SortOrder>;
+  verifiedAt?: InputMaybe<SortOrder>;
+};
+
+export type AddressOrderByWithAggregationInput = {
+  _avg?: InputMaybe<AddressAvgOrderByAggregateInput>;
+  _count?: InputMaybe<AddressCountOrderByAggregateInput>;
+  _max?: InputMaybe<AddressMaxOrderByAggregateInput>;
+  _min?: InputMaybe<AddressMinOrderByAggregateInput>;
+  _sum?: InputMaybe<AddressSumOrderByAggregateInput>;
+  city?: InputMaybe<SortOrderInput>;
+  confidence?: InputMaybe<SortOrderInput>;
+  countryCode?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  externalRaw?: InputMaybe<SortOrderInput>;
+  formattedAddress?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  latitude?: InputMaybe<SortOrderInput>;
+  longitude?: InputMaybe<SortOrderInput>;
+  placeId?: InputMaybe<SortOrderInput>;
+  plusCode?: InputMaybe<SortOrderInput>;
+  postalCode?: InputMaybe<SortOrderInput>;
+  provider?: InputMaybe<SortOrder>;
+  state?: InputMaybe<SortOrderInput>;
+  streetLine1?: InputMaybe<SortOrderInput>;
+  streetLine2?: InputMaybe<SortOrderInput>;
+  updatedAt?: InputMaybe<SortOrder>;
+  verifiedAt?: InputMaybe<SortOrderInput>;
+};
+
+export type AddressOrderByWithRelationInput = {
+  assignments?: InputMaybe<AddressAssignmentOrderByRelationAggregateInput>;
+  city?: InputMaybe<SortOrderInput>;
+  confidence?: InputMaybe<SortOrderInput>;
+  countryCode?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  externalRaw?: InputMaybe<SortOrderInput>;
+  formattedAddress?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  latitude?: InputMaybe<SortOrderInput>;
+  longitude?: InputMaybe<SortOrderInput>;
+  placeId?: InputMaybe<SortOrderInput>;
+  plusCode?: InputMaybe<SortOrderInput>;
+  postalCode?: InputMaybe<SortOrderInput>;
+  provider?: InputMaybe<SortOrder>;
+  state?: InputMaybe<SortOrderInput>;
+  streetLine1?: InputMaybe<SortOrderInput>;
+  streetLine2?: InputMaybe<SortOrderInput>;
+  updatedAt?: InputMaybe<SortOrder>;
+  verifiedAt?: InputMaybe<SortOrderInput>;
+};
+
+export enum AddressScalarFieldEnum {
+  City = 'city',
+  Confidence = 'confidence',
+  CountryCode = 'countryCode',
+  CreatedAt = 'createdAt',
+  ExternalRaw = 'externalRaw',
+  FormattedAddress = 'formattedAddress',
+  Id = 'id',
+  Latitude = 'latitude',
+  Longitude = 'longitude',
+  PlaceId = 'placeId',
+  PlusCode = 'plusCode',
+  PostalCode = 'postalCode',
+  Provider = 'provider',
+  State = 'state',
+  StreetLine1 = 'streetLine1',
+  StreetLine2 = 'streetLine2',
+  UpdatedAt = 'updatedAt',
+  VerifiedAt = 'verifiedAt'
+}
+
+export type AddressScalarRelationFilter = {
+  is?: InputMaybe<AddressWhereInput>;
+  isNot?: InputMaybe<AddressWhereInput>;
+};
+
+export type AddressScalarWhereWithAggregatesInput = {
+  AND?: InputMaybe<Array<AddressScalarWhereWithAggregatesInput>>;
+  NOT?: InputMaybe<Array<AddressScalarWhereWithAggregatesInput>>;
+  OR?: InputMaybe<Array<AddressScalarWhereWithAggregatesInput>>;
+  city?: InputMaybe<StringNullableWithAggregatesFilter>;
+  confidence?: InputMaybe<FloatNullableWithAggregatesFilter>;
+  countryCode?: InputMaybe<StringWithAggregatesFilter>;
+  createdAt?: InputMaybe<DateTimeWithAggregatesFilter>;
+  externalRaw?: InputMaybe<JsonNullableWithAggregatesFilter>;
+  formattedAddress?: InputMaybe<StringWithAggregatesFilter>;
+  id?: InputMaybe<StringWithAggregatesFilter>;
+  latitude?: InputMaybe<FloatNullableWithAggregatesFilter>;
+  longitude?: InputMaybe<FloatNullableWithAggregatesFilter>;
+  placeId?: InputMaybe<StringNullableWithAggregatesFilter>;
+  plusCode?: InputMaybe<StringNullableWithAggregatesFilter>;
+  postalCode?: InputMaybe<StringNullableWithAggregatesFilter>;
+  provider?: InputMaybe<EnumAddressSourceWithAggregatesFilter>;
+  state?: InputMaybe<StringNullableWithAggregatesFilter>;
+  streetLine1?: InputMaybe<StringNullableWithAggregatesFilter>;
+  streetLine2?: InputMaybe<StringNullableWithAggregatesFilter>;
+  updatedAt?: InputMaybe<DateTimeWithAggregatesFilter>;
+  verifiedAt?: InputMaybe<DateTimeNullableWithAggregatesFilter>;
+};
+
+export enum AddressSource {
+  GooglePlaces = 'GOOGLE_PLACES',
+  Locationiq = 'LOCATIONIQ',
+  Manual = 'MANUAL',
+  Opencage = 'OPENCAGE',
+  Other = 'OTHER'
+}
+
+export type AddressSuggestionModel = {
+  __typename?: 'AddressSuggestionModel';
+  countryCode?: Maybe<Scalars['String']['output']>;
+  formattedAddress: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  latitude?: Maybe<Scalars['Float']['output']>;
+  longitude?: Maybe<Scalars['Float']['output']>;
+  provider: Scalars['String']['output'];
+};
+
+export type AddressSumAggregate = {
+  __typename?: 'AddressSumAggregate';
+  confidence?: Maybe<Scalars['Float']['output']>;
+  latitude?: Maybe<Scalars['Float']['output']>;
+  longitude?: Maybe<Scalars['Float']['output']>;
+};
+
+export type AddressSumAggregateInput = {
+  confidence?: InputMaybe<Scalars['Boolean']['input']>;
+  latitude?: InputMaybe<Scalars['Boolean']['input']>;
+  longitude?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type AddressSumOrderByAggregateInput = {
+  confidence?: InputMaybe<SortOrder>;
+  latitude?: InputMaybe<SortOrder>;
+  longitude?: InputMaybe<SortOrder>;
+};
+
+export type AddressUpdateInput = {
+  assignments?: InputMaybe<AddressAssignmentUpdateManyWithoutAddressNestedInput>;
+  city?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  confidence?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
+  countryCode?: InputMaybe<StringFieldUpdateOperationsInput>;
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  externalRaw?: InputMaybe<Scalars['JSON']['input']>;
+  formattedAddress?: InputMaybe<StringFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  latitude?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
+  longitude?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
+  placeId?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  plusCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  postalCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  provider?: InputMaybe<EnumAddressSourceFieldUpdateOperationsInput>;
+  state?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  streetLine1?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  streetLine2?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  verifiedAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+};
+
+export type AddressUpdateManyMutationInput = {
+  city?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  confidence?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
+  countryCode?: InputMaybe<StringFieldUpdateOperationsInput>;
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  externalRaw?: InputMaybe<Scalars['JSON']['input']>;
+  formattedAddress?: InputMaybe<StringFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  latitude?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
+  longitude?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
+  placeId?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  plusCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  postalCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  provider?: InputMaybe<EnumAddressSourceFieldUpdateOperationsInput>;
+  state?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  streetLine1?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  streetLine2?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  verifiedAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+};
+
+export type AddressUpdateOneRequiredWithoutAssignmentsNestedInput = {
+  connect?: InputMaybe<AddressWhereUniqueInput>;
+  connectOrCreate?: InputMaybe<AddressCreateOrConnectWithoutAssignmentsInput>;
+  create?: InputMaybe<AddressCreateWithoutAssignmentsInput>;
+  update?: InputMaybe<AddressUpdateToOneWithWhereWithoutAssignmentsInput>;
+  upsert?: InputMaybe<AddressUpsertWithoutAssignmentsInput>;
+};
+
+export type AddressUpdateToOneWithWhereWithoutAssignmentsInput = {
+  data: AddressUpdateWithoutAssignmentsInput;
+  where?: InputMaybe<AddressWhereInput>;
+};
+
+export type AddressUpdateWithoutAssignmentsInput = {
+  city?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  confidence?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
+  countryCode?: InputMaybe<StringFieldUpdateOperationsInput>;
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  externalRaw?: InputMaybe<Scalars['JSON']['input']>;
+  formattedAddress?: InputMaybe<StringFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  latitude?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
+  longitude?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
+  placeId?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  plusCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  postalCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  provider?: InputMaybe<EnumAddressSourceFieldUpdateOperationsInput>;
+  state?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  streetLine1?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  streetLine2?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  verifiedAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+};
+
+export type AddressUpsertWithoutAssignmentsInput = {
+  create: AddressCreateWithoutAssignmentsInput;
+  update: AddressUpdateWithoutAssignmentsInput;
+  where?: InputMaybe<AddressWhereInput>;
+};
+
+export type AddressWhereInput = {
+  AND?: InputMaybe<Array<AddressWhereInput>>;
+  NOT?: InputMaybe<Array<AddressWhereInput>>;
+  OR?: InputMaybe<Array<AddressWhereInput>>;
+  assignments?: InputMaybe<AddressAssignmentListRelationFilter>;
+  city?: InputMaybe<StringNullableFilter>;
+  confidence?: InputMaybe<FloatNullableFilter>;
+  countryCode?: InputMaybe<StringFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  externalRaw?: InputMaybe<JsonNullableFilter>;
+  formattedAddress?: InputMaybe<StringFilter>;
+  id?: InputMaybe<StringFilter>;
+  latitude?: InputMaybe<FloatNullableFilter>;
+  longitude?: InputMaybe<FloatNullableFilter>;
+  placeId?: InputMaybe<StringNullableFilter>;
+  plusCode?: InputMaybe<StringNullableFilter>;
+  postalCode?: InputMaybe<StringNullableFilter>;
+  provider?: InputMaybe<EnumAddressSourceFilter>;
+  state?: InputMaybe<StringNullableFilter>;
+  streetLine1?: InputMaybe<StringNullableFilter>;
+  streetLine2?: InputMaybe<StringNullableFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  verifiedAt?: InputMaybe<DateTimeNullableFilter>;
+};
+
+export type AddressWhereUniqueInput = {
+  AND?: InputMaybe<Array<AddressWhereInput>>;
+  NOT?: InputMaybe<Array<AddressWhereInput>>;
+  OR?: InputMaybe<Array<AddressWhereInput>>;
+  assignments?: InputMaybe<AddressAssignmentListRelationFilter>;
+  city?: InputMaybe<StringNullableFilter>;
+  confidence?: InputMaybe<FloatNullableFilter>;
+  countryCode?: InputMaybe<StringFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  externalRaw?: InputMaybe<JsonNullableFilter>;
+  formattedAddress?: InputMaybe<StringFilter>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  latitude?: InputMaybe<FloatNullableFilter>;
+  longitude?: InputMaybe<FloatNullableFilter>;
+  placeId?: InputMaybe<Scalars['String']['input']>;
+  plusCode?: InputMaybe<StringNullableFilter>;
+  postalCode?: InputMaybe<StringNullableFilter>;
+  provider?: InputMaybe<EnumAddressSourceFilter>;
+  state?: InputMaybe<StringNullableFilter>;
+  streetLine1?: InputMaybe<StringNullableFilter>;
+  streetLine2?: InputMaybe<StringNullableFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  verifiedAt?: InputMaybe<DateTimeNullableFilter>;
+};
+
 export enum AdjustmentType {
   Discount = 'DISCOUNT',
   Increase = 'INCREASE',
@@ -216,6 +1205,22 @@ export type AdminUpdateCustomerProfileInput = {
 export type AffectedRows = {
   __typename?: 'AffectedRows';
   count: Scalars['Int']['output'];
+};
+
+export type AggregateAddress = {
+  __typename?: 'AggregateAddress';
+  _avg?: Maybe<AddressAvgAggregate>;
+  _count?: Maybe<AddressCountAggregate>;
+  _max?: Maybe<AddressMaxAggregate>;
+  _min?: Maybe<AddressMinAggregate>;
+  _sum?: Maybe<AddressSumAggregate>;
+};
+
+export type AggregateAddressAssignment = {
+  __typename?: 'AggregateAddressAssignment';
+  _count?: Maybe<AddressAssignmentCountAggregate>;
+  _max?: Maybe<AddressAssignmentMaxAggregate>;
+  _min?: Maybe<AddressAssignmentMinAggregate>;
 };
 
 export type AggregateAsset = {
@@ -666,6 +1671,15 @@ export type AssignFulfillmentPersonnelInput = {
 export type AssignRoleInput = {
   roleId: Scalars['String']['input'];
   userId: Scalars['String']['input'];
+};
+
+export type AttachAddressInput = {
+  addressId: Scalars['String']['input'];
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  ownerId: Scalars['String']['input'];
+  ownerType: Scalars['String']['input'];
 };
 
 export type AuthResponse = {
@@ -2789,6 +3803,13 @@ export type CreateUserInput = {
   tier?: InputMaybe<UserTier>;
 };
 
+export type CreateVerifiedAddressInput = {
+  bias?: InputMaybe<GeocodeBiasInput>;
+  countryCodes?: InputMaybe<Array<Scalars['String']['input']>>;
+  owner?: InputMaybe<VerifiedAddressOwnerInput>;
+  query: Scalars['String']['input'];
+};
+
 export type Customer = {
   __typename?: 'Customer';
   CustomerPreferenceProfile?: Maybe<Array<CustomerPreferenceProfile>>;
@@ -4082,6 +5103,27 @@ export type DevPurgeFilter = {
   supplierId?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type EnumAddressSourceFieldUpdateOperationsInput = {
+  set?: InputMaybe<AddressSource>;
+};
+
+export type EnumAddressSourceFilter = {
+  equals?: InputMaybe<AddressSource>;
+  in?: InputMaybe<Array<AddressSource>>;
+  not?: InputMaybe<NestedEnumAddressSourceFilter>;
+  notIn?: InputMaybe<Array<AddressSource>>;
+};
+
+export type EnumAddressSourceWithAggregatesFilter = {
+  _count?: InputMaybe<NestedIntFilter>;
+  _max?: InputMaybe<NestedEnumAddressSourceFilter>;
+  _min?: InputMaybe<NestedEnumAddressSourceFilter>;
+  equals?: InputMaybe<AddressSource>;
+  in?: InputMaybe<Array<AddressSource>>;
+  not?: InputMaybe<NestedEnumAddressSourceWithAggregatesFilter>;
+  notIn?: InputMaybe<Array<AddressSource>>;
+};
+
 export type EnumAdjustmentTypeNullableFilter = {
   equals?: InputMaybe<AdjustmentType>;
   in?: InputMaybe<Array<AdjustmentType>>;
@@ -4590,6 +5632,22 @@ export type FloatNullableFilter = {
   notIn?: InputMaybe<Array<Scalars['Float']['input']>>;
 };
 
+export type FloatNullableWithAggregatesFilter = {
+  _avg?: InputMaybe<NestedFloatNullableFilter>;
+  _count?: InputMaybe<NestedIntNullableFilter>;
+  _max?: InputMaybe<NestedFloatNullableFilter>;
+  _min?: InputMaybe<NestedFloatNullableFilter>;
+  _sum?: InputMaybe<NestedFloatNullableFilter>;
+  equals?: InputMaybe<Scalars['Float']['input']>;
+  gt?: InputMaybe<Scalars['Float']['input']>;
+  gte?: InputMaybe<Scalars['Float']['input']>;
+  in?: InputMaybe<Array<Scalars['Float']['input']>>;
+  lt?: InputMaybe<Scalars['Float']['input']>;
+  lte?: InputMaybe<Scalars['Float']['input']>;
+  not?: InputMaybe<NestedFloatNullableWithAggregatesFilter>;
+  notIn?: InputMaybe<Array<Scalars['Float']['input']>>;
+};
+
 export type FloatWithAggregatesFilter = {
   _avg?: InputMaybe<NestedFloatFilter>;
   _count?: InputMaybe<NestedIntFilter>;
@@ -4911,6 +5969,12 @@ export type FulfillmentWhereUniqueInput = {
   status?: InputMaybe<EnumFulfillmentStatusFilter>;
   type?: InputMaybe<EnumFulfillmentTypeFilter>;
   updatedAt?: InputMaybe<DateTimeFilter>;
+};
+
+export type GeocodeBiasInput = {
+  latitude: Scalars['Float']['input'];
+  longitude: Scalars['Float']['input'];
+  radiusMeters?: InputMaybe<Scalars['Float']['input']>;
 };
 
 export type IdInput = {
@@ -5448,6 +6512,8 @@ export type Mutation = {
   applyReseller: ResellerProfile;
   approvePurchaseRequisition: Scalars['Boolean']['output'];
   approveReseller: ResellerProfile;
+  /** Archive an address assignment without deleting it. */
+  archiveAddressAssignment: AddressAssignment;
   assignAsset: AssetAssignment;
   assignBiller: ResellerProfile;
   assignFacetToProduct: Scalars['String']['output'];
@@ -5456,6 +6522,8 @@ export type Mutation = {
   assignFulfillmentPersonnel: Fulfillment;
   assignRole: Scalars['Boolean']['output'];
   assignStoreManager: Scalars['Boolean']['output'];
+  /** Attach an existing address to an owning entity (store, user, order, etc.) */
+  attachAddress: AddressAssignment;
   /** Attach a variant to a product by setting productId */
   attachVariantToProduct: Scalars['Boolean']['output'];
   billerConvertConfirmedQuotation: Quotation;
@@ -5471,6 +6539,8 @@ export type Mutation = {
   confirmConsumerPayment: ConsumerPayment;
   confirmResellerPayment: ResellerPayment;
   confirmResellerQuotation: ResellerSale;
+  createAddress?: Maybe<Address>;
+  createAddressAssignment?: Maybe<AddressAssignment>;
   createCollection: CollectionGql;
   createConsumerReceipt: ConsumerReceipt;
   createConsumerSale: ConsumerSale;
@@ -5479,6 +6549,8 @@ export type Mutation = {
   createFulfillment: Fulfillment;
   createLooseProductVariant: ProductVariant;
   createLowStockRequisitionAndIssuePreferred?: Maybe<Scalars['String']['output']>;
+  createManyAddress?: Maybe<AffectedRows>;
+  createManyAddressAssignment?: Maybe<AffectedRows>;
   createManyProduct?: Maybe<AffectedRows>;
   createManyProductVariant?: Maybe<AffectedRows>;
   createManyStore?: Maybe<AffectedRows>;
@@ -5497,11 +6569,19 @@ export type Mutation = {
   createSalesReturnForOrder: Scalars['String']['output'];
   createStaff: User;
   createStore?: Maybe<Store>;
+  /** Create a store and attach a verified primary address using the geocoding provider. */
+  createStoreWithAddress: Store;
   createSupplier: Supplier;
   createSupplierPayment: SupplierPayment;
   createUser?: Maybe<User>;
+  /** Resolve and persist an address using the configured geocoding provider. */
+  createVerifiedAddress: Address;
+  deleteAddress?: Maybe<Address>;
+  deleteAddressAssignment?: Maybe<AddressAssignment>;
   deleteCollection: Scalars['Boolean']['output'];
   deleteFacet: Scalars['String']['output'];
+  deleteManyAddress?: Maybe<AffectedRows>;
+  deleteManyAddressAssignment?: Maybe<AffectedRows>;
   deleteManyProduct?: Maybe<AffectedRows>;
   deleteManyProductVariant?: Maybe<AffectedRows>;
   deleteManyStore?: Maybe<AffectedRows>;
@@ -5538,6 +6618,7 @@ export type Mutation = {
   removeFacetFromVariant: Scalars['String']['output'];
   retryOutboxFailed: Scalars['Int']['output'];
   runLowStockScanNow: Scalars['Boolean']['output'];
+  searchAddresses: Array<AddressSuggestionModel>;
   selectSupplierQuote: Scalars['Boolean']['output'];
   sendEmailVerification: Scalars['Boolean']['output'];
   sendPhoneVerification: Scalars['Boolean']['output'];
@@ -5550,9 +6631,13 @@ export type Mutation = {
   transferStock: StockTransfer;
   unassignAsset: Scalars['Boolean']['output'];
   unlinkVariantFromProduct: ProductVariant;
+  updateAddress?: Maybe<Address>;
+  updateAddressAssignment?: Maybe<AddressAssignment>;
   updateCollection: CollectionGql;
   updateFacet: FacetGql;
   updateFulfillmentStatus: Fulfillment;
+  updateManyAddress?: Maybe<AffectedRows>;
+  updateManyAddressAssignment?: Maybe<AffectedRows>;
   updateManyProduct?: Maybe<AffectedRows>;
   updateManyProductVariant?: Maybe<AffectedRows>;
   updateManyStore?: Maybe<AffectedRows>;
@@ -5562,6 +6647,7 @@ export type Mutation = {
   updateProductVariant?: Maybe<ProductVariant>;
   updatePurchaseOrderPhase: PurchaseOrder;
   updatePurchaseOrderStatus: PurchaseOrder;
+  updateQuotation: Quotation;
   updateQuotationStatus: Quotation;
   updateRole: Role;
   updateSalesReturnStatus: Scalars['Boolean']['output'];
@@ -5650,6 +6736,11 @@ export type MutationApproveResellerArgs = {
 };
 
 
+export type MutationArchiveAddressAssignmentArgs = {
+  id: Scalars['String']['input'];
+};
+
+
 export type MutationAssignAssetArgs = {
   input: AssignAssetInput;
 };
@@ -5687,6 +6778,11 @@ export type MutationAssignRoleArgs = {
 export type MutationAssignStoreManagerArgs = {
   managerId: Scalars['String']['input'];
   storeId: Scalars['String']['input'];
+};
+
+
+export type MutationAttachAddressArgs = {
+  input: AttachAddressInput;
 };
 
 
@@ -5770,6 +6866,16 @@ export type MutationConfirmResellerQuotationArgs = {
 };
 
 
+export type MutationCreateAddressArgs = {
+  data: AddressCreateInput;
+};
+
+
+export type MutationCreateAddressAssignmentArgs = {
+  data: AddressAssignmentCreateInput;
+};
+
+
 export type MutationCreateCollectionArgs = {
   input: CreateCollectionInput;
 };
@@ -5802,6 +6908,18 @@ export type MutationCreateLooseProductVariantArgs = {
 
 export type MutationCreateLowStockRequisitionAndIssuePreferredArgs = {
   input: CreateRequisitionFromLowStockInput;
+};
+
+
+export type MutationCreateManyAddressArgs = {
+  data: Array<AddressCreateManyInput>;
+  skipDuplicates?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+
+export type MutationCreateManyAddressAssignmentArgs = {
+  data: Array<AddressAssignmentCreateManyInput>;
+  skipDuplicates?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 
@@ -5899,6 +7017,12 @@ export type MutationCreateStoreArgs = {
 };
 
 
+export type MutationCreateStoreWithAddressArgs = {
+  address: StoreAddressInput;
+  data: StoreCreateInput;
+};
+
+
 export type MutationCreateSupplierArgs = {
   input: CreateSupplierInput;
 };
@@ -5914,6 +7038,21 @@ export type MutationCreateUserArgs = {
 };
 
 
+export type MutationCreateVerifiedAddressArgs = {
+  input: CreateVerifiedAddressInput;
+};
+
+
+export type MutationDeleteAddressArgs = {
+  where: AddressWhereUniqueInput;
+};
+
+
+export type MutationDeleteAddressAssignmentArgs = {
+  where: AddressAssignmentWhereUniqueInput;
+};
+
+
 export type MutationDeleteCollectionArgs = {
   id: Scalars['String']['input'];
 };
@@ -5921,6 +7060,18 @@ export type MutationDeleteCollectionArgs = {
 
 export type MutationDeleteFacetArgs = {
   id: Scalars['String']['input'];
+};
+
+
+export type MutationDeleteManyAddressArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AddressWhereInput>;
+};
+
+
+export type MutationDeleteManyAddressAssignmentArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AddressAssignmentWhereInput>;
 };
 
 
@@ -6107,6 +7258,13 @@ export type MutationRetryOutboxFailedArgs = {
 };
 
 
+export type MutationSearchAddressesArgs = {
+  countryCodes?: InputMaybe<Array<Scalars['String']['input']>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  query: Scalars['String']['input'];
+};
+
+
 export type MutationSelectSupplierQuoteArgs = {
   input: SelectSupplierQuoteInput;
 };
@@ -6157,6 +7315,18 @@ export type MutationUnlinkVariantFromProductArgs = {
 };
 
 
+export type MutationUpdateAddressArgs = {
+  data: AddressUpdateInput;
+  where: AddressWhereUniqueInput;
+};
+
+
+export type MutationUpdateAddressAssignmentArgs = {
+  data: AddressAssignmentUpdateInput;
+  where: AddressAssignmentWhereUniqueInput;
+};
+
+
 export type MutationUpdateCollectionArgs = {
   input: UpdateCollectionInput;
 };
@@ -6169,6 +7339,20 @@ export type MutationUpdateFacetArgs = {
 
 export type MutationUpdateFulfillmentStatusArgs = {
   input: UpdateFulfillmentStatusInput;
+};
+
+
+export type MutationUpdateManyAddressArgs = {
+  data: AddressUpdateManyMutationInput;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AddressWhereInput>;
+};
+
+
+export type MutationUpdateManyAddressAssignmentArgs = {
+  data: AddressAssignmentUpdateManyMutationInput;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AddressAssignmentWhereInput>;
 };
 
 
@@ -6224,6 +7408,11 @@ export type MutationUpdatePurchaseOrderPhaseArgs = {
 
 export type MutationUpdatePurchaseOrderStatusArgs = {
   input: UpdatePurchaseOrderStatusInput;
+};
+
+
+export type MutationUpdateQuotationArgs = {
+  input: UpdateQuotationInput;
 };
 
 
@@ -6350,6 +7539,23 @@ export type NestedDateTimeWithAggregatesFilter = {
   lte?: InputMaybe<Scalars['DateTime']['input']>;
   not?: InputMaybe<NestedDateTimeWithAggregatesFilter>;
   notIn?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+};
+
+export type NestedEnumAddressSourceFilter = {
+  equals?: InputMaybe<AddressSource>;
+  in?: InputMaybe<Array<AddressSource>>;
+  not?: InputMaybe<NestedEnumAddressSourceFilter>;
+  notIn?: InputMaybe<Array<AddressSource>>;
+};
+
+export type NestedEnumAddressSourceWithAggregatesFilter = {
+  _count?: InputMaybe<NestedIntFilter>;
+  _max?: InputMaybe<NestedEnumAddressSourceFilter>;
+  _min?: InputMaybe<NestedEnumAddressSourceFilter>;
+  equals?: InputMaybe<AddressSource>;
+  in?: InputMaybe<Array<AddressSource>>;
+  not?: InputMaybe<NestedEnumAddressSourceWithAggregatesFilter>;
+  notIn?: InputMaybe<Array<AddressSource>>;
 };
 
 export type NestedEnumAdjustmentTypeNullableFilter = {
@@ -6573,6 +7779,22 @@ export type NestedFloatNullableFilter = {
   lt?: InputMaybe<Scalars['Float']['input']>;
   lte?: InputMaybe<Scalars['Float']['input']>;
   not?: InputMaybe<NestedFloatNullableFilter>;
+  notIn?: InputMaybe<Array<Scalars['Float']['input']>>;
+};
+
+export type NestedFloatNullableWithAggregatesFilter = {
+  _avg?: InputMaybe<NestedFloatNullableFilter>;
+  _count?: InputMaybe<NestedIntNullableFilter>;
+  _max?: InputMaybe<NestedFloatNullableFilter>;
+  _min?: InputMaybe<NestedFloatNullableFilter>;
+  _sum?: InputMaybe<NestedFloatNullableFilter>;
+  equals?: InputMaybe<Scalars['Float']['input']>;
+  gt?: InputMaybe<Scalars['Float']['input']>;
+  gte?: InputMaybe<Scalars['Float']['input']>;
+  in?: InputMaybe<Array<Scalars['Float']['input']>>;
+  lt?: InputMaybe<Scalars['Float']['input']>;
+  lte?: InputMaybe<Scalars['Float']['input']>;
+  not?: InputMaybe<NestedFloatNullableWithAggregatesFilter>;
   notIn?: InputMaybe<Array<Scalars['Float']['input']>>;
 };
 
@@ -11795,6 +13017,8 @@ export type Query = {
   __typename?: 'Query';
   adminProcurementDashboard: AdminProcurementDashboard;
   adminProcurementDashboardByStore: AdminProcurementDashboard;
+  aggregateAddress: AggregateAddress;
+  aggregateAddressAssignment: AggregateAddressAssignment;
   aggregateAsset: AggregateAsset;
   aggregateProduct: AggregateProduct;
   aggregateProductVariant: AggregateProductVariant;
@@ -11813,21 +13037,28 @@ export type Query = {
   collections: Array<CollectionGql>;
   consumerPaymentsByOrder: Array<ConsumerPayment>;
   consumerReceiptsByCustomer: Array<ConsumerReceipt>;
+  consumerSale: ConsumerSale;
+  consumerSales: Array<ConsumerSale>;
   consumerSalesByCustomer: Array<ConsumerSale>;
   customerAffinity: Array<CustomerAffinityEntry>;
   dailyPaymentsSeries: Array<PaymentDaySeries>;
   dailyPaymentsSeriesRange: Array<PaymentDaySeries>;
   devCounts: DevCounts;
   devExportSnapshot: Scalars['String']['output'];
+  findFirstAddress: Address;
   findFirstAsset?: Maybe<Asset>;
   findFirstProduct?: Maybe<Product>;
   findFirstProductVariant?: Maybe<ProductVariant>;
   findFirstStore: Store;
   findFirstUser: User;
+  findUniqueAddress: Address;
+  findUniqueAddressAssignment: AddressAssignment;
   findUniqueProduct?: Maybe<Product>;
   findUniqueProductVariant?: Maybe<ProductVariant>;
   findUniqueStore: Store;
   findUniqueUser: User;
+  groupByAddress: Array<AddressGroupBy>;
+  groupByAddressAssignment: Array<AddressAssignmentGroupBy>;
   groupByAsset: Array<AssetGroupBy>;
   groupByProduct: Array<ProductGroupBy>;
   groupByProductVariant: Array<ProductVariantGroupBy>;
@@ -11837,6 +13068,8 @@ export type Query = {
   invoiceImports: Array<InvoiceImport>;
   lastAutoRequisitionIdByStore?: Maybe<Scalars['String']['output']>;
   lastFailedOutboxEvents: Array<OutboxEvent>;
+  listAddressAssignments: Array<AddressAssignment>;
+  listAddresses: Array<Address>;
   listBillers: Array<User>;
   listFacets: Array<FacetGql>;
   listManagers: Array<User>;
@@ -11879,6 +13112,8 @@ export type Query = {
   purchaseOrdersSearchCount: Scalars['Int']['output'];
   purchaseRequisitionSummary?: Maybe<RequisitionSummary>;
   purchaseReturnsBySupplier: Array<PurchaseReturn>;
+  quotation: Quotation;
+  quotations: Array<Quotation>;
   recentSupportThreads: Array<SupportMessage>;
   requisitionsByStatus: Array<RequisitionSummary>;
   requisitionsByStore: Array<RequisitionSummary>;
@@ -11890,6 +13125,8 @@ export type Query = {
   requisitionsWithPartialSubmissionsByStore: Array<RequisitionSummary>;
   resellerPaymentsByOrder: Array<ResellerPayment>;
   resellerProfile?: Maybe<ResellerProfile>;
+  resellerSale: ResellerSale;
+  resellerSales: Array<ResellerSale>;
   resellers: Array<ResellerProfile>;
   rfqCountsAll: RfqStatusCounts;
   rfqDashboard: RfqDashboard;
@@ -11936,6 +13173,32 @@ export type Query = {
 
 export type QueryAdminProcurementDashboardByStoreArgs = {
   storeId: Scalars['String']['input'];
+};
+
+
+export type QueryAggregateAddressArgs = {
+  _avg?: InputMaybe<AddressAvgAggregateInput>;
+  _count?: InputMaybe<AddressCountAggregateInput>;
+  _max?: InputMaybe<AddressMaxAggregateInput>;
+  _min?: InputMaybe<AddressMinAggregateInput>;
+  _sum?: InputMaybe<AddressSumAggregateInput>;
+  cursor?: InputMaybe<AddressWhereUniqueInput>;
+  orderBy?: InputMaybe<Array<AddressOrderByWithRelationInput>>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AddressWhereInput>;
+};
+
+
+export type QueryAggregateAddressAssignmentArgs = {
+  _count?: InputMaybe<AddressAssignmentCountAggregateInput>;
+  _max?: InputMaybe<AddressAssignmentMaxAggregateInput>;
+  _min?: InputMaybe<AddressAssignmentMinAggregateInput>;
+  cursor?: InputMaybe<AddressAssignmentWhereUniqueInput>;
+  orderBy?: InputMaybe<Array<AddressAssignmentOrderByWithRelationInput>>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AddressAssignmentWhereInput>;
 };
 
 
@@ -12082,6 +13345,11 @@ export type QueryConsumerReceiptsByCustomerArgs = {
 };
 
 
+export type QueryConsumerSaleArgs = {
+  id: Scalars['String']['input'];
+};
+
+
 export type QueryConsumerSalesByCustomerArgs = {
   cursorId?: InputMaybe<Scalars['String']['input']>;
   customerId: Scalars['String']['input'];
@@ -12115,6 +13383,16 @@ export type QueryDailyPaymentsSeriesRangeArgs = {
 export type QueryDevExportSnapshotArgs = {
   filter?: InputMaybe<DevPurgeFilter>;
   tables: Array<Scalars['String']['input']>;
+};
+
+
+export type QueryFindFirstAddressArgs = {
+  cursor?: InputMaybe<AddressWhereUniqueInput>;
+  distinct?: InputMaybe<Array<AddressScalarFieldEnum>>;
+  orderBy?: InputMaybe<Array<AddressOrderByWithRelationInput>>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AddressWhereInput>;
 };
 
 
@@ -12168,6 +13446,16 @@ export type QueryFindFirstUserArgs = {
 };
 
 
+export type QueryFindUniqueAddressArgs = {
+  where: AddressWhereUniqueInput;
+};
+
+
+export type QueryFindUniqueAddressAssignmentArgs = {
+  where: AddressAssignmentWhereUniqueInput;
+};
+
+
 export type QueryFindUniqueProductArgs = {
   where: ProductWhereUniqueInput;
 };
@@ -12185,6 +13473,34 @@ export type QueryFindUniqueStoreArgs = {
 
 export type QueryFindUniqueUserArgs = {
   where: UserWhereUniqueInput;
+};
+
+
+export type QueryGroupByAddressArgs = {
+  _avg?: InputMaybe<AddressAvgAggregateInput>;
+  _count?: InputMaybe<AddressCountAggregateInput>;
+  _max?: InputMaybe<AddressMaxAggregateInput>;
+  _min?: InputMaybe<AddressMinAggregateInput>;
+  _sum?: InputMaybe<AddressSumAggregateInput>;
+  by: Array<AddressScalarFieldEnum>;
+  having?: InputMaybe<AddressScalarWhereWithAggregatesInput>;
+  orderBy?: InputMaybe<Array<AddressOrderByWithAggregationInput>>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AddressWhereInput>;
+};
+
+
+export type QueryGroupByAddressAssignmentArgs = {
+  _count?: InputMaybe<AddressAssignmentCountAggregateInput>;
+  _max?: InputMaybe<AddressAssignmentMaxAggregateInput>;
+  _min?: InputMaybe<AddressAssignmentMinAggregateInput>;
+  by: Array<AddressAssignmentScalarFieldEnum>;
+  having?: InputMaybe<AddressAssignmentScalarWhereWithAggregatesInput>;
+  orderBy?: InputMaybe<Array<AddressAssignmentOrderByWithAggregationInput>>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AddressAssignmentWhereInput>;
 };
 
 
@@ -12270,6 +13586,26 @@ export type QueryLastAutoRequisitionIdByStoreArgs = {
 export type QueryLastFailedOutboxEventsArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   type?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryListAddressAssignmentsArgs = {
+  cursor?: InputMaybe<AddressAssignmentWhereUniqueInput>;
+  distinct?: InputMaybe<Array<AddressAssignmentScalarFieldEnum>>;
+  orderBy?: InputMaybe<Array<AddressAssignmentOrderByWithRelationInput>>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AddressAssignmentWhereInput>;
+};
+
+
+export type QueryListAddressesArgs = {
+  cursor?: InputMaybe<AddressWhereUniqueInput>;
+  distinct?: InputMaybe<Array<AddressScalarFieldEnum>>;
+  orderBy?: InputMaybe<Array<AddressOrderByWithRelationInput>>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<AddressWhereInput>;
 };
 
 
@@ -12484,6 +13820,11 @@ export type QueryPurchaseReturnsBySupplierArgs = {
 };
 
 
+export type QueryQuotationArgs = {
+  id: Scalars['String']['input'];
+};
+
+
 export type QueryRecentSupportThreadsArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -12534,6 +13875,11 @@ export type QueryResellerPaymentsByOrderArgs = {
 
 export type QueryResellerProfileArgs = {
   userId: Scalars['String']['input'];
+};
+
+
+export type QueryResellerSaleArgs = {
+  id: Scalars['String']['input'];
 };
 
 
@@ -19655,6 +21001,8 @@ export type Store = {
   PurchaseRequisition?: Maybe<Array<PurchaseRequisition>>;
   Quotation?: Maybe<Array<Quotation>>;
   _count: StoreCount;
+  /** Addresses that have been linked to this store via the AddressAssignment table. */
+  addresses: Array<Address>;
   createdAt: Scalars['DateTime']['output'];
   customerSales?: Maybe<Array<ConsumerSale>>;
   id: Scalars['ID']['output'];
@@ -19665,6 +21013,8 @@ export type Store = {
   managerId: Scalars['String']['output'];
   movements?: Maybe<Array<StockMovement>>;
   name: Scalars['String']['output'];
+  /** Primary address linked to this store, if available. */
+  primaryAddress?: Maybe<Address>;
   purchaseOrders?: Maybe<Array<PurchaseOrder>>;
   receipts?: Maybe<Array<StockReceiptBatch>>;
   resellerSales?: Maybe<Array<ResellerSale>>;
@@ -19673,6 +21023,15 @@ export type Store = {
   transfersIn?: Maybe<Array<StockTransfer>>;
   transfersOut?: Maybe<Array<StockTransfer>>;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+export type StoreAddressInput = {
+  bias?: InputMaybe<GeocodeBiasInput>;
+  countryCodes?: InputMaybe<Array<Scalars['String']['input']>>;
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  query: Scalars['String']['input'];
 };
 
 export type StoreCount = {
@@ -23150,6 +24509,23 @@ export type UpdatePurchaseOrderPhaseInput = {
 export type UpdatePurchaseOrderStatusInput = {
   id: Scalars['String']['input'];
   status: PurchaseOrderStatus;
+};
+
+export type UpdateQuotationInput = {
+  billerId?: InputMaybe<Scalars['ID']['input']>;
+  channel?: InputMaybe<SaleChannel>;
+  consumerId?: InputMaybe<Scalars['ID']['input']>;
+  id: Scalars['ID']['input'];
+  items?: InputMaybe<Array<UpdateQuotationItemInput>>;
+  resellerId?: InputMaybe<Scalars['ID']['input']>;
+  storeId?: InputMaybe<Scalars['ID']['input']>;
+  type?: InputMaybe<SaleType>;
+};
+
+export type UpdateQuotationItemInput = {
+  productVariantId: Scalars['ID']['input'];
+  quantity: Scalars['Float']['input'];
+  unitPrice: Scalars['Float']['input'];
 };
 
 export type UpdateQuotationStatusInput = {
@@ -27531,6 +28907,46 @@ export type VariantTierPrice = {
   tier: UserTier;
 };
 
+export type VerifiedAddressOwnerInput = {
+  isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  ownerId: Scalars['String']['input'];
+  ownerType: Scalars['String']['input'];
+};
+
+export type SearchAddressesQueryVariables = Exact<{
+  query: Scalars['String']['input'];
+  countryCodes?: InputMaybe<Array<Scalars['String']['input']> | Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type SearchAddressesQuery = { __typename?: 'Query' };
+
+export type ListAddressesQueryVariables = Exact<{
+  where?: InputMaybe<AddressWhereInput>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type ListAddressesQuery = { __typename?: 'Query', listAddresses: Array<{ __typename?: 'Address', id: string, formattedAddress: string, city?: string | null, state?: string | null, countryCode: string, latitude?: number | null, longitude?: number | null, provider: AddressSource, createdAt: any }> };
+
+export type CreateVerifiedAddressMutationVariables = Exact<{
+  input: CreateVerifiedAddressInput;
+}>;
+
+
+export type CreateVerifiedAddressMutation = { __typename?: 'Mutation', createVerifiedAddress: { __typename?: 'Address', id: string, formattedAddress: string, latitude?: number | null, longitude?: number | null, provider: AddressSource, assignments?: Array<{ __typename?: 'AddressAssignment', id: string, ownerType: string, ownerId: string, label?: string | null, isPrimary: boolean }> | null } };
+
+export type AttachAddressMutationVariables = Exact<{
+  input: AttachAddressInput;
+}>;
+
+
+export type AttachAddressMutation = { __typename?: 'Mutation', attachAddress: { __typename?: 'AddressAssignment', id: string, addressId: string, ownerType: string, ownerId: string, label?: string | null, isPrimary: boolean } };
+
 export type MonthlySalesSummaryQueryVariables = Exact<{
   month?: InputMaybe<Scalars['String']['input']>;
 }>;
@@ -27886,6 +29302,91 @@ export type HeaderNotificationsQueryVariables = Exact<{ [key: string]: never; }>
 
 
 export type HeaderNotificationsQuery = { __typename?: 'Query', notifications: Array<{ __typename?: 'Notification', id: string, isRead: boolean, type: string, message: string, createdAt: any }> };
+
+export type OrdersQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type OrdersQuery = { __typename?: 'Query', ordersQuery: Array<{ __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, createdAt: any, updatedAt: any } | null }> };
+
+export type OrderQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type OrderQuery = { __typename?: 'Query', order: { __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, deliveryPersonnelId?: string | null, deliveryAddress?: string | null, cost?: number | null, createdAt: any, updatedAt: any } | null } };
+
+export type QuotationsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type QuotationsQuery = { __typename?: 'Query', quotations: Array<{ __typename?: 'Quotation', id: string, storeId: string, billerId?: string | null, consumerId?: string | null, resellerId?: string | null, status: QuotationStatus, type: SaleType, totalAmount: number, createdAt: any, updatedAt: any, saleOrderId?: string | null, SaleOrder?: { __typename?: 'SaleOrder', id: string, status: SaleStatus, phase: OrderPhase } | null }> };
+
+export type ConsumerSalesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ConsumerSalesQuery = { __typename?: 'Query', consumerSales: Array<{ __typename?: 'ConsumerSale', id: string, saleOrderId: string, customerId?: string | null, storeId: string, billerId: string, status: SaleStatus, channel: SaleChannel, totalAmount: number, createdAt: any, updatedAt: any }> };
+
+export type ResellerSalesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ResellerSalesQuery = { __typename?: 'Query', resellerSales: Array<{ __typename?: 'ResellerSale', id: string, SaleOrderid: string, resellerId: string, billerId: string, storeId: string, status: SaleStatus, totalAmount: number, createdAt: any, updatedAt: any }> };
+
+export type QuotationDetailQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type QuotationDetailQuery = { __typename?: 'Query', quotation: { __typename?: 'Quotation', id: string, type: SaleType, channel: SaleChannel, storeId: string, consumerId?: string | null, resellerId?: string | null, billerId?: string | null, status: QuotationStatus, totalAmount: number, saleOrderId?: string | null, createdAt: any, updatedAt: any, items?: Array<{ __typename?: 'QuotationItem', productVariantId: string, quantity: number, unitPrice: number }> | null, SaleOrder?: { __typename?: 'SaleOrder', id: string, status: SaleStatus, phase: OrderPhase, totalAmount: number } | null } };
+
+export type StoreSummaryQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type StoreSummaryQuery = { __typename?: 'Query', listStores: Array<{ __typename?: 'Store', id: string, name: string, location?: string | null }> };
+
+export type UsersByIdsQueryVariables = Exact<{
+  ids: Array<Scalars['String']['input']> | Scalars['String']['input'];
+  take?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type UsersByIdsQuery = { __typename?: 'Query', listUsers: Array<{ __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string, email?: string | null } | null }> };
+
+export type ProductVariantsByIdsQueryVariables = Exact<{
+  ids: Array<Scalars['String']['input']> | Scalars['String']['input'];
+  take?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type ProductVariantsByIdsQuery = { __typename?: 'Query', listProductVariants: Array<{ __typename?: 'ProductVariant', id: string, name?: string | null, barcode?: string | null, product?: { __typename?: 'Product', id: string, name: string } | null }> };
+
+export type ConsumerSaleDetailQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type ConsumerSaleDetailQuery = { __typename?: 'Query', consumerSale: { __typename?: 'ConsumerSale', id: string, saleOrderId: string, customerId?: string | null, storeId: string, billerId: string, status: SaleStatus, channel: SaleChannel, totalAmount: number, createdAt: any, updatedAt: any, items?: Array<{ __typename?: 'ConsumerSaleItem', productVariantId: string, quantity: number, unitPrice: number }> | null } };
+
+export type ResellerSaleDetailQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type ResellerSaleDetailQuery = { __typename?: 'Query', resellerSale: { __typename?: 'ResellerSale', id: string, SaleOrderid: string, resellerId: string, billerId: string, storeId: string, status: SaleStatus, totalAmount: number, createdAt: any, updatedAt: any, items?: Array<{ __typename?: 'ResellerSaleItem', productVariantId: string, quantity: number, unitPrice: number }> | null } };
+
+export type CreateQuotationDraftMutationVariables = Exact<{
+  input: CreateQuotationDraftInput;
+}>;
+
+
+export type CreateQuotationDraftMutation = { __typename?: 'Mutation', createQuotationDraft: { __typename?: 'Quotation', id: string, status: QuotationStatus, saleOrderId?: string | null } };
+
+export type UpdateQuotationMutationVariables = Exact<{
+  input: UpdateQuotationInput;
+}>;
+
+
+export type UpdateQuotationMutation = { __typename?: 'Mutation', updateQuotation: { __typename?: 'Quotation', id: string, status: QuotationStatus, totalAmount: number, updatedAt: any } };
 
 export type OutboxStatusQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -28396,7 +29897,7 @@ export type StoresQueryVariables = Exact<{
 }>;
 
 
-export type StoresQuery = { __typename?: 'Query', listStores: Array<{ __typename?: 'Store', id: string, name: string, location?: string | null, isMain: boolean, manager: { __typename?: 'User', id: string, email: string } }> };
+export type StoresQuery = { __typename?: 'Query', listStores: Array<{ __typename?: 'Store', id: string, name: string, location?: string | null, isMain: boolean, manager: { __typename?: 'User', id: string, email: string }, primaryAddress?: { __typename?: 'Address', formattedAddress: string } | null }> };
 
 export type StoresWithInvalidManagersQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -28423,6 +29924,14 @@ export type BulkAssignStoreManagerMutationVariables = Exact<{
 
 
 export type BulkAssignStoreManagerMutation = { __typename?: 'Mutation', bulkAssignStoreManager: number };
+
+export type CreateStoreWithAddressMutationVariables = Exact<{
+  data: StoreCreateInput;
+  address: StoreAddressInput;
+}>;
+
+
+export type CreateStoreWithAddressMutation = { __typename?: 'Mutation', createStoreWithAddress: { __typename?: 'Store', id: string, name: string, location?: string | null, isMain: boolean, manager: { __typename?: 'User', id: string, email: string }, primaryAddress?: { __typename?: 'Address', id: string, formattedAddress: string, latitude?: number | null, longitude?: number | null } | null } };
 
 export type SupplierPaymentsByPoQueryVariables = Exact<{
   purchaseOrderId: Scalars['String']['input'];
@@ -28657,7 +30166,7 @@ export type SearchVariantsQueryVariables = Exact<{
 }>;
 
 
-export type SearchVariantsQuery = { __typename?: 'Query', listProductVariants: Array<{ __typename?: 'ProductVariant', id: string, name?: string | null, barcode?: string | null }> };
+export type SearchVariantsQuery = { __typename?: 'Query', listProductVariants: Array<{ __typename?: 'ProductVariant', id: string, name?: string | null, barcode?: string | null, price: number, resellerPrice: number, product?: { __typename?: 'Product', id: string, name: string } | null }> };
 
 export type SearchSuppliersQueryVariables = Exact<{
   where?: InputMaybe<SupplierWhereInput>;
@@ -28668,6 +30177,185 @@ export type SearchSuppliersQueryVariables = Exact<{
 export type SearchSuppliersQuery = { __typename?: 'Query', listSuppliers: Array<{ __typename?: 'Supplier', id: string, name: string }> };
 
 
+export const SearchAddressesDocument = gql`
+    query SearchAddresses($query: String!, $countryCodes: [String!], $limit: Int) {
+  searchAddresses(query: $query, countryCodes: $countryCodes, limit: $limit) {
+    id
+    formattedAddress
+    latitude
+    longitude
+    countryCode
+    provider
+  }
+}
+    `;
+
+/**
+ * __useSearchAddressesQuery__
+ *
+ * To run a query within a React component, call `useSearchAddressesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useSearchAddressesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useSearchAddressesQuery({
+ *   variables: {
+ *      query: // value for 'query'
+ *      countryCodes: // value for 'countryCodes'
+ *      limit: // value for 'limit'
+ *   },
+ * });
+ */
+export function useSearchAddressesQuery(baseOptions: Apollo.QueryHookOptions<SearchAddressesQuery, SearchAddressesQueryVariables> & ({ variables: SearchAddressesQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<SearchAddressesQuery, SearchAddressesQueryVariables>(SearchAddressesDocument, options);
+      }
+export function useSearchAddressesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<SearchAddressesQuery, SearchAddressesQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<SearchAddressesQuery, SearchAddressesQueryVariables>(SearchAddressesDocument, options);
+        }
+export function useSearchAddressesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<SearchAddressesQuery, SearchAddressesQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<SearchAddressesQuery, SearchAddressesQueryVariables>(SearchAddressesDocument, options);
+        }
+export type SearchAddressesQueryHookResult = ReturnType<typeof useSearchAddressesQuery>;
+export type SearchAddressesLazyQueryHookResult = ReturnType<typeof useSearchAddressesLazyQuery>;
+export type SearchAddressesSuspenseQueryHookResult = ReturnType<typeof useSearchAddressesSuspenseQuery>;
+export type SearchAddressesQueryResult = Apollo.QueryResult<SearchAddressesQuery, SearchAddressesQueryVariables>;
+export const ListAddressesDocument = gql`
+    query ListAddresses($where: AddressWhereInput, $take: Int, $skip: Int) {
+  listAddresses(where: $where, take: $take, skip: $skip) {
+    id
+    formattedAddress
+    city
+    state
+    countryCode
+    latitude
+    longitude
+    provider
+    createdAt
+  }
+}
+    `;
+
+/**
+ * __useListAddressesQuery__
+ *
+ * To run a query within a React component, call `useListAddressesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useListAddressesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useListAddressesQuery({
+ *   variables: {
+ *      where: // value for 'where'
+ *      take: // value for 'take'
+ *      skip: // value for 'skip'
+ *   },
+ * });
+ */
+export function useListAddressesQuery(baseOptions?: Apollo.QueryHookOptions<ListAddressesQuery, ListAddressesQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ListAddressesQuery, ListAddressesQueryVariables>(ListAddressesDocument, options);
+      }
+export function useListAddressesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ListAddressesQuery, ListAddressesQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ListAddressesQuery, ListAddressesQueryVariables>(ListAddressesDocument, options);
+        }
+export function useListAddressesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ListAddressesQuery, ListAddressesQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ListAddressesQuery, ListAddressesQueryVariables>(ListAddressesDocument, options);
+        }
+export type ListAddressesQueryHookResult = ReturnType<typeof useListAddressesQuery>;
+export type ListAddressesLazyQueryHookResult = ReturnType<typeof useListAddressesLazyQuery>;
+export type ListAddressesSuspenseQueryHookResult = ReturnType<typeof useListAddressesSuspenseQuery>;
+export type ListAddressesQueryResult = Apollo.QueryResult<ListAddressesQuery, ListAddressesQueryVariables>;
+export const CreateVerifiedAddressDocument = gql`
+    mutation CreateVerifiedAddress($input: CreateVerifiedAddressInput!) {
+  createVerifiedAddress(input: $input) {
+    id
+    formattedAddress
+    latitude
+    longitude
+    provider
+    assignments {
+      id
+      ownerType
+      ownerId
+      label
+      isPrimary
+    }
+  }
+}
+    `;
+export type CreateVerifiedAddressMutationFn = Apollo.MutationFunction<CreateVerifiedAddressMutation, CreateVerifiedAddressMutationVariables>;
+
+/**
+ * __useCreateVerifiedAddressMutation__
+ *
+ * To run a mutation, you first call `useCreateVerifiedAddressMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateVerifiedAddressMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createVerifiedAddressMutation, { data, loading, error }] = useCreateVerifiedAddressMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateVerifiedAddressMutation(baseOptions?: Apollo.MutationHookOptions<CreateVerifiedAddressMutation, CreateVerifiedAddressMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateVerifiedAddressMutation, CreateVerifiedAddressMutationVariables>(CreateVerifiedAddressDocument, options);
+      }
+export type CreateVerifiedAddressMutationHookResult = ReturnType<typeof useCreateVerifiedAddressMutation>;
+export type CreateVerifiedAddressMutationResult = Apollo.MutationResult<CreateVerifiedAddressMutation>;
+export type CreateVerifiedAddressMutationOptions = Apollo.BaseMutationOptions<CreateVerifiedAddressMutation, CreateVerifiedAddressMutationVariables>;
+export const AttachAddressDocument = gql`
+    mutation AttachAddress($input: AttachAddressInput!) {
+  attachAddress(input: $input) {
+    id
+    addressId
+    ownerType
+    ownerId
+    label
+    isPrimary
+  }
+}
+    `;
+export type AttachAddressMutationFn = Apollo.MutationFunction<AttachAddressMutation, AttachAddressMutationVariables>;
+
+/**
+ * __useAttachAddressMutation__
+ *
+ * To run a mutation, you first call `useAttachAddressMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useAttachAddressMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [attachAddressMutation, { data, loading, error }] = useAttachAddressMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useAttachAddressMutation(baseOptions?: Apollo.MutationHookOptions<AttachAddressMutation, AttachAddressMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<AttachAddressMutation, AttachAddressMutationVariables>(AttachAddressDocument, options);
+      }
+export type AttachAddressMutationHookResult = ReturnType<typeof useAttachAddressMutation>;
+export type AttachAddressMutationResult = Apollo.MutationResult<AttachAddressMutation>;
+export type AttachAddressMutationOptions = Apollo.BaseMutationOptions<AttachAddressMutation, AttachAddressMutationVariables>;
 export const MonthlySalesSummaryDocument = gql`
     query MonthlySalesSummary($month: String) {
   monthlySalesSummary(month: $month) {
@@ -30671,6 +32359,644 @@ export type HeaderNotificationsQueryHookResult = ReturnType<typeof useHeaderNoti
 export type HeaderNotificationsLazyQueryHookResult = ReturnType<typeof useHeaderNotificationsLazyQuery>;
 export type HeaderNotificationsSuspenseQueryHookResult = ReturnType<typeof useHeaderNotificationsSuspenseQuery>;
 export type HeaderNotificationsQueryResult = Apollo.QueryResult<HeaderNotificationsQuery, HeaderNotificationsQueryVariables>;
+export const OrdersDocument = gql`
+    query Orders {
+  ordersQuery {
+    id
+    storeId
+    billerId
+    type
+    status
+    phase
+    totalAmount
+    createdAt
+    updatedAt
+    resellerSaleid
+    fulfillment {
+      id
+      status
+      type
+      createdAt
+      updatedAt
+    }
+  }
+}
+    `;
+
+/**
+ * __useOrdersQuery__
+ *
+ * To run a query within a React component, call `useOrdersQuery` and pass it any options that fit your needs.
+ * When your component renders, `useOrdersQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useOrdersQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useOrdersQuery(baseOptions?: Apollo.QueryHookOptions<OrdersQuery, OrdersQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<OrdersQuery, OrdersQueryVariables>(OrdersDocument, options);
+      }
+export function useOrdersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<OrdersQuery, OrdersQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<OrdersQuery, OrdersQueryVariables>(OrdersDocument, options);
+        }
+export function useOrdersSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<OrdersQuery, OrdersQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<OrdersQuery, OrdersQueryVariables>(OrdersDocument, options);
+        }
+export type OrdersQueryHookResult = ReturnType<typeof useOrdersQuery>;
+export type OrdersLazyQueryHookResult = ReturnType<typeof useOrdersLazyQuery>;
+export type OrdersSuspenseQueryHookResult = ReturnType<typeof useOrdersSuspenseQuery>;
+export type OrdersQueryResult = Apollo.QueryResult<OrdersQuery, OrdersQueryVariables>;
+export const OrderDocument = gql`
+    query Order($id: String!) {
+  order(id: $id) {
+    id
+    storeId
+    billerId
+    type
+    status
+    phase
+    totalAmount
+    createdAt
+    updatedAt
+    resellerSaleid
+    fulfillment {
+      id
+      status
+      type
+      deliveryPersonnelId
+      deliveryAddress
+      cost
+      createdAt
+      updatedAt
+    }
+  }
+}
+    `;
+
+/**
+ * __useOrderQuery__
+ *
+ * To run a query within a React component, call `useOrderQuery` and pass it any options that fit your needs.
+ * When your component renders, `useOrderQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useOrderQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useOrderQuery(baseOptions: Apollo.QueryHookOptions<OrderQuery, OrderQueryVariables> & ({ variables: OrderQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<OrderQuery, OrderQueryVariables>(OrderDocument, options);
+      }
+export function useOrderLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<OrderQuery, OrderQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<OrderQuery, OrderQueryVariables>(OrderDocument, options);
+        }
+export function useOrderSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<OrderQuery, OrderQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<OrderQuery, OrderQueryVariables>(OrderDocument, options);
+        }
+export type OrderQueryHookResult = ReturnType<typeof useOrderQuery>;
+export type OrderLazyQueryHookResult = ReturnType<typeof useOrderLazyQuery>;
+export type OrderSuspenseQueryHookResult = ReturnType<typeof useOrderSuspenseQuery>;
+export type OrderQueryResult = Apollo.QueryResult<OrderQuery, OrderQueryVariables>;
+export const QuotationsDocument = gql`
+    query Quotations {
+  quotations {
+    id
+    storeId
+    billerId
+    consumerId
+    resellerId
+    status
+    type
+    totalAmount
+    createdAt
+    updatedAt
+    saleOrderId
+    SaleOrder {
+      id
+      status
+      phase
+    }
+  }
+}
+    `;
+
+/**
+ * __useQuotationsQuery__
+ *
+ * To run a query within a React component, call `useQuotationsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useQuotationsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useQuotationsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useQuotationsQuery(baseOptions?: Apollo.QueryHookOptions<QuotationsQuery, QuotationsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<QuotationsQuery, QuotationsQueryVariables>(QuotationsDocument, options);
+      }
+export function useQuotationsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<QuotationsQuery, QuotationsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<QuotationsQuery, QuotationsQueryVariables>(QuotationsDocument, options);
+        }
+export function useQuotationsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<QuotationsQuery, QuotationsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<QuotationsQuery, QuotationsQueryVariables>(QuotationsDocument, options);
+        }
+export type QuotationsQueryHookResult = ReturnType<typeof useQuotationsQuery>;
+export type QuotationsLazyQueryHookResult = ReturnType<typeof useQuotationsLazyQuery>;
+export type QuotationsSuspenseQueryHookResult = ReturnType<typeof useQuotationsSuspenseQuery>;
+export type QuotationsQueryResult = Apollo.QueryResult<QuotationsQuery, QuotationsQueryVariables>;
+export const ConsumerSalesDocument = gql`
+    query ConsumerSales {
+  consumerSales {
+    id
+    saleOrderId
+    customerId
+    storeId
+    billerId
+    status
+    channel
+    totalAmount
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+/**
+ * __useConsumerSalesQuery__
+ *
+ * To run a query within a React component, call `useConsumerSalesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useConsumerSalesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useConsumerSalesQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useConsumerSalesQuery(baseOptions?: Apollo.QueryHookOptions<ConsumerSalesQuery, ConsumerSalesQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ConsumerSalesQuery, ConsumerSalesQueryVariables>(ConsumerSalesDocument, options);
+      }
+export function useConsumerSalesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ConsumerSalesQuery, ConsumerSalesQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ConsumerSalesQuery, ConsumerSalesQueryVariables>(ConsumerSalesDocument, options);
+        }
+export function useConsumerSalesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ConsumerSalesQuery, ConsumerSalesQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ConsumerSalesQuery, ConsumerSalesQueryVariables>(ConsumerSalesDocument, options);
+        }
+export type ConsumerSalesQueryHookResult = ReturnType<typeof useConsumerSalesQuery>;
+export type ConsumerSalesLazyQueryHookResult = ReturnType<typeof useConsumerSalesLazyQuery>;
+export type ConsumerSalesSuspenseQueryHookResult = ReturnType<typeof useConsumerSalesSuspenseQuery>;
+export type ConsumerSalesQueryResult = Apollo.QueryResult<ConsumerSalesQuery, ConsumerSalesQueryVariables>;
+export const ResellerSalesDocument = gql`
+    query ResellerSales {
+  resellerSales {
+    id
+    SaleOrderid
+    resellerId
+    billerId
+    storeId
+    status
+    totalAmount
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+/**
+ * __useResellerSalesQuery__
+ *
+ * To run a query within a React component, call `useResellerSalesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useResellerSalesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useResellerSalesQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useResellerSalesQuery(baseOptions?: Apollo.QueryHookOptions<ResellerSalesQuery, ResellerSalesQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ResellerSalesQuery, ResellerSalesQueryVariables>(ResellerSalesDocument, options);
+      }
+export function useResellerSalesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ResellerSalesQuery, ResellerSalesQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ResellerSalesQuery, ResellerSalesQueryVariables>(ResellerSalesDocument, options);
+        }
+export function useResellerSalesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ResellerSalesQuery, ResellerSalesQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ResellerSalesQuery, ResellerSalesQueryVariables>(ResellerSalesDocument, options);
+        }
+export type ResellerSalesQueryHookResult = ReturnType<typeof useResellerSalesQuery>;
+export type ResellerSalesLazyQueryHookResult = ReturnType<typeof useResellerSalesLazyQuery>;
+export type ResellerSalesSuspenseQueryHookResult = ReturnType<typeof useResellerSalesSuspenseQuery>;
+export type ResellerSalesQueryResult = Apollo.QueryResult<ResellerSalesQuery, ResellerSalesQueryVariables>;
+export const QuotationDetailDocument = gql`
+    query QuotationDetail($id: String!) {
+  quotation(id: $id) {
+    id
+    type
+    channel
+    storeId
+    consumerId
+    resellerId
+    billerId
+    status
+    totalAmount
+    saleOrderId
+    createdAt
+    updatedAt
+    items {
+      productVariantId
+      quantity
+      unitPrice
+    }
+    SaleOrder {
+      id
+      status
+      phase
+      totalAmount
+    }
+  }
+}
+    `;
+
+/**
+ * __useQuotationDetailQuery__
+ *
+ * To run a query within a React component, call `useQuotationDetailQuery` and pass it any options that fit your needs.
+ * When your component renders, `useQuotationDetailQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useQuotationDetailQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useQuotationDetailQuery(baseOptions: Apollo.QueryHookOptions<QuotationDetailQuery, QuotationDetailQueryVariables> & ({ variables: QuotationDetailQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<QuotationDetailQuery, QuotationDetailQueryVariables>(QuotationDetailDocument, options);
+      }
+export function useQuotationDetailLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<QuotationDetailQuery, QuotationDetailQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<QuotationDetailQuery, QuotationDetailQueryVariables>(QuotationDetailDocument, options);
+        }
+export function useQuotationDetailSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<QuotationDetailQuery, QuotationDetailQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<QuotationDetailQuery, QuotationDetailQueryVariables>(QuotationDetailDocument, options);
+        }
+export type QuotationDetailQueryHookResult = ReturnType<typeof useQuotationDetailQuery>;
+export type QuotationDetailLazyQueryHookResult = ReturnType<typeof useQuotationDetailLazyQuery>;
+export type QuotationDetailSuspenseQueryHookResult = ReturnType<typeof useQuotationDetailSuspenseQuery>;
+export type QuotationDetailQueryResult = Apollo.QueryResult<QuotationDetailQuery, QuotationDetailQueryVariables>;
+export const StoreSummaryDocument = gql`
+    query StoreSummary($id: String!) {
+  listStores(where: {id: {equals: $id}}, take: 1) {
+    id
+    name
+    location
+  }
+}
+    `;
+
+/**
+ * __useStoreSummaryQuery__
+ *
+ * To run a query within a React component, call `useStoreSummaryQuery` and pass it any options that fit your needs.
+ * When your component renders, `useStoreSummaryQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useStoreSummaryQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useStoreSummaryQuery(baseOptions: Apollo.QueryHookOptions<StoreSummaryQuery, StoreSummaryQueryVariables> & ({ variables: StoreSummaryQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<StoreSummaryQuery, StoreSummaryQueryVariables>(StoreSummaryDocument, options);
+      }
+export function useStoreSummaryLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<StoreSummaryQuery, StoreSummaryQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<StoreSummaryQuery, StoreSummaryQueryVariables>(StoreSummaryDocument, options);
+        }
+export function useStoreSummarySuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<StoreSummaryQuery, StoreSummaryQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<StoreSummaryQuery, StoreSummaryQueryVariables>(StoreSummaryDocument, options);
+        }
+export type StoreSummaryQueryHookResult = ReturnType<typeof useStoreSummaryQuery>;
+export type StoreSummaryLazyQueryHookResult = ReturnType<typeof useStoreSummaryLazyQuery>;
+export type StoreSummarySuspenseQueryHookResult = ReturnType<typeof useStoreSummarySuspenseQuery>;
+export type StoreSummaryQueryResult = Apollo.QueryResult<StoreSummaryQuery, StoreSummaryQueryVariables>;
+export const UsersByIdsDocument = gql`
+    query UsersByIds($ids: [String!]!, $take: Int) {
+  listUsers(where: {id: {in: $ids}}, take: $take) {
+    id
+    email
+    customerProfile {
+      fullName
+      email
+    }
+  }
+}
+    `;
+
+/**
+ * __useUsersByIdsQuery__
+ *
+ * To run a query within a React component, call `useUsersByIdsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useUsersByIdsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useUsersByIdsQuery({
+ *   variables: {
+ *      ids: // value for 'ids'
+ *      take: // value for 'take'
+ *   },
+ * });
+ */
+export function useUsersByIdsQuery(baseOptions: Apollo.QueryHookOptions<UsersByIdsQuery, UsersByIdsQueryVariables> & ({ variables: UsersByIdsQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<UsersByIdsQuery, UsersByIdsQueryVariables>(UsersByIdsDocument, options);
+      }
+export function useUsersByIdsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<UsersByIdsQuery, UsersByIdsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<UsersByIdsQuery, UsersByIdsQueryVariables>(UsersByIdsDocument, options);
+        }
+export function useUsersByIdsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<UsersByIdsQuery, UsersByIdsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<UsersByIdsQuery, UsersByIdsQueryVariables>(UsersByIdsDocument, options);
+        }
+export type UsersByIdsQueryHookResult = ReturnType<typeof useUsersByIdsQuery>;
+export type UsersByIdsLazyQueryHookResult = ReturnType<typeof useUsersByIdsLazyQuery>;
+export type UsersByIdsSuspenseQueryHookResult = ReturnType<typeof useUsersByIdsSuspenseQuery>;
+export type UsersByIdsQueryResult = Apollo.QueryResult<UsersByIdsQuery, UsersByIdsQueryVariables>;
+export const ProductVariantsByIdsDocument = gql`
+    query ProductVariantsByIds($ids: [String!]!, $take: Int) {
+  listProductVariants(where: {id: {in: $ids}}, take: $take) {
+    id
+    name
+    barcode
+    product {
+      id
+      name
+    }
+  }
+}
+    `;
+
+/**
+ * __useProductVariantsByIdsQuery__
+ *
+ * To run a query within a React component, call `useProductVariantsByIdsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useProductVariantsByIdsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useProductVariantsByIdsQuery({
+ *   variables: {
+ *      ids: // value for 'ids'
+ *      take: // value for 'take'
+ *   },
+ * });
+ */
+export function useProductVariantsByIdsQuery(baseOptions: Apollo.QueryHookOptions<ProductVariantsByIdsQuery, ProductVariantsByIdsQueryVariables> & ({ variables: ProductVariantsByIdsQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ProductVariantsByIdsQuery, ProductVariantsByIdsQueryVariables>(ProductVariantsByIdsDocument, options);
+      }
+export function useProductVariantsByIdsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ProductVariantsByIdsQuery, ProductVariantsByIdsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ProductVariantsByIdsQuery, ProductVariantsByIdsQueryVariables>(ProductVariantsByIdsDocument, options);
+        }
+export function useProductVariantsByIdsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ProductVariantsByIdsQuery, ProductVariantsByIdsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ProductVariantsByIdsQuery, ProductVariantsByIdsQueryVariables>(ProductVariantsByIdsDocument, options);
+        }
+export type ProductVariantsByIdsQueryHookResult = ReturnType<typeof useProductVariantsByIdsQuery>;
+export type ProductVariantsByIdsLazyQueryHookResult = ReturnType<typeof useProductVariantsByIdsLazyQuery>;
+export type ProductVariantsByIdsSuspenseQueryHookResult = ReturnType<typeof useProductVariantsByIdsSuspenseQuery>;
+export type ProductVariantsByIdsQueryResult = Apollo.QueryResult<ProductVariantsByIdsQuery, ProductVariantsByIdsQueryVariables>;
+export const ConsumerSaleDetailDocument = gql`
+    query ConsumerSaleDetail($id: String!) {
+  consumerSale(id: $id) {
+    id
+    saleOrderId
+    customerId
+    storeId
+    billerId
+    status
+    channel
+    totalAmount
+    createdAt
+    updatedAt
+    items {
+      productVariantId
+      quantity
+      unitPrice
+    }
+  }
+}
+    `;
+
+/**
+ * __useConsumerSaleDetailQuery__
+ *
+ * To run a query within a React component, call `useConsumerSaleDetailQuery` and pass it any options that fit your needs.
+ * When your component renders, `useConsumerSaleDetailQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useConsumerSaleDetailQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useConsumerSaleDetailQuery(baseOptions: Apollo.QueryHookOptions<ConsumerSaleDetailQuery, ConsumerSaleDetailQueryVariables> & ({ variables: ConsumerSaleDetailQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ConsumerSaleDetailQuery, ConsumerSaleDetailQueryVariables>(ConsumerSaleDetailDocument, options);
+      }
+export function useConsumerSaleDetailLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ConsumerSaleDetailQuery, ConsumerSaleDetailQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ConsumerSaleDetailQuery, ConsumerSaleDetailQueryVariables>(ConsumerSaleDetailDocument, options);
+        }
+export function useConsumerSaleDetailSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ConsumerSaleDetailQuery, ConsumerSaleDetailQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ConsumerSaleDetailQuery, ConsumerSaleDetailQueryVariables>(ConsumerSaleDetailDocument, options);
+        }
+export type ConsumerSaleDetailQueryHookResult = ReturnType<typeof useConsumerSaleDetailQuery>;
+export type ConsumerSaleDetailLazyQueryHookResult = ReturnType<typeof useConsumerSaleDetailLazyQuery>;
+export type ConsumerSaleDetailSuspenseQueryHookResult = ReturnType<typeof useConsumerSaleDetailSuspenseQuery>;
+export type ConsumerSaleDetailQueryResult = Apollo.QueryResult<ConsumerSaleDetailQuery, ConsumerSaleDetailQueryVariables>;
+export const ResellerSaleDetailDocument = gql`
+    query ResellerSaleDetail($id: String!) {
+  resellerSale(id: $id) {
+    id
+    SaleOrderid
+    resellerId
+    billerId
+    storeId
+    status
+    totalAmount
+    createdAt
+    updatedAt
+    items {
+      productVariantId
+      quantity
+      unitPrice
+    }
+  }
+}
+    `;
+
+/**
+ * __useResellerSaleDetailQuery__
+ *
+ * To run a query within a React component, call `useResellerSaleDetailQuery` and pass it any options that fit your needs.
+ * When your component renders, `useResellerSaleDetailQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useResellerSaleDetailQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useResellerSaleDetailQuery(baseOptions: Apollo.QueryHookOptions<ResellerSaleDetailQuery, ResellerSaleDetailQueryVariables> & ({ variables: ResellerSaleDetailQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ResellerSaleDetailQuery, ResellerSaleDetailQueryVariables>(ResellerSaleDetailDocument, options);
+      }
+export function useResellerSaleDetailLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ResellerSaleDetailQuery, ResellerSaleDetailQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ResellerSaleDetailQuery, ResellerSaleDetailQueryVariables>(ResellerSaleDetailDocument, options);
+        }
+export function useResellerSaleDetailSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ResellerSaleDetailQuery, ResellerSaleDetailQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ResellerSaleDetailQuery, ResellerSaleDetailQueryVariables>(ResellerSaleDetailDocument, options);
+        }
+export type ResellerSaleDetailQueryHookResult = ReturnType<typeof useResellerSaleDetailQuery>;
+export type ResellerSaleDetailLazyQueryHookResult = ReturnType<typeof useResellerSaleDetailLazyQuery>;
+export type ResellerSaleDetailSuspenseQueryHookResult = ReturnType<typeof useResellerSaleDetailSuspenseQuery>;
+export type ResellerSaleDetailQueryResult = Apollo.QueryResult<ResellerSaleDetailQuery, ResellerSaleDetailQueryVariables>;
+export const CreateQuotationDraftDocument = gql`
+    mutation CreateQuotationDraft($input: CreateQuotationDraftInput!) {
+  createQuotationDraft(input: $input) {
+    id
+    status
+    saleOrderId
+  }
+}
+    `;
+export type CreateQuotationDraftMutationFn = Apollo.MutationFunction<CreateQuotationDraftMutation, CreateQuotationDraftMutationVariables>;
+
+/**
+ * __useCreateQuotationDraftMutation__
+ *
+ * To run a mutation, you first call `useCreateQuotationDraftMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateQuotationDraftMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createQuotationDraftMutation, { data, loading, error }] = useCreateQuotationDraftMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateQuotationDraftMutation(baseOptions?: Apollo.MutationHookOptions<CreateQuotationDraftMutation, CreateQuotationDraftMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateQuotationDraftMutation, CreateQuotationDraftMutationVariables>(CreateQuotationDraftDocument, options);
+      }
+export type CreateQuotationDraftMutationHookResult = ReturnType<typeof useCreateQuotationDraftMutation>;
+export type CreateQuotationDraftMutationResult = Apollo.MutationResult<CreateQuotationDraftMutation>;
+export type CreateQuotationDraftMutationOptions = Apollo.BaseMutationOptions<CreateQuotationDraftMutation, CreateQuotationDraftMutationVariables>;
+export const UpdateQuotationDocument = gql`
+    mutation UpdateQuotation($input: UpdateQuotationInput!) {
+  updateQuotation(input: $input) {
+    id
+    status
+    totalAmount
+    updatedAt
+  }
+}
+    `;
+export type UpdateQuotationMutationFn = Apollo.MutationFunction<UpdateQuotationMutation, UpdateQuotationMutationVariables>;
+
+/**
+ * __useUpdateQuotationMutation__
+ *
+ * To run a mutation, you first call `useUpdateQuotationMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateQuotationMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateQuotationMutation, { data, loading, error }] = useUpdateQuotationMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateQuotationMutation(baseOptions?: Apollo.MutationHookOptions<UpdateQuotationMutation, UpdateQuotationMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateQuotationMutation, UpdateQuotationMutationVariables>(UpdateQuotationDocument, options);
+      }
+export type UpdateQuotationMutationHookResult = ReturnType<typeof useUpdateQuotationMutation>;
+export type UpdateQuotationMutationResult = Apollo.MutationResult<UpdateQuotationMutation>;
+export type UpdateQuotationMutationOptions = Apollo.BaseMutationOptions<UpdateQuotationMutation, UpdateQuotationMutationVariables>;
 export const OutboxStatusDocument = gql`
     query OutboxStatus {
   outboxStatus {
@@ -33451,6 +35777,9 @@ export const StoresDocument = gql`
       id
       email
     }
+    primaryAddress {
+      formattedAddress
+    }
   }
 }
     `;
@@ -33638,6 +35967,53 @@ export function useBulkAssignStoreManagerMutation(baseOptions?: Apollo.MutationH
 export type BulkAssignStoreManagerMutationHookResult = ReturnType<typeof useBulkAssignStoreManagerMutation>;
 export type BulkAssignStoreManagerMutationResult = Apollo.MutationResult<BulkAssignStoreManagerMutation>;
 export type BulkAssignStoreManagerMutationOptions = Apollo.BaseMutationOptions<BulkAssignStoreManagerMutation, BulkAssignStoreManagerMutationVariables>;
+export const CreateStoreWithAddressDocument = gql`
+    mutation CreateStoreWithAddress($data: StoreCreateInput!, $address: StoreAddressInput!) {
+  createStoreWithAddress(data: $data, address: $address) {
+    id
+    name
+    location
+    isMain
+    manager {
+      id
+      email
+    }
+    primaryAddress {
+      id
+      formattedAddress
+      latitude
+      longitude
+    }
+  }
+}
+    `;
+export type CreateStoreWithAddressMutationFn = Apollo.MutationFunction<CreateStoreWithAddressMutation, CreateStoreWithAddressMutationVariables>;
+
+/**
+ * __useCreateStoreWithAddressMutation__
+ *
+ * To run a mutation, you first call `useCreateStoreWithAddressMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateStoreWithAddressMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createStoreWithAddressMutation, { data, loading, error }] = useCreateStoreWithAddressMutation({
+ *   variables: {
+ *      data: // value for 'data'
+ *      address: // value for 'address'
+ *   },
+ * });
+ */
+export function useCreateStoreWithAddressMutation(baseOptions?: Apollo.MutationHookOptions<CreateStoreWithAddressMutation, CreateStoreWithAddressMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateStoreWithAddressMutation, CreateStoreWithAddressMutationVariables>(CreateStoreWithAddressDocument, options);
+      }
+export type CreateStoreWithAddressMutationHookResult = ReturnType<typeof useCreateStoreWithAddressMutation>;
+export type CreateStoreWithAddressMutationResult = Apollo.MutationResult<CreateStoreWithAddressMutation>;
+export type CreateStoreWithAddressMutationOptions = Apollo.BaseMutationOptions<CreateStoreWithAddressMutation, CreateStoreWithAddressMutationVariables>;
 export const SupplierPaymentsByPoDocument = gql`
     query SupplierPaymentsByPO($purchaseOrderId: String!) {
   supplierPaymentsByPO(purchaseOrderId: $purchaseOrderId) {
@@ -34936,6 +37312,12 @@ export const SearchVariantsDocument = gql`
     id
     name
     barcode
+    price
+    resellerPrice
+    product {
+      id
+      name
+    }
   }
 }
     `;

@@ -1,6 +1,7 @@
 import React from 'react';
-import { useAdminCreateCustomerMutation, useAdminUpdateCustomerProfileMutation, useCustomersQuery, useStoresForCustomersQuery } from '../generated/graphql';
+import { useAdminCreateCustomerMutation, useAdminUpdateCustomerProfileMutation, useCreateVerifiedAddressMutation, useCustomersQuery, useStoresForCustomersQuery } from '../generated/graphql';
 import { Alert, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, Box, Typography } from '@mui/material';
+import { AddressAutocompleteField } from '../components/AddressAutocompleteField';
 import TableList from '../shared/TableList';
 import { useNavigate } from 'react-router-dom';
 import { notify } from '../shared/notify';
@@ -36,11 +37,15 @@ export default function Customers() {
   const [phone, setPhone] = React.useState('');
   const [preferredStoreId, setPreferredStoreId] = React.useState('');
   const [status, setStatus] = React.useState<'PENDING' | 'ACTIVE' | 'REJECTED'>('ACTIVE');
+  const [addressQuery, setAddressQuery] = React.useState('');
+  const [addressCountry, setAddressCountry] = React.useState('NG');
+  const [addressError, setAddressError] = React.useState<string | null>(null);
 
   const { data: storesData } = useStoresForCustomersQuery({ fetchPolicy: 'cache-first' as any });
   const stores = storesData?.listStores ?? [];
 
   const [createCustomer, { loading: creating }] = useAdminCreateCustomerMutation();
+  const [createAddress] = useCreateVerifiedAddressMutation();
   const exportCsv = ({ sorted }: { sorted: any[] }) => {
     const rowsToUse = sorted?.length ? sorted : filteredList;
     if (!rowsToUse?.length) return;
@@ -94,7 +99,10 @@ export default function Customers() {
           placeholder: 'Search name, email, phone, or store',
         }}
         action={(
-          <Button variant="contained" onClick={() => setOpen(true)} sx={{ borderRadius: 999 }}>
+          <Button variant="contained" onClick={() => {
+            setOpen(true);
+            setAddressError(null);
+          }} sx={{ borderRadius: 999 }}>
             New Customer
           </Button>
         )}
@@ -276,7 +284,10 @@ export default function Customers() {
         exportScopeControl
       />
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+      <Dialog open={open} onClose={() => {
+        setOpen(false);
+        setAddressError(null);
+      }} fullWidth maxWidth="sm">
         <DialogTitle>New Customer</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -293,6 +304,27 @@ export default function Customers() {
             <Select size="small" value={status} onChange={(e) => setStatus(e.target.value as any)} displayEmpty>
               {['PENDING','ACTIVE','REJECTED'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
             </Select>
+            <AddressAutocompleteField
+              label="Primary Address"
+              value={addressQuery}
+              countryCode={addressCountry}
+              onChange={(text) => {
+                setAddressQuery(text);
+              }}
+              onSelect={(suggestion) => {
+                if (suggestion?.countryCode) {
+                  setAddressCountry(suggestion.countryCode);
+                }
+              }}
+            />
+            <TextField
+              label="Address Country Code"
+              value={addressCountry}
+              onChange={(e) => setAddressCountry(e.target.value)}
+              fullWidth
+              helperText="Used to bias geocoding (default NG)."
+            />
+            {addressError && <Alert severity="error" onClose={() => setAddressError(null)}>{addressError}</Alert>}
           </Stack>
         </DialogContent>
         <DialogActions>
@@ -301,11 +333,49 @@ export default function Customers() {
             variant="contained"
             disabled={creating || !email || !password || password.length < 8 || !email.includes('@')}
             onClick={async () => {
+              setAddressError(null);
               try {
-                await createCustomer({ variables: { input: { email, password, fullName: fullName || null, phone: phone || null, preferredStoreId: preferredStoreId || null, profileStatus: status } } });
+                const result = await createCustomer({
+                  variables: {
+                    input: {
+                      email,
+                      password,
+                      fullName: fullName || null,
+                      phone: phone || null,
+                      preferredStoreId: preferredStoreId || null,
+                      profileStatus: status,
+                    },
+                  },
+                });
+                const newUserId = result.data?.adminCreateCustomer?.id;
+                if (addressQuery.trim() && newUserId) {
+                  try {
+                    await createAddress({
+                      variables: {
+                        input: {
+                          query: addressQuery.trim(),
+                          countryCodes: addressCountry.trim()
+                            ? [addressCountry.trim().toUpperCase()]
+                            : undefined,
+                          owner: {
+                            ownerType: 'User',
+                            ownerId: newUserId,
+                            label: 'Primary',
+                            isPrimary: true,
+                          },
+                        },
+                      },
+                    });
+                  } catch (addrErr: any) {
+                    setAddressError(addrErr?.message || 'Address verification failed.');
+                    notify('Customer created but address verification failed', 'warning');
+                  }
+                }
                 notify('Customer created', 'success');
                 setOpen(false);
                 setEmail(''); setPassword(''); setFullName(''); setPhone(''); setPreferredStoreId(''); setStatus('ACTIVE');
+                setAddressQuery('');
+                setAddressCountry('NG');
                 await refetch();
               } catch (e: any) {
                 notify(e?.message || 'Failed to create customer', 'error');

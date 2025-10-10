@@ -3,6 +3,8 @@ documents:
   - src/**/*.ts
   - src/**/*.tsx
   - '!src/generated/**'
+config:
+  skipDocumentsValidation: true
 generates:
   src/generated/graphql.ts:
     plugins:
