@@ -64,6 +64,7 @@ const OrdersQuotationEdit = lazy(() => import('./pages/OrdersQuotationEdit'));
 const CustomerSales = lazy(() => import('./pages/CustomerSales'));
 const ResellerSalesPage = lazy(() => import('./pages/ResellerSalesPage'));
 const Addresses = lazy(() => import('./pages/Addresses'));
+const Riders = lazy(() => import('./pages/Riders'));
 import { PERMISSIONS, permissionList } from './shared/permissions';
 
 export default function App() {
@@ -100,6 +101,7 @@ export default function App() {
     PERMISSIONS.role.DELETE,
   );
   const addressReadAccess = permissionList(PERMISSIONS.address.READ);
+  const fulfillmentAccess = assignmentAccess;
 
   return (
     <Box>
@@ -138,7 +140,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER']}
-                  perms={assignmentAccess}
+                  perms={fulfillmentAccess}
                   element={<Fulfillment />}
                 />
               }
@@ -503,6 +505,16 @@ export default function App() {
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
                   perms={addressReadAccess}
                   element={<Addresses />}
+                />
+              }
+            />
+            <Route
+              path="/riders"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  perms={fulfillmentAccess}
+                  element={<Riders />}
                 />
               }
             />

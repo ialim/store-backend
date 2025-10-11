@@ -30,6 +30,7 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import LocalMallIcon from '@mui/icons-material/LocalMall';
 import StoreIcon from '@mui/icons-material/Store';
 import PlaceIcon from '@mui/icons-material/Place';
+import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import PeopleIcon from '@mui/icons-material/People';
 import ListAltIcon from '@mui/icons-material/ListAlt';
@@ -89,6 +90,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     PERMISSIONS.role.DELETE,
   );
   const addressRead = permissionList(PERMISSIONS.address.READ);
+  const fulfillmentAccess = assignmentAccess;
 
   const toggleMobileDrawer = () => setMobileOpen((prev) => !prev);
   const [collapsedSections, setCollapsedSections] = React.useState<Record<string, boolean>>({});
@@ -151,14 +153,6 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         },
         { label: 'Stock', to: '/stock', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <Inventory2Icon fontSize="small" /> },
         { label: 'Stores', to: '/stores', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <StoreIcon fontSize="small" /> },
-        {
-          label: 'Addresses',
-          to: '/addresses',
-          show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-            hasPermission(...addressRead),
-          icon: <PlaceIcon fontSize="small" />,
-        },
       ],
     },
     {
@@ -226,6 +220,35 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           to: '/invoice-imports',
           show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
           icon: <AssignmentIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'fulfillment',
+      label: 'Fulfillment',
+      collapsible: true,
+      items: [
+        {
+          label: 'Fulfillment Board',
+          to: '/fulfillment',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER') ||
+            hasPermission(...fulfillmentAccess),
+          icon: <LocalShippingIcon fontSize="small" />,
+        },
+        {
+          label: 'Addresses',
+          to: '/addresses',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+            hasPermission(...addressRead),
+          icon: <PlaceIcon fontSize="small" />,
+        },
+        {
+          label: 'Riders',
+          to: '/riders',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <DeliveryDiningIcon fontSize="small" />,
         },
       ],
     },
