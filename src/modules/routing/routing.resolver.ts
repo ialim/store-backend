@@ -12,7 +12,11 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PERMISSIONS } from '../../../shared/permissions';
-import { RoutingService, RouteEstimate, RoutingProfile } from './routing.service';
+import {
+  RoutingService,
+  RouteEstimate,
+  RoutingProfile,
+} from './routing.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ObjectType, Field } from '@nestjs/graphql';
 
@@ -69,7 +73,9 @@ export class RoutingResolver {
       throw new BadRequestException('Origin address is missing coordinates');
     }
     if (destination.latitude == null || destination.longitude == null) {
-      throw new BadRequestException('Destination address is missing coordinates');
+      throw new BadRequestException(
+        'Destination address is missing coordinates',
+      );
     }
 
     return this.routingService.estimateRoute({

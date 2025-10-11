@@ -310,6 +310,63 @@ export class AddressService extends BaseCrudService<
     return this.geocodingProvider.autocomplete(request);
   }
 
+  async refreshStaleAddresses(options: {
+    limit: number;
+    maxAgeDays: number;
+  }): Promise<number> {
+    const { limit, maxAgeDays } = options;
+    const threshold = new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000);
+
+    const candidates = await this.prisma.address.findMany({
+      where: {
+        verifiedAt: { not: null, lte: threshold },
+        provider: { not: AddressSource.MANUAL },
+      },
+      orderBy: { verifiedAt: 'asc' },
+      take: limit,
+    });
+
+    let refreshed = 0;
+    for (const candidate of candidates) {
+      if (!candidate.formattedAddress) {
+        continue;
+      }
+      try {
+        const result = await this.geocodingProvider.geocode({
+          query: candidate.formattedAddress ?? '',
+        });
+        await this.prisma.address.update({
+          where: { id: candidate.id },
+          data: {
+            formattedAddress: result.formattedAddress,
+            streetLine1: result.streetLine1 ?? null,
+            streetLine2: result.streetLine2 ?? null,
+            city: result.city ?? null,
+            state: result.state ?? null,
+            postalCode: result.postalCode ?? null,
+            countryCode: result.countryCode.toUpperCase(),
+            latitude: result.latitude ?? null,
+            longitude: result.longitude ?? null,
+            placeId: result.placeId ?? null,
+            plusCode: result.plusCode ?? null,
+            confidence: result.confidence ?? null,
+            provider: result.provider,
+            externalRaw: result.raw
+              ? (result.raw as Prisma.InputJsonValue)
+              : Prisma.JsonNull,
+            verifiedAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
+        refreshed += 1;
+      } catch (error) {
+        continue;
+      }
+    }
+
+    return refreshed;
+  }
+
   get assignments() {
     return this.assignmentCrud;
   }
