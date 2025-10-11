@@ -2613,6 +2613,19 @@ type Asset {
   _count: AssetCount!
 }
 
+type RouteEstimateModel {
+  distanceMeters: Float!
+  durationSeconds: Float!
+  provider: String!
+  profile: RoutingProfile!
+}
+
+enum RoutingProfile {
+  DRIVING
+  WALKING
+  CYCLING
+}
+
 type Query {
   me: User!
   findFirstProduct(where: ProductWhereInput, orderBy: [ProductOrderByWithRelationInput!], cursor: ProductWhereUniqueInput, take: Int, skip: Int, distinct: [ProductScalarFieldEnum!]): Product
@@ -2777,6 +2790,11 @@ type Query {
   primaryAssetAssignment(input: AssetAssignmentsByEntityInput!): AssetAssignment
   rolePermissions: [Permission!]!
   roles: [Role!]!
+
+  """
+  Estimate distance and ETA between two stored addresses using the configured routing provider.
+  """
+  estimateRouteByAddresses(originAddressId: String!, destinationAddressId: String!, profile: RoutingProfile): RouteEstimateModel!
 }
 
 input ProductWhereInput {
