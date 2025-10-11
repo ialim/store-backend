@@ -27,6 +27,7 @@ export const PERMISSION_MODULES = {
   devtool: 'DevTool',
   support: 'Support',
   role: 'Role',
+  address: 'Address',
 } as const;
 
 export type PermissionModuleKey = keyof typeof PERMISSION_MODULES;
@@ -132,6 +133,12 @@ export const PERMISSIONS: ModulePermissionMap = {
     READ: 'ROLE_READ',
     UPDATE: 'ROLE_UPDATE',
     DELETE: 'ROLE_DELETE',
+  },
+  address: {
+    CREATE: 'ADDRESS_CREATE',
+    READ: 'ADDRESS_READ',
+    UPDATE: 'ADDRESS_UPDATE',
+    DELETE: 'ADDRESS_DELETE',
   },
 } as const;
 

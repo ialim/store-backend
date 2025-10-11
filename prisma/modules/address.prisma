@@ -1,0 +1,51 @@
+// address.prisma
+
+enum AddressSource {
+  GOOGLE_PLACES
+  LOCATIONIQ
+  OPENCAGE
+  MANUAL
+  OTHER
+}
+
+model Address {
+  id               String    @id @default(uuid())
+  formattedAddress String
+  streetLine1      String?
+  streetLine2      String?
+  city             String?
+  state            String?
+  postalCode       String?
+  countryCode      String
+  latitude         Float?
+  longitude        Float?
+  placeId          String?   @unique
+  plusCode         String?
+  provider         AddressSource
+  externalRaw      Json?
+  confidence       Float?
+  verifiedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  assignments      AddressAssignment[]
+
+  @@index([countryCode, state, city])
+}
+
+model AddressAssignment {
+  id         String   @id @default(uuid())
+  addressId  String
+  ownerType  String
+  ownerId    String
+  label      String?
+  isPrimary  Boolean  @default(false)
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  archivedAt DateTime?
+
+  address    Address  @relation(fields: [addressId], references: [id], onDelete: Cascade)
+
+  @@index([ownerType, ownerId])
+  @@unique([addressId, ownerType, ownerId])
+}

@@ -27,6 +27,7 @@ import { SyncModule } from './modules/sync/sync.module';
 import { HealthController } from './modules/health/health.controller';
 import { AssetModule } from './modules/asset/asset.module';
 import { RolesModule } from './modules/roles/roles.module';
+import { AddressModule } from './modules/address/address.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { RolesModule } from './modules/roles/roles.module';
     SyncModule,
     AssetModule,
     RolesModule,
+    AddressModule,
   ],
   controllers: [HealthController],
 })
