@@ -31,6 +31,8 @@ model SaleOrder {
   type         SaleType
   status       SaleStatus  @default(PENDING)
   phase        OrderPhase  @default(QUOTATION)
+  workflowState   String?
+  workflowContext Json?
   totalAmount  Float
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -45,6 +47,7 @@ model SaleOrder {
   ConsumerPayment ConsumerPayment[]
 
   ResellerPayment ResellerPayment[]
+  transitionLogs  SaleOrderTransitionLog[]
 }
 
 model Quotation {
@@ -234,6 +237,8 @@ model Fulfillment {
   deliveryPersonnelId String?
   deliveryAddress     String?
   status              FulfillmentStatus @default(PENDING)
+  workflowState       String?
+  workflowContext     Json?
   cost                Float?
   confirmationPin     String?
   createdAt           DateTime           @default(now())
@@ -241,6 +246,7 @@ model Fulfillment {
 
   saleOrder           SaleOrder          @relation(fields: [saleOrderId], references: [id])
   deliveryPersonnel   User?              @relation(fields: [deliveryPersonnelId], references: [id])
+  transitionLogs      FulfillmentTransitionLog[]
 }
 
 enum AdjustmentType {
@@ -261,4 +267,28 @@ enum OrderPhase {
   QUOTATION
   SALE
   FULFILLMENT
+}
+
+model SaleOrderTransitionLog {
+  id          String   @id @default(uuid())
+  saleOrderId String
+  fromState   String?
+  toState     String
+  event       String?
+  metadata    Json?
+  occurredAt  DateTime @default(now())
+
+  saleOrder   SaleOrder @relation(fields: [saleOrderId], references: [id])
+}
+
+model FulfillmentTransitionLog {
+  id             String   @id @default(uuid())
+  fulfillmentId  String
+  fromState      String?
+  toState        String
+  event          String?
+  metadata       Json?
+  occurredAt     DateTime @default(now())
+
+  fulfillment    Fulfillment @relation(fields: [fulfillmentId], references: [id])
 }

@@ -90,7 +90,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     PERMISSIONS.role.DELETE,
   );
   const addressRead = permissionList(PERMISSIONS.address.READ);
-  const fulfillmentAccess = assignmentAccess;
+  const fulfillmentAccess = permissionList(PERMISSIONS.sale.UPDATE);
 
   const toggleMobileDrawer = () => setMobileOpen((prev) => !prev);
   const [collapsedSections, setCollapsedSections] = React.useState<Record<string, boolean>>({});
@@ -164,7 +164,14 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           label: 'Orders',
           to: '/orders',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
+            hasRole(
+              'SUPERADMIN',
+              'ADMIN',
+              'MANAGER',
+              'BILLER',
+              'ACCOUNTANT',
+              'RESELLER',
+            ) ||
             hasPermission(...orderRead),
           icon: <ReceiptLongIcon fontSize="small" />,
         },
@@ -172,7 +179,14 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           label: 'Quotations',
           to: '/orders/quotations',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
+            hasRole(
+              'SUPERADMIN',
+              'ADMIN',
+              'MANAGER',
+              'BILLER',
+              'ACCOUNTANT',
+              'RESELLER',
+            ) ||
             hasPermission(...orderRead),
           icon: <AssignmentIcon fontSize="small" />,
         },
@@ -180,7 +194,14 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           label: 'Sales',
           to: '/orders/sales',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
+            hasRole(
+              'SUPERADMIN',
+              'ADMIN',
+              'MANAGER',
+              'BILLER',
+              'ACCOUNTANT',
+              'RESELLER',
+            ) ||
             hasPermission(...orderRead),
           icon: <LocalMallIcon fontSize="small" />,
         },
@@ -232,7 +253,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           label: 'Fulfillment Board',
           to: '/fulfillment',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER') ||
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
             hasPermission(...fulfillmentAccess),
           icon: <LocalShippingIcon fontSize="small" />,
         },

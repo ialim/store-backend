@@ -10,6 +10,16 @@ import {
   FulfillmentType as PrismaFulfillmentType,
   FulfillmentStatus as PrismaFulfillmentStatus,
 } from '@prisma/client';
+import { PhaseCoordinator } from '../../../state/phase-coordinator';
+import {
+  runSaleMachine,
+  saleStatusToState,
+  toSaleContextPayload,
+  SaleWorkflowState,
+  SaleContext,
+} from '../../../state/sale.machine';
+import { toFulfilmentContextPayload } from '../../../state/fulfilment.machine';
+import { WorkflowService } from '../../../state/workflow.service';
 
 type PaymentConfirmedPayload = {
   saleOrderId?: string | null;
@@ -29,6 +39,8 @@ export class PaymentsOutboxHandler {
   constructor(
     private prisma: PrismaService,
     private domainEvents: DomainEventsService,
+    private coordinator: PhaseCoordinator,
+    private workflow: WorkflowService,
   ) {}
 
   async tryHandle(event: {
@@ -44,6 +56,16 @@ export class PaymentsOutboxHandler {
     try {
       const order = await this.prisma.saleOrder.findUnique({
         where: { id: orderId },
+        select: {
+          id: true,
+          status: true,
+          phase: true,
+          type: true,
+          totalAmount: true,
+          workflowState: true,
+          workflowContext: true,
+          storeId: true,
+        },
       });
       if (!order) return true;
       if (order.phase !== PrismaOrderPhase.SALE) return true; // Only advance from SALE phase
@@ -69,6 +91,16 @@ export class PaymentsOutboxHandler {
         (consumerPaidAgg._sum.amount || 0) + (resellerPaidAgg._sum.amount || 0);
 
       let canAdvance = paid >= (order.totalAmount || 0);
+      const previousContext =
+        order.workflowContext && typeof order.workflowContext === 'object'
+          ? (order.workflowContext as unknown as SaleContext)
+          : null;
+      const previousState =
+        (order.workflowState as SaleWorkflowState | null) ??
+        saleStatusToState(order.status as PrismaSaleStatus);
+      let creditLimit =
+        previousContext?.credit?.limit ?? order.totalAmount ?? 0;
+      let creditExposure = previousContext?.credit?.exposure ?? 0;
 
       if (!canAdvance && order.type === PrismaSaleType.RESELLER) {
         const rSale = await this.prisma.resellerSale.findFirst({
@@ -83,23 +115,74 @@ export class PaymentsOutboxHandler {
             const projected = (profile.outstandingBalance || 0) + unpaidPortion;
             if (projected <= (profile.creditLimit || 0)) {
               canAdvance = true;
+              creditLimit = profile.creditLimit ?? creditLimit;
+              creditExposure = projected;
               await this.prisma.resellerProfile.update({
                 where: { userId: rSale.resellerId },
                 data: { outstandingBalance: projected },
               });
+            } else {
+              creditLimit = profile.creditLimit ?? creditLimit;
+              creditExposure = profile.outstandingBalance ?? creditExposure;
             }
           }
         }
       }
 
-      if (!canAdvance) return true;
+      const saleMachineResult = runSaleMachine({
+        status: order.status as PrismaSaleStatus,
+        workflowState: previousState,
+        workflowContext: previousContext ?? undefined,
+        event: { type: 'PAYMENT_CONFIRMED', amount: paid },
+        contextOverrides: {
+          orderId,
+          grandTotal: order.totalAmount ?? 0,
+          capturedTotal: paid,
+          credit: {
+            limit: creditLimit,
+            exposure: creditExposure,
+            overage: Math.max((order.totalAmount || 0) - paid, 0),
+          },
+          overrides: previousContext?.overrides ?? {},
+          clearToFulfil: canAdvance,
+        },
+      });
 
-      // Mark paid if fully paid
-      if (paid >= (order.totalAmount || 0)) {
+      if (
+        !saleMachineResult.context.clearToFulfil ||
+        saleMachineResult.state !== 'CLEARED_FOR_FULFILMENT'
+      ) {
+        return true;
+      }
+
+      if (
+        saleMachineResult.changed ||
+        previousContext?.clearToFulfil !==
+          saleMachineResult.context.clearToFulfil ||
+        previousContext?.credit?.overage !==
+          saleMachineResult.context.credit.overage
+      ) {
+        await this.workflow.recordSaleTransition({
+          orderId,
+          fromState: previousState,
+          toState: saleMachineResult.state,
+          event: 'PAYMENT_CONFIRMED',
+          context: toSaleContextPayload(
+            saleMachineResult.context,
+          ) as Prisma.InputJsonValue,
+        });
+      }
+
+      if (
+        paid >= (order.totalAmount || 0) &&
+        order.status !== PrismaSaleStatus.PAID &&
+        order.status !== PrismaSaleStatus.FULFILLED
+      ) {
         await this.prisma.saleOrder.update({
           where: { id: orderId },
           data: { status: PrismaSaleStatus.PAID },
         });
+        order.status = PrismaSaleStatus.PAID;
       }
       // Move to fulfillment and create record if missing
       await this.prisma.saleOrder.update({
@@ -110,12 +193,22 @@ export class PaymentsOutboxHandler {
         where: { saleOrderId: orderId },
       });
       if (!existing) {
-        await this.prisma.fulfillment.create({
+        const fulfillment = await this.prisma.fulfillment.create({
           data: {
             saleOrderId: orderId,
             type: PrismaFulfillmentType.PICKUP,
             status: PrismaFulfillmentStatus.PENDING,
+            workflowState: 'ALLOCATING_STOCK',
           },
+        });
+        await this.workflow.recordFulfilmentTransition({
+          fulfillmentId: fulfillment.id,
+          fromState: null,
+          toState: 'ALLOCATING_STOCK',
+          event: 'fulfilment.created',
+          context: toFulfilmentContextPayload({
+            saleOrderId: orderId,
+          }) as Prisma.InputJsonValue,
         });
       }
 
@@ -167,6 +260,8 @@ export class PaymentsOutboxHandler {
           }
         }
       }
+
+      await this.coordinator.onSaleCleared(orderId);
 
       // Notify store manager and biller
       const so = await this.prisma.saleOrder.findUnique({

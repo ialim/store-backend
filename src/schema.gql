@@ -618,6 +618,21 @@ enum SaleStatus {
   PAID
 }
 
+type FulfillmentTransitionLog {
+  id: ID!
+  fulfillmentId: String!
+  fromState: String
+  toState: String!
+  event: String
+  metadata: JSON
+  occurredAt: DateTime!
+  fulfillment: Fulfillment!
+}
+
+type FulfillmentCount {
+  transitionLogs: Int!
+}
+
 type Fulfillment {
   id: ID!
   saleOrderId: String!
@@ -625,12 +640,22 @@ type Fulfillment {
   deliveryPersonnelId: String
   deliveryAddress: String
   status: FulfillmentStatus!
+  workflowState: String
+  workflowContext: JSON
   cost: Float
   confirmationPin: String
   createdAt: DateTime!
   updatedAt: DateTime!
   saleOrder: SaleOrder!
   deliveryPersonnel: User
+  transitionLogs: [FulfillmentTransitionLog!]
+  _count: FulfillmentCount!
+
+  """Normalized fulfillment workflow context including scheduling metadata."""
+  fulfillmentWorkflowContext: JSON
+
+  """Fulfillment workflow snapshot with current state and transition logs."""
+  fulfillmentWorkflow: FulfilmentWorkflowSnapshot
 }
 
 enum FulfillmentType {
@@ -646,9 +671,21 @@ enum FulfillmentStatus {
   CANCELLED
 }
 
+type SaleOrderTransitionLog {
+  id: ID!
+  saleOrderId: String!
+  fromState: String
+  toState: String!
+  event: String
+  metadata: JSON
+  occurredAt: DateTime!
+  saleOrder: SaleOrder!
+}
+
 type SaleOrderCount {
   ConsumerPayment: Int!
   ResellerPayment: Int!
+  transitionLogs: Int!
 }
 
 type SaleOrder {
@@ -658,6 +695,8 @@ type SaleOrder {
   type: SaleType!
   status: SaleStatus!
   phase: OrderPhase!
+  workflowState: String
+  workflowContext: JSON
   totalAmount: Float!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -668,7 +707,36 @@ type SaleOrder {
   quotation: Quotation
   ConsumerPayment: [ConsumerPayment!]
   ResellerPayment: [ResellerPayment!]
+  transitionLogs: [SaleOrderTransitionLog!]
   _count: SaleOrderCount!
+
+  """
+  Current state of the sale workflow derived from the sale state machine.
+  """
+  saleWorkflowState: String
+
+  """
+  Current state of the fulfillment workflow derived from the fulfillment state machine.
+  """
+  fulfillmentWorkflowState: String
+
+  """
+  Normalized sale workflow context including credit exposure and override flags.
+  """
+  saleWorkflowContext: JSON
+
+  """
+  Detailed workflow snapshot for this sale order including transition logs.
+  """
+  saleWorkflow: SaleWorkflowSnapshot
+
+  """
+  Payment and credit readiness summary derived from the sale workflow state.
+  """
+  saleWorkflowSummary: SaleWorkflowSummary
+
+  """Fulfilment workflow snapshot for the associated fulfillment, if any."""
+  fulfilmentWorkflow: FulfilmentWorkflowSnapshot
 }
 
 enum OrderPhase {
@@ -2419,6 +2487,8 @@ type FulfillmentCountAggregate {
   deliveryPersonnelId: Int!
   deliveryAddress: Int!
   status: Int!
+  workflowState: Int!
+  workflowContext: Int!
   cost: Int!
   confirmationPin: Int!
   createdAt: Int!
@@ -2441,6 +2511,7 @@ type FulfillmentMinAggregate {
   deliveryPersonnelId: String
   deliveryAddress: String
   status: FulfillmentStatus
+  workflowState: String
   cost: Float
   confirmationPin: String
   createdAt: DateTime
@@ -2454,6 +2525,7 @@ type FulfillmentMaxAggregate {
   deliveryPersonnelId: String
   deliveryAddress: String
   status: FulfillmentStatus
+  workflowState: String
   cost: Float
   confirmationPin: String
   createdAt: DateTime
@@ -2482,6 +2554,53 @@ type VariantSalesWithDetails {
   productId: String
   productName: String
   barcode: String
+}
+
+type QuotationPartyInfo {
+  id: String!
+  email: String
+  fullName: String
+}
+
+type QuotationStoreInfo {
+  id: String!
+  name: String
+  location: String
+}
+
+type QuotationViewContext {
+  store: QuotationStoreInfo
+  biller: QuotationPartyInfo
+  reseller: QuotationPartyInfo
+  consumer: QuotationPartyInfo
+}
+
+type SaleWorkflowSnapshot {
+  saleOrderId: String!
+  state: String!
+  context: JSON
+  transitionLogs: [SaleOrderTransitionLog!]!
+}
+
+type FulfilmentWorkflowSnapshot {
+  saleOrderId: String!
+  fulfillmentId: String!
+  state: String!
+  context: JSON
+  transitionLogs: [FulfillmentTransitionLog!]!
+}
+
+type SaleWorkflowSummary {
+  saleOrderId: String!
+  state: String!
+  context: JSON
+  grandTotal: Float!
+  paid: Float!
+  outstanding: Float!
+  creditLimit: Float!
+  creditExposure: Float!
+  canAdvanceByPayment: Boolean!
+  canAdvanceByCredit: Boolean!
 }
 
 type DevCounts {
@@ -2736,11 +2855,15 @@ type Query {
   ordersQuery: [SaleOrder!]!
   quotations: [Quotation!]!
   quotation(id: String!): Quotation!
+  quotationContext(id: String!): QuotationViewContext!
   consumerSales: [ConsumerSale!]!
   consumerSale(id: String!): ConsumerSale!
   resellerSales: [ResellerSale!]!
   resellerSale(id: String!): ResellerSale!
   order(id: String!): SaleOrder!
+  saleWorkflow(saleOrderId: String!): SaleWorkflowSnapshot!
+  creditCheck(saleOrderId: String!): SaleWorkflowSummary!
+  fulfilmentWorkflow(saleOrderId: String!): FulfilmentWorkflowSnapshot
   salesReturnsByStore(storeId: String!): [SalesReturn!]!
   salesReturnsByConsumerSale(consumerSaleId: String!): [SalesReturn!]!
   salesReturnsByResellerSale(resellerSaleId: String!): [SalesReturn!]!
@@ -3672,6 +3795,8 @@ input SaleOrderWhereInput {
   type: EnumSaleTypeFilter
   status: EnumSaleStatusFilter
   phase: EnumOrderPhaseFilter
+  workflowState: StringNullableFilter
+  workflowContext: JsonNullableFilter
   totalAmount: FloatFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
@@ -3682,6 +3807,7 @@ input SaleOrderWhereInput {
   quotation: QuotationNullableScalarRelationFilter
   ConsumerPayment: ConsumerPaymentListRelationFilter
   ResellerPayment: ResellerPaymentListRelationFilter
+  transitionLogs: SaleOrderTransitionLogListRelationFilter
 }
 
 input EnumOrderPhaseFilter {
@@ -3696,6 +3822,23 @@ input NestedEnumOrderPhaseFilter {
   in: [OrderPhase!]
   notIn: [OrderPhase!]
   not: NestedEnumOrderPhaseFilter
+}
+
+input JsonNullableFilter {
+  equals: JSON
+  path: [String!]
+  mode: QueryMode
+  string_contains: String
+  string_starts_with: String
+  string_ends_with: String
+  array_starts_with: JSON
+  array_ends_with: JSON
+  array_contains: JSON
+  lt: JSON
+  lte: JSON
+  gt: JSON
+  gte: JSON
+  not: JSON
 }
 
 input ConsumerSaleNullableScalarRelationFilter {
@@ -3718,12 +3861,15 @@ input FulfillmentWhereInput {
   deliveryPersonnelId: StringNullableFilter
   deliveryAddress: StringNullableFilter
   status: EnumFulfillmentStatusFilter
+  workflowState: StringNullableFilter
+  workflowContext: JsonNullableFilter
   cost: FloatNullableFilter
   confirmationPin: StringNullableFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
   saleOrder: SaleOrderScalarRelationFilter
   deliveryPersonnel: UserNullableScalarRelationFilter
+  transitionLogs: FulfillmentTransitionLogListRelationFilter
 }
 
 input EnumFulfillmentTypeFilter {
@@ -3776,6 +3922,31 @@ input NestedFloatNullableFilter {
   not: NestedFloatNullableFilter
 }
 
+input FulfillmentTransitionLogListRelationFilter {
+  every: FulfillmentTransitionLogWhereInput
+  some: FulfillmentTransitionLogWhereInput
+  none: FulfillmentTransitionLogWhereInput
+}
+
+input FulfillmentTransitionLogWhereInput {
+  AND: [FulfillmentTransitionLogWhereInput!]
+  OR: [FulfillmentTransitionLogWhereInput!]
+  NOT: [FulfillmentTransitionLogWhereInput!]
+  id: StringFilter
+  fulfillmentId: StringFilter
+  fromState: StringNullableFilter
+  toState: StringFilter
+  event: StringNullableFilter
+  metadata: JsonNullableFilter
+  occurredAt: DateTimeFilter
+  fulfillment: FulfillmentScalarRelationFilter
+}
+
+input FulfillmentScalarRelationFilter {
+  is: FulfillmentWhereInput
+  isNot: FulfillmentWhereInput
+}
+
 input ConsumerPaymentListRelationFilter {
   every: ConsumerPaymentWhereInput
   some: ConsumerPaymentWhereInput
@@ -3801,6 +3972,26 @@ input ConsumerPaymentWhereInput {
 input ConsumerSaleScalarRelationFilter {
   is: ConsumerSaleWhereInput
   isNot: ConsumerSaleWhereInput
+}
+
+input SaleOrderTransitionLogListRelationFilter {
+  every: SaleOrderTransitionLogWhereInput
+  some: SaleOrderTransitionLogWhereInput
+  none: SaleOrderTransitionLogWhereInput
+}
+
+input SaleOrderTransitionLogWhereInput {
+  AND: [SaleOrderTransitionLogWhereInput!]
+  OR: [SaleOrderTransitionLogWhereInput!]
+  NOT: [SaleOrderTransitionLogWhereInput!]
+  id: StringFilter
+  saleOrderId: StringFilter
+  fromState: StringNullableFilter
+  toState: StringFilter
+  event: StringNullableFilter
+  metadata: JsonNullableFilter
+  occurredAt: DateTimeFilter
+  saleOrder: SaleOrderScalarRelationFilter
 }
 
 input SalesReturnListRelationFilter {
@@ -3953,23 +4144,6 @@ input AdminActionLogWhereInput {
   afterChange: JsonNullableFilter
   timestamp: DateTimeFilter
   admin: UserScalarRelationFilter
-}
-
-input JsonNullableFilter {
-  equals: JSON
-  path: [String!]
-  mode: QueryMode
-  string_contains: String
-  string_starts_with: String
-  string_ends_with: String
-  array_starts_with: JSON
-  array_ends_with: JSON
-  array_contains: JSON
-  lt: JSON
-  lte: JSON
-  gt: JSON
-  gte: JSON
-  not: JSON
 }
 
 input SupportMessageListRelationFilter {
@@ -7023,6 +7197,8 @@ type Mutation {
   adminRevertOrderToQuotation(saleOrderId: String!): SaleOrder!
   updateQuotation(input: UpdateQuotationInput!): Quotation!
   adminRevertToQuotation(saleOrderId: String!): SaleOrder!
+  grantAdminOverride(input: GrantAdminOverrideInput!): SaleOrder!
+  grantCreditOverride(input: GrantCreditOverrideInput!): SaleOrder!
   createSalesReturn(input: CreateSalesReturnInput!): String!
   updateSalesReturnStatus(input: UpdateSalesReturnStatusInput!): Boolean!
   createSalesReturnForOrder(input: CreateOrderReturnInput!): String!
@@ -7796,6 +7972,8 @@ input SaleOrderCreateWithoutResellerPaymentInput {
   type: SaleType!
   status: SaleStatus
   phase: OrderPhase
+  workflowState: String
+  workflowContext: JSON
   totalAmount: Float!
   createdAt: DateTime
   updatedAt: DateTime
@@ -7805,6 +7983,7 @@ input SaleOrderCreateWithoutResellerPaymentInput {
   fulfillment: FulfillmentCreateNestedOneWithoutSaleOrderInput
   quotation: QuotationCreateNestedOneWithoutSaleOrderInput
   ConsumerPayment: ConsumerPaymentCreateNestedManyWithoutSaleOrderInput
+  transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
 }
 
 input ConsumerSaleCreateNestedOneWithoutSaleOrderInput {
@@ -9359,6 +9538,8 @@ input SaleOrderCreateWithoutConsumerPaymentInput {
   type: SaleType!
   status: SaleStatus
   phase: OrderPhase
+  workflowState: String
+  workflowContext: JSON
   totalAmount: Float!
   createdAt: DateTime
   updatedAt: DateTime
@@ -9368,6 +9549,7 @@ input SaleOrderCreateWithoutConsumerPaymentInput {
   fulfillment: FulfillmentCreateNestedOneWithoutSaleOrderInput
   quotation: QuotationCreateNestedOneWithoutSaleOrderInput
   ResellerPayment: ResellerPaymentCreateNestedManyWithoutSaleOrderInput
+  transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
 }
 
 input ResellerSaleCreateNestedOneWithoutSaleOrderInput {
@@ -10796,11 +10978,14 @@ input FulfillmentCreateWithoutDeliveryPersonnelInput {
   type: FulfillmentType!
   deliveryAddress: String
   status: FulfillmentStatus
+  workflowState: String
+  workflowContext: JSON
   cost: Float
   confirmationPin: String
   createdAt: DateTime
   updatedAt: DateTime
   saleOrder: SaleOrderCreateNestedOneWithoutFulfillmentInput!
+  transitionLogs: FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput
 }
 
 input SaleOrderCreateNestedOneWithoutFulfillmentInput {
@@ -10816,6 +11001,8 @@ input SaleOrderCreateWithoutFulfillmentInput {
   type: SaleType!
   status: SaleStatus
   phase: OrderPhase
+  workflowState: String
+  workflowContext: JSON
   totalAmount: Float!
   createdAt: DateTime
   updatedAt: DateTime
@@ -10825,6 +11012,7 @@ input SaleOrderCreateWithoutFulfillmentInput {
   quotation: QuotationCreateNestedOneWithoutSaleOrderInput
   ConsumerPayment: ConsumerPaymentCreateNestedManyWithoutSaleOrderInput
   ResellerPayment: ResellerPaymentCreateNestedManyWithoutSaleOrderInput
+  transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
 }
 
 input QuotationCreateNestedOneWithoutSaleOrderInput {
@@ -11519,6 +11707,8 @@ input SaleOrderCreateWithoutQuotationInput {
   type: SaleType!
   status: SaleStatus
   phase: OrderPhase
+  workflowState: String
+  workflowContext: JSON
   totalAmount: Float!
   createdAt: DateTime
   updatedAt: DateTime
@@ -11528,6 +11718,7 @@ input SaleOrderCreateWithoutQuotationInput {
   fulfillment: FulfillmentCreateNestedOneWithoutSaleOrderInput
   ConsumerPayment: ConsumerPaymentCreateNestedManyWithoutSaleOrderInput
   ResellerPayment: ResellerPaymentCreateNestedManyWithoutSaleOrderInput
+  transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
 }
 
 input FulfillmentCreateNestedOneWithoutSaleOrderInput {
@@ -11541,11 +11732,14 @@ input FulfillmentCreateWithoutSaleOrderInput {
   type: FulfillmentType!
   deliveryAddress: String
   status: FulfillmentStatus
+  workflowState: String
+  workflowContext: JSON
   cost: Float
   confirmationPin: String
   createdAt: DateTime
   updatedAt: DateTime
   deliveryPersonnel: UserCreateNestedOneWithoutFulfillmentInput
+  transitionLogs: FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput
 }
 
 input UserCreateNestedOneWithoutFulfillmentInput {
@@ -13071,6 +13265,55 @@ input UserCreateOrConnectWithoutFulfillmentInput {
   create: UserCreateWithoutFulfillmentInput!
 }
 
+input FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput {
+  create: [FulfillmentTransitionLogCreateWithoutFulfillmentInput!]
+  connectOrCreate: [FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput!]
+  createMany: FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope
+  connect: [FulfillmentTransitionLogWhereUniqueInput!]
+}
+
+input FulfillmentTransitionLogCreateWithoutFulfillmentInput {
+  id: String
+  fromState: String
+  toState: String!
+  event: String
+  metadata: JSON
+  occurredAt: DateTime
+}
+
+input FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput {
+  where: FulfillmentTransitionLogWhereUniqueInput!
+  create: FulfillmentTransitionLogCreateWithoutFulfillmentInput!
+}
+
+input FulfillmentTransitionLogWhereUniqueInput {
+  id: String
+  AND: [FulfillmentTransitionLogWhereInput!]
+  OR: [FulfillmentTransitionLogWhereInput!]
+  NOT: [FulfillmentTransitionLogWhereInput!]
+  fulfillmentId: StringFilter
+  fromState: StringNullableFilter
+  toState: StringFilter
+  event: StringNullableFilter
+  metadata: JsonNullableFilter
+  occurredAt: DateTimeFilter
+  fulfillment: FulfillmentScalarRelationFilter
+}
+
+input FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope {
+  data: [FulfillmentTransitionLogCreateManyFulfillmentInput!]!
+  skipDuplicates: Boolean
+}
+
+input FulfillmentTransitionLogCreateManyFulfillmentInput {
+  id: String
+  fromState: String
+  toState: String!
+  event: String
+  metadata: JSON
+  occurredAt: DateTime
+}
+
 input FulfillmentCreateOrConnectWithoutSaleOrderInput {
   where: FulfillmentWhereUniqueInput!
   create: FulfillmentCreateWithoutSaleOrderInput!
@@ -13086,12 +13329,15 @@ input FulfillmentWhereUniqueInput {
   deliveryPersonnelId: StringNullableFilter
   deliveryAddress: StringNullableFilter
   status: EnumFulfillmentStatusFilter
+  workflowState: StringNullableFilter
+  workflowContext: JsonNullableFilter
   cost: FloatNullableFilter
   confirmationPin: StringNullableFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
   saleOrder: SaleOrderScalarRelationFilter
   deliveryPersonnel: UserNullableScalarRelationFilter
+  transitionLogs: FulfillmentTransitionLogListRelationFilter
 }
 
 input ConsumerPaymentCreateNestedManyWithoutSaleOrderInput {
@@ -13282,6 +13528,8 @@ input SaleOrderCreateWithoutConsumerSaleInput {
   type: SaleType!
   status: SaleStatus
   phase: OrderPhase
+  workflowState: String
+  workflowContext: JSON
   totalAmount: Float!
   createdAt: DateTime
   updatedAt: DateTime
@@ -13291,6 +13539,7 @@ input SaleOrderCreateWithoutConsumerSaleInput {
   quotation: QuotationCreateNestedOneWithoutSaleOrderInput
   ConsumerPayment: ConsumerPaymentCreateNestedManyWithoutSaleOrderInput
   ResellerPayment: ResellerPaymentCreateNestedManyWithoutSaleOrderInput
+  transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
 }
 
 input ResellerPaymentCreateNestedManyWithoutSaleOrderInput {
@@ -13348,6 +13597,8 @@ input SaleOrderCreateWithoutResellerSaleInput {
   type: SaleType!
   status: SaleStatus
   phase: OrderPhase
+  workflowState: String
+  workflowContext: JSON
   totalAmount: Float!
   createdAt: DateTime
   updatedAt: DateTime
@@ -13357,6 +13608,56 @@ input SaleOrderCreateWithoutResellerSaleInput {
   quotation: QuotationCreateNestedOneWithoutSaleOrderInput
   ConsumerPayment: ConsumerPaymentCreateNestedManyWithoutSaleOrderInput
   ResellerPayment: ResellerPaymentCreateNestedManyWithoutSaleOrderInput
+  transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
+}
+
+input SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput {
+  create: [SaleOrderTransitionLogCreateWithoutSaleOrderInput!]
+  connectOrCreate: [SaleOrderTransitionLogCreateOrConnectWithoutSaleOrderInput!]
+  createMany: SaleOrderTransitionLogCreateManySaleOrderInputEnvelope
+  connect: [SaleOrderTransitionLogWhereUniqueInput!]
+}
+
+input SaleOrderTransitionLogCreateWithoutSaleOrderInput {
+  id: String
+  fromState: String
+  toState: String!
+  event: String
+  metadata: JSON
+  occurredAt: DateTime
+}
+
+input SaleOrderTransitionLogCreateOrConnectWithoutSaleOrderInput {
+  where: SaleOrderTransitionLogWhereUniqueInput!
+  create: SaleOrderTransitionLogCreateWithoutSaleOrderInput!
+}
+
+input SaleOrderTransitionLogWhereUniqueInput {
+  id: String
+  AND: [SaleOrderTransitionLogWhereInput!]
+  OR: [SaleOrderTransitionLogWhereInput!]
+  NOT: [SaleOrderTransitionLogWhereInput!]
+  saleOrderId: StringFilter
+  fromState: StringNullableFilter
+  toState: StringFilter
+  event: StringNullableFilter
+  metadata: JsonNullableFilter
+  occurredAt: DateTimeFilter
+  saleOrder: SaleOrderScalarRelationFilter
+}
+
+input SaleOrderTransitionLogCreateManySaleOrderInputEnvelope {
+  data: [SaleOrderTransitionLogCreateManySaleOrderInput!]!
+  skipDuplicates: Boolean
+}
+
+input SaleOrderTransitionLogCreateManySaleOrderInput {
+  id: String
+  fromState: String
+  toState: String!
+  event: String
+  metadata: JSON
+  occurredAt: DateTime
 }
 
 input SaleOrderCreateOrConnectWithoutResellerSaleInput {
@@ -13374,6 +13675,8 @@ input SaleOrderWhereUniqueInput {
   type: EnumSaleTypeFilter
   status: EnumSaleStatusFilter
   phase: EnumOrderPhaseFilter
+  workflowState: StringNullableFilter
+  workflowContext: JsonNullableFilter
   totalAmount: FloatFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
@@ -13384,6 +13687,7 @@ input SaleOrderWhereUniqueInput {
   quotation: QuotationNullableScalarRelationFilter
   ConsumerPayment: ConsumerPaymentListRelationFilter
   ResellerPayment: ResellerPaymentListRelationFilter
+  transitionLogs: SaleOrderTransitionLogListRelationFilter
 }
 
 input ResellerSaleCreateOrConnectWithoutPaymentsInput {
@@ -14102,6 +14406,8 @@ input FulfillmentCreateManyDeliveryPersonnelInput {
   type: FulfillmentType!
   deliveryAddress: String
   status: FulfillmentStatus
+  workflowState: String
+  workflowContext: JSON
   cost: Float
   confirmationPin: String
   createdAt: DateTime
@@ -16701,6 +17007,8 @@ input SaleOrderUpdateWithoutResellerPaymentInput {
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
   phase: EnumOrderPhaseFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
   totalAmount: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
@@ -16710,6 +17018,7 @@ input SaleOrderUpdateWithoutResellerPaymentInput {
   fulfillment: FulfillmentUpdateOneWithoutSaleOrderNestedInput
   quotation: QuotationUpdateOneWithoutSaleOrderNestedInput
   ConsumerPayment: ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput
+  transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
 }
 
 input EnumSaleTypeFieldUpdateOperationsInput {
@@ -18881,6 +19190,8 @@ input SaleOrderUpdateWithoutConsumerPaymentInput {
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
   phase: EnumOrderPhaseFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
   totalAmount: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
@@ -18890,6 +19201,7 @@ input SaleOrderUpdateWithoutConsumerPaymentInput {
   fulfillment: FulfillmentUpdateOneWithoutSaleOrderNestedInput
   quotation: QuotationUpdateOneWithoutSaleOrderNestedInput
   ResellerPayment: ResellerPaymentUpdateManyWithoutSaleOrderNestedInput
+  transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
 }
 
 input ResellerSaleUpdateOneWithoutSaleOrderNestedInput {
@@ -20835,11 +21147,14 @@ input FulfillmentUpdateWithoutDeliveryPersonnelInput {
   type: EnumFulfillmentTypeFieldUpdateOperationsInput
   deliveryAddress: NullableStringFieldUpdateOperationsInput
   status: EnumFulfillmentStatusFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
   cost: NullableFloatFieldUpdateOperationsInput
   confirmationPin: NullableStringFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
   saleOrder: SaleOrderUpdateOneRequiredWithoutFulfillmentNestedInput
+  transitionLogs: FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput
 }
 
 input EnumFulfillmentTypeFieldUpdateOperationsInput {
@@ -20879,6 +21194,8 @@ input SaleOrderUpdateWithoutFulfillmentInput {
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
   phase: EnumOrderPhaseFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
   totalAmount: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
@@ -20888,6 +21205,7 @@ input SaleOrderUpdateWithoutFulfillmentInput {
   quotation: QuotationUpdateOneWithoutSaleOrderNestedInput
   ConsumerPayment: ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput
   ResellerPayment: ResellerPaymentUpdateManyWithoutSaleOrderNestedInput
+  transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
 }
 
 input QuotationUpdateOneWithoutSaleOrderNestedInput {
@@ -21846,6 +22164,8 @@ input SaleOrderUpdateWithoutQuotationInput {
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
   phase: EnumOrderPhaseFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
   totalAmount: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
@@ -21855,6 +22175,7 @@ input SaleOrderUpdateWithoutQuotationInput {
   fulfillment: FulfillmentUpdateOneWithoutSaleOrderNestedInput
   ConsumerPayment: ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput
   ResellerPayment: ResellerPaymentUpdateManyWithoutSaleOrderNestedInput
+  transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
 }
 
 input FulfillmentUpdateOneWithoutSaleOrderNestedInput {
@@ -21878,11 +22199,14 @@ input FulfillmentUpdateWithoutSaleOrderInput {
   type: EnumFulfillmentTypeFieldUpdateOperationsInput
   deliveryAddress: NullableStringFieldUpdateOperationsInput
   status: EnumFulfillmentStatusFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
   cost: NullableFloatFieldUpdateOperationsInput
   confirmationPin: NullableStringFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
   deliveryPersonnel: UserUpdateOneWithoutFulfillmentNestedInput
+  transitionLogs: FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput
 }
 
 input UserUpdateOneWithoutFulfillmentNestedInput {
@@ -23728,6 +24052,67 @@ input UserUpdateToOneWithWhereWithoutFulfillmentInput {
   data: UserUpdateWithoutFulfillmentInput!
 }
 
+input FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput {
+  create: [FulfillmentTransitionLogCreateWithoutFulfillmentInput!]
+  connectOrCreate: [FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput!]
+  upsert: [FulfillmentTransitionLogUpsertWithWhereUniqueWithoutFulfillmentInput!]
+  createMany: FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope
+  set: [FulfillmentTransitionLogWhereUniqueInput!]
+  disconnect: [FulfillmentTransitionLogWhereUniqueInput!]
+  delete: [FulfillmentTransitionLogWhereUniqueInput!]
+  connect: [FulfillmentTransitionLogWhereUniqueInput!]
+  update: [FulfillmentTransitionLogUpdateWithWhereUniqueWithoutFulfillmentInput!]
+  updateMany: [FulfillmentTransitionLogUpdateManyWithWhereWithoutFulfillmentInput!]
+  deleteMany: [FulfillmentTransitionLogScalarWhereInput!]
+}
+
+input FulfillmentTransitionLogUpsertWithWhereUniqueWithoutFulfillmentInput {
+  where: FulfillmentTransitionLogWhereUniqueInput!
+  update: FulfillmentTransitionLogUpdateWithoutFulfillmentInput!
+  create: FulfillmentTransitionLogCreateWithoutFulfillmentInput!
+}
+
+input FulfillmentTransitionLogUpdateWithoutFulfillmentInput {
+  id: StringFieldUpdateOperationsInput
+  fromState: NullableStringFieldUpdateOperationsInput
+  toState: StringFieldUpdateOperationsInput
+  event: NullableStringFieldUpdateOperationsInput
+  metadata: JSON
+  occurredAt: DateTimeFieldUpdateOperationsInput
+}
+
+input FulfillmentTransitionLogUpdateWithWhereUniqueWithoutFulfillmentInput {
+  where: FulfillmentTransitionLogWhereUniqueInput!
+  data: FulfillmentTransitionLogUpdateWithoutFulfillmentInput!
+}
+
+input FulfillmentTransitionLogUpdateManyWithWhereWithoutFulfillmentInput {
+  where: FulfillmentTransitionLogScalarWhereInput!
+  data: FulfillmentTransitionLogUpdateManyMutationInput!
+}
+
+input FulfillmentTransitionLogScalarWhereInput {
+  AND: [FulfillmentTransitionLogScalarWhereInput!]
+  OR: [FulfillmentTransitionLogScalarWhereInput!]
+  NOT: [FulfillmentTransitionLogScalarWhereInput!]
+  id: StringFilter
+  fulfillmentId: StringFilter
+  fromState: StringNullableFilter
+  toState: StringFilter
+  event: StringNullableFilter
+  metadata: JsonNullableFilter
+  occurredAt: DateTimeFilter
+}
+
+input FulfillmentTransitionLogUpdateManyMutationInput {
+  id: StringFieldUpdateOperationsInput
+  fromState: NullableStringFieldUpdateOperationsInput
+  toState: StringFieldUpdateOperationsInput
+  event: NullableStringFieldUpdateOperationsInput
+  metadata: JSON
+  occurredAt: DateTimeFieldUpdateOperationsInput
+}
+
 input FulfillmentUpdateToOneWithWhereWithoutSaleOrderInput {
   where: FulfillmentWhereInput
   data: FulfillmentUpdateWithoutSaleOrderInput!
@@ -24020,6 +24405,8 @@ input SaleOrderUpdateWithoutConsumerSaleInput {
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
   phase: EnumOrderPhaseFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
   totalAmount: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
@@ -24029,6 +24416,7 @@ input SaleOrderUpdateWithoutConsumerSaleInput {
   quotation: QuotationUpdateOneWithoutSaleOrderNestedInput
   ConsumerPayment: ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput
   ResellerPayment: ResellerPaymentUpdateManyWithoutSaleOrderNestedInput
+  transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
 }
 
 input ResellerPaymentUpdateManyWithoutSaleOrderNestedInput {
@@ -24117,6 +24505,8 @@ input SaleOrderUpdateWithoutResellerSaleInput {
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
   phase: EnumOrderPhaseFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
   totalAmount: FloatFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
@@ -24126,6 +24516,68 @@ input SaleOrderUpdateWithoutResellerSaleInput {
   quotation: QuotationUpdateOneWithoutSaleOrderNestedInput
   ConsumerPayment: ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput
   ResellerPayment: ResellerPaymentUpdateManyWithoutSaleOrderNestedInput
+  transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
+}
+
+input SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput {
+  create: [SaleOrderTransitionLogCreateWithoutSaleOrderInput!]
+  connectOrCreate: [SaleOrderTransitionLogCreateOrConnectWithoutSaleOrderInput!]
+  upsert: [SaleOrderTransitionLogUpsertWithWhereUniqueWithoutSaleOrderInput!]
+  createMany: SaleOrderTransitionLogCreateManySaleOrderInputEnvelope
+  set: [SaleOrderTransitionLogWhereUniqueInput!]
+  disconnect: [SaleOrderTransitionLogWhereUniqueInput!]
+  delete: [SaleOrderTransitionLogWhereUniqueInput!]
+  connect: [SaleOrderTransitionLogWhereUniqueInput!]
+  update: [SaleOrderTransitionLogUpdateWithWhereUniqueWithoutSaleOrderInput!]
+  updateMany: [SaleOrderTransitionLogUpdateManyWithWhereWithoutSaleOrderInput!]
+  deleteMany: [SaleOrderTransitionLogScalarWhereInput!]
+}
+
+input SaleOrderTransitionLogUpsertWithWhereUniqueWithoutSaleOrderInput {
+  where: SaleOrderTransitionLogWhereUniqueInput!
+  update: SaleOrderTransitionLogUpdateWithoutSaleOrderInput!
+  create: SaleOrderTransitionLogCreateWithoutSaleOrderInput!
+}
+
+input SaleOrderTransitionLogUpdateWithoutSaleOrderInput {
+  id: StringFieldUpdateOperationsInput
+  fromState: NullableStringFieldUpdateOperationsInput
+  toState: StringFieldUpdateOperationsInput
+  event: NullableStringFieldUpdateOperationsInput
+  metadata: JSON
+  occurredAt: DateTimeFieldUpdateOperationsInput
+}
+
+input SaleOrderTransitionLogUpdateWithWhereUniqueWithoutSaleOrderInput {
+  where: SaleOrderTransitionLogWhereUniqueInput!
+  data: SaleOrderTransitionLogUpdateWithoutSaleOrderInput!
+}
+
+input SaleOrderTransitionLogUpdateManyWithWhereWithoutSaleOrderInput {
+  where: SaleOrderTransitionLogScalarWhereInput!
+  data: SaleOrderTransitionLogUpdateManyMutationInput!
+}
+
+input SaleOrderTransitionLogScalarWhereInput {
+  AND: [SaleOrderTransitionLogScalarWhereInput!]
+  OR: [SaleOrderTransitionLogScalarWhereInput!]
+  NOT: [SaleOrderTransitionLogScalarWhereInput!]
+  id: StringFilter
+  saleOrderId: StringFilter
+  fromState: StringNullableFilter
+  toState: StringFilter
+  event: StringNullableFilter
+  metadata: JsonNullableFilter
+  occurredAt: DateTimeFilter
+}
+
+input SaleOrderTransitionLogUpdateManyMutationInput {
+  id: StringFieldUpdateOperationsInput
+  fromState: NullableStringFieldUpdateOperationsInput
+  toState: StringFieldUpdateOperationsInput
+  event: NullableStringFieldUpdateOperationsInput
+  metadata: JSON
+  occurredAt: DateTimeFieldUpdateOperationsInput
 }
 
 input SaleOrderUpdateToOneWithWhereWithoutResellerSaleInput {
@@ -24658,6 +25110,8 @@ input FulfillmentScalarWhereInput {
   deliveryPersonnelId: StringNullableFilter
   deliveryAddress: StringNullableFilter
   status: EnumFulfillmentStatusFilter
+  workflowState: StringNullableFilter
+  workflowContext: JsonNullableFilter
   cost: FloatNullableFilter
   confirmationPin: StringNullableFilter
   createdAt: DateTimeFilter
@@ -24669,6 +25123,8 @@ input FulfillmentUpdateManyMutationInput {
   type: EnumFulfillmentTypeFieldUpdateOperationsInput
   deliveryAddress: NullableStringFieldUpdateOperationsInput
   status: EnumFulfillmentStatusFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
   cost: NullableFloatFieldUpdateOperationsInput
   confirmationPin: NullableStringFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
@@ -26424,6 +26880,17 @@ input UpdateQuotationItemInput {
   productVariantId: ID!
   quantity: Float!
   unitPrice: Float!
+}
+
+input GrantAdminOverrideInput {
+  saleOrderId: String!
+  expiresAt: String
+}
+
+input GrantCreditOverrideInput {
+  saleOrderId: String!
+  approvedAmount: Float!
+  expiresAt: String
 }
 
 input CreateSalesReturnInput {

@@ -6,6 +6,8 @@ import { PurchaseOutboxHandler } from './handlers/purchase-outbox.handler';
 import { PaymentsOutboxHandler } from './handlers/payments-outbox.handler';
 import { EventsResolver } from './events.resolver';
 import { OutboxSchedulerService } from './services/outbox-scheduler.service';
+import { PhaseCoordinator } from '../../state/phase-coordinator';
+import { WorkflowService } from '../../state/workflow.service';
 
 @Module({
   providers: [
@@ -14,9 +16,11 @@ import { OutboxSchedulerService } from './services/outbox-scheduler.service';
     NotificationOutboxHandler,
     PurchaseOutboxHandler,
     PaymentsOutboxHandler,
+    PhaseCoordinator,
+    WorkflowService,
     EventsResolver,
     OutboxSchedulerService,
   ],
-  exports: [DomainEventsService],
+  exports: [DomainEventsService, PhaseCoordinator, WorkflowService],
 })
 export class EventsModule {}

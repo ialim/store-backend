@@ -29,10 +29,27 @@ type OrderRow = {
   type: string;
   status: string;
   phase: string;
+  saleWorkflowState?: string | null;
+  saleWorkflowSummary?: {
+    saleOrderId: string;
+    outstanding: number;
+    canAdvanceByPayment: boolean;
+    canAdvanceByCredit: boolean;
+  } | null;
+  fulfillmentWorkflowState?: string | null;
   totalAmount: number;
   createdAt: string;
   updatedAt: string;
   resellerSaleid?: string | null;
+  quotation?: {
+    id: string;
+    status: string;
+    type: string;
+    billerId?: string | null;
+    resellerId?: string | null;
+    totalAmount: number;
+    updatedAt: string;
+  } | null;
   fulfillment?: FulfillmentSummary | null;
 };
 
@@ -85,7 +102,11 @@ export default function OrdersPage() {
         order.phase,
         order.type,
         order.resellerSaleid,
+        order.saleWorkflowState,
+        order.saleWorkflowSummary?.outstanding?.toString(),
+        order.fulfillmentWorkflowState,
         order.fulfillment?.status,
+        order.quotation?.status,
       ]
         .filter(Boolean)
         .join(' ')
@@ -124,6 +145,50 @@ export default function OrdersPage() {
         sort: true,
       },
       {
+        key: 'saleWorkflowState',
+        label: 'Sale State',
+        render: (row: OrderRow) =>
+          row.saleWorkflowState ? (
+            <Chip
+              size="small"
+              label={row.saleWorkflowState}
+              color={statusColor(row.saleWorkflowState) as any}
+            />
+          ) : (
+            '—'
+          ),
+        accessor: (row: OrderRow) => row.saleWorkflowState ?? '',
+        sort: true,
+      },
+      {
+        key: 'outstanding',
+        label: 'Outstanding (₦)',
+        align: 'right' as const,
+        render: (row: OrderRow) =>
+          row.saleWorkflowSummary
+            ? formatMoney(row.saleWorkflowSummary.outstanding)
+            : '—',
+        accessor: (row: OrderRow) =>
+          row.saleWorkflowSummary?.outstanding ?? 0,
+        sort: true,
+      },
+      {
+        key: 'quotationStatus',
+        label: 'Quotation',
+        render: (row: OrderRow) =>
+          row.quotation?.status ? (
+            <Chip
+              size="small"
+              label={row.quotation.status}
+              color={statusColor(row.quotation.status) as any}
+            />
+          ) : (
+            '—'
+          ),
+        accessor: (row: OrderRow) => row.quotation?.status || '',
+        sort: true,
+      },
+      {
         key: 'phase',
         label: 'Phase',
         render: (row: OrderRow) => row.phase,
@@ -154,7 +219,14 @@ export default function OrdersPage() {
         key: 'fulfillment',
         label: 'Fulfillment',
         render: (row: OrderRow) =>
-          row.fulfillment ? (
+          row.fulfillmentWorkflowState ? (
+            <Chip
+              size="small"
+              label={row.fulfillmentWorkflowState}
+              color={statusColor(row.fulfillmentWorkflowState) as any}
+              icon={<ReceiptLongIcon fontSize="small" />}
+            />
+          ) : row.fulfillment ? (
             <Chip
               size="small"
               label={row.fulfillment.status}

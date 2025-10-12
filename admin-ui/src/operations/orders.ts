@@ -9,10 +9,27 @@ export const Orders = gql`
       type
       status
       phase
+      saleWorkflowState
+      fulfillmentWorkflowState
+      saleWorkflowSummary {
+        saleOrderId
+        outstanding
+        canAdvanceByPayment
+        canAdvanceByCredit
+      }
       totalAmount
       createdAt
       updatedAt
       resellerSaleid
+      quotation {
+        id
+        status
+        type
+        billerId
+        resellerId
+        totalAmount
+        updatedAt
+      }
       fulfillment {
         id
         status
@@ -33,10 +50,40 @@ export const Order = gql`
       type
       status
       phase
+      saleWorkflowState
+      saleWorkflowContext
+      saleWorkflowSummary {
+        saleOrderId
+        state
+        grandTotal
+        paid
+        outstanding
+        creditLimit
+        creditExposure
+        canAdvanceByPayment
+        canAdvanceByCredit
+        context
+      }
+      fulfillmentWorkflowState
       totalAmount
       createdAt
       updatedAt
       resellerSaleid
+      quotation {
+        id
+        status
+        type
+        totalAmount
+        billerId
+        resellerId
+        updatedAt
+        saleOrderId
+        items {
+          productVariantId
+          quantity
+          unitPrice
+        }
+      }
       fulfillment {
         id
         status
@@ -46,7 +93,23 @@ export const Order = gql`
         cost
         createdAt
         updatedAt
+        fulfillmentWorkflowContext
+        fulfillmentWorkflow {
+          state
+          context
+        }
       }
+    }
+  }
+`;
+
+export const UpdateQuotationStatus = gql`
+  mutation UpdateQuotationStatus($input: UpdateQuotationStatusInput!) {
+    updateQuotationStatus(input: $input) {
+      id
+      status
+      saleOrderId
+      updatedAt
     }
   }
 `;
@@ -137,22 +200,29 @@ export const QuotationDetail = gql`
   }
 `;
 
-export const StoreSummary = gql`
-  query StoreSummary($id: String!) {
-    listStores(where: { id: { equals: $id } }, take: 1) {
-      id
-      name
-      location
-    }
-  }
-`;
-
-export const UsersByIds = gql`
-  query UsersByIds($ids: [String!]!, $take: Int) {
-    listUsers(where: { id: { in: $ids } }, take: $take) {
-      id
-      email
-      customerProfile { fullName email }
+export const QuotationContext = gql`
+  query QuotationContext($id: String!) {
+    quotationContext(id: $id) {
+      store {
+        id
+        name
+        location
+      }
+      biller {
+        id
+        email
+        fullName
+      }
+      reseller {
+        id
+        email
+        fullName
+      }
+      consumer {
+        id
+        email
+        fullName
+      }
     }
   }
 `;
@@ -228,6 +298,73 @@ export const UpdateQuotation = gql`
       status
       totalAmount
       updatedAt
+    }
+  }
+`;
+
+export const CreditCheck = gql`
+  query CreditCheck($saleOrderId: String!) {
+    creditCheck(saleOrderId: $saleOrderId) {
+      saleOrderId
+      state
+      grandTotal
+      paid
+      outstanding
+      creditLimit
+      creditExposure
+      canAdvanceByPayment
+      canAdvanceByCredit
+      context
+    }
+  }
+`;
+
+export const GrantAdminOverride = gql`
+  mutation GrantAdminOverride($input: GrantAdminOverrideInput!) {
+    grantAdminOverride(input: $input) {
+      id
+      saleWorkflowState
+      saleWorkflowContext
+      saleWorkflowSummary {
+        saleOrderId
+        outstanding
+        canAdvanceByPayment
+        canAdvanceByCredit
+      }
+    }
+  }
+`;
+
+export const GrantCreditOverride = gql`
+  mutation GrantCreditOverride($input: GrantCreditOverrideInput!) {
+    grantCreditOverride(input: $input) {
+      id
+      saleWorkflowState
+      saleWorkflowContext
+      saleWorkflowSummary {
+        outstanding
+        canAdvanceByPayment
+        canAdvanceByCredit
+        creditLimit
+        creditExposure
+      }
+    }
+  }
+`;
+
+export const FulfilmentWorkflow = gql`
+  query FulfilmentWorkflow($saleOrderId: String!) {
+    fulfilmentWorkflow(saleOrderId: $saleOrderId) {
+      saleOrderId
+      state
+      context
+      transitionLogs {
+        id
+        fromState
+        toState
+        event
+        occurredAt
+      }
     }
   }
 `;

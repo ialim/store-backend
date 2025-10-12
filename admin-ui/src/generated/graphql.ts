@@ -13047,6 +13047,8 @@ export type Query = {
   dailyPaymentsSeriesRange: Array<PaymentDaySeries>;
   devCounts: DevCounts;
   devExportSnapshot: Scalars['String']['output'];
+  /** Estimate distance and ETA between two stored addresses using the configured routing provider. */
+  estimateRouteByAddresses: RouteEstimateModel;
   findFirstAddress: Address;
   findFirstAsset?: Maybe<Asset>;
   findFirstProduct?: Maybe<Product>;
@@ -13115,6 +13117,7 @@ export type Query = {
   purchaseRequisitionSummary?: Maybe<RequisitionSummary>;
   purchaseReturnsBySupplier: Array<PurchaseReturn>;
   quotation: Quotation;
+  quotationContext: QuotationViewContext;
   quotations: Array<Quotation>;
   recentSupportThreads: Array<SupportMessage>;
   requisitionsByStatus: Array<RequisitionSummary>;
@@ -13392,6 +13395,13 @@ export type QueryDailyPaymentsSeriesRangeArgs = {
 export type QueryDevExportSnapshotArgs = {
   filter?: InputMaybe<DevPurgeFilter>;
   tables: Array<Scalars['String']['input']>;
+};
+
+
+export type QueryEstimateRouteByAddressesArgs = {
+  destinationAddressId: Scalars['String']['input'];
+  originAddressId: Scalars['String']['input'];
+  profile?: InputMaybe<RoutingProfile>;
 };
 
 
@@ -13830,6 +13840,11 @@ export type QueryPurchaseReturnsBySupplierArgs = {
 
 
 export type QueryQuotationArgs = {
+  id: Scalars['String']['input'];
+};
+
+
+export type QueryQuotationContextArgs = {
   id: Scalars['String']['input'];
 };
 
@@ -14627,6 +14642,13 @@ export type QuotationOrderByRelationAggregateInput = {
   _count?: InputMaybe<SortOrder>;
 };
 
+export type QuotationPartyInfo = {
+  __typename?: 'QuotationPartyInfo';
+  email?: Maybe<Scalars['String']['output']>;
+  fullName?: Maybe<Scalars['String']['output']>;
+  id: Scalars['String']['output'];
+};
+
 export type QuotationScalarRelationFilter = {
   is?: InputMaybe<QuotationWhereInput>;
   isNot?: InputMaybe<QuotationWhereInput>;
@@ -14657,6 +14679,13 @@ export enum QuotationStatus {
   Rejected = 'REJECTED',
   Sent = 'SENT'
 }
+
+export type QuotationStoreInfo = {
+  __typename?: 'QuotationStoreInfo';
+  id: Scalars['String']['output'];
+  location?: Maybe<Scalars['String']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+};
 
 export type QuotationUpdateManyMutationInput = {
   channel?: InputMaybe<EnumSaleChannelFieldUpdateOperationsInput>;
@@ -15004,6 +15033,14 @@ export type QuotationUpsertWithoutSaleOrderInput = {
   create: QuotationCreateWithoutSaleOrderInput;
   update: QuotationUpdateWithoutSaleOrderInput;
   where?: InputMaybe<QuotationWhereInput>;
+};
+
+export type QuotationViewContext = {
+  __typename?: 'QuotationViewContext';
+  biller?: Maybe<QuotationPartyInfo>;
+  consumer?: Maybe<QuotationPartyInfo>;
+  reseller?: Maybe<QuotationPartyInfo>;
+  store?: Maybe<QuotationStoreInfo>;
 };
 
 export type QuotationWhereInput = {
@@ -17389,6 +17426,20 @@ export type RoleWhereUniqueInput = {
   users?: InputMaybe<UserListRelationFilter>;
 };
 
+export type RouteEstimateModel = {
+  __typename?: 'RouteEstimateModel';
+  distanceMeters: Scalars['Float']['output'];
+  durationSeconds: Scalars['Float']['output'];
+  profile: RoutingProfile;
+  provider: Scalars['String']['output'];
+};
+
+export enum RoutingProfile {
+  Cycling = 'CYCLING',
+  Driving = 'DRIVING',
+  Walking = 'WALKING'
+}
+
 export enum SaleChannel {
   App = 'APP',
   InStore = 'IN_STORE',
@@ -17404,11 +17455,15 @@ export type SaleOrder = {
   consumerSale?: Maybe<ConsumerSale>;
   createdAt: Scalars['DateTime']['output'];
   fulfillment?: Maybe<Fulfillment>;
+  /** Current state of the fulfillment workflow derived from the fulfillment state machine. */
+  fulfillmentWorkflowState?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   phase: OrderPhase;
   quotation?: Maybe<Quotation>;
   resellerSale?: Maybe<ResellerSale>;
   resellerSaleid?: Maybe<Scalars['String']['output']>;
+  /** Current state of the sale workflow derived from the sale state machine. */
+  saleWorkflowState?: Maybe<Scalars['String']['output']>;
   status: SaleStatus;
   storeId: Scalars['String']['output'];
   totalAmount: Scalars['Float']['output'];
@@ -29344,14 +29399,21 @@ export type HeaderNotificationsQuery = { __typename?: 'Query', notifications: Ar
 export type OrdersQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type OrdersQuery = { __typename?: 'Query', ordersQuery: Array<{ __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, createdAt: any, updatedAt: any } | null }> };
+export type OrdersQuery = { __typename?: 'Query', ordersQuery: Array<{ __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, saleWorkflowState?: string | null, fulfillmentWorkflowState?: string | null, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, quotation?: { __typename?: 'Quotation', id: string, status: QuotationStatus, type: SaleType, billerId?: string | null, resellerId?: string | null, totalAmount: number, updatedAt: any } | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, createdAt: any, updatedAt: any } | null }> };
 
 export type OrderQueryVariables = Exact<{
   id: Scalars['String']['input'];
 }>;
 
 
-export type OrderQuery = { __typename?: 'Query', order: { __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, deliveryPersonnelId?: string | null, deliveryAddress?: string | null, cost?: number | null, createdAt: any, updatedAt: any } | null } };
+export type OrderQuery = { __typename?: 'Query', order: { __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, saleWorkflowState?: string | null, fulfillmentWorkflowState?: string | null, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, quotation?: { __typename?: 'Quotation', id: string, status: QuotationStatus, type: SaleType, totalAmount: number, billerId?: string | null, resellerId?: string | null, updatedAt: any, saleOrderId?: string | null, items?: Array<{ __typename?: 'QuotationItem', productVariantId: string, quantity: number, unitPrice: number }> | null } | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, deliveryPersonnelId?: string | null, deliveryAddress?: string | null, cost?: number | null, createdAt: any, updatedAt: any } | null } };
+
+export type UpdateQuotationStatusMutationVariables = Exact<{
+  input: UpdateQuotationStatusInput;
+}>;
+
+
+export type UpdateQuotationStatusMutation = { __typename?: 'Mutation', updateQuotationStatus: { __typename?: 'Quotation', id: string, status: QuotationStatus, saleOrderId?: string | null, updatedAt: any } };
 
 export type QuotationsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -29375,20 +29437,12 @@ export type QuotationDetailQueryVariables = Exact<{
 
 export type QuotationDetailQuery = { __typename?: 'Query', quotation: { __typename?: 'Quotation', id: string, type: SaleType, channel: SaleChannel, storeId: string, consumerId?: string | null, resellerId?: string | null, billerId?: string | null, status: QuotationStatus, totalAmount: number, saleOrderId?: string | null, createdAt: any, updatedAt: any, items?: Array<{ __typename?: 'QuotationItem', productVariantId: string, quantity: number, unitPrice: number }> | null, SaleOrder?: { __typename?: 'SaleOrder', id: string, status: SaleStatus, phase: OrderPhase, totalAmount: number } | null } };
 
-export type StoreSummaryQueryVariables = Exact<{
+export type QuotationContextQueryVariables = Exact<{
   id: Scalars['String']['input'];
 }>;
 
 
-export type StoreSummaryQuery = { __typename?: 'Query', listStores: Array<{ __typename?: 'Store', id: string, name: string, location?: string | null }> };
-
-export type UsersByIdsQueryVariables = Exact<{
-  ids: Array<Scalars['String']['input']> | Scalars['String']['input'];
-  take?: InputMaybe<Scalars['Int']['input']>;
-}>;
-
-
-export type UsersByIdsQuery = { __typename?: 'Query', listUsers: Array<{ __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string, email?: string | null } | null }> };
+export type QuotationContextQuery = { __typename?: 'Query', quotationContext: { __typename?: 'QuotationViewContext', store?: { __typename?: 'QuotationStoreInfo', id: string, name?: string | null, location?: string | null } | null, biller?: { __typename?: 'QuotationPartyInfo', id: string, email?: string | null, fullName?: string | null } | null, reseller?: { __typename?: 'QuotationPartyInfo', id: string, email?: string | null, fullName?: string | null } | null, consumer?: { __typename?: 'QuotationPartyInfo', id: string, email?: string | null, fullName?: string | null } | null } };
 
 export type ProductVariantsByIdsQueryVariables = Exact<{
   ids: Array<Scalars['String']['input']> | Scalars['String']['input'];
@@ -32497,10 +32551,21 @@ export const OrdersDocument = gql`
     type
     status
     phase
+    saleWorkflowState
+    fulfillmentWorkflowState
     totalAmount
     createdAt
     updatedAt
     resellerSaleid
+    quotation {
+      id
+      status
+      type
+      billerId
+      resellerId
+      totalAmount
+      updatedAt
+    }
     fulfillment {
       id
       status
@@ -32552,10 +32617,27 @@ export const OrderDocument = gql`
     type
     status
     phase
+    saleWorkflowState
+    fulfillmentWorkflowState
     totalAmount
     createdAt
     updatedAt
     resellerSaleid
+    quotation {
+      id
+      status
+      type
+      totalAmount
+      billerId
+      resellerId
+      updatedAt
+      saleOrderId
+      items {
+        productVariantId
+        quantity
+        unitPrice
+      }
+    }
     fulfillment {
       id
       status
@@ -32602,6 +32684,42 @@ export type OrderQueryHookResult = ReturnType<typeof useOrderQuery>;
 export type OrderLazyQueryHookResult = ReturnType<typeof useOrderLazyQuery>;
 export type OrderSuspenseQueryHookResult = ReturnType<typeof useOrderSuspenseQuery>;
 export type OrderQueryResult = Apollo.QueryResult<OrderQuery, OrderQueryVariables>;
+export const UpdateQuotationStatusDocument = gql`
+    mutation UpdateQuotationStatus($input: UpdateQuotationStatusInput!) {
+  updateQuotationStatus(input: $input) {
+    id
+    status
+    saleOrderId
+    updatedAt
+  }
+}
+    `;
+export type UpdateQuotationStatusMutationFn = Apollo.MutationFunction<UpdateQuotationStatusMutation, UpdateQuotationStatusMutationVariables>;
+
+/**
+ * __useUpdateQuotationStatusMutation__
+ *
+ * To run a mutation, you first call `useUpdateQuotationStatusMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateQuotationStatusMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateQuotationStatusMutation, { data, loading, error }] = useUpdateQuotationStatusMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateQuotationStatusMutation(baseOptions?: Apollo.MutationHookOptions<UpdateQuotationStatusMutation, UpdateQuotationStatusMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateQuotationStatusMutation, UpdateQuotationStatusMutationVariables>(UpdateQuotationStatusDocument, options);
+      }
+export type UpdateQuotationStatusMutationHookResult = ReturnType<typeof useUpdateQuotationStatusMutation>;
+export type UpdateQuotationStatusMutationResult = Apollo.MutationResult<UpdateQuotationStatusMutation>;
+export type UpdateQuotationStatusMutationOptions = Apollo.BaseMutationOptions<UpdateQuotationStatusMutation, UpdateQuotationStatusMutationVariables>;
 export const QuotationsDocument = gql`
     query Quotations {
   quotations {
@@ -32813,94 +32931,65 @@ export type QuotationDetailQueryHookResult = ReturnType<typeof useQuotationDetai
 export type QuotationDetailLazyQueryHookResult = ReturnType<typeof useQuotationDetailLazyQuery>;
 export type QuotationDetailSuspenseQueryHookResult = ReturnType<typeof useQuotationDetailSuspenseQuery>;
 export type QuotationDetailQueryResult = Apollo.QueryResult<QuotationDetailQuery, QuotationDetailQueryVariables>;
-export const StoreSummaryDocument = gql`
-    query StoreSummary($id: String!) {
-  listStores(where: {id: {equals: $id}}, take: 1) {
-    id
-    name
-    location
-  }
-}
-    `;
-
-/**
- * __useStoreSummaryQuery__
- *
- * To run a query within a React component, call `useStoreSummaryQuery` and pass it any options that fit your needs.
- * When your component renders, `useStoreSummaryQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useStoreSummaryQuery({
- *   variables: {
- *      id: // value for 'id'
- *   },
- * });
- */
-export function useStoreSummaryQuery(baseOptions: Apollo.QueryHookOptions<StoreSummaryQuery, StoreSummaryQueryVariables> & ({ variables: StoreSummaryQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<StoreSummaryQuery, StoreSummaryQueryVariables>(StoreSummaryDocument, options);
-      }
-export function useStoreSummaryLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<StoreSummaryQuery, StoreSummaryQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<StoreSummaryQuery, StoreSummaryQueryVariables>(StoreSummaryDocument, options);
-        }
-export function useStoreSummarySuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<StoreSummaryQuery, StoreSummaryQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<StoreSummaryQuery, StoreSummaryQueryVariables>(StoreSummaryDocument, options);
-        }
-export type StoreSummaryQueryHookResult = ReturnType<typeof useStoreSummaryQuery>;
-export type StoreSummaryLazyQueryHookResult = ReturnType<typeof useStoreSummaryLazyQuery>;
-export type StoreSummarySuspenseQueryHookResult = ReturnType<typeof useStoreSummarySuspenseQuery>;
-export type StoreSummaryQueryResult = Apollo.QueryResult<StoreSummaryQuery, StoreSummaryQueryVariables>;
-export const UsersByIdsDocument = gql`
-    query UsersByIds($ids: [String!]!, $take: Int) {
-  listUsers(where: {id: {in: $ids}}, take: $take) {
-    id
-    email
-    customerProfile {
-      fullName
+export const QuotationContextDocument = gql`
+    query QuotationContext($id: String!) {
+  quotationContext(id: $id) {
+    store {
+      id
+      name
+      location
+    }
+    biller {
+      id
       email
+      fullName
+    }
+    reseller {
+      id
+      email
+      fullName
+    }
+    consumer {
+      id
+      email
+      fullName
     }
   }
 }
     `;
 
 /**
- * __useUsersByIdsQuery__
+ * __useQuotationContextQuery__
  *
- * To run a query within a React component, call `useUsersByIdsQuery` and pass it any options that fit your needs.
- * When your component renders, `useUsersByIdsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * To run a query within a React component, call `useQuotationContextQuery` and pass it any options that fit your needs.
+ * When your component renders, `useQuotationContextQuery` returns an object from Apollo Client that contains loading, error, and data properties
  * you can use to render your UI.
  *
  * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
  *
  * @example
- * const { data, loading, error } = useUsersByIdsQuery({
+ * const { data, loading, error } = useQuotationContextQuery({
  *   variables: {
- *      ids: // value for 'ids'
- *      take: // value for 'take'
+ *      id: // value for 'id'
  *   },
  * });
  */
-export function useUsersByIdsQuery(baseOptions: Apollo.QueryHookOptions<UsersByIdsQuery, UsersByIdsQueryVariables> & ({ variables: UsersByIdsQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+export function useQuotationContextQuery(baseOptions: Apollo.QueryHookOptions<QuotationContextQuery, QuotationContextQueryVariables> & ({ variables: QuotationContextQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
         const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<UsersByIdsQuery, UsersByIdsQueryVariables>(UsersByIdsDocument, options);
+        return Apollo.useQuery<QuotationContextQuery, QuotationContextQueryVariables>(QuotationContextDocument, options);
       }
-export function useUsersByIdsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<UsersByIdsQuery, UsersByIdsQueryVariables>) {
+export function useQuotationContextLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<QuotationContextQuery, QuotationContextQueryVariables>) {
           const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<UsersByIdsQuery, UsersByIdsQueryVariables>(UsersByIdsDocument, options);
+          return Apollo.useLazyQuery<QuotationContextQuery, QuotationContextQueryVariables>(QuotationContextDocument, options);
         }
-export function useUsersByIdsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<UsersByIdsQuery, UsersByIdsQueryVariables>) {
+export function useQuotationContextSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<QuotationContextQuery, QuotationContextQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<UsersByIdsQuery, UsersByIdsQueryVariables>(UsersByIdsDocument, options);
+          return Apollo.useSuspenseQuery<QuotationContextQuery, QuotationContextQueryVariables>(QuotationContextDocument, options);
         }
-export type UsersByIdsQueryHookResult = ReturnType<typeof useUsersByIdsQuery>;
-export type UsersByIdsLazyQueryHookResult = ReturnType<typeof useUsersByIdsLazyQuery>;
-export type UsersByIdsSuspenseQueryHookResult = ReturnType<typeof useUsersByIdsSuspenseQuery>;
-export type UsersByIdsQueryResult = Apollo.QueryResult<UsersByIdsQuery, UsersByIdsQueryVariables>;
+export type QuotationContextQueryHookResult = ReturnType<typeof useQuotationContextQuery>;
+export type QuotationContextLazyQueryHookResult = ReturnType<typeof useQuotationContextLazyQuery>;
+export type QuotationContextSuspenseQueryHookResult = ReturnType<typeof useQuotationContextSuspenseQuery>;
+export type QuotationContextQueryResult = Apollo.QueryResult<QuotationContextQuery, QuotationContextQueryVariables>;
 export const ProductVariantsByIdsDocument = gql`
     query ProductVariantsByIds($ids: [String!]!, $take: Int) {
   listProductVariants(where: {id: {in: $ids}}, take: $take) {

@@ -101,7 +101,7 @@ export default function App() {
     PERMISSIONS.role.DELETE,
   );
   const addressReadAccess = permissionList(PERMISSIONS.address.READ);
-  const fulfillmentAccess = assignmentAccess;
+  const fulfillmentAccess = permissionList(PERMISSIONS.sale.UPDATE);
 
   return (
     <Box>
@@ -139,7 +139,7 @@ export default function App() {
               path="/fulfillment"
               element={
                 <ProtectedRoute
-                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER']}
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
                   perms={fulfillmentAccess}
                   element={<Fulfillment />}
                 />
@@ -200,7 +200,14 @@ export default function App() {
               path="/orders"
               element={
                 <ProtectedRoute
-                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  roles={[
+                    'SUPERADMIN',
+                    'ADMIN',
+                    'MANAGER',
+                    'BILLER',
+                    'ACCOUNTANT',
+                    'RESELLER',
+                  ]}
                   perms={orderReadAccess}
                   element={<Orders />}
                 />
@@ -210,7 +217,14 @@ export default function App() {
               path="/orders/quotations"
               element={
                 <ProtectedRoute
-                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  roles={[
+                    'SUPERADMIN',
+                    'ADMIN',
+                    'MANAGER',
+                    'BILLER',
+                    'ACCOUNTANT',
+                    'RESELLER',
+                  ]}
                   perms={orderReadAccess}
                   element={<OrdersQuotations />}
                 />
@@ -220,7 +234,14 @@ export default function App() {
               path="/orders/quotations/new"
               element={
                 <ProtectedRoute
-                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  roles={[
+                    'SUPERADMIN',
+                    'ADMIN',
+                    'MANAGER',
+                    'BILLER',
+                    'ACCOUNTANT',
+                    'RESELLER',
+                  ]}
                   perms={orderReadAccess}
                   element={<OrdersQuotationCreate />}
                 />
@@ -230,7 +251,14 @@ export default function App() {
               path="/orders/quotations/:id"
               element={
                 <ProtectedRoute
-                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  roles={[
+                    'SUPERADMIN',
+                    'ADMIN',
+                    'MANAGER',
+                    'BILLER',
+                    'ACCOUNTANT',
+                    'RESELLER',
+                  ]}
                   perms={orderReadAccess}
                   element={<OrdersQuotationDetail />}
                 />
@@ -240,7 +268,14 @@ export default function App() {
               path="/orders/quotations/:id/edit"
               element={
                 <ProtectedRoute
-                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  roles={[
+                    'SUPERADMIN',
+                    'ADMIN',
+                    'MANAGER',
+                    'BILLER',
+                    'ACCOUNTANT',
+                    'RESELLER',
+                  ]}
                   perms={orderReadAccess}
                   element={<OrdersQuotationEdit />}
                 />
@@ -250,7 +285,14 @@ export default function App() {
               path="/orders/sales"
               element={
                 <ProtectedRoute
-                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  roles={[
+                    'SUPERADMIN',
+                    'ADMIN',
+                    'MANAGER',
+                    'BILLER',
+                    'ACCOUNTANT',
+                    'RESELLER',
+                  ]}
                   perms={orderReadAccess}
                   element={<OrdersSales />}
                 />
@@ -260,7 +302,14 @@ export default function App() {
               path="/orders/sales/:kind/:id"
               element={
                 <ProtectedRoute
-                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  roles={[
+                    'SUPERADMIN',
+                    'ADMIN',
+                    'MANAGER',
+                    'BILLER',
+                    'ACCOUNTANT',
+                    'RESELLER',
+                  ]}
                   perms={orderReadAccess}
                   element={<OrdersSaleDetail />}
                 />
@@ -270,7 +319,14 @@ export default function App() {
               path="/orders/:id"
               element={
                 <ProtectedRoute
-                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT']}
+                  roles={[
+                    'SUPERADMIN',
+                    'ADMIN',
+                    'MANAGER',
+                    'BILLER',
+                    'ACCOUNTANT',
+                    'RESELLER',
+                  ]}
                   perms={orderReadAccess}
                   element={<OrderDetail />}
                 />
