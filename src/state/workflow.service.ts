@@ -24,15 +24,8 @@ export class WorkflowService {
     metadata?: Prisma.InputJsonValue | null;
     tx?: Prisma.TransactionClient;
   }): Promise<void> {
-    const {
-      orderId,
-      fromState,
-      toState,
-      event,
-      context,
-      metadata,
-      tx,
-    } = params;
+    const { orderId, fromState, toState, event, context, metadata, tx } =
+      params;
     const client = resolveClient(this.prisma, tx);
 
     const data: Prisma.SaleOrderUpdateInput = {
@@ -70,15 +63,8 @@ export class WorkflowService {
     metadata?: Prisma.InputJsonValue | null;
     tx?: Prisma.TransactionClient;
   }): Promise<void> {
-    const {
-      fulfillmentId,
-      fromState,
-      toState,
-      event,
-      context,
-      metadata,
-      tx,
-    } = params;
+    const { fulfillmentId, fromState, toState, event, context, metadata, tx } =
+      params;
     const client = resolveClient(this.prisma, tx);
 
     const data: Prisma.FulfillmentUpdateInput = {

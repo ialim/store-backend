@@ -359,7 +359,7 @@ export class SalesService {
     if (input.status !== current.status) {
       try {
         ensureQuotationTransition(current.status, input.status);
-      } catch (error) {
+      } catch {
         throw new BadRequestException(
           `Cannot transition quotation from ${current.status} to ${input.status}`,
         );
@@ -1486,7 +1486,8 @@ export class SalesService {
       saleOrderId: snapshot.order.id,
       state,
       context: toSaleContextPayload(snapshot.baseContext),
-      grandTotal: snapshot.baseContext.grandTotal ?? snapshot.order.totalAmount ?? 0,
+      grandTotal:
+        snapshot.baseContext.grandTotal ?? snapshot.order.totalAmount ?? 0,
       paid: snapshot.paid,
       outstanding: snapshot.overage,
       creditLimit: snapshot.baseContext.credit.limit ?? 0,

@@ -363,20 +363,14 @@ export function runSaleMachine(options: {
   context: SaleContext;
   changed: boolean;
 } {
-  const {
-    status,
-    event,
-    workflowState,
-    workflowContext,
-    contextOverrides,
-    callbacks,
-  } = options;
+  const { status, event, workflowState, workflowContext, contextOverrides } =
+    options;
 
   const context: SaleContext = {
     ...defaultContext,
     ...(workflowContext ?? {}),
     ...(contextOverrides ?? {}),
-    callbacks,
+    callbacks: options.callbacks,
   };
 
   const startState =
@@ -407,6 +401,7 @@ export function runSaleMachine(options: {
 export function toSaleContextPayload(
   context: SaleContext,
 ): Record<string, unknown> {
-  const { callbacks, ...rest } = context;
+  const { callbacks: _callbacks, ...rest } = context;
+  void _callbacks;
   return JSON.parse(JSON.stringify(rest));
 }

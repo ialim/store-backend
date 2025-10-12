@@ -7,7 +7,7 @@ import { FulfilmentWorkflowSnapshot } from './dto/fulfilment-workflow-snapshot.m
 type FulfillmentParent = {
   id: string;
   saleOrderId: string;
-  workflowContext?: unknown | null;
+  workflowContext?: Record<string, unknown> | null;
 };
 
 @Resolver(() => Fulfillment)
@@ -20,9 +20,7 @@ export class FulfillmentResolver {
     description:
       'Normalized fulfillment workflow context including scheduling metadata.',
   })
-  async fulfillmentWorkflowContext(
-    @Parent() fulfillment: FulfillmentParent,
-  ) {
+  async fulfillmentWorkflowContext(@Parent() fulfillment: FulfillmentParent) {
     if (
       fulfillment?.workflowContext &&
       typeof fulfillment.workflowContext === 'object'

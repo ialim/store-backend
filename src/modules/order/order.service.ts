@@ -12,7 +12,7 @@ import { CreateResellerPaymentInput } from '../sale/dto/create-reseller-payment.
 import { ConfirmConsumerPaymentInput } from '../sale/dto/confirm-consumer-payment.input';
 import { UpdateQuotationInput } from '../sale/dto/update-quotation.input';
 import { AuthenticatedUser } from '../auth/auth.service';
-import { Prisma, QuotationStatus, SaleType, SaleStatus } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import {
   QuotationViewContext,
   QuotationPartyInfo,
@@ -20,6 +20,8 @@ import {
 } from './dto/quotation-context.model';
 import { GrantAdminOverrideInput } from './dto/grant-admin-override.input';
 import { GrantCreditOverrideInput } from './dto/grant-credit-override.input';
+import { QuotationStatus } from '../../shared/prismagraphql/prisma/quotation-status.enum';
+import { SaleType } from '../../shared/prismagraphql/prisma/sale-type.enum';
 
 @Injectable()
 export class OrderService {
@@ -212,11 +214,7 @@ export class OrderService {
           'Resellers can only manage RESELLER quotations',
         );
       }
-      if (
-        input.resellerId &&
-        user?.id &&
-        input.resellerId !== user.id
-      ) {
+      if (input.resellerId && user?.id && input.resellerId !== user.id) {
         throw new BadRequestException(
           'Resellers cannot reassign quotations to other users',
         );
@@ -279,18 +277,12 @@ export class OrderService {
     return this.order(input.saleOrderId, user);
   }
 
-  async saleWorkflow(
-    saleOrderId: string,
-    user?: AuthenticatedUser | null,
-  ) {
+  async saleWorkflow(saleOrderId: string, user?: AuthenticatedUser | null) {
     await this.order(saleOrderId, user);
     return this.sales.getSaleWorkflowSnapshot(saleOrderId);
   }
 
-  async creditCheck(
-    saleOrderId: string,
-    user?: AuthenticatedUser | null,
-  ) {
+  async creditCheck(saleOrderId: string, user?: AuthenticatedUser | null) {
     await this.order(saleOrderId, user);
     return this.sales.creditCheck(saleOrderId);
   }

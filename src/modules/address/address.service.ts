@@ -359,7 +359,7 @@ export class AddressService extends BaseCrudService<
           },
         });
         refreshed += 1;
-      } catch (error) {
+      } catch {
         continue;
       }
     }

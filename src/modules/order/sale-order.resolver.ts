@@ -13,7 +13,7 @@ type SaleOrderParent = {
   id: string;
   status: SaleStatus;
   workflowState?: string | null;
-  workflowContext?: unknown | null;
+  workflowContext?: Record<string, unknown> | null;
   fulfillment?: {
     saleOrderId?: string;
     status: FulfillmentStatus | null;
@@ -66,10 +66,7 @@ export class SaleOrderResolver {
       'Normalized sale workflow context including credit exposure and override flags.',
   })
   async saleWorkflowContext(@Parent() order: SaleOrderParent) {
-    if (
-      order?.workflowContext &&
-      typeof order.workflowContext === 'object'
-    ) {
+    if (order?.workflowContext && typeof order.workflowContext === 'object') {
       return order.workflowContext;
     }
     return this.sales.getSaleWorkflowContext(order.id);
