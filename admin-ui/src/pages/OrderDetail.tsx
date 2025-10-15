@@ -24,6 +24,7 @@ import {
   Tooltip,
   Typography,
   Button,
+  MenuItem,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -34,9 +35,13 @@ import {
   CreditCheck,
   GrantAdminOverride,
   GrantCreditOverride,
+  RegisterConsumerPayment,
+  RegisterResellerPayment,
 } from '../operations/orders';
+import { Stores } from '../operations/stores';
 import { useAuth } from '../shared/AuthProvider';
 import { PERMISSIONS } from '../shared/permissions';
+import { PaymentMethod } from '../generated/graphql';
 
 type WorkflowSummary = {
   saleOrderId: string;
@@ -49,6 +54,32 @@ type WorkflowSummary = {
   canAdvanceByPayment: boolean;
   canAdvanceByCredit: boolean;
   context?: any;
+};
+
+type OrderStoreInfo = {
+  id: string;
+  name: string;
+  location?: string | null;
+};
+
+type OrderUserInfo = {
+  id: string;
+  email?: string | null;
+  customerProfile?: { fullName?: string | null } | null;
+};
+
+type OrderCustomerInfo = {
+  id: string;
+  fullName?: string | null;
+  email?: string | null;
+};
+
+type StoreListData = {
+  listStores: Array<{
+    id: string;
+    name: string;
+    location?: string | null;
+  }>;
 };
 
 type OrderData = {
@@ -67,6 +98,21 @@ type OrderData = {
     createdAt: string;
     updatedAt: string;
     resellerSaleid?: string | null;
+    consumerSale?: {
+      id: string;
+      status: string;
+      store: OrderStoreInfo | null;
+      biller: OrderUserInfo | null;
+      customer: OrderCustomerInfo | null;
+    } | null;
+    resellerSale?: {
+      id: string;
+      status: string;
+      resellerId: string;
+      reseller: OrderUserInfo | null;
+      biller: OrderUserInfo | null;
+      store: OrderStoreInfo | null;
+    } | null;
     quotation?: {
       id: string;
       status: string;
@@ -96,6 +142,24 @@ type OrderData = {
         context?: any;
       } | null;
     } | null;
+    ConsumerPayment: Array<{
+      id: string;
+      amount: number;
+      method: PaymentMethod;
+      status: string;
+      reference?: string | null;
+      receivedAt: string;
+    }>;
+    ResellerPayment: Array<{
+      id: string;
+      amount: number;
+      method: PaymentMethod;
+      status: string;
+      reference?: string | null;
+      receivedAt: string;
+      resellerId: string;
+      receivedById: string;
+    }>;
   };
 };
 
@@ -127,6 +191,37 @@ function workflowChip(label: string, state?: string | null) {
   return <Chip label={`${label}: ${state}`} color={color} size="small" />;
 }
 
+function paymentStatusChip(status?: string | null) {
+  if (!status) return null;
+  const normalized = status.toUpperCase();
+  let color: 'default' | 'success' | 'warning' | 'error' = 'default';
+  if (normalized === 'CONFIRMED') color = 'success';
+  else if (normalized === 'PENDING') color = 'warning';
+  else if (normalized === 'FAILED') color = 'error';
+  return <Chip label={normalized} color={color} size="small" />;
+}
+
+function formatUserLabel(user: OrderUserInfo | undefined | null) {
+  if (!user) return '—';
+  const fullName = user.customerProfile?.fullName?.trim();
+  return fullName?.length ? `${fullName} (${user.email ?? 'no email'})` : user.email ?? user.id;
+}
+
+function formatCustomerLabel(customer: OrderCustomerInfo | undefined | null) {
+  if (!customer) return '—';
+  const fullName = customer.fullName?.trim();
+  if (fullName?.length && customer.email) {
+    return `${fullName} (${customer.email})`;
+  }
+  return fullName || customer.email || customer.id;
+}
+
+function formatStoreLabel(store: OrderStoreInfo | undefined | null, fallback?: string | null) {
+  if (!store) return fallback ?? '—';
+  const location = store.location?.trim();
+  return location?.length ? `${store.name} • ${location}` : store.name;
+}
+
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -136,6 +231,10 @@ export default function OrderDetail() {
     skip: !id,
     fetchPolicy: 'cache-and-network',
   });
+  const { data: storesData } = useQuery<StoreListData>(Stores, {
+    variables: { take: 500 },
+    fetchPolicy: 'cache-first',
+  });
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = React.useState<string | null>(null);
   const [workflowSummary, setWorkflowSummary] = React.useState<WorkflowSummary | null>(null);
@@ -144,6 +243,12 @@ export default function OrderDetail() {
   const [adminExpiry, setAdminExpiry] = React.useState('');
   const [creditAmount, setCreditAmount] = React.useState('');
   const [creditExpiry, setCreditExpiry] = React.useState('');
+  const [showPaymentDialog, setShowPaymentDialog] = React.useState(false);
+  const [paymentAmount, setPaymentAmount] = React.useState('');
+  const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>(
+    PaymentMethod.Transfer,
+  );
+  const [paymentReference, setPaymentReference] = React.useState('');
   const [updateStatus, { loading: statusUpdating }] = useMutation(
     UpdateQuotationStatus,
   );
@@ -151,8 +256,27 @@ export default function OrderDetail() {
     useMutation(GrantAdminOverride);
   const [grantCreditOverrideMutation, { loading: grantingCredit }] =
     useMutation(GrantCreditOverride);
+  const [registerConsumerPayment, { loading: registeringConsumerPayment }] =
+    useMutation(RegisterConsumerPayment);
+  const [registerResellerPayment, { loading: registeringResellerPayment }] =
+    useMutation(RegisterResellerPayment);
 
   type CreditCheckResult = { creditCheck?: WorkflowSummary | null };
+
+  const paymentMethodOptions = React.useMemo(
+    () => Object.values(PaymentMethod),
+    [],
+  );
+  const paymentMutationLoading =
+    registeringConsumerPayment || registeringResellerPayment;
+
+  const storeMap = React.useMemo(() => {
+    const entries = storesData?.listStores?.map((store) => [
+      store.id,
+      `${store.name}${store.location ? ` • ${store.location}` : ''}`,
+    ]) as Array<[string, string]> | undefined;
+    return new Map(entries ?? []);
+  }, [storesData]);
 
   const [runCreditCheck, { loading: creditChecking }] = useLazyQuery<CreditCheckResult>(
     CreditCheck,
@@ -173,6 +297,16 @@ export default function OrderDetail() {
   );
 
   const order = data?.order;
+  type PaymentRow = {
+    id: string;
+    channel: 'Consumer' | 'Reseller';
+    amount: number;
+    method: PaymentMethod;
+    status: string;
+    reference?: string | null;
+    receivedAt: string;
+  };
+
   React.useEffect(() => {
     if (order?.saleWorkflowSummary) {
       setWorkflowSummary(order.saleWorkflowSummary);
@@ -193,6 +327,7 @@ export default function OrderDetail() {
     PERMISSIONS.order.UPDATE ?? 'ORDER_UPDATE',
   );
   const isReseller = hasRole('RESELLER');
+  const isSuperAdmin = hasRole('SUPERADMIN');
   const canUpdateOrder = hasOrderUpdatePermission;
   const ownsQuotation =
     isReseller && quotation?.resellerId && quotation.resellerId === user?.id;
@@ -207,6 +342,84 @@ export default function OrderDetail() {
   const canGrantOverrides =
     hasPermission(PERMISSIONS.order.APPROVE ?? 'ORDER_APPROVE') &&
     (hasRole('MANAGER') || hasRole('ADMIN') || hasRole('SUPERADMIN'));
+
+  const billerUser =
+    order?.consumerSale?.biller ??
+    order?.resellerSale?.biller ??
+    null;
+  const billerLabel = formatUserLabel(billerUser) || '—';
+
+  const resellerUser =
+    order?.resellerSale?.reseller ?? null;
+  const resellerLabel = formatUserLabel(resellerUser);
+
+  const customerInfo =
+    order?.consumerSale?.customer ?? null;
+  const customerLabel = formatCustomerLabel(customerInfo);
+
+  const isOrderBiller = Boolean(
+    user?.id &&
+      (
+        order?.billerId === user.id ||
+        billerUser?.id === user.id ||
+        order?.quotation?.billerId === user.id
+      ),
+  );
+
+  const normalizedOrderType = (order?.type || '').toUpperCase();
+  const canRegisterPayment = Boolean(
+    order &&
+      (canUpdateOrder || isSuperAdmin || isOrderBiller) &&
+      (normalizedOrderType === 'CONSUMER' || normalizedOrderType === 'RESELLER'),
+  );
+
+  const primaryStore = order?.consumerSale?.store ?? order?.resellerSale?.store ?? null;
+  const storeLabel = formatStoreLabel(primaryStore, order?.storeId);
+
+  const payments = React.useMemo<PaymentRow[]>(() => {
+    if (!order) return [];
+    const consumerPayments = (order.ConsumerPayment ?? []).map((p) => ({
+      id: p.id,
+      channel: 'Consumer' as const,
+      amount: p.amount,
+      method: p.method,
+      status: p.status,
+      reference: p.reference ?? null,
+      receivedAt: p.receivedAt,
+    }));
+    const resellerPayments = (order.ResellerPayment ?? []).map((p) => ({
+      id: p.id,
+      channel: 'Reseller' as const,
+      amount: p.amount,
+      method: p.method,
+      status: p.status,
+      reference: p.reference ?? null,
+      receivedAt: p.receivedAt,
+    }));
+    return [...consumerPayments, ...resellerPayments].sort(
+      (a, b) =>
+        new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime(),
+    );
+  }, [order]);
+
+  const handleOpenPaymentDialog = React.useCallback(() => {
+    if (!order) return;
+    setActionError(null);
+    setActionSuccess(null);
+    const outstanding = workflowSummary?.outstanding ?? 0;
+    setPaymentAmount(
+      outstanding && Number.isFinite(outstanding) && outstanding > 0
+        ? String(outstanding)
+        : '',
+    );
+    setPaymentReference('');
+    setPaymentMethod(PaymentMethod.Transfer);
+    setShowPaymentDialog(true);
+  }, [order, workflowSummary?.outstanding]);
+
+  const handleClosePaymentDialog = React.useCallback(() => {
+    setShowPaymentDialog(false);
+  }, []);
 
   const handleStatusChange = React.useCallback(
     async (status: string) => {
@@ -324,6 +537,93 @@ export default function OrderDetail() {
     runCreditCheck,
   ]);
 
+  const handleRegisterPayment = React.useCallback(async () => {
+    if (!order?.id) return;
+    const amount = parseFloat(paymentAmount || '0');
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setActionError('Payment amount must be greater than zero.');
+      return;
+    }
+    const referenceRaw = paymentReference.trim();
+    const reference = referenceRaw.length ? referenceRaw : undefined;
+    setActionError(null);
+    setActionSuccess(null);
+    try {
+      if (normalizedOrderType === 'CONSUMER') {
+        const consumerSaleId = order.consumerSale?.id;
+        if (!consumerSaleId) {
+          setActionError('Order is missing consumer sale details.');
+          return;
+        }
+        await registerConsumerPayment({
+          variables: {
+            input: {
+              saleOrderId: order.id,
+              consumerSaleId,
+              amount,
+              method: paymentMethod,
+              ...(reference ? { reference } : {}),
+            },
+          },
+        });
+      } else if (normalizedOrderType === 'RESELLER') {
+        const resellerId =
+          order.resellerSale?.resellerId || quotation?.resellerId || null;
+        if (!resellerId) {
+          setActionError('Order is missing reseller information.');
+          return;
+        }
+        if (!user?.id) {
+          setActionError('Current user context is required to log payment.');
+          return;
+        }
+        const resellerSaleId =
+          order.resellerSale?.id || order.resellerSaleid || undefined;
+        await registerResellerPayment({
+          variables: {
+            input: {
+              saleOrderId: order.id,
+              resellerId,
+              receivedById: user.id,
+              amount,
+              method: paymentMethod,
+              ...(reference ? { reference } : {}),
+              ...(resellerSaleId ? { resellerSaleId } : {}),
+            },
+          },
+        });
+      } else {
+        setActionError('Payments can only be logged for consumer or reseller orders.');
+        return;
+      }
+      setShowPaymentDialog(false);
+      setPaymentAmount('');
+      setPaymentReference('');
+      setActionSuccess('Payment logged successfully.');
+      await Promise.all([
+        refetch(),
+        runCreditCheck({ variables: { saleOrderId: order.id } }),
+      ]);
+    } catch (mutationErr: any) {
+      setActionError(
+        mutationErr?.message ||
+          'Failed to log payment. Please try again.',
+      );
+    }
+  }, [
+    normalizedOrderType,
+    order,
+    paymentAmount,
+    paymentMethod,
+    paymentReference,
+    quotation?.resellerId,
+    refetch,
+    registerConsumerPayment,
+    registerResellerPayment,
+    runCreditCheck,
+    user?.id,
+  ]);
+
   const summaryContext = (workflowSummary?.context ?? {}) as any;
   const adminOverride = summaryContext?.overrides?.admin;
   const creditOverride = summaryContext?.overrides?.credit;
@@ -401,6 +701,16 @@ export default function OrderDetail() {
             >
               {creditChecking ? 'Refreshing credit...' : 'Refresh Credit Snapshot'}
             </Button>
+            {canRegisterPayment && (
+              <Button
+                variant="contained"
+                color="success"
+                onClick={handleOpenPaymentDialog}
+                disabled={paymentMutationLoading}
+              >
+                Log Payment
+              </Button>
+            )}
             {canGrantOverrides && (
               <>
                 <Button
@@ -620,6 +930,57 @@ export default function OrderDetail() {
               )}
             </Stack>
             <Divider />
+            <Stack spacing={1}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Payments
+              </Typography>
+              {payments.length > 0 ? (
+                <Stack spacing={1.5}>
+                  {payments.map((payment) => (
+                    <Stack
+                      key={payment.id}
+                      direction={{ xs: 'column', md: 'row' }}
+                      spacing={1}
+                      justifyContent="space-between"
+                      alignItems={{ xs: 'flex-start', md: 'center' }}
+                      sx={{
+                        border: '1px solid rgba(16,94,62,0.12)',
+                        borderRadius: 2,
+                        p: 1.5,
+                      }}
+                    >
+                      <Stack spacing={0.5}>
+                        <Typography variant="subtitle2">
+                          {payment.channel} payment
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Received {formatDate(payment.receivedAt)}
+                        </Typography>
+                      </Stack>
+                      <Stack
+                        direction={{ xs: 'column', md: 'row' }}
+                        spacing={1}
+                        alignItems={{ xs: 'flex-start', md: 'center' }}
+                      >
+                        <Typography variant="subtitle2">
+                          {formatMoney(payment.amount)}
+                        </Typography>
+                        <Chip label={payment.method} size="small" />
+                        {paymentStatusChip(payment.status)}
+                        <Typography variant="body2" color="text.secondary">
+                          Ref: {payment.reference || '—'}
+                        </Typography>
+                      </Stack>
+                    </Stack>
+                  ))}
+                </Stack>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No payments recorded for this order yet.
+                </Typography>
+              )}
+            </Stack>
+            <Divider />
             {quotation && (
               <>
                 <Stack spacing={1}>
@@ -682,15 +1043,19 @@ export default function OrderDetail() {
                 <Typography variant="body2" color="text.secondary">
                   Store
                 </Typography>
-                <Typography variant="subtitle2">{order.storeId}</Typography>
+                <Typography variant="subtitle2">{storeLabel}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="body2" color="text.secondary">
                   Biller
                 </Typography>
-                <Typography variant="subtitle2">
-                  {order.billerId || '—'}
+                <Typography variant="subtitle2">{billerLabel}</Typography>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="body2" color="text.secondary">
+                  Reseller
                 </Typography>
+                <Typography variant="subtitle2">{resellerLabel}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="body2" color="text.secondary">
@@ -729,6 +1094,12 @@ export default function OrderDetail() {
                 <Typography variant="subtitle2">
                   {order.resellerSaleid || '—'}
                 </Typography>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="body2" color="text.secondary">
+                  Customer
+                </Typography>
+                <Typography variant="subtitle2">{customerLabel}</Typography>
               </Grid>
             </Grid>
             {order.fulfillment && (
@@ -807,6 +1178,67 @@ export default function OrderDetail() {
             )}
             </Stack>
           </Paper>
+          <Dialog
+            open={showPaymentDialog}
+            onClose={handleClosePaymentDialog}
+            maxWidth="sm"
+            fullWidth
+          >
+            <DialogTitle>Log Payment</DialogTitle>
+            <DialogContent sx={{ pt: 1 }}>
+              <Stack spacing={2}>
+                {workflowSummary && (
+                  <Typography variant="body2" color="text.secondary">
+                    Outstanding balance: {formatMoney(workflowSummary.outstanding ?? 0)}
+                  </Typography>
+                )}
+                <TextField
+                  label="Amount"
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  inputProps={{ min: 0, step: '0.01' }}
+                  required
+                />
+                <TextField
+                  label="Payment Method"
+                  select
+                  value={paymentMethod}
+                  onChange={(e) =>
+                    setPaymentMethod(e.target.value as PaymentMethod)
+                  }
+                >
+                  {paymentMethodOptions.map((method) => (
+                    <MenuItem key={method} value={method}>
+                      {method.charAt(0) + method.slice(1).toLowerCase()}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  label="Reference"
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                  placeholder="Optional internal reference"
+                />
+                {normalizedOrderType === 'RESELLER' && !order.resellerSale?.resellerId && (
+                  <Alert severity="warning">
+                    Unable to detect the reseller on this order. Please ensure the
+                    quotation has an associated reseller before logging a payment.
+                  </Alert>
+                )}
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleClosePaymentDialog}>Cancel</Button>
+              <Button
+                variant="contained"
+                onClick={handleRegisterPayment}
+                disabled={paymentMutationLoading}
+              >
+                {paymentMutationLoading ? 'Saving...' : 'Save Payment'}
+              </Button>
+            </DialogActions>
+          </Dialog>
           <Dialog
             open={showAdminOverride}
             onClose={() => setShowAdminOverride(false)}

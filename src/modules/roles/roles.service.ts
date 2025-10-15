@@ -147,6 +147,9 @@ export class RolesService {
     if (!role) {
       throw new NotFoundException('Role not found');
     }
+    if (LOCKED_ROLE_NAMES.has(role.name)) {
+      throw new BadRequestException('This role cannot be assigned');
+    }
     await this.prisma.user.update({
       where: { id: input.userId },
       data: { roleId: input.roleId },

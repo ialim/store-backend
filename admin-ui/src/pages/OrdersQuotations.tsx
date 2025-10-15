@@ -33,6 +33,10 @@ type QuotationRow = {
   } | null;
 };
 
+type OrdersQuotationsProps = {
+  type?: 'CONSUMER' | 'RESELLER';
+};
+
 type QuotationsQueryData = {
   quotations: QuotationRow[];
 };
@@ -61,7 +65,7 @@ function statusColor(status?: string) {
   }
 }
 
-export default function OrdersQuotations() {
+export default function OrdersQuotations({ type }: OrdersQuotationsProps) {
   const navigate = useNavigate();
   const [search, setSearch] = React.useState('');
 
@@ -71,10 +75,16 @@ export default function OrdersQuotations() {
     });
 
   const quotations = data?.quotations ?? [];
+  const scoped = React.useMemo(() => {
+    if (!type) return quotations;
+    return quotations.filter(
+      (quotation) => (quotation.type || '').toUpperCase() === type,
+    );
+  }, [quotations, type]);
   const term = search.trim().toLowerCase();
   const filtered = React.useMemo(() => {
-    if (!term) return quotations;
-    return quotations.filter((q) => {
+    if (!term) return scoped;
+    return scoped.filter((q) => {
       const haystack = [
         q.id,
         q.storeId,
@@ -92,15 +102,35 @@ export default function OrdersQuotations() {
         .toLowerCase();
       return haystack.includes(term);
     });
-  }, [quotations, term]);
+  }, [scoped, term]);
+
+  const title = React.useMemo(() => {
+    if (type === 'CONSUMER') return 'Customer Quotations';
+    if (type === 'RESELLER') return 'Reseller Quotations';
+    return 'Quotations';
+  }, [type]);
+
+  const subtitle = React.useMemo(() => {
+    if (type === 'CONSUMER') {
+      return 'Track customer quotations before they become sales orders.';
+    }
+    if (type === 'RESELLER') {
+      return 'Track reseller quotations before they become sales orders.';
+    }
+    return 'Track drafts and confirmed quotations before they become sales orders.';
+  }, [type]);
 
   const summary = React.useMemo(() => {
-    if (!quotations.length) return 'No quotations yet';
-    if (term) {
-      return `Showing ${filtered.length} of ${quotations.length} quotations`;
+    if (!scoped.length) {
+      if (type === 'CONSUMER') return 'No customer quotations yet';
+      if (type === 'RESELLER') return 'No reseller quotations yet';
+      return 'No quotations yet';
     }
-    return `${quotations.length} quotation${quotations.length === 1 ? '' : 's'} available`;
-  }, [filtered.length, quotations.length, term]);
+    if (term) {
+      return `Showing ${filtered.length} of ${scoped.length} quotations`;
+    }
+    return `${scoped.length} quotation${scoped.length === 1 ? '' : 's'} available`;
+  }, [filtered.length, scoped.length, term, type]);
 
   const columns = React.useMemo(
     () => [
@@ -177,10 +207,10 @@ export default function OrdersQuotations() {
     <Stack spacing={3}>
       <Stack spacing={1}>
         <Typography variant="h4" sx={{ fontWeight: 700 }}>
-          Quotations
+          {title}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Track drafts and confirmed quotations before they become sales orders.
+          {subtitle}
         </Typography>
       </Stack>
 

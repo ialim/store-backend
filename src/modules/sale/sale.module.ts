@@ -8,6 +8,7 @@ import { PaymentModule } from '../payment/payment.module';
 import { AnalyticsModule } from '../analytics/analytics.module';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { WorkflowService } from '../../state/workflow.service';
+import { SaleExpiryService } from './sale-expiry.service';
 
 @Module({
   imports: [
@@ -17,7 +18,13 @@ import { WorkflowService } from '../../state/workflow.service';
     PaymentModule,
     AnalyticsModule,
   ],
-  providers: [SalesResolver, SalesService, PrismaService, WorkflowService],
+  providers: [
+    SalesResolver,
+    SalesService,
+    PrismaService,
+    WorkflowService,
+    SaleExpiryService,
+  ],
   exports: [SalesService],
 })
 export class SaleModule {}

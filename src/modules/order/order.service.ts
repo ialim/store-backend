@@ -75,6 +75,7 @@ export class OrderService {
         quotation: { include: { items: true } },
         resellerSale: { include: { items: true } },
         ResellerPayment: true,
+        biller: { include: { customerProfile: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -89,6 +90,7 @@ export class OrderService {
         quotation: { include: { items: true } },
         resellerSale: { include: { items: true } },
         ResellerPayment: true,
+        biller: { include: { customerProfile: true } },
       },
     });
     if (!o) {

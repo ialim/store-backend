@@ -5674,23 +5674,36 @@ export type FulfillPurchaseReturnInput = {
 
 export type Fulfillment = {
   __typename?: 'Fulfillment';
+  _count: FulfillmentCount;
   confirmationPin?: Maybe<Scalars['String']['output']>;
   cost?: Maybe<Scalars['Float']['output']>;
   createdAt: Scalars['DateTime']['output'];
   deliveryAddress?: Maybe<Scalars['String']['output']>;
   deliveryPersonnel?: Maybe<User>;
   deliveryPersonnelId?: Maybe<Scalars['String']['output']>;
+  /** Fulfillment workflow snapshot with current state and transition logs. */
+  fulfillmentWorkflow?: Maybe<FulfilmentWorkflowSnapshot>;
+  /** Normalized fulfillment workflow context including scheduling metadata. */
+  fulfillmentWorkflowContext?: Maybe<Scalars['JSON']['output']>;
   id: Scalars['ID']['output'];
   saleOrder: SaleOrder;
   saleOrderId: Scalars['String']['output'];
   status: FulfillmentStatus;
+  transitionLogs?: Maybe<Array<FulfillmentTransitionLog>>;
   type: FulfillmentType;
   updatedAt: Scalars['DateTime']['output'];
+  workflowContext?: Maybe<Scalars['JSON']['output']>;
+  workflowState?: Maybe<Scalars['String']['output']>;
 };
 
 export type FulfillmentAvgAggregate = {
   __typename?: 'FulfillmentAvgAggregate';
   cost?: Maybe<Scalars['Float']['output']>;
+};
+
+export type FulfillmentCount = {
+  __typename?: 'FulfillmentCount';
+  transitionLogs: Scalars['Int']['output'];
 };
 
 export type FulfillmentCountAggregate = {
@@ -5706,6 +5719,8 @@ export type FulfillmentCountAggregate = {
   status: Scalars['Int']['output'];
   type: Scalars['Int']['output'];
   updatedAt: Scalars['Int']['output'];
+  workflowContext: Scalars['Int']['output'];
+  workflowState: Scalars['Int']['output'];
 };
 
 export type FulfillmentCreateManyDeliveryPersonnelInput = {
@@ -5718,6 +5733,8 @@ export type FulfillmentCreateManyDeliveryPersonnelInput = {
   status?: InputMaybe<FulfillmentStatus>;
   type: FulfillmentType;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type FulfillmentCreateManyDeliveryPersonnelInputEnvelope = {
@@ -5756,8 +5773,11 @@ export type FulfillmentCreateWithoutDeliveryPersonnelInput = {
   id?: InputMaybe<Scalars['String']['input']>;
   saleOrder: SaleOrderCreateNestedOneWithoutFulfillmentInput;
   status?: InputMaybe<FulfillmentStatus>;
+  transitionLogs?: InputMaybe<FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput>;
   type: FulfillmentType;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type FulfillmentCreateWithoutSaleOrderInput = {
@@ -5768,8 +5788,11 @@ export type FulfillmentCreateWithoutSaleOrderInput = {
   deliveryPersonnel?: InputMaybe<UserCreateNestedOneWithoutFulfillmentInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   status?: InputMaybe<FulfillmentStatus>;
+  transitionLogs?: InputMaybe<FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput>;
   type: FulfillmentType;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type FulfillmentListRelationFilter = {
@@ -5790,6 +5813,7 @@ export type FulfillmentMaxAggregate = {
   status?: Maybe<FulfillmentStatus>;
   type?: Maybe<FulfillmentType>;
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  workflowState?: Maybe<Scalars['String']['output']>;
 };
 
 export type FulfillmentMinAggregate = {
@@ -5804,6 +5828,7 @@ export type FulfillmentMinAggregate = {
   status?: Maybe<FulfillmentStatus>;
   type?: Maybe<FulfillmentType>;
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  workflowState?: Maybe<Scalars['String']['output']>;
 };
 
 export type FulfillmentNullableScalarRelationFilter = {
@@ -5813,6 +5838,11 @@ export type FulfillmentNullableScalarRelationFilter = {
 
 export type FulfillmentOrderByRelationAggregateInput = {
   _count?: InputMaybe<SortOrder>;
+};
+
+export type FulfillmentScalarRelationFilter = {
+  is?: InputMaybe<FulfillmentWhereInput>;
+  isNot?: InputMaybe<FulfillmentWhereInput>;
 };
 
 export type FulfillmentScalarWhereInput = {
@@ -5829,6 +5859,8 @@ export type FulfillmentScalarWhereInput = {
   status?: InputMaybe<EnumFulfillmentStatusFilter>;
   type?: InputMaybe<EnumFulfillmentTypeFilter>;
   updatedAt?: InputMaybe<DateTimeFilter>;
+  workflowContext?: InputMaybe<JsonNullableFilter>;
+  workflowState?: InputMaybe<StringNullableFilter>;
 };
 
 export enum FulfillmentStatus {
@@ -5842,6 +5874,148 @@ export enum FulfillmentStatus {
 export type FulfillmentSumAggregate = {
   __typename?: 'FulfillmentSumAggregate';
   cost?: Maybe<Scalars['Float']['output']>;
+};
+
+export type FulfillmentTransitionLog = {
+  __typename?: 'FulfillmentTransitionLog';
+  event?: Maybe<Scalars['String']['output']>;
+  fromState?: Maybe<Scalars['String']['output']>;
+  fulfillment: Fulfillment;
+  fulfillmentId: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  occurredAt: Scalars['DateTime']['output'];
+  toState: Scalars['String']['output'];
+};
+
+export type FulfillmentTransitionLogCreateManyFulfillmentInput = {
+  event?: InputMaybe<Scalars['String']['input']>;
+  fromState?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  occurredAt?: InputMaybe<Scalars['DateTime']['input']>;
+  toState: Scalars['String']['input'];
+};
+
+export type FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope = {
+  data: Array<FulfillmentTransitionLogCreateManyFulfillmentInput>;
+  skipDuplicates?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput = {
+  connect?: InputMaybe<Array<FulfillmentTransitionLogWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput>>;
+  create?: InputMaybe<Array<FulfillmentTransitionLogCreateWithoutFulfillmentInput>>;
+  createMany?: InputMaybe<FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope>;
+};
+
+export type FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput = {
+  create: FulfillmentTransitionLogCreateWithoutFulfillmentInput;
+  where: FulfillmentTransitionLogWhereUniqueInput;
+};
+
+export type FulfillmentTransitionLogCreateWithoutFulfillmentInput = {
+  event?: InputMaybe<Scalars['String']['input']>;
+  fromState?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  occurredAt?: InputMaybe<Scalars['DateTime']['input']>;
+  toState: Scalars['String']['input'];
+};
+
+export type FulfillmentTransitionLogListRelationFilter = {
+  every?: InputMaybe<FulfillmentTransitionLogWhereInput>;
+  none?: InputMaybe<FulfillmentTransitionLogWhereInput>;
+  some?: InputMaybe<FulfillmentTransitionLogWhereInput>;
+};
+
+export type FulfillmentTransitionLogScalarWhereInput = {
+  AND?: InputMaybe<Array<FulfillmentTransitionLogScalarWhereInput>>;
+  NOT?: InputMaybe<Array<FulfillmentTransitionLogScalarWhereInput>>;
+  OR?: InputMaybe<Array<FulfillmentTransitionLogScalarWhereInput>>;
+  event?: InputMaybe<StringNullableFilter>;
+  fromState?: InputMaybe<StringNullableFilter>;
+  fulfillmentId?: InputMaybe<StringFilter>;
+  id?: InputMaybe<StringFilter>;
+  metadata?: InputMaybe<JsonNullableFilter>;
+  occurredAt?: InputMaybe<DateTimeFilter>;
+  toState?: InputMaybe<StringFilter>;
+};
+
+export type FulfillmentTransitionLogUpdateManyMutationInput = {
+  event?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  fromState?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  occurredAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  toState?: InputMaybe<StringFieldUpdateOperationsInput>;
+};
+
+export type FulfillmentTransitionLogUpdateManyWithWhereWithoutFulfillmentInput = {
+  data: FulfillmentTransitionLogUpdateManyMutationInput;
+  where: FulfillmentTransitionLogScalarWhereInput;
+};
+
+export type FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput = {
+  connect?: InputMaybe<Array<FulfillmentTransitionLogWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput>>;
+  create?: InputMaybe<Array<FulfillmentTransitionLogCreateWithoutFulfillmentInput>>;
+  createMany?: InputMaybe<FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope>;
+  delete?: InputMaybe<Array<FulfillmentTransitionLogWhereUniqueInput>>;
+  deleteMany?: InputMaybe<Array<FulfillmentTransitionLogScalarWhereInput>>;
+  disconnect?: InputMaybe<Array<FulfillmentTransitionLogWhereUniqueInput>>;
+  set?: InputMaybe<Array<FulfillmentTransitionLogWhereUniqueInput>>;
+  update?: InputMaybe<Array<FulfillmentTransitionLogUpdateWithWhereUniqueWithoutFulfillmentInput>>;
+  updateMany?: InputMaybe<Array<FulfillmentTransitionLogUpdateManyWithWhereWithoutFulfillmentInput>>;
+  upsert?: InputMaybe<Array<FulfillmentTransitionLogUpsertWithWhereUniqueWithoutFulfillmentInput>>;
+};
+
+export type FulfillmentTransitionLogUpdateWithWhereUniqueWithoutFulfillmentInput = {
+  data: FulfillmentTransitionLogUpdateWithoutFulfillmentInput;
+  where: FulfillmentTransitionLogWhereUniqueInput;
+};
+
+export type FulfillmentTransitionLogUpdateWithoutFulfillmentInput = {
+  event?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  fromState?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  occurredAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  toState?: InputMaybe<StringFieldUpdateOperationsInput>;
+};
+
+export type FulfillmentTransitionLogUpsertWithWhereUniqueWithoutFulfillmentInput = {
+  create: FulfillmentTransitionLogCreateWithoutFulfillmentInput;
+  update: FulfillmentTransitionLogUpdateWithoutFulfillmentInput;
+  where: FulfillmentTransitionLogWhereUniqueInput;
+};
+
+export type FulfillmentTransitionLogWhereInput = {
+  AND?: InputMaybe<Array<FulfillmentTransitionLogWhereInput>>;
+  NOT?: InputMaybe<Array<FulfillmentTransitionLogWhereInput>>;
+  OR?: InputMaybe<Array<FulfillmentTransitionLogWhereInput>>;
+  event?: InputMaybe<StringNullableFilter>;
+  fromState?: InputMaybe<StringNullableFilter>;
+  fulfillment?: InputMaybe<FulfillmentScalarRelationFilter>;
+  fulfillmentId?: InputMaybe<StringFilter>;
+  id?: InputMaybe<StringFilter>;
+  metadata?: InputMaybe<JsonNullableFilter>;
+  occurredAt?: InputMaybe<DateTimeFilter>;
+  toState?: InputMaybe<StringFilter>;
+};
+
+export type FulfillmentTransitionLogWhereUniqueInput = {
+  AND?: InputMaybe<Array<FulfillmentTransitionLogWhereInput>>;
+  NOT?: InputMaybe<Array<FulfillmentTransitionLogWhereInput>>;
+  OR?: InputMaybe<Array<FulfillmentTransitionLogWhereInput>>;
+  event?: InputMaybe<StringNullableFilter>;
+  fromState?: InputMaybe<StringNullableFilter>;
+  fulfillment?: InputMaybe<FulfillmentScalarRelationFilter>;
+  fulfillmentId?: InputMaybe<StringFilter>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<JsonNullableFilter>;
+  occurredAt?: InputMaybe<DateTimeFilter>;
+  toState?: InputMaybe<StringFilter>;
 };
 
 export enum FulfillmentType {
@@ -5858,6 +6032,8 @@ export type FulfillmentUpdateManyMutationInput = {
   status?: InputMaybe<EnumFulfillmentStatusFieldUpdateOperationsInput>;
   type?: InputMaybe<EnumFulfillmentTypeFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
 };
 
 export type FulfillmentUpdateManyWithWhereWithoutDeliveryPersonnelInput = {
@@ -5907,8 +6083,11 @@ export type FulfillmentUpdateWithoutDeliveryPersonnelInput = {
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   saleOrder?: InputMaybe<SaleOrderUpdateOneRequiredWithoutFulfillmentNestedInput>;
   status?: InputMaybe<EnumFulfillmentStatusFieldUpdateOperationsInput>;
+  transitionLogs?: InputMaybe<FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput>;
   type?: InputMaybe<EnumFulfillmentTypeFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
 };
 
 export type FulfillmentUpdateWithoutSaleOrderInput = {
@@ -5919,8 +6098,11 @@ export type FulfillmentUpdateWithoutSaleOrderInput = {
   deliveryPersonnel?: InputMaybe<UserUpdateOneWithoutFulfillmentNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   status?: InputMaybe<EnumFulfillmentStatusFieldUpdateOperationsInput>;
+  transitionLogs?: InputMaybe<FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput>;
   type?: InputMaybe<EnumFulfillmentTypeFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
 };
 
 export type FulfillmentUpsertWithWhereUniqueWithoutDeliveryPersonnelInput = {
@@ -5949,8 +6131,11 @@ export type FulfillmentWhereInput = {
   saleOrder?: InputMaybe<SaleOrderScalarRelationFilter>;
   saleOrderId?: InputMaybe<StringFilter>;
   status?: InputMaybe<EnumFulfillmentStatusFilter>;
+  transitionLogs?: InputMaybe<FulfillmentTransitionLogListRelationFilter>;
   type?: InputMaybe<EnumFulfillmentTypeFilter>;
   updatedAt?: InputMaybe<DateTimeFilter>;
+  workflowContext?: InputMaybe<JsonNullableFilter>;
+  workflowState?: InputMaybe<StringNullableFilter>;
 };
 
 export type FulfillmentWhereUniqueInput = {
@@ -5967,14 +6152,37 @@ export type FulfillmentWhereUniqueInput = {
   saleOrder?: InputMaybe<SaleOrderScalarRelationFilter>;
   saleOrderId?: InputMaybe<Scalars['String']['input']>;
   status?: InputMaybe<EnumFulfillmentStatusFilter>;
+  transitionLogs?: InputMaybe<FulfillmentTransitionLogListRelationFilter>;
   type?: InputMaybe<EnumFulfillmentTypeFilter>;
   updatedAt?: InputMaybe<DateTimeFilter>;
+  workflowContext?: InputMaybe<JsonNullableFilter>;
+  workflowState?: InputMaybe<StringNullableFilter>;
+};
+
+export type FulfilmentWorkflowSnapshot = {
+  __typename?: 'FulfilmentWorkflowSnapshot';
+  context?: Maybe<Scalars['JSON']['output']>;
+  fulfillmentId: Scalars['String']['output'];
+  saleOrderId: Scalars['String']['output'];
+  state: Scalars['String']['output'];
+  transitionLogs: Array<FulfillmentTransitionLog>;
 };
 
 export type GeocodeBiasInput = {
   latitude: Scalars['Float']['input'];
   longitude: Scalars['Float']['input'];
   radiusMeters?: InputMaybe<Scalars['Float']['input']>;
+};
+
+export type GrantAdminOverrideInput = {
+  expiresAt?: InputMaybe<Scalars['String']['input']>;
+  saleOrderId: Scalars['String']['input'];
+};
+
+export type GrantCreditOverrideInput = {
+  approvedAmount: Scalars['Float']['input'];
+  expiresAt?: InputMaybe<Scalars['String']['input']>;
+  saleOrderId: Scalars['String']['input'];
 };
 
 export type IdInput = {
@@ -6599,6 +6807,8 @@ export type Mutation = {
   devSeedFixtures: Scalars['String']['output'];
   fulfillConsumerSale: ConsumerSale;
   fulfillPurchaseReturn: Scalars['Boolean']['output'];
+  grantAdminOverride: SaleOrder;
+  grantCreditOverride: SaleOrder;
   issueRFQ: Scalars['Boolean']['output'];
   issueRFQPreferred: Scalars['Boolean']['output'];
   linkSupplierUser: Supplier;
@@ -7158,6 +7368,16 @@ export type MutationFulfillConsumerSaleArgs = {
 
 export type MutationFulfillPurchaseReturnArgs = {
   input: FulfillPurchaseReturnInput;
+};
+
+
+export type MutationGrantAdminOverrideArgs = {
+  input: GrantAdminOverrideInput;
+};
+
+
+export type MutationGrantCreditOverrideArgs = {
+  input: GrantCreditOverrideInput;
 };
 
 
@@ -13042,6 +13262,7 @@ export type Query = {
   consumerSale: ConsumerSale;
   consumerSales: Array<ConsumerSale>;
   consumerSalesByCustomer: Array<ConsumerSale>;
+  creditCheck: SaleWorkflowSummary;
   customerAffinity: Array<CustomerAffinityEntry>;
   dailyPaymentsSeries: Array<PaymentDaySeries>;
   dailyPaymentsSeriesRange: Array<PaymentDaySeries>;
@@ -13061,6 +13282,7 @@ export type Query = {
   findUniqueProductVariant?: Maybe<ProductVariant>;
   findUniqueStore: Store;
   findUniqueUser: User;
+  fulfilmentWorkflow?: Maybe<FulfilmentWorkflowSnapshot>;
   groupByAddress: Array<AddressGroupBy>;
   groupByAddressAssignment: Array<AddressAssignmentGroupBy>;
   groupByAsset: Array<AssetGroupBy>;
@@ -13090,6 +13312,7 @@ export type Query = {
   mySupportMessages: Array<SupportMessage>;
   notifications: Array<Notification>;
   order: SaleOrder;
+  orderBillers: Array<User>;
   orderPaymentSummary: PaymentOrderSummary;
   ordersQuery: Array<SaleOrder>;
   outboxStatus: OutboxStatusCounts;
@@ -13142,6 +13365,7 @@ export type Query = {
   rfqStatusCountsByStore: RfqStatusCounts;
   rolePermissions: Array<Permission>;
   roles: Array<Role>;
+  saleWorkflow: SaleWorkflowSnapshot;
   salesReturnsByConsumerSale: Array<SalesReturn>;
   salesReturnsByResellerSale: Array<SalesReturn>;
   salesReturnsByStore: Array<SalesReturn>;
@@ -13371,6 +13595,11 @@ export type QueryConsumerSalesByCustomerArgs = {
 };
 
 
+export type QueryCreditCheckArgs = {
+  saleOrderId: Scalars['String']['input'];
+};
+
+
 export type QueryCustomerAffinityArgs = {
   customerId: Scalars['String']['input'];
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -13492,6 +13721,11 @@ export type QueryFindUniqueStoreArgs = {
 
 export type QueryFindUniqueUserArgs = {
   where: UserWhereUniqueInput;
+};
+
+
+export type QueryFulfilmentWorkflowArgs = {
+  saleOrderId: Scalars['String']['input'];
 };
 
 
@@ -13937,6 +14171,11 @@ export type QueryRfqStatusCountsArgs = {
 
 export type QueryRfqStatusCountsByStoreArgs = {
   storeId: Scalars['String']['input'];
+};
+
+
+export type QuerySaleWorkflowArgs = {
+  saleOrderId: Scalars['String']['input'];
 };
 
 
@@ -17457,24 +17696,36 @@ export type SaleOrder = {
   fulfillment?: Maybe<Fulfillment>;
   /** Current state of the fulfillment workflow derived from the fulfillment state machine. */
   fulfillmentWorkflowState?: Maybe<Scalars['String']['output']>;
+  /** Fulfilment workflow snapshot for the associated fulfillment, if any. */
+  fulfilmentWorkflow?: Maybe<FulfilmentWorkflowSnapshot>;
   id: Scalars['ID']['output'];
   phase: OrderPhase;
   quotation?: Maybe<Quotation>;
   resellerSale?: Maybe<ResellerSale>;
   resellerSaleid?: Maybe<Scalars['String']['output']>;
+  /** Detailed workflow snapshot for this sale order including transition logs. */
+  saleWorkflow?: Maybe<SaleWorkflowSnapshot>;
+  /** Normalized sale workflow context including credit exposure and override flags. */
+  saleWorkflowContext?: Maybe<Scalars['JSON']['output']>;
   /** Current state of the sale workflow derived from the sale state machine. */
   saleWorkflowState?: Maybe<Scalars['String']['output']>;
+  /** Payment and credit readiness summary derived from the sale workflow state. */
+  saleWorkflowSummary?: Maybe<SaleWorkflowSummary>;
   status: SaleStatus;
   storeId: Scalars['String']['output'];
   totalAmount: Scalars['Float']['output'];
+  transitionLogs?: Maybe<Array<SaleOrderTransitionLog>>;
   type: SaleType;
   updatedAt: Scalars['DateTime']['output'];
+  workflowContext?: Maybe<Scalars['JSON']['output']>;
+  workflowState?: Maybe<Scalars['String']['output']>;
 };
 
 export type SaleOrderCount = {
   __typename?: 'SaleOrderCount';
   ConsumerPayment: Scalars['Int']['output'];
   ResellerPayment: Scalars['Int']['output'];
+  transitionLogs: Scalars['Int']['output'];
 };
 
 export type SaleOrderCreateNestedOneWithoutConsumerPaymentInput = {
@@ -17557,8 +17808,11 @@ export type SaleOrderCreateWithoutConsumerPaymentInput = {
   status?: InputMaybe<SaleStatus>;
   storeId: Scalars['String']['input'];
   totalAmount: Scalars['Float']['input'];
+  transitionLogs?: InputMaybe<SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput>;
   type: SaleType;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type SaleOrderCreateWithoutConsumerSaleInput = {
@@ -17575,8 +17829,11 @@ export type SaleOrderCreateWithoutConsumerSaleInput = {
   status?: InputMaybe<SaleStatus>;
   storeId: Scalars['String']['input'];
   totalAmount: Scalars['Float']['input'];
+  transitionLogs?: InputMaybe<SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput>;
   type: SaleType;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type SaleOrderCreateWithoutFulfillmentInput = {
@@ -17593,8 +17850,11 @@ export type SaleOrderCreateWithoutFulfillmentInput = {
   status?: InputMaybe<SaleStatus>;
   storeId: Scalars['String']['input'];
   totalAmount: Scalars['Float']['input'];
+  transitionLogs?: InputMaybe<SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput>;
   type: SaleType;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type SaleOrderCreateWithoutQuotationInput = {
@@ -17611,8 +17871,11 @@ export type SaleOrderCreateWithoutQuotationInput = {
   status?: InputMaybe<SaleStatus>;
   storeId: Scalars['String']['input'];
   totalAmount: Scalars['Float']['input'];
+  transitionLogs?: InputMaybe<SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput>;
   type: SaleType;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type SaleOrderCreateWithoutResellerPaymentInput = {
@@ -17629,8 +17892,11 @@ export type SaleOrderCreateWithoutResellerPaymentInput = {
   status?: InputMaybe<SaleStatus>;
   storeId: Scalars['String']['input'];
   totalAmount: Scalars['Float']['input'];
+  transitionLogs?: InputMaybe<SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput>;
   type: SaleType;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type SaleOrderCreateWithoutResellerSaleInput = {
@@ -17647,8 +17913,11 @@ export type SaleOrderCreateWithoutResellerSaleInput = {
   status?: InputMaybe<SaleStatus>;
   storeId: Scalars['String']['input'];
   totalAmount: Scalars['Float']['input'];
+  transitionLogs?: InputMaybe<SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput>;
   type: SaleType;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type SaleOrderNullableScalarRelationFilter = {
@@ -17659,6 +17928,148 @@ export type SaleOrderNullableScalarRelationFilter = {
 export type SaleOrderScalarRelationFilter = {
   is?: InputMaybe<SaleOrderWhereInput>;
   isNot?: InputMaybe<SaleOrderWhereInput>;
+};
+
+export type SaleOrderTransitionLog = {
+  __typename?: 'SaleOrderTransitionLog';
+  event?: Maybe<Scalars['String']['output']>;
+  fromState?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  occurredAt: Scalars['DateTime']['output'];
+  saleOrder: SaleOrder;
+  saleOrderId: Scalars['String']['output'];
+  toState: Scalars['String']['output'];
+};
+
+export type SaleOrderTransitionLogCreateManySaleOrderInput = {
+  event?: InputMaybe<Scalars['String']['input']>;
+  fromState?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  occurredAt?: InputMaybe<Scalars['DateTime']['input']>;
+  toState: Scalars['String']['input'];
+};
+
+export type SaleOrderTransitionLogCreateManySaleOrderInputEnvelope = {
+  data: Array<SaleOrderTransitionLogCreateManySaleOrderInput>;
+  skipDuplicates?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput = {
+  connect?: InputMaybe<Array<SaleOrderTransitionLogWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<SaleOrderTransitionLogCreateOrConnectWithoutSaleOrderInput>>;
+  create?: InputMaybe<Array<SaleOrderTransitionLogCreateWithoutSaleOrderInput>>;
+  createMany?: InputMaybe<SaleOrderTransitionLogCreateManySaleOrderInputEnvelope>;
+};
+
+export type SaleOrderTransitionLogCreateOrConnectWithoutSaleOrderInput = {
+  create: SaleOrderTransitionLogCreateWithoutSaleOrderInput;
+  where: SaleOrderTransitionLogWhereUniqueInput;
+};
+
+export type SaleOrderTransitionLogCreateWithoutSaleOrderInput = {
+  event?: InputMaybe<Scalars['String']['input']>;
+  fromState?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  occurredAt?: InputMaybe<Scalars['DateTime']['input']>;
+  toState: Scalars['String']['input'];
+};
+
+export type SaleOrderTransitionLogListRelationFilter = {
+  every?: InputMaybe<SaleOrderTransitionLogWhereInput>;
+  none?: InputMaybe<SaleOrderTransitionLogWhereInput>;
+  some?: InputMaybe<SaleOrderTransitionLogWhereInput>;
+};
+
+export type SaleOrderTransitionLogScalarWhereInput = {
+  AND?: InputMaybe<Array<SaleOrderTransitionLogScalarWhereInput>>;
+  NOT?: InputMaybe<Array<SaleOrderTransitionLogScalarWhereInput>>;
+  OR?: InputMaybe<Array<SaleOrderTransitionLogScalarWhereInput>>;
+  event?: InputMaybe<StringNullableFilter>;
+  fromState?: InputMaybe<StringNullableFilter>;
+  id?: InputMaybe<StringFilter>;
+  metadata?: InputMaybe<JsonNullableFilter>;
+  occurredAt?: InputMaybe<DateTimeFilter>;
+  saleOrderId?: InputMaybe<StringFilter>;
+  toState?: InputMaybe<StringFilter>;
+};
+
+export type SaleOrderTransitionLogUpdateManyMutationInput = {
+  event?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  fromState?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  occurredAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  toState?: InputMaybe<StringFieldUpdateOperationsInput>;
+};
+
+export type SaleOrderTransitionLogUpdateManyWithWhereWithoutSaleOrderInput = {
+  data: SaleOrderTransitionLogUpdateManyMutationInput;
+  where: SaleOrderTransitionLogScalarWhereInput;
+};
+
+export type SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput = {
+  connect?: InputMaybe<Array<SaleOrderTransitionLogWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<SaleOrderTransitionLogCreateOrConnectWithoutSaleOrderInput>>;
+  create?: InputMaybe<Array<SaleOrderTransitionLogCreateWithoutSaleOrderInput>>;
+  createMany?: InputMaybe<SaleOrderTransitionLogCreateManySaleOrderInputEnvelope>;
+  delete?: InputMaybe<Array<SaleOrderTransitionLogWhereUniqueInput>>;
+  deleteMany?: InputMaybe<Array<SaleOrderTransitionLogScalarWhereInput>>;
+  disconnect?: InputMaybe<Array<SaleOrderTransitionLogWhereUniqueInput>>;
+  set?: InputMaybe<Array<SaleOrderTransitionLogWhereUniqueInput>>;
+  update?: InputMaybe<Array<SaleOrderTransitionLogUpdateWithWhereUniqueWithoutSaleOrderInput>>;
+  updateMany?: InputMaybe<Array<SaleOrderTransitionLogUpdateManyWithWhereWithoutSaleOrderInput>>;
+  upsert?: InputMaybe<Array<SaleOrderTransitionLogUpsertWithWhereUniqueWithoutSaleOrderInput>>;
+};
+
+export type SaleOrderTransitionLogUpdateWithWhereUniqueWithoutSaleOrderInput = {
+  data: SaleOrderTransitionLogUpdateWithoutSaleOrderInput;
+  where: SaleOrderTransitionLogWhereUniqueInput;
+};
+
+export type SaleOrderTransitionLogUpdateWithoutSaleOrderInput = {
+  event?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  fromState?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  occurredAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  toState?: InputMaybe<StringFieldUpdateOperationsInput>;
+};
+
+export type SaleOrderTransitionLogUpsertWithWhereUniqueWithoutSaleOrderInput = {
+  create: SaleOrderTransitionLogCreateWithoutSaleOrderInput;
+  update: SaleOrderTransitionLogUpdateWithoutSaleOrderInput;
+  where: SaleOrderTransitionLogWhereUniqueInput;
+};
+
+export type SaleOrderTransitionLogWhereInput = {
+  AND?: InputMaybe<Array<SaleOrderTransitionLogWhereInput>>;
+  NOT?: InputMaybe<Array<SaleOrderTransitionLogWhereInput>>;
+  OR?: InputMaybe<Array<SaleOrderTransitionLogWhereInput>>;
+  event?: InputMaybe<StringNullableFilter>;
+  fromState?: InputMaybe<StringNullableFilter>;
+  id?: InputMaybe<StringFilter>;
+  metadata?: InputMaybe<JsonNullableFilter>;
+  occurredAt?: InputMaybe<DateTimeFilter>;
+  saleOrder?: InputMaybe<SaleOrderScalarRelationFilter>;
+  saleOrderId?: InputMaybe<StringFilter>;
+  toState?: InputMaybe<StringFilter>;
+};
+
+export type SaleOrderTransitionLogWhereUniqueInput = {
+  AND?: InputMaybe<Array<SaleOrderTransitionLogWhereInput>>;
+  NOT?: InputMaybe<Array<SaleOrderTransitionLogWhereInput>>;
+  OR?: InputMaybe<Array<SaleOrderTransitionLogWhereInput>>;
+  event?: InputMaybe<StringNullableFilter>;
+  fromState?: InputMaybe<StringNullableFilter>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  metadata?: InputMaybe<JsonNullableFilter>;
+  occurredAt?: InputMaybe<DateTimeFilter>;
+  saleOrder?: InputMaybe<SaleOrderScalarRelationFilter>;
+  saleOrderId?: InputMaybe<StringFilter>;
+  toState?: InputMaybe<StringFilter>;
 };
 
 export type SaleOrderUpdateOneRequiredWithoutConsumerPaymentNestedInput = {
@@ -17755,8 +18166,11 @@ export type SaleOrderUpdateWithoutConsumerPaymentInput = {
   status?: InputMaybe<EnumSaleStatusFieldUpdateOperationsInput>;
   storeId?: InputMaybe<StringFieldUpdateOperationsInput>;
   totalAmount?: InputMaybe<FloatFieldUpdateOperationsInput>;
+  transitionLogs?: InputMaybe<SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput>;
   type?: InputMaybe<EnumSaleTypeFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
 };
 
 export type SaleOrderUpdateWithoutConsumerSaleInput = {
@@ -17773,8 +18187,11 @@ export type SaleOrderUpdateWithoutConsumerSaleInput = {
   status?: InputMaybe<EnumSaleStatusFieldUpdateOperationsInput>;
   storeId?: InputMaybe<StringFieldUpdateOperationsInput>;
   totalAmount?: InputMaybe<FloatFieldUpdateOperationsInput>;
+  transitionLogs?: InputMaybe<SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput>;
   type?: InputMaybe<EnumSaleTypeFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
 };
 
 export type SaleOrderUpdateWithoutFulfillmentInput = {
@@ -17791,8 +18208,11 @@ export type SaleOrderUpdateWithoutFulfillmentInput = {
   status?: InputMaybe<EnumSaleStatusFieldUpdateOperationsInput>;
   storeId?: InputMaybe<StringFieldUpdateOperationsInput>;
   totalAmount?: InputMaybe<FloatFieldUpdateOperationsInput>;
+  transitionLogs?: InputMaybe<SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput>;
   type?: InputMaybe<EnumSaleTypeFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
 };
 
 export type SaleOrderUpdateWithoutQuotationInput = {
@@ -17809,8 +18229,11 @@ export type SaleOrderUpdateWithoutQuotationInput = {
   status?: InputMaybe<EnumSaleStatusFieldUpdateOperationsInput>;
   storeId?: InputMaybe<StringFieldUpdateOperationsInput>;
   totalAmount?: InputMaybe<FloatFieldUpdateOperationsInput>;
+  transitionLogs?: InputMaybe<SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput>;
   type?: InputMaybe<EnumSaleTypeFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
 };
 
 export type SaleOrderUpdateWithoutResellerPaymentInput = {
@@ -17827,8 +18250,11 @@ export type SaleOrderUpdateWithoutResellerPaymentInput = {
   status?: InputMaybe<EnumSaleStatusFieldUpdateOperationsInput>;
   storeId?: InputMaybe<StringFieldUpdateOperationsInput>;
   totalAmount?: InputMaybe<FloatFieldUpdateOperationsInput>;
+  transitionLogs?: InputMaybe<SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput>;
   type?: InputMaybe<EnumSaleTypeFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
 };
 
 export type SaleOrderUpdateWithoutResellerSaleInput = {
@@ -17845,8 +18271,11 @@ export type SaleOrderUpdateWithoutResellerSaleInput = {
   status?: InputMaybe<EnumSaleStatusFieldUpdateOperationsInput>;
   storeId?: InputMaybe<StringFieldUpdateOperationsInput>;
   totalAmount?: InputMaybe<FloatFieldUpdateOperationsInput>;
+  transitionLogs?: InputMaybe<SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput>;
   type?: InputMaybe<EnumSaleTypeFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
 };
 
 export type SaleOrderUpsertWithoutConsumerPaymentInput = {
@@ -17903,8 +18332,11 @@ export type SaleOrderWhereInput = {
   status?: InputMaybe<EnumSaleStatusFilter>;
   storeId?: InputMaybe<StringFilter>;
   totalAmount?: InputMaybe<FloatFilter>;
+  transitionLogs?: InputMaybe<SaleOrderTransitionLogListRelationFilter>;
   type?: InputMaybe<EnumSaleTypeFilter>;
   updatedAt?: InputMaybe<DateTimeFilter>;
+  workflowContext?: InputMaybe<JsonNullableFilter>;
+  workflowState?: InputMaybe<StringNullableFilter>;
 };
 
 export type SaleOrderWhereUniqueInput = {
@@ -17925,8 +18357,11 @@ export type SaleOrderWhereUniqueInput = {
   status?: InputMaybe<EnumSaleStatusFilter>;
   storeId?: InputMaybe<StringFilter>;
   totalAmount?: InputMaybe<FloatFilter>;
+  transitionLogs?: InputMaybe<SaleOrderTransitionLogListRelationFilter>;
   type?: InputMaybe<EnumSaleTypeFilter>;
   updatedAt?: InputMaybe<DateTimeFilter>;
+  workflowContext?: InputMaybe<JsonNullableFilter>;
+  workflowState?: InputMaybe<StringNullableFilter>;
 };
 
 export enum SaleStatus {
@@ -17941,6 +18376,28 @@ export enum SaleType {
   Consumer = 'CONSUMER',
   Reseller = 'RESELLER'
 }
+
+export type SaleWorkflowSnapshot = {
+  __typename?: 'SaleWorkflowSnapshot';
+  context?: Maybe<Scalars['JSON']['output']>;
+  saleOrderId: Scalars['String']['output'];
+  state: Scalars['String']['output'];
+  transitionLogs: Array<SaleOrderTransitionLog>;
+};
+
+export type SaleWorkflowSummary = {
+  __typename?: 'SaleWorkflowSummary';
+  canAdvanceByCredit: Scalars['Boolean']['output'];
+  canAdvanceByPayment: Scalars['Boolean']['output'];
+  context?: Maybe<Scalars['JSON']['output']>;
+  creditExposure: Scalars['Float']['output'];
+  creditLimit: Scalars['Float']['output'];
+  grandTotal: Scalars['Float']['output'];
+  outstanding: Scalars['Float']['output'];
+  paid: Scalars['Float']['output'];
+  saleOrderId: Scalars['String']['output'];
+  state: Scalars['String']['output'];
+};
 
 export type SalesReturn = {
   __typename?: 'SalesReturn';
@@ -29399,14 +29856,19 @@ export type HeaderNotificationsQuery = { __typename?: 'Query', notifications: Ar
 export type OrdersQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type OrdersQuery = { __typename?: 'Query', ordersQuery: Array<{ __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, saleWorkflowState?: string | null, fulfillmentWorkflowState?: string | null, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, quotation?: { __typename?: 'Quotation', id: string, status: QuotationStatus, type: SaleType, billerId?: string | null, resellerId?: string | null, totalAmount: number, updatedAt: any } | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, createdAt: any, updatedAt: any } | null }> };
+export type OrdersQuery = { __typename?: 'Query', ordersQuery: Array<{ __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, saleWorkflowState?: string | null, fulfillmentWorkflowState?: string | null, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, saleWorkflowSummary?: { __typename?: 'SaleWorkflowSummary', saleOrderId: string, outstanding: number, canAdvanceByPayment: boolean, canAdvanceByCredit: boolean } | null, quotation?: { __typename?: 'Quotation', id: string, status: QuotationStatus, type: SaleType, billerId?: string | null, resellerId?: string | null, totalAmount: number, updatedAt: any } | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, createdAt: any, updatedAt: any } | null }> };
+
+export type OrderBillersQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type OrderBillersQuery = { __typename?: 'Query', orderBillers: Array<{ __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }> };
 
 export type OrderQueryVariables = Exact<{
   id: Scalars['String']['input'];
 }>;
 
 
-export type OrderQuery = { __typename?: 'Query', order: { __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, saleWorkflowState?: string | null, fulfillmentWorkflowState?: string | null, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, quotation?: { __typename?: 'Quotation', id: string, status: QuotationStatus, type: SaleType, totalAmount: number, billerId?: string | null, resellerId?: string | null, updatedAt: any, saleOrderId?: string | null, items?: Array<{ __typename?: 'QuotationItem', productVariantId: string, quantity: number, unitPrice: number }> | null } | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, deliveryPersonnelId?: string | null, deliveryAddress?: string | null, cost?: number | null, createdAt: any, updatedAt: any } | null } };
+export type OrderQuery = { __typename?: 'Query', order: { __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, saleWorkflowState?: string | null, saleWorkflowContext?: any | null, fulfillmentWorkflowState?: string | null, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, saleWorkflowSummary?: { __typename?: 'SaleWorkflowSummary', saleOrderId: string, state: string, grandTotal: number, paid: number, outstanding: number, creditLimit: number, creditExposure: number, canAdvanceByPayment: boolean, canAdvanceByCredit: boolean, context?: any | null } | null, consumerSale?: { __typename?: 'ConsumerSale', id: string, status: SaleStatus, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, customer?: { __typename?: 'Customer', id: string, fullName: string, email?: string | null } | null } | null, resellerSale?: { __typename?: 'ResellerSale', id: string, status: SaleStatus, resellerId: string, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, reseller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, store: { __typename?: 'Store', id: string, name: string, location?: string | null } } | null, quotation?: { __typename?: 'Quotation', id: string, status: QuotationStatus, type: SaleType, totalAmount: number, billerId?: string | null, resellerId?: string | null, updatedAt: any, saleOrderId?: string | null, items?: Array<{ __typename?: 'QuotationItem', productVariantId: string, quantity: number, unitPrice: number }> | null } | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, deliveryPersonnelId?: string | null, deliveryAddress?: string | null, cost?: number | null, createdAt: any, updatedAt: any, fulfillmentWorkflowContext?: any | null, fulfillmentWorkflow?: { __typename?: 'FulfilmentWorkflowSnapshot', state: string, context?: any | null } | null } | null, ConsumerPayment?: Array<{ __typename?: 'ConsumerPayment', id: string, amount: number, method: PaymentMethod, status: PaymentStatus, reference?: string | null, receivedAt: any }> | null, ResellerPayment?: Array<{ __typename?: 'ResellerPayment', id: string, amount: number, method: PaymentMethod, status: PaymentStatus, reference?: string | null, receivedAt: any, resellerId: string, receivedById: string }> | null } };
 
 export type UpdateQuotationStatusMutationVariables = Exact<{
   input: UpdateQuotationStatusInput;
@@ -29414,6 +29876,20 @@ export type UpdateQuotationStatusMutationVariables = Exact<{
 
 
 export type UpdateQuotationStatusMutation = { __typename?: 'Mutation', updateQuotationStatus: { __typename?: 'Quotation', id: string, status: QuotationStatus, saleOrderId?: string | null, updatedAt: any } };
+
+export type RegisterConsumerPaymentMutationVariables = Exact<{
+  input: CreateConsumerPaymentInput;
+}>;
+
+
+export type RegisterConsumerPaymentMutation = { __typename?: 'Mutation', registerConsumerPayment: { __typename?: 'ConsumerPayment', id: string, saleOrderId: string, amount: number, method: PaymentMethod, status: PaymentStatus, reference?: string | null, receivedAt: any } };
+
+export type RegisterResellerPaymentMutationVariables = Exact<{
+  input: CreateResellerPaymentInput;
+}>;
+
+
+export type RegisterResellerPaymentMutation = { __typename?: 'Mutation', registerResellerPayment: { __typename?: 'ResellerPayment', id: string, saleOrderId: string, amount: number, method: PaymentMethod, status: PaymentStatus, reference?: string | null, receivedAt: any, resellerId: string, receivedById: string } };
 
 export type QuotationsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -29423,12 +29899,12 @@ export type QuotationsQuery = { __typename?: 'Query', quotations: Array<{ __type
 export type ConsumerSalesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type ConsumerSalesQuery = { __typename?: 'Query', consumerSales: Array<{ __typename?: 'ConsumerSale', id: string, saleOrderId: string, customerId?: string | null, storeId: string, billerId: string, status: SaleStatus, channel: SaleChannel, totalAmount: number, createdAt: any, updatedAt: any }> };
+export type ConsumerSalesQuery = { __typename?: 'Query', consumerSales: Array<{ __typename?: 'ConsumerSale', id: string, saleOrderId: string, customerId?: string | null, storeId: string, billerId: string, status: SaleStatus, channel: SaleChannel, totalAmount: number, createdAt: any, updatedAt: any, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, customer?: { __typename?: 'Customer', id: string, fullName: string, email?: string | null } | null, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } }> };
 
 export type ResellerSalesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type ResellerSalesQuery = { __typename?: 'Query', resellerSales: Array<{ __typename?: 'ResellerSale', id: string, SaleOrderid: string, resellerId: string, billerId: string, storeId: string, status: SaleStatus, totalAmount: number, createdAt: any, updatedAt: any }> };
+export type ResellerSalesQuery = { __typename?: 'Query', resellerSales: Array<{ __typename?: 'ResellerSale', id: string, SaleOrderid: string, resellerId: string, billerId: string, storeId: string, status: SaleStatus, totalAmount: number, createdAt: any, updatedAt: any, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, reseller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } }> };
 
 export type QuotationDetailQueryVariables = Exact<{
   id: Scalars['String']['input'];
@@ -29457,14 +29933,14 @@ export type ConsumerSaleDetailQueryVariables = Exact<{
 }>;
 
 
-export type ConsumerSaleDetailQuery = { __typename?: 'Query', consumerSale: { __typename?: 'ConsumerSale', id: string, saleOrderId: string, customerId?: string | null, storeId: string, billerId: string, status: SaleStatus, channel: SaleChannel, totalAmount: number, createdAt: any, updatedAt: any, items?: Array<{ __typename?: 'ConsumerSaleItem', productVariantId: string, quantity: number, unitPrice: number }> | null } };
+export type ConsumerSaleDetailQuery = { __typename?: 'Query', consumerSale: { __typename?: 'ConsumerSale', id: string, saleOrderId: string, customerId?: string | null, storeId: string, billerId: string, status: SaleStatus, channel: SaleChannel, totalAmount: number, createdAt: any, updatedAt: any, items?: Array<{ __typename?: 'ConsumerSaleItem', productVariantId: string, quantity: number, unitPrice: number }> | null, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, customer?: { __typename?: 'Customer', id: string, fullName: string, email?: string | null } | null, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } } };
 
 export type ResellerSaleDetailQueryVariables = Exact<{
   id: Scalars['String']['input'];
 }>;
 
 
-export type ResellerSaleDetailQuery = { __typename?: 'Query', resellerSale: { __typename?: 'ResellerSale', id: string, SaleOrderid: string, resellerId: string, billerId: string, storeId: string, status: SaleStatus, totalAmount: number, createdAt: any, updatedAt: any, items?: Array<{ __typename?: 'ResellerSaleItem', productVariantId: string, quantity: number, unitPrice: number }> | null } };
+export type ResellerSaleDetailQuery = { __typename?: 'Query', resellerSale: { __typename?: 'ResellerSale', id: string, SaleOrderid: string, resellerId: string, billerId: string, storeId: string, status: SaleStatus, totalAmount: number, createdAt: any, updatedAt: any, items?: Array<{ __typename?: 'ResellerSaleItem', productVariantId: string, quantity: number, unitPrice: number }> | null, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, reseller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } } };
 
 export type CreateQuotationDraftMutationVariables = Exact<{
   input: CreateQuotationDraftInput;
@@ -29479,6 +29955,34 @@ export type UpdateQuotationMutationVariables = Exact<{
 
 
 export type UpdateQuotationMutation = { __typename?: 'Mutation', updateQuotation: { __typename?: 'Quotation', id: string, status: QuotationStatus, totalAmount: number, updatedAt: any } };
+
+export type CreditCheckQueryVariables = Exact<{
+  saleOrderId: Scalars['String']['input'];
+}>;
+
+
+export type CreditCheckQuery = { __typename?: 'Query', creditCheck: { __typename?: 'SaleWorkflowSummary', saleOrderId: string, state: string, grandTotal: number, paid: number, outstanding: number, creditLimit: number, creditExposure: number, canAdvanceByPayment: boolean, canAdvanceByCredit: boolean, context?: any | null } };
+
+export type GrantAdminOverrideMutationVariables = Exact<{
+  input: GrantAdminOverrideInput;
+}>;
+
+
+export type GrantAdminOverrideMutation = { __typename?: 'Mutation', grantAdminOverride: { __typename?: 'SaleOrder', id: string, saleWorkflowState?: string | null, saleWorkflowContext?: any | null, saleWorkflowSummary?: { __typename?: 'SaleWorkflowSummary', saleOrderId: string, outstanding: number, canAdvanceByPayment: boolean, canAdvanceByCredit: boolean } | null } };
+
+export type GrantCreditOverrideMutationVariables = Exact<{
+  input: GrantCreditOverrideInput;
+}>;
+
+
+export type GrantCreditOverrideMutation = { __typename?: 'Mutation', grantCreditOverride: { __typename?: 'SaleOrder', id: string, saleWorkflowState?: string | null, saleWorkflowContext?: any | null, saleWorkflowSummary?: { __typename?: 'SaleWorkflowSummary', outstanding: number, canAdvanceByPayment: boolean, canAdvanceByCredit: boolean, creditLimit: number, creditExposure: number } | null } };
+
+export type FulfilmentWorkflowQueryVariables = Exact<{
+  saleOrderId: Scalars['String']['input'];
+}>;
+
+
+export type FulfilmentWorkflowQuery = { __typename?: 'Query', fulfilmentWorkflow?: { __typename?: 'FulfilmentWorkflowSnapshot', saleOrderId: string, state: string, context?: any | null, transitionLogs: Array<{ __typename?: 'FulfillmentTransitionLog', id: string, fromState?: string | null, toState: string, event?: string | null, occurredAt: any }> } | null };
 
 export type OutboxStatusQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -29832,7 +30336,7 @@ export type PendingResellerApplicationsQuery = { __typename?: 'Query', pendingRe
 export type ListBillersQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type ListBillersQuery = { __typename?: 'Query', listBillers: Array<{ __typename?: 'User', id: string, email: string }> };
+export type ListBillersQuery = { __typename?: 'Query', listBillers: Array<{ __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }> };
 
 export type ApproveResellerMutationVariables = Exact<{
   resellerId: Scalars['String']['input'];
@@ -32553,10 +33057,23 @@ export const OrdersDocument = gql`
     phase
     saleWorkflowState
     fulfillmentWorkflowState
+    saleWorkflowSummary {
+      saleOrderId
+      outstanding
+      canAdvanceByPayment
+      canAdvanceByCredit
+    }
     totalAmount
     createdAt
     updatedAt
     resellerSaleid
+    biller {
+      id
+      email
+      customerProfile {
+        fullName
+      }
+    }
     quotation {
       id
       status
@@ -32608,6 +33125,49 @@ export type OrdersQueryHookResult = ReturnType<typeof useOrdersQuery>;
 export type OrdersLazyQueryHookResult = ReturnType<typeof useOrdersLazyQuery>;
 export type OrdersSuspenseQueryHookResult = ReturnType<typeof useOrdersSuspenseQuery>;
 export type OrdersQueryResult = Apollo.QueryResult<OrdersQuery, OrdersQueryVariables>;
+export const OrderBillersDocument = gql`
+    query OrderBillers {
+  orderBillers {
+    id
+    email
+    customerProfile {
+      fullName
+    }
+  }
+}
+    `;
+
+/**
+ * __useOrderBillersQuery__
+ *
+ * To run a query within a React component, call `useOrderBillersQuery` and pass it any options that fit your needs.
+ * When your component renders, `useOrderBillersQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useOrderBillersQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useOrderBillersQuery(baseOptions?: Apollo.QueryHookOptions<OrderBillersQuery, OrderBillersQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<OrderBillersQuery, OrderBillersQueryVariables>(OrderBillersDocument, options);
+      }
+export function useOrderBillersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<OrderBillersQuery, OrderBillersQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<OrderBillersQuery, OrderBillersQueryVariables>(OrderBillersDocument, options);
+        }
+export function useOrderBillersSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<OrderBillersQuery, OrderBillersQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<OrderBillersQuery, OrderBillersQueryVariables>(OrderBillersDocument, options);
+        }
+export type OrderBillersQueryHookResult = ReturnType<typeof useOrderBillersQuery>;
+export type OrderBillersLazyQueryHookResult = ReturnType<typeof useOrderBillersLazyQuery>;
+export type OrderBillersSuspenseQueryHookResult = ReturnType<typeof useOrderBillersSuspenseQuery>;
+export type OrderBillersQueryResult = Apollo.QueryResult<OrderBillersQuery, OrderBillersQueryVariables>;
 export const OrderDocument = gql`
     query Order($id: String!) {
   order(id: $id) {
@@ -32618,11 +33178,69 @@ export const OrderDocument = gql`
     status
     phase
     saleWorkflowState
+    saleWorkflowContext
+    saleWorkflowSummary {
+      saleOrderId
+      state
+      grandTotal
+      paid
+      outstanding
+      creditLimit
+      creditExposure
+      canAdvanceByPayment
+      canAdvanceByCredit
+      context
+    }
     fulfillmentWorkflowState
     totalAmount
     createdAt
     updatedAt
     resellerSaleid
+    consumerSale {
+      id
+      status
+      store {
+        id
+        name
+        location
+      }
+      biller {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
+      customer {
+        id
+        fullName
+        email
+      }
+    }
+    resellerSale {
+      id
+      status
+      resellerId
+      biller {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
+      reseller {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
+      store {
+        id
+        name
+        location
+      }
+    }
     quotation {
       id
       status
@@ -32647,6 +33265,36 @@ export const OrderDocument = gql`
       cost
       createdAt
       updatedAt
+      fulfillmentWorkflowContext
+      fulfillmentWorkflow {
+        state
+        context
+      }
+    }
+    ConsumerPayment {
+      id
+      amount
+      method
+      status
+      reference
+      receivedAt
+    }
+    ResellerPayment {
+      id
+      amount
+      method
+      status
+      reference
+      receivedAt
+      resellerId
+      receivedById
+    }
+    biller {
+      id
+      email
+      customerProfile {
+        fullName
+      }
     }
   }
 }
@@ -32720,6 +33368,86 @@ export function useUpdateQuotationStatusMutation(baseOptions?: Apollo.MutationHo
 export type UpdateQuotationStatusMutationHookResult = ReturnType<typeof useUpdateQuotationStatusMutation>;
 export type UpdateQuotationStatusMutationResult = Apollo.MutationResult<UpdateQuotationStatusMutation>;
 export type UpdateQuotationStatusMutationOptions = Apollo.BaseMutationOptions<UpdateQuotationStatusMutation, UpdateQuotationStatusMutationVariables>;
+export const RegisterConsumerPaymentDocument = gql`
+    mutation RegisterConsumerPayment($input: CreateConsumerPaymentInput!) {
+  registerConsumerPayment(input: $input) {
+    id
+    saleOrderId
+    amount
+    method
+    status
+    reference
+    receivedAt
+  }
+}
+    `;
+export type RegisterConsumerPaymentMutationFn = Apollo.MutationFunction<RegisterConsumerPaymentMutation, RegisterConsumerPaymentMutationVariables>;
+
+/**
+ * __useRegisterConsumerPaymentMutation__
+ *
+ * To run a mutation, you first call `useRegisterConsumerPaymentMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useRegisterConsumerPaymentMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [registerConsumerPaymentMutation, { data, loading, error }] = useRegisterConsumerPaymentMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useRegisterConsumerPaymentMutation(baseOptions?: Apollo.MutationHookOptions<RegisterConsumerPaymentMutation, RegisterConsumerPaymentMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<RegisterConsumerPaymentMutation, RegisterConsumerPaymentMutationVariables>(RegisterConsumerPaymentDocument, options);
+      }
+export type RegisterConsumerPaymentMutationHookResult = ReturnType<typeof useRegisterConsumerPaymentMutation>;
+export type RegisterConsumerPaymentMutationResult = Apollo.MutationResult<RegisterConsumerPaymentMutation>;
+export type RegisterConsumerPaymentMutationOptions = Apollo.BaseMutationOptions<RegisterConsumerPaymentMutation, RegisterConsumerPaymentMutationVariables>;
+export const RegisterResellerPaymentDocument = gql`
+    mutation RegisterResellerPayment($input: CreateResellerPaymentInput!) {
+  registerResellerPayment(input: $input) {
+    id
+    saleOrderId
+    amount
+    method
+    status
+    reference
+    receivedAt
+    resellerId
+    receivedById
+  }
+}
+    `;
+export type RegisterResellerPaymentMutationFn = Apollo.MutationFunction<RegisterResellerPaymentMutation, RegisterResellerPaymentMutationVariables>;
+
+/**
+ * __useRegisterResellerPaymentMutation__
+ *
+ * To run a mutation, you first call `useRegisterResellerPaymentMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useRegisterResellerPaymentMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [registerResellerPaymentMutation, { data, loading, error }] = useRegisterResellerPaymentMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useRegisterResellerPaymentMutation(baseOptions?: Apollo.MutationHookOptions<RegisterResellerPaymentMutation, RegisterResellerPaymentMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<RegisterResellerPaymentMutation, RegisterResellerPaymentMutationVariables>(RegisterResellerPaymentDocument, options);
+      }
+export type RegisterResellerPaymentMutationHookResult = ReturnType<typeof useRegisterResellerPaymentMutation>;
+export type RegisterResellerPaymentMutationResult = Apollo.MutationResult<RegisterResellerPaymentMutation>;
+export type RegisterResellerPaymentMutationOptions = Apollo.BaseMutationOptions<RegisterResellerPaymentMutation, RegisterResellerPaymentMutationVariables>;
 export const QuotationsDocument = gql`
     query Quotations {
   quotations {
@@ -32787,6 +33515,23 @@ export const ConsumerSalesDocument = gql`
     totalAmount
     createdAt
     updatedAt
+    store {
+      id
+      name
+      location
+    }
+    customer {
+      id
+      fullName
+      email
+    }
+    biller {
+      id
+      email
+      customerProfile {
+        fullName
+      }
+    }
   }
 }
     `;
@@ -32834,6 +33579,25 @@ export const ResellerSalesDocument = gql`
     totalAmount
     createdAt
     updatedAt
+    store {
+      id
+      name
+      location
+    }
+    reseller {
+      id
+      email
+      customerProfile {
+        fullName
+      }
+    }
+    biller {
+      id
+      email
+      customerProfile {
+        fullName
+      }
+    }
   }
 }
     `;
@@ -33055,6 +33819,23 @@ export const ConsumerSaleDetailDocument = gql`
       quantity
       unitPrice
     }
+    store {
+      id
+      name
+      location
+    }
+    customer {
+      id
+      fullName
+      email
+    }
+    biller {
+      id
+      email
+      customerProfile {
+        fullName
+      }
+    }
   }
 }
     `;
@@ -33107,6 +33888,25 @@ export const ResellerSaleDetailDocument = gql`
       productVariantId
       quantity
       unitPrice
+    }
+    store {
+      id
+      name
+      location
+    }
+    reseller {
+      id
+      email
+      customerProfile {
+        fullName
+      }
+    }
+    biller {
+      id
+      email
+      customerProfile {
+        fullName
+      }
     }
   }
 }
@@ -33215,6 +34015,187 @@ export function useUpdateQuotationMutation(baseOptions?: Apollo.MutationHookOpti
 export type UpdateQuotationMutationHookResult = ReturnType<typeof useUpdateQuotationMutation>;
 export type UpdateQuotationMutationResult = Apollo.MutationResult<UpdateQuotationMutation>;
 export type UpdateQuotationMutationOptions = Apollo.BaseMutationOptions<UpdateQuotationMutation, UpdateQuotationMutationVariables>;
+export const CreditCheckDocument = gql`
+    query CreditCheck($saleOrderId: String!) {
+  creditCheck(saleOrderId: $saleOrderId) {
+    saleOrderId
+    state
+    grandTotal
+    paid
+    outstanding
+    creditLimit
+    creditExposure
+    canAdvanceByPayment
+    canAdvanceByCredit
+    context
+  }
+}
+    `;
+
+/**
+ * __useCreditCheckQuery__
+ *
+ * To run a query within a React component, call `useCreditCheckQuery` and pass it any options that fit your needs.
+ * When your component renders, `useCreditCheckQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useCreditCheckQuery({
+ *   variables: {
+ *      saleOrderId: // value for 'saleOrderId'
+ *   },
+ * });
+ */
+export function useCreditCheckQuery(baseOptions: Apollo.QueryHookOptions<CreditCheckQuery, CreditCheckQueryVariables> & ({ variables: CreditCheckQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CreditCheckQuery, CreditCheckQueryVariables>(CreditCheckDocument, options);
+      }
+export function useCreditCheckLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CreditCheckQuery, CreditCheckQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CreditCheckQuery, CreditCheckQueryVariables>(CreditCheckDocument, options);
+        }
+export function useCreditCheckSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<CreditCheckQuery, CreditCheckQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<CreditCheckQuery, CreditCheckQueryVariables>(CreditCheckDocument, options);
+        }
+export type CreditCheckQueryHookResult = ReturnType<typeof useCreditCheckQuery>;
+export type CreditCheckLazyQueryHookResult = ReturnType<typeof useCreditCheckLazyQuery>;
+export type CreditCheckSuspenseQueryHookResult = ReturnType<typeof useCreditCheckSuspenseQuery>;
+export type CreditCheckQueryResult = Apollo.QueryResult<CreditCheckQuery, CreditCheckQueryVariables>;
+export const GrantAdminOverrideDocument = gql`
+    mutation GrantAdminOverride($input: GrantAdminOverrideInput!) {
+  grantAdminOverride(input: $input) {
+    id
+    saleWorkflowState
+    saleWorkflowContext
+    saleWorkflowSummary {
+      saleOrderId
+      outstanding
+      canAdvanceByPayment
+      canAdvanceByCredit
+    }
+  }
+}
+    `;
+export type GrantAdminOverrideMutationFn = Apollo.MutationFunction<GrantAdminOverrideMutation, GrantAdminOverrideMutationVariables>;
+
+/**
+ * __useGrantAdminOverrideMutation__
+ *
+ * To run a mutation, you first call `useGrantAdminOverrideMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useGrantAdminOverrideMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [grantAdminOverrideMutation, { data, loading, error }] = useGrantAdminOverrideMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useGrantAdminOverrideMutation(baseOptions?: Apollo.MutationHookOptions<GrantAdminOverrideMutation, GrantAdminOverrideMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<GrantAdminOverrideMutation, GrantAdminOverrideMutationVariables>(GrantAdminOverrideDocument, options);
+      }
+export type GrantAdminOverrideMutationHookResult = ReturnType<typeof useGrantAdminOverrideMutation>;
+export type GrantAdminOverrideMutationResult = Apollo.MutationResult<GrantAdminOverrideMutation>;
+export type GrantAdminOverrideMutationOptions = Apollo.BaseMutationOptions<GrantAdminOverrideMutation, GrantAdminOverrideMutationVariables>;
+export const GrantCreditOverrideDocument = gql`
+    mutation GrantCreditOverride($input: GrantCreditOverrideInput!) {
+  grantCreditOverride(input: $input) {
+    id
+    saleWorkflowState
+    saleWorkflowContext
+    saleWorkflowSummary {
+      outstanding
+      canAdvanceByPayment
+      canAdvanceByCredit
+      creditLimit
+      creditExposure
+    }
+  }
+}
+    `;
+export type GrantCreditOverrideMutationFn = Apollo.MutationFunction<GrantCreditOverrideMutation, GrantCreditOverrideMutationVariables>;
+
+/**
+ * __useGrantCreditOverrideMutation__
+ *
+ * To run a mutation, you first call `useGrantCreditOverrideMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useGrantCreditOverrideMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [grantCreditOverrideMutation, { data, loading, error }] = useGrantCreditOverrideMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useGrantCreditOverrideMutation(baseOptions?: Apollo.MutationHookOptions<GrantCreditOverrideMutation, GrantCreditOverrideMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<GrantCreditOverrideMutation, GrantCreditOverrideMutationVariables>(GrantCreditOverrideDocument, options);
+      }
+export type GrantCreditOverrideMutationHookResult = ReturnType<typeof useGrantCreditOverrideMutation>;
+export type GrantCreditOverrideMutationResult = Apollo.MutationResult<GrantCreditOverrideMutation>;
+export type GrantCreditOverrideMutationOptions = Apollo.BaseMutationOptions<GrantCreditOverrideMutation, GrantCreditOverrideMutationVariables>;
+export const FulfilmentWorkflowDocument = gql`
+    query FulfilmentWorkflow($saleOrderId: String!) {
+  fulfilmentWorkflow(saleOrderId: $saleOrderId) {
+    saleOrderId
+    state
+    context
+    transitionLogs {
+      id
+      fromState
+      toState
+      event
+      occurredAt
+    }
+  }
+}
+    `;
+
+/**
+ * __useFulfilmentWorkflowQuery__
+ *
+ * To run a query within a React component, call `useFulfilmentWorkflowQuery` and pass it any options that fit your needs.
+ * When your component renders, `useFulfilmentWorkflowQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useFulfilmentWorkflowQuery({
+ *   variables: {
+ *      saleOrderId: // value for 'saleOrderId'
+ *   },
+ * });
+ */
+export function useFulfilmentWorkflowQuery(baseOptions: Apollo.QueryHookOptions<FulfilmentWorkflowQuery, FulfilmentWorkflowQueryVariables> & ({ variables: FulfilmentWorkflowQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<FulfilmentWorkflowQuery, FulfilmentWorkflowQueryVariables>(FulfilmentWorkflowDocument, options);
+      }
+export function useFulfilmentWorkflowLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<FulfilmentWorkflowQuery, FulfilmentWorkflowQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<FulfilmentWorkflowQuery, FulfilmentWorkflowQueryVariables>(FulfilmentWorkflowDocument, options);
+        }
+export function useFulfilmentWorkflowSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<FulfilmentWorkflowQuery, FulfilmentWorkflowQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<FulfilmentWorkflowQuery, FulfilmentWorkflowQueryVariables>(FulfilmentWorkflowDocument, options);
+        }
+export type FulfilmentWorkflowQueryHookResult = ReturnType<typeof useFulfilmentWorkflowQuery>;
+export type FulfilmentWorkflowLazyQueryHookResult = ReturnType<typeof useFulfilmentWorkflowLazyQuery>;
+export type FulfilmentWorkflowSuspenseQueryHookResult = ReturnType<typeof useFulfilmentWorkflowSuspenseQuery>;
+export type FulfilmentWorkflowQueryResult = Apollo.QueryResult<FulfilmentWorkflowQuery, FulfilmentWorkflowQueryVariables>;
 export const OutboxStatusDocument = gql`
     query OutboxStatus {
   outboxStatus {
@@ -35083,6 +36064,9 @@ export const ListBillersDocument = gql`
   listBillers {
     id
     email
+    customerProfile {
+      fullName
+    }
   }
 }
     `;

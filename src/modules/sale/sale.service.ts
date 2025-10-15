@@ -30,7 +30,7 @@ import { CreateResellerPaymentInput } from './dto/create-reseller-payment.input'
 import { PaymentService } from '../payment/payment.service';
 import { SaleChannel } from 'src/shared/prismagraphql/prisma/sale-channel.enum';
 import { QuotationStatus } from 'src/shared/prismagraphql/prisma/quotation-status.enum';
-import { ensureQuotationTransition } from 'src/shared/workflows/quotation-state';
+import { ensureQuotationTransition } from '../../shared/workflows/quotation-state';
 import {
   runSaleMachine,
   saleStatusToState,
@@ -160,7 +160,11 @@ export class SalesService {
           ? { connect: { id: input.billerId } }
           : { disconnect: true };
         if (current.SaleOrder) {
-          saleOrderData.billerId = input.billerId ?? current.SaleOrder.billerId;
+          saleOrderData.biller = {
+            connect: {
+              id: input.billerId ?? current.SaleOrder.billerId,
+            },
+          };
         }
       }
 
@@ -732,13 +736,25 @@ export class SalesService {
 
   // Consumer Sales
   async consumerSales() {
-    return this.prisma.consumerSale.findMany({ include: { items: true } });
+    return this.prisma.consumerSale.findMany({
+      include: {
+        items: true,
+        store: true,
+        customer: true,
+        biller: { include: { customerProfile: true } },
+      },
+    });
   }
 
   async consumerSale(id: string) {
     const sale = await this.prisma.consumerSale.findUnique({
       where: { id },
-      include: { items: true },
+      include: {
+        items: true,
+        store: true,
+        customer: true,
+        biller: { include: { customerProfile: true } },
+      },
     });
     if (!sale) throw new NotFoundException('Consumer sale not found');
     return sale;
@@ -912,13 +928,25 @@ export class SalesService {
 
   // Reseller Sales
   async resellerSales() {
-    return this.prisma.resellerSale.findMany({ include: { items: true } });
+    return this.prisma.resellerSale.findMany({
+      include: {
+        items: true,
+        store: true,
+        reseller: { include: { customerProfile: true } },
+        biller: { include: { customerProfile: true } },
+      },
+    });
   }
 
   async resellerSale(id: string) {
     const sale = await this.prisma.resellerSale.findUnique({
       where: { id },
-      include: { items: true },
+      include: {
+        items: true,
+        store: true,
+        reseller: { include: { customerProfile: true } },
+        biller: { include: { customerProfile: true } },
+      },
     });
     if (!sale) throw new NotFoundException('Reseller sale not found');
     return sale;

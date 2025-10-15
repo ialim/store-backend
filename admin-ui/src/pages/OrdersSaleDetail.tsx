@@ -19,6 +19,7 @@ import LaunchIcon from '@mui/icons-material/Launch';
 import TableList from '../shared/TableList';
 import { formatMoney } from '../shared/format';
 import { ConsumerSaleDetail, ResellerSaleDetail } from '../operations/orders';
+import { Stores } from '../operations/stores';
 
 type ConsumerSaleData = {
   consumerSale: {
@@ -32,6 +33,22 @@ type ConsumerSaleData = {
     totalAmount: number;
     createdAt: string;
     updatedAt: string;
+    store?: {
+      id: string;
+      name: string;
+      location?: string | null;
+    } | null;
+    customer?: {
+      id: string;
+      fullName?: string | null;
+      email?: string | null;
+      customerProfile?: { fullName?: string | null } | null;
+    } | null;
+    biller?: {
+      id: string;
+      email?: string | null;
+      customerProfile?: { fullName?: string | null } | null;
+    } | null;
     items: Array<{
       productVariantId: string;
       quantity: number;
@@ -51,12 +68,35 @@ type ResellerSaleData = {
     totalAmount: number;
     createdAt: string;
     updatedAt: string;
+    store?: {
+      id: string;
+      name: string;
+      location?: string | null;
+    } | null;
+    reseller?: {
+      id: string;
+      email?: string | null;
+      customerProfile?: { fullName?: string | null } | null;
+    } | null;
+    biller?: {
+      id: string;
+      email?: string | null;
+      customerProfile?: { fullName?: string | null } | null;
+    } | null;
     items: Array<{
       productVariantId: string;
       quantity: number;
       unitPrice: number;
     }>;
   };
+};
+
+type StoreListData = {
+  listStores: Array<{
+    id: string;
+    name: string;
+    location?: string | null;
+  }>;
 };
 
 function formatDate(value?: string | null) {
@@ -77,6 +117,38 @@ function statusChip(status?: string) {
   return <Chip label={status ?? 'Unknown'} color={color} size="small" />;
 }
 
+function formatStoreLabel(
+  storeId?: string | null,
+  saleStore?: { id: string; name: string; location?: string | null } | null,
+  storeMap?: Map<string, string>,
+): string {
+  if (saleStore) {
+    const location = saleStore.location?.trim();
+    return location?.length ? `${saleStore.name} • ${location}` : saleStore.name;
+  }
+  if (!storeId) return '—';
+  return storeMap?.get(storeId) ?? storeId;
+}
+
+function formatUserLabel(
+  user?:
+    | {
+        fullName?: string | null;
+        email?: string | null;
+        customerProfile?: { fullName?: string | null } | null;
+      }
+    | null,
+  fallback?: string | null,
+) {
+  const profileName = user?.customerProfile?.fullName?.trim();
+  if (profileName) return profileName;
+  const directName = user?.fullName?.trim();
+  if (directName) return directName;
+  const email = user?.email?.trim();
+  if (email) return email;
+  return fallback ?? '—';
+}
+
 export default function OrdersSaleDetail() {
   const params = useParams<{ kind: string; id: string }>();
   const navigate = useNavigate();
@@ -94,6 +166,18 @@ export default function OrdersSaleDetail() {
     skip: isConsumer || !id,
     fetchPolicy: 'cache-and-network',
   });
+  const { data: storesData } = useQuery<StoreListData>(Stores, {
+    variables: { take: 500 },
+    fetchPolicy: 'cache-first',
+  });
+
+  const storeMap = React.useMemo(() => {
+    const entries = storesData?.listStores?.map((store) => [
+      store.id,
+      `${store.name}${store.location ? ` • ${store.location}` : ''}`,
+    ]) as Array<[string, string]> | undefined;
+    return new Map(entries ?? []);
+  }, [storesData]);
 
   const loading = consumerResult.loading || resellerResult.loading;
   const error = consumerResult.error || resellerResult.error;
@@ -109,6 +193,25 @@ export default function OrdersSaleDetail() {
     ? consumerSale?.customerId
     : resellerSale?.resellerId;
   const channel = isConsumer ? consumerSale?.channel : 'RESELLER';
+
+  const storeLabel = formatStoreLabel(
+    sale?.storeId,
+    sale?.store ?? null,
+    storeMap,
+  );
+  const billerLabel = formatUserLabel(
+    sale?.biller,
+    sale?.billerId ?? undefined,
+  );
+  const partyLabel = isConsumer
+    ? formatUserLabel(
+        consumerSale?.customer,
+        consumerSale?.customerId ?? undefined,
+      )
+    : formatUserLabel(
+        resellerSale?.reseller,
+        resellerSale?.resellerId ?? undefined,
+      );
 
   const itemRows = sale?.items ?? [];
   const itemColumns = React.useMemo(
@@ -220,19 +323,19 @@ export default function OrdersSaleDetail() {
                 <Typography variant="body2" color="text.secondary">
                   Store
                 </Typography>
-                <Typography variant="subtitle2">{sale.storeId}</Typography>
+                <Typography variant="subtitle2">{storeLabel}</Typography>
               </Grid>
               <Grid item xs={12} md={4}>
                 <Typography variant="body2" color="text.secondary">
                   Biller
                 </Typography>
-                <Typography variant="subtitle2">{sale.billerId}</Typography>
+                <Typography variant="subtitle2">{billerLabel}</Typography>
               </Grid>
               <Grid item xs={12} md={4}>
                 <Typography variant="body2" color="text.secondary">
                   Customer / Reseller
                 </Typography>
-                <Typography variant="subtitle2">{partyId || '—'}</Typography>
+                <Typography variant="subtitle2">{partyLabel || partyId || '—'}</Typography>
               </Grid>
               <Grid item xs={12} md={4}>
                 <Typography variant="body2" color="text.secondary">

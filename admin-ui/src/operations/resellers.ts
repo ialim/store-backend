@@ -29,6 +29,9 @@ export const ListBillers = gql`
     listBillers {
       id
       email
+      customerProfile {
+        fullName
+      }
     }
   }
 `;

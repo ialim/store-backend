@@ -41,7 +41,7 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
   if (graphQLErrors) {
     for (const err of graphQLErrors) {
       const code = (err.extensions?.code as string) || '';
-      if (code === 'UNAUTHENTICATED' || code === 'FORBIDDEN') {
+      if (code === 'UNAUTHENTICATED') {
         try {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
@@ -49,7 +49,11 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
         notify('Session expired. Please login again.', 'warning');
         // Small delay to allow snackbar render
         setTimeout(() => (window.location.href = '/login'), 200);
-        return;
+        continue;
+      }
+      if (code === 'FORBIDDEN') {
+        notify('You do not have permission to perform that action.', 'warning');
+        continue;
       }
     }
   }

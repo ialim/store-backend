@@ -231,6 +231,39 @@ export default function App() {
               }
             />
             <Route
+              path="/orders/quotations/customer"
+              element={
+                <ProtectedRoute
+                  roles={[
+                    'SUPERADMIN',
+                    'ADMIN',
+                    'MANAGER',
+                    'BILLER',
+                    'ACCOUNTANT',
+                  ]}
+                  perms={orderReadAccess}
+                  element={<OrdersQuotations type="CONSUMER" />}
+                />
+              }
+            />
+            <Route
+              path="/orders/quotations/reseller"
+              element={
+                <ProtectedRoute
+                  roles={[
+                    'SUPERADMIN',
+                    'ADMIN',
+                    'MANAGER',
+                    'BILLER',
+                    'ACCOUNTANT',
+                    'RESELLER',
+                  ]}
+                  perms={orderReadAccess}
+                  element={<OrdersQuotations type="RESELLER" />}
+                />
+              }
+            />
+            <Route
               path="/orders/quotations/new"
               element={
                 <ProtectedRoute

@@ -10,25 +10,52 @@ import {
 } from '@mui/material';
 import LocalMallIcon from '@mui/icons-material/LocalMall';
 import { ConsumerSales } from '../operations/orders';
+import { Stores } from '../operations/stores';
 import TableList from '../shared/TableList';
 import { ListingHero } from '../shared/ListingLayout';
 import { formatMoney } from '../shared/format';
 
+type StoreInfo = {
+  id: string;
+  name: string;
+  location?: string | null;
+} | null;
+
 type ConsumerSaleRow = {
   id: string;
   saleOrderId: string;
-  customerId: string;
-  storeId: string;
-  billerId: string;
+  customerId?: string | null;
+  storeId?: string | null;
+  billerId?: string | null;
   status: string;
   channel: string;
   totalAmount: number;
   createdAt: string;
   updatedAt: string;
+  store?: StoreInfo;
+  customer?: {
+    id: string;
+    fullName?: string | null;
+    email?: string | null;
+    customerProfile?: { fullName?: string | null } | null;
+  } | null;
+  biller?: {
+    id: string;
+    email?: string | null;
+    customerProfile?: { fullName?: string | null } | null;
+  } | null;
 };
 
 type ConsumerSalesData = {
   consumerSales: ConsumerSaleRow[];
+};
+
+type StoreListData = {
+  listStores: Array<{
+    id: string;
+    name: string;
+    location?: string | null;
+  }>;
 };
 
 function formatDate(value?: string | null) {
@@ -38,6 +65,31 @@ function formatDate(value?: string | null) {
   } catch {
     return value;
   }
+}
+
+function formatStoreLabel(store: StoreInfo, fallback?: string | null) {
+  if (!store) return fallback ?? '—';
+  const location = store.location?.trim();
+  return location?.length ? `${store.name} • ${location}` : store.name;
+}
+
+function formatUserLabel(
+  user?:
+    | {
+        fullName?: string | null;
+        email?: string | null;
+        customerProfile?: { fullName?: string | null } | null;
+      }
+    | null,
+  fallback?: string | null,
+) {
+  const profileName = user?.customerProfile?.fullName?.trim();
+  if (profileName) return profileName;
+  const directName = user?.fullName?.trim();
+  if (directName) return directName;
+  const email = user?.email?.trim();
+  if (email) return email;
+  return fallback ?? '—';
 }
 
 function statusColor(status?: string) {
@@ -64,18 +116,47 @@ export default function CustomerSales() {
     ConsumerSales,
     { fetchPolicy: 'cache-and-network' },
   );
+  const { data: storesData } = useQuery<StoreListData>(Stores, {
+    variables: { take: 500 },
+    fetchPolicy: 'cache-first',
+  });
+
+  const storeMap = React.useMemo(() => {
+    const entries = storesData?.listStores?.map((store) => [
+      store.id,
+      formatStoreLabel(store as StoreInfo, undefined),
+    ]) as Array<[string, string]> | undefined;
+    return new Map(entries ?? []);
+  }, [storesData]);
 
   const sales = data?.consumerSales ?? [];
   const term = search.trim().toLowerCase();
   const filtered = React.useMemo(() => {
     if (!term) return sales;
     return sales.filter((sale) => {
+      const storeLabel =
+        storeMap.get(sale.storeId ?? '') ??
+        formatStoreLabel(sale.store ?? null, sale.storeId ?? undefined);
+      const customerLabel = formatUserLabel(
+        sale.customer,
+        sale.customerId ?? undefined,
+      );
+      const billerLabel = formatUserLabel(
+        {
+          fullName: sale.biller?.customerProfile?.fullName ?? null,
+          email: sale.biller?.email ?? null,
+        },
+        sale.billerId ?? undefined,
+      );
       const haystack = [
         sale.id,
         sale.saleOrderId,
         sale.customerId,
         sale.storeId,
         sale.billerId,
+        customerLabel,
+        storeLabel,
+        billerLabel,
         sale.status,
         sale.channel,
       ]
@@ -84,7 +165,7 @@ export default function CustomerSales() {
         .toLowerCase();
       return haystack.includes(term);
     });
-  }, [sales, term]);
+  }, [sales, term, storeMap]);
 
   const summary = React.useMemo(() => {
     if (!sales.length) return 'No customer sales yet';
@@ -119,14 +200,22 @@ export default function CustomerSales() {
       {
         key: 'store',
         label: 'Store',
-        render: (sale: ConsumerSaleRow) => sale.storeId,
-        accessor: (sale: ConsumerSaleRow) => sale.storeId,
+        render: (sale: ConsumerSaleRow) =>
+          storeMap.get(sale.storeId ?? '') ??
+          formatStoreLabel(sale.store ?? null, sale.storeId ?? undefined),
+        accessor: (sale: ConsumerSaleRow) =>
+          storeMap.get(sale.storeId ?? '') ??
+          formatStoreLabel(sale.store ?? null, sale.storeId ?? undefined),
         sort: true,
       },
       {
         key: 'customer',
         label: 'Customer',
-        render: (sale: ConsumerSaleRow) => sale.customerId || '—',
+        render: (sale: ConsumerSaleRow) =>
+          formatUserLabel(
+            sale.customer,
+            sale.customerId ?? undefined,
+          ),
       },
       {
         key: 'total',
@@ -149,7 +238,7 @@ export default function CustomerSales() {
         render: (sale: ConsumerSaleRow) => sale.saleOrderId || '—',
       },
     ],
-    [],
+    [storeMap],
   );
 
   return (

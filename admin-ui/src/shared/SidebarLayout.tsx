@@ -176,21 +176,6 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           icon: <ReceiptLongIcon fontSize="small" />,
         },
         {
-          label: 'Quotations',
-          to: '/orders/quotations',
-          show:
-            hasRole(
-              'SUPERADMIN',
-              'ADMIN',
-              'MANAGER',
-              'BILLER',
-              'ACCOUNTANT',
-              'RESELLER',
-            ) ||
-            hasPermission(...orderRead),
-          icon: <AssignmentIcon fontSize="small" />,
-        },
-        {
           label: 'Sales',
           to: '/orders/sales',
           show:
@@ -292,6 +277,14 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
             hasPermission(...orderRead),
           icon: <LocalMallIcon fontSize="small" />,
         },
+        {
+          label: 'Customer Quotations',
+          to: '/orders/quotations/customer',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
+            hasPermission(...orderRead),
+          icon: <AssignmentIcon fontSize="small" />,
+        },
       ],
     },
     {
@@ -312,6 +305,20 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
             hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
             hasPermission(...orderRead),
           icon: <ReceiptLongIcon fontSize="small" />,
+        },
+        {
+          label: 'Reseller Quotations',
+          to: '/orders/quotations/reseller',
+          show:
+            hasRole(
+              'SUPERADMIN',
+              'ADMIN',
+              'MANAGER',
+              'BILLER',
+              'ACCOUNTANT',
+              'RESELLER',
+            ) || hasPermission(...orderRead),
+          icon: <AssignmentIcon fontSize="small" />,
         },
         {
           label: 'Reseller Approvals',

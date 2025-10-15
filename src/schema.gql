@@ -83,6 +83,7 @@ type UserCount {
   ResellerSales: Int!
   BillerResellerSale: Int!
   ResellerSale: Int!
+  BillerSaleOrders: Int!
   SalesReturnReceivers: Int!
   SalesReturnRequesters: Int!
   SalesReturn: Int!
@@ -708,6 +709,7 @@ type SaleOrder {
   ConsumerPayment: [ConsumerPayment!]
   ResellerPayment: [ResellerPayment!]
   transitionLogs: [SaleOrderTransitionLog!]
+  biller: User!
   _count: SaleOrderCount!
 
   """
@@ -1256,6 +1258,7 @@ type User {
   ResellerSales: [ResellerSale!]
   BillerResellerSale: [ResellerSale!]
   ResellerSale: [ResellerSale!]
+  BillerSaleOrders: [SaleOrder!]
   SalesReturnReceivers: [SalesReturn!]
   SalesReturnRequesters: [SalesReturn!]
   SalesReturn: [SalesReturn!]
@@ -2780,6 +2783,7 @@ type Query {
   lastFailedOutboxEvents(limit: Int, type: String): [OutboxEvent!]!
   pendingResellerApplications(take: Int, skip: Int, q: String): [ResellerProfile!]!
   listBillers: [User!]!
+  orderBillers: [User!]!
   resellers(status: String, take: Int, skip: Int, q: String): [ResellerProfile!]!
   resellerProfile(userId: String!): ResellerProfile
   suppliers: [Supplier!]!
@@ -3234,6 +3238,7 @@ input UserWhereInput {
   ResellerSales: ResellerSaleListRelationFilter
   BillerResellerSale: ResellerSaleListRelationFilter
   ResellerSale: ResellerSaleListRelationFilter
+  BillerSaleOrders: SaleOrderListRelationFilter
   SalesReturnReceivers: SalesReturnListRelationFilter
   SalesReturnRequesters: SalesReturnListRelationFilter
   SalesReturn: SalesReturnListRelationFilter
@@ -3808,6 +3813,7 @@ input SaleOrderWhereInput {
   ConsumerPayment: ConsumerPaymentListRelationFilter
   ResellerPayment: ResellerPaymentListRelationFilter
   transitionLogs: SaleOrderTransitionLogListRelationFilter
+  biller: UserScalarRelationFilter
 }
 
 input EnumOrderPhaseFilter {
@@ -4607,6 +4613,12 @@ input ResellerSaleListRelationFilter {
   every: ResellerSaleWhereInput
   some: ResellerSaleWhereInput
   none: ResellerSaleWhereInput
+}
+
+input SaleOrderListRelationFilter {
+  every: SaleOrderWhereInput
+  some: SaleOrderWhereInput
+  none: SaleOrderWhereInput
 }
 
 input PaymentListRelationFilter {
@@ -5543,6 +5555,7 @@ input UserOrderByWithRelationInput {
   ResellerSales: ResellerSaleOrderByRelationAggregateInput
   BillerResellerSale: ResellerSaleOrderByRelationAggregateInput
   ResellerSale: ResellerSaleOrderByRelationAggregateInput
+  BillerSaleOrders: SaleOrderOrderByRelationAggregateInput
   SalesReturnReceivers: SalesReturnOrderByRelationAggregateInput
   SalesReturnRequesters: SalesReturnOrderByRelationAggregateInput
   SalesReturn: SalesReturnOrderByRelationAggregateInput
@@ -5738,6 +5751,10 @@ input StoreOrderByRelationAggregateInput {
 }
 
 input ConsumerReceiptOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input SaleOrderOrderByRelationAggregateInput {
   _count: SortOrder
 }
 
@@ -6582,6 +6599,7 @@ input UserWhereUniqueInput {
   ResellerSales: ResellerSaleListRelationFilter
   BillerResellerSale: ResellerSaleListRelationFilter
   ResellerSale: ResellerSaleListRelationFilter
+  BillerSaleOrders: SaleOrderListRelationFilter
   SalesReturnReceivers: SalesReturnListRelationFilter
   SalesReturnRequesters: SalesReturnListRelationFilter
   SalesReturn: SalesReturnListRelationFilter
@@ -7405,6 +7423,7 @@ input UserCreateWithoutStoreInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -7541,6 +7560,7 @@ input UserCreateWithoutResellerProfileInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -7922,6 +7942,7 @@ input UserCreateWithoutStockReceiptBatchReceivedBysInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -7968,7 +7989,6 @@ input SaleOrderCreateNestedOneWithoutResellerPaymentInput {
 input SaleOrderCreateWithoutResellerPaymentInput {
   id: String
   storeId: String!
-  billerId: String!
   type: SaleType!
   status: SaleStatus
   phase: OrderPhase
@@ -7984,6 +8004,7 @@ input SaleOrderCreateWithoutResellerPaymentInput {
   quotation: QuotationCreateNestedOneWithoutSaleOrderInput
   ConsumerPayment: ConsumerPaymentCreateNestedManyWithoutSaleOrderInput
   transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
+  biller: UserCreateNestedOneWithoutBillerSaleOrdersInput!
 }
 
 input ConsumerSaleCreateNestedOneWithoutSaleOrderInput {
@@ -8167,6 +8188,7 @@ input UserCreateWithoutConsumerSaleInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -8239,6 +8261,7 @@ input UserCreateWithoutResellerPaymentsMadeInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -8493,6 +8516,7 @@ input UserCreateWithoutConsumerSaleAdjustedBysInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -8565,6 +8589,7 @@ input UserCreateWithoutStockReceiptBatchConfirmedBysInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -8722,6 +8747,7 @@ input UserCreateWithoutResellerSalesInput {
   ConsumerReceipt: ConsumerReceiptCreateNestedManyWithoutIssuedByInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -8878,6 +8904,7 @@ input UserCreateWithoutBillerQuotationInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -8947,6 +8974,7 @@ input UserCreateWithoutStockTransferApprovalsInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -9131,6 +9159,7 @@ input UserCreateWithoutBillerResellerSaleInput {
   ConsumerReceipt: ConsumerReceiptCreateNestedManyWithoutIssuedByInput
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -9201,6 +9230,7 @@ input UserCreateWithoutStockTransferRequestsInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -9400,6 +9430,7 @@ input UserCreateWithoutResellerSaleInput {
   ConsumerReceipt: ConsumerReceiptCreateNestedManyWithoutIssuedByInput
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -9534,7 +9565,6 @@ input SaleOrderCreateNestedOneWithoutConsumerPaymentInput {
 input SaleOrderCreateWithoutConsumerPaymentInput {
   id: String
   storeId: String!
-  billerId: String!
   type: SaleType!
   status: SaleStatus
   phase: OrderPhase
@@ -9550,6 +9580,7 @@ input SaleOrderCreateWithoutConsumerPaymentInput {
   quotation: QuotationCreateNestedOneWithoutSaleOrderInput
   ResellerPayment: ResellerPaymentCreateNestedManyWithoutSaleOrderInput
   transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
+  biller: UserCreateNestedOneWithoutBillerSaleOrdersInput!
 }
 
 input ResellerSaleCreateNestedOneWithoutSaleOrderInput {
@@ -9698,6 +9729,7 @@ input UserCreateWithoutCustomerProfileInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -9875,6 +9907,7 @@ input UserCreateWithoutConsumerReceiptInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -9971,6 +10004,7 @@ input UserCreateWithoutResellerPaymentsReceivedInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -9983,6 +10017,109 @@ input UserCreateWithoutResellerPaymentsReceivedInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
+  ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
+  PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
+}
+
+input SaleOrderCreateNestedManyWithoutBillerInput {
+  create: [SaleOrderCreateWithoutBillerInput!]
+  connectOrCreate: [SaleOrderCreateOrConnectWithoutBillerInput!]
+  createMany: SaleOrderCreateManyBillerInputEnvelope
+  connect: [SaleOrderWhereUniqueInput!]
+}
+
+input SaleOrderCreateWithoutBillerInput {
+  id: String
+  storeId: String!
+  type: SaleType!
+  status: SaleStatus
+  phase: OrderPhase
+  workflowState: String
+  workflowContext: JSON
+  totalAmount: Float!
+  createdAt: DateTime
+  updatedAt: DateTime
+  resellerSaleid: String
+  consumerSale: ConsumerSaleCreateNestedOneWithoutSaleOrderInput
+  resellerSale: ResellerSaleCreateNestedOneWithoutSaleOrderInput
+  fulfillment: FulfillmentCreateNestedOneWithoutSaleOrderInput
+  quotation: QuotationCreateNestedOneWithoutSaleOrderInput
+  ConsumerPayment: ConsumerPaymentCreateNestedManyWithoutSaleOrderInput
+  ResellerPayment: ResellerPaymentCreateNestedManyWithoutSaleOrderInput
+  transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
+}
+
+input FulfillmentCreateNestedOneWithoutSaleOrderInput {
+  create: FulfillmentCreateWithoutSaleOrderInput
+  connectOrCreate: FulfillmentCreateOrConnectWithoutSaleOrderInput
+  connect: FulfillmentWhereUniqueInput
+}
+
+input FulfillmentCreateWithoutSaleOrderInput {
+  id: String
+  type: FulfillmentType!
+  deliveryAddress: String
+  status: FulfillmentStatus
+  workflowState: String
+  workflowContext: JSON
+  cost: Float
+  confirmationPin: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  deliveryPersonnel: UserCreateNestedOneWithoutFulfillmentInput
+  transitionLogs: FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput
+}
+
+input UserCreateNestedOneWithoutFulfillmentInput {
+  create: UserCreateWithoutFulfillmentInput
+  connectOrCreate: UserCreateOrConnectWithoutFulfillmentInput
+  connect: UserWhereUniqueInput
+}
+
+input UserCreateWithoutFulfillmentInput {
+  id: String
+  email: String!
+  passwordHash: String!
+  tier: UserTier
+  referralCode: String
+  referredBy: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  isEmailVerified: Boolean
+  emailVerificationToken: String
+  emailVerificationTokenExpiry: DateTime
+  role: RoleCreateNestedOneWithoutUsersInput!
+  resellerProfile: ResellerProfileCreateNestedOneWithoutUserInput
+  customerProfile: CustomerProfileCreateNestedOneWithoutUserInput
+  resellerPaymentsMade: ResellerPaymentCreateNestedManyWithoutResellerInput
+  resellerPaymentsReceived: ResellerPaymentCreateNestedManyWithoutReceivedByInput
+  adminLogs: AdminActionLogCreateNestedManyWithoutAdminInput
+  supportMessages: SupportMessageCreateNestedManyWithoutUserInput
+  ConsumerSale: ConsumerSaleCreateNestedManyWithoutBillerInput
+  ConsumerSaleAdjustedBys: ConsumerSaleCreateNestedManyWithoutAdjustedByInput
+  StockReceiptBatchReceivedBys: StockReceiptBatchCreateNestedManyWithoutReceivedByInput
+  StockReceiptBatchConfirmedBys: StockReceiptBatchCreateNestedManyWithoutConfirmedByInput
+  StockTransferRequests: StockTransferCreateNestedManyWithoutRequestedByInput
+  StockTransferApprovals: StockTransferCreateNestedManyWithoutApprovedByInput
+  Store: StoreCreateNestedManyWithoutManagerInput
+  ConsumerReceipt: ConsumerReceiptCreateNestedManyWithoutIssuedByInput
+  ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
+  BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
+  ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
+  SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
+  SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
+  SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
+  PurchaseReturnInitiators: PurchaseReturnCreateNestedManyWithoutInitiatedByInput
+  PurchaseReturnApprovers: PurchaseReturnCreateNestedManyWithoutApprovedByInput
+  Payment: PaymentCreateNestedManyWithoutReceivedByInput
+  ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
+  ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
+  ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
+  Notification: NotificationCreateNestedManyWithoutUserInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10048,6 +10185,7 @@ input UserCreateWithoutSalesReturnRequestersInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
   PurchaseReturnInitiators: PurchaseReturnCreateNestedManyWithoutInitiatedByInput
@@ -10124,6 +10262,7 @@ input UserCreateWithoutSalesReturnReceiversInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
   PurchaseReturnInitiators: PurchaseReturnCreateNestedManyWithoutInitiatedByInput
@@ -10200,6 +10339,7 @@ input UserCreateWithoutSalesReturnInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   PurchaseReturnInitiators: PurchaseReturnCreateNestedManyWithoutInitiatedByInput
@@ -10501,6 +10641,7 @@ input UserCreateWithoutResellerQuotationInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -10572,6 +10713,7 @@ input UserCreateWithoutPurchaseReturnInitiatorsInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -10695,6 +10837,7 @@ input UserCreateWithoutResellerTierHistoryChangedBysInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -10769,6 +10912,7 @@ input UserCreateWithoutRequestedResellersInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -10837,6 +10981,7 @@ input UserCreateWithoutResellerTierHistoryInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -10997,7 +11142,6 @@ input SaleOrderCreateNestedOneWithoutFulfillmentInput {
 input SaleOrderCreateWithoutFulfillmentInput {
   id: String
   storeId: String!
-  billerId: String!
   type: SaleType!
   status: SaleStatus
   phase: OrderPhase
@@ -11013,6 +11157,7 @@ input SaleOrderCreateWithoutFulfillmentInput {
   ConsumerPayment: ConsumerPaymentCreateNestedManyWithoutSaleOrderInput
   ResellerPayment: ResellerPaymentCreateNestedManyWithoutSaleOrderInput
   transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
+  biller: UserCreateNestedOneWithoutBillerSaleOrdersInput!
 }
 
 input QuotationCreateNestedOneWithoutSaleOrderInput {
@@ -11152,6 +11297,7 @@ input UserCreateWithoutPurchaseReturnApproversInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -11653,6 +11799,7 @@ input UserCreateWithoutPurchaseRequisitionInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -11703,7 +11850,6 @@ input SaleOrderCreateNestedOneWithoutQuotationInput {
 input SaleOrderCreateWithoutQuotationInput {
   id: String
   storeId: String!
-  billerId: String!
   type: SaleType!
   status: SaleStatus
   phase: OrderPhase
@@ -11719,36 +11865,336 @@ input SaleOrderCreateWithoutQuotationInput {
   ConsumerPayment: ConsumerPaymentCreateNestedManyWithoutSaleOrderInput
   ResellerPayment: ResellerPaymentCreateNestedManyWithoutSaleOrderInput
   transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
+  biller: UserCreateNestedOneWithoutBillerSaleOrdersInput!
 }
 
-input FulfillmentCreateNestedOneWithoutSaleOrderInput {
-  create: FulfillmentCreateWithoutSaleOrderInput
-  connectOrCreate: FulfillmentCreateOrConnectWithoutSaleOrderInput
-  connect: FulfillmentWhereUniqueInput
+input ConsumerPaymentCreateNestedManyWithoutSaleOrderInput {
+  create: [ConsumerPaymentCreateWithoutSaleOrderInput!]
+  connectOrCreate: [ConsumerPaymentCreateOrConnectWithoutSaleOrderInput!]
+  createMany: ConsumerPaymentCreateManySaleOrderInputEnvelope
+  connect: [ConsumerPaymentWhereUniqueInput!]
 }
 
-input FulfillmentCreateWithoutSaleOrderInput {
+input ConsumerPaymentCreateWithoutSaleOrderInput {
   id: String
-  type: FulfillmentType!
-  deliveryAddress: String
-  status: FulfillmentStatus
-  workflowState: String
-  workflowContext: JSON
-  cost: Float
-  confirmationPin: String
+  amount: Float!
+  method: PaymentMethod!
+  status: PaymentStatus
+  receivedAt: DateTime
+  reference: String
+  sale: ConsumerSaleCreateNestedOneWithoutPaymentsInput!
+}
+
+input ConsumerSaleCreateNestedOneWithoutPaymentsInput {
+  create: ConsumerSaleCreateWithoutPaymentsInput
+  connectOrCreate: ConsumerSaleCreateOrConnectWithoutPaymentsInput
+  connect: ConsumerSaleWhereUniqueInput
+}
+
+input ConsumerSaleCreateWithoutPaymentsInput {
+  id: String
+  channel: SaleChannel!
+  status: SaleStatus!
+  totalAmount: Float!
+  adjustmentType: AdjustmentType
   createdAt: DateTime
   updatedAt: DateTime
-  deliveryPersonnel: UserCreateNestedOneWithoutFulfillmentInput
-  transitionLogs: FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput
+  customer: CustomerCreateNestedOneWithoutSalesInput
+  store: StoreCreateNestedOneWithoutCustomerSalesInput!
+  biller: UserCreateNestedOneWithoutConsumerSaleInput!
+  adjustedBy: UserCreateNestedOneWithoutConsumerSaleAdjustedBysInput
+  quotation: QuotationCreateNestedOneWithoutConsumerSaleInput
+  items: ConsumerSaleItemCreateNestedManyWithoutSaleInput
+  receipt: ConsumerReceiptCreateNestedOneWithoutSaleInput
+  SalesReturn: SalesReturnCreateNestedManyWithoutConsumerSaleInput
+  CustomerProfile: CustomerProfileCreateNestedManyWithoutSalesInput
+  SaleOrder: SaleOrderCreateNestedOneWithoutConsumerSaleInput!
 }
 
-input UserCreateNestedOneWithoutFulfillmentInput {
-  create: UserCreateWithoutFulfillmentInput
-  connectOrCreate: UserCreateOrConnectWithoutFulfillmentInput
+input CustomerProfileCreateNestedManyWithoutSalesInput {
+  create: [CustomerProfileCreateWithoutSalesInput!]
+  connectOrCreate: [CustomerProfileCreateOrConnectWithoutSalesInput!]
+  connect: [CustomerProfileWhereUniqueInput!]
+}
+
+input CustomerProfileCreateWithoutSalesInput {
+  fullName: String!
+  phone: String
+  email: String
+  gender: String
+  birthday: DateTime
+  profileStatus: ProfileStatus
+  requestedAt: DateTime
+  activatedAt: DateTime
+  isPhoneVerified: Boolean
+  phoneVerificationCode: String
+  phoneVerificationCodeExpiry: DateTime
+  user: UserCreateNestedOneWithoutCustomerProfileInput!
+  preferredStore: StoreCreateNestedOneWithoutCustomerProfileInput
+  referredBy: CustomerProfileCreateNestedOneWithoutReferralsInput
+  referrals: CustomerProfileCreateNestedManyWithoutReferredByInput
+  preferences: CustomerPreferenceProfileCreateNestedOneWithoutCustomerProfileInput
+}
+
+input CustomerProfileCreateNestedManyWithoutReferredByInput {
+  create: [CustomerProfileCreateWithoutReferredByInput!]
+  connectOrCreate: [CustomerProfileCreateOrConnectWithoutReferredByInput!]
+  createMany: CustomerProfileCreateManyReferredByInputEnvelope
+  connect: [CustomerProfileWhereUniqueInput!]
+}
+
+input CustomerProfileCreateWithoutReferredByInput {
+  fullName: String!
+  phone: String
+  email: String
+  gender: String
+  birthday: DateTime
+  profileStatus: ProfileStatus
+  requestedAt: DateTime
+  activatedAt: DateTime
+  isPhoneVerified: Boolean
+  phoneVerificationCode: String
+  phoneVerificationCodeExpiry: DateTime
+  user: UserCreateNestedOneWithoutCustomerProfileInput!
+  preferredStore: StoreCreateNestedOneWithoutCustomerProfileInput
+  referrals: CustomerProfileCreateNestedManyWithoutReferredByInput
+  sales: ConsumerSaleCreateNestedManyWithoutCustomerProfileInput
+  preferences: CustomerPreferenceProfileCreateNestedOneWithoutCustomerProfileInput
+}
+
+input CustomerPreferenceProfileCreateNestedOneWithoutCustomerProfileInput {
+  create: CustomerPreferenceProfileCreateWithoutCustomerProfileInput
+  connectOrCreate: CustomerPreferenceProfileCreateOrConnectWithoutCustomerProfileInput
+  connect: CustomerPreferenceProfileWhereUniqueInput
+}
+
+input CustomerPreferenceProfileCreateWithoutCustomerProfileInput {
+  id: String
+  frequentlyBoughtVariants: JSON!
+  lastPurchaseDate: DateTime
+  eligibleForDiscounts: Boolean
+  customer: CustomerCreateNestedOneWithoutCustomerPreferenceProfileInput!
+}
+
+input CustomerCreateNestedOneWithoutCustomerPreferenceProfileInput {
+  create: CustomerCreateWithoutCustomerPreferenceProfileInput
+  connectOrCreate: CustomerCreateOrConnectWithoutCustomerPreferenceProfileInput
+  connect: CustomerWhereUniqueInput
+}
+
+input CustomerCreateWithoutCustomerPreferenceProfileInput {
+  id: String
+  fullName: String!
+  phone: String
+  email: String
+  preferredStore: StoreCreateNestedOneWithoutCustomerInput
+  sales: ConsumerSaleCreateNestedManyWithoutCustomerInput
+  Quotation: QuotationCreateNestedManyWithoutConsumerInput
+}
+
+input QuotationCreateNestedManyWithoutConsumerInput {
+  create: [QuotationCreateWithoutConsumerInput!]
+  connectOrCreate: [QuotationCreateOrConnectWithoutConsumerInput!]
+  createMany: QuotationCreateManyConsumerInputEnvelope
+  connect: [QuotationWhereUniqueInput!]
+}
+
+input QuotationCreateWithoutConsumerInput {
+  id: String
+  type: SaleType!
+  channel: SaleChannel!
+  status: QuotationStatus
+  totalAmount: Float!
+  createdAt: DateTime
+  updatedAt: DateTime
+  store: StoreCreateNestedOneWithoutQuotationInput!
+  biller: UserCreateNestedOneWithoutBillerQuotationInput
+  reseller: UserCreateNestedOneWithoutResellerQuotationInput
+  items: QuotationItemCreateNestedManyWithoutQuotationInput
+  sale: ResellerSaleCreateNestedOneWithoutQuotationInput
+  SaleOrder: SaleOrderCreateNestedOneWithoutQuotationInput
+  ConsumerSale: ConsumerSaleCreateNestedManyWithoutQuotationInput
+}
+
+input ConsumerSaleCreateNestedManyWithoutQuotationInput {
+  create: [ConsumerSaleCreateWithoutQuotationInput!]
+  connectOrCreate: [ConsumerSaleCreateOrConnectWithoutQuotationInput!]
+  createMany: ConsumerSaleCreateManyQuotationInputEnvelope
+  connect: [ConsumerSaleWhereUniqueInput!]
+}
+
+input ConsumerSaleCreateWithoutQuotationInput {
+  id: String
+  channel: SaleChannel!
+  status: SaleStatus!
+  totalAmount: Float!
+  adjustmentType: AdjustmentType
+  createdAt: DateTime
+  updatedAt: DateTime
+  customer: CustomerCreateNestedOneWithoutSalesInput
+  store: StoreCreateNestedOneWithoutCustomerSalesInput!
+  biller: UserCreateNestedOneWithoutConsumerSaleInput!
+  adjustedBy: UserCreateNestedOneWithoutConsumerSaleAdjustedBysInput
+  items: ConsumerSaleItemCreateNestedManyWithoutSaleInput
+  payments: ConsumerPaymentCreateNestedManyWithoutSaleInput
+  receipt: ConsumerReceiptCreateNestedOneWithoutSaleInput
+  SalesReturn: SalesReturnCreateNestedManyWithoutConsumerSaleInput
+  CustomerProfile: CustomerProfileCreateNestedManyWithoutSalesInput
+  SaleOrder: SaleOrderCreateNestedOneWithoutConsumerSaleInput!
+}
+
+input SaleOrderCreateNestedOneWithoutConsumerSaleInput {
+  create: SaleOrderCreateWithoutConsumerSaleInput
+  connectOrCreate: SaleOrderCreateOrConnectWithoutConsumerSaleInput
+  connect: SaleOrderWhereUniqueInput
+}
+
+input SaleOrderCreateWithoutConsumerSaleInput {
+  id: String
+  storeId: String!
+  type: SaleType!
+  status: SaleStatus
+  phase: OrderPhase
+  workflowState: String
+  workflowContext: JSON
+  totalAmount: Float!
+  createdAt: DateTime
+  updatedAt: DateTime
+  resellerSaleid: String
+  resellerSale: ResellerSaleCreateNestedOneWithoutSaleOrderInput
+  fulfillment: FulfillmentCreateNestedOneWithoutSaleOrderInput
+  quotation: QuotationCreateNestedOneWithoutSaleOrderInput
+  ConsumerPayment: ConsumerPaymentCreateNestedManyWithoutSaleOrderInput
+  ResellerPayment: ResellerPaymentCreateNestedManyWithoutSaleOrderInput
+  transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
+  biller: UserCreateNestedOneWithoutBillerSaleOrdersInput!
+}
+
+input ResellerPaymentCreateNestedManyWithoutSaleOrderInput {
+  create: [ResellerPaymentCreateWithoutSaleOrderInput!]
+  connectOrCreate: [ResellerPaymentCreateOrConnectWithoutSaleOrderInput!]
+  createMany: ResellerPaymentCreateManySaleOrderInputEnvelope
+  connect: [ResellerPaymentWhereUniqueInput!]
+}
+
+input ResellerPaymentCreateWithoutSaleOrderInput {
+  id: String
+  amount: Float!
+  method: PaymentMethod!
+  reference: String
+  status: PaymentStatus
+  receivedAt: DateTime
+  reseller: UserCreateNestedOneWithoutResellerPaymentsMadeInput!
+  sale: ResellerSaleCreateNestedOneWithoutPaymentsInput
+  receivedBy: UserCreateNestedOneWithoutResellerPaymentsReceivedInput!
+}
+
+input ResellerSaleCreateNestedOneWithoutPaymentsInput {
+  create: ResellerSaleCreateWithoutPaymentsInput
+  connectOrCreate: ResellerSaleCreateOrConnectWithoutPaymentsInput
+  connect: ResellerSaleWhereUniqueInput
+}
+
+input ResellerSaleCreateWithoutPaymentsInput {
+  id: String
+  status: SaleStatus!
+  totalAmount: Float!
+  approvedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+  reseller: UserCreateNestedOneWithoutResellerSalesInput!
+  biller: UserCreateNestedOneWithoutBillerResellerSaleInput!
+  approvedBy: UserCreateNestedOneWithoutResellerSaleInput
+  quotation: QuotationCreateNestedOneWithoutSaleInput
+  store: StoreCreateNestedOneWithoutResellerSalesInput!
+  items: ResellerSaleItemCreateNestedManyWithoutSaleInput
+  SalesReturn: SalesReturnCreateNestedManyWithoutResellerSaleInput
+  SaleOrder: SaleOrderCreateNestedOneWithoutResellerSaleInput!
+}
+
+input SaleOrderCreateNestedOneWithoutResellerSaleInput {
+  create: SaleOrderCreateWithoutResellerSaleInput
+  connectOrCreate: SaleOrderCreateOrConnectWithoutResellerSaleInput
+  connect: SaleOrderWhereUniqueInput
+}
+
+input SaleOrderCreateWithoutResellerSaleInput {
+  id: String
+  storeId: String!
+  type: SaleType!
+  status: SaleStatus
+  phase: OrderPhase
+  workflowState: String
+  workflowContext: JSON
+  totalAmount: Float!
+  createdAt: DateTime
+  updatedAt: DateTime
+  resellerSaleid: String
+  consumerSale: ConsumerSaleCreateNestedOneWithoutSaleOrderInput
+  fulfillment: FulfillmentCreateNestedOneWithoutSaleOrderInput
+  quotation: QuotationCreateNestedOneWithoutSaleOrderInput
+  ConsumerPayment: ConsumerPaymentCreateNestedManyWithoutSaleOrderInput
+  ResellerPayment: ResellerPaymentCreateNestedManyWithoutSaleOrderInput
+  transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
+  biller: UserCreateNestedOneWithoutBillerSaleOrdersInput!
+}
+
+input SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput {
+  create: [SaleOrderTransitionLogCreateWithoutSaleOrderInput!]
+  connectOrCreate: [SaleOrderTransitionLogCreateOrConnectWithoutSaleOrderInput!]
+  createMany: SaleOrderTransitionLogCreateManySaleOrderInputEnvelope
+  connect: [SaleOrderTransitionLogWhereUniqueInput!]
+}
+
+input SaleOrderTransitionLogCreateWithoutSaleOrderInput {
+  id: String
+  fromState: String
+  toState: String!
+  event: String
+  metadata: JSON
+  occurredAt: DateTime
+}
+
+input SaleOrderTransitionLogCreateOrConnectWithoutSaleOrderInput {
+  where: SaleOrderTransitionLogWhereUniqueInput!
+  create: SaleOrderTransitionLogCreateWithoutSaleOrderInput!
+}
+
+input SaleOrderTransitionLogWhereUniqueInput {
+  id: String
+  AND: [SaleOrderTransitionLogWhereInput!]
+  OR: [SaleOrderTransitionLogWhereInput!]
+  NOT: [SaleOrderTransitionLogWhereInput!]
+  saleOrderId: StringFilter
+  fromState: StringNullableFilter
+  toState: StringFilter
+  event: StringNullableFilter
+  metadata: JsonNullableFilter
+  occurredAt: DateTimeFilter
+  saleOrder: SaleOrderScalarRelationFilter
+}
+
+input SaleOrderTransitionLogCreateManySaleOrderInputEnvelope {
+  data: [SaleOrderTransitionLogCreateManySaleOrderInput!]!
+  skipDuplicates: Boolean
+}
+
+input SaleOrderTransitionLogCreateManySaleOrderInput {
+  id: String
+  fromState: String
+  toState: String!
+  event: String
+  metadata: JSON
+  occurredAt: DateTime
+}
+
+input UserCreateNestedOneWithoutBillerSaleOrdersInput {
+  create: UserCreateWithoutBillerSaleOrdersInput
+  connectOrCreate: UserCreateOrConnectWithoutBillerSaleOrdersInput
   connect: UserWhereUniqueInput
 }
 
-input UserCreateWithoutFulfillmentInput {
+input UserCreateWithoutBillerSaleOrdersInput {
   id: String
   email: String!
   passwordHash: String!
@@ -11789,6 +12235,7 @@ input UserCreateWithoutFulfillmentInput {
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
+  Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -12676,6 +13123,7 @@ input UserCreateWithoutSupplierInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -13260,404 +13708,9 @@ input SupplierCreateManyUserInput {
   updatedAt: DateTime
 }
 
-input UserCreateOrConnectWithoutFulfillmentInput {
+input UserCreateOrConnectWithoutBillerSaleOrdersInput {
   where: UserWhereUniqueInput!
-  create: UserCreateWithoutFulfillmentInput!
-}
-
-input FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput {
-  create: [FulfillmentTransitionLogCreateWithoutFulfillmentInput!]
-  connectOrCreate: [FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput!]
-  createMany: FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope
-  connect: [FulfillmentTransitionLogWhereUniqueInput!]
-}
-
-input FulfillmentTransitionLogCreateWithoutFulfillmentInput {
-  id: String
-  fromState: String
-  toState: String!
-  event: String
-  metadata: JSON
-  occurredAt: DateTime
-}
-
-input FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput {
-  where: FulfillmentTransitionLogWhereUniqueInput!
-  create: FulfillmentTransitionLogCreateWithoutFulfillmentInput!
-}
-
-input FulfillmentTransitionLogWhereUniqueInput {
-  id: String
-  AND: [FulfillmentTransitionLogWhereInput!]
-  OR: [FulfillmentTransitionLogWhereInput!]
-  NOT: [FulfillmentTransitionLogWhereInput!]
-  fulfillmentId: StringFilter
-  fromState: StringNullableFilter
-  toState: StringFilter
-  event: StringNullableFilter
-  metadata: JsonNullableFilter
-  occurredAt: DateTimeFilter
-  fulfillment: FulfillmentScalarRelationFilter
-}
-
-input FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope {
-  data: [FulfillmentTransitionLogCreateManyFulfillmentInput!]!
-  skipDuplicates: Boolean
-}
-
-input FulfillmentTransitionLogCreateManyFulfillmentInput {
-  id: String
-  fromState: String
-  toState: String!
-  event: String
-  metadata: JSON
-  occurredAt: DateTime
-}
-
-input FulfillmentCreateOrConnectWithoutSaleOrderInput {
-  where: FulfillmentWhereUniqueInput!
-  create: FulfillmentCreateWithoutSaleOrderInput!
-}
-
-input FulfillmentWhereUniqueInput {
-  id: String
-  saleOrderId: String
-  AND: [FulfillmentWhereInput!]
-  OR: [FulfillmentWhereInput!]
-  NOT: [FulfillmentWhereInput!]
-  type: EnumFulfillmentTypeFilter
-  deliveryPersonnelId: StringNullableFilter
-  deliveryAddress: StringNullableFilter
-  status: EnumFulfillmentStatusFilter
-  workflowState: StringNullableFilter
-  workflowContext: JsonNullableFilter
-  cost: FloatNullableFilter
-  confirmationPin: StringNullableFilter
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-  saleOrder: SaleOrderScalarRelationFilter
-  deliveryPersonnel: UserNullableScalarRelationFilter
-  transitionLogs: FulfillmentTransitionLogListRelationFilter
-}
-
-input ConsumerPaymentCreateNestedManyWithoutSaleOrderInput {
-  create: [ConsumerPaymentCreateWithoutSaleOrderInput!]
-  connectOrCreate: [ConsumerPaymentCreateOrConnectWithoutSaleOrderInput!]
-  createMany: ConsumerPaymentCreateManySaleOrderInputEnvelope
-  connect: [ConsumerPaymentWhereUniqueInput!]
-}
-
-input ConsumerPaymentCreateWithoutSaleOrderInput {
-  id: String
-  amount: Float!
-  method: PaymentMethod!
-  status: PaymentStatus
-  receivedAt: DateTime
-  reference: String
-  sale: ConsumerSaleCreateNestedOneWithoutPaymentsInput!
-}
-
-input ConsumerSaleCreateNestedOneWithoutPaymentsInput {
-  create: ConsumerSaleCreateWithoutPaymentsInput
-  connectOrCreate: ConsumerSaleCreateOrConnectWithoutPaymentsInput
-  connect: ConsumerSaleWhereUniqueInput
-}
-
-input ConsumerSaleCreateWithoutPaymentsInput {
-  id: String
-  channel: SaleChannel!
-  status: SaleStatus!
-  totalAmount: Float!
-  adjustmentType: AdjustmentType
-  createdAt: DateTime
-  updatedAt: DateTime
-  customer: CustomerCreateNestedOneWithoutSalesInput
-  store: StoreCreateNestedOneWithoutCustomerSalesInput!
-  biller: UserCreateNestedOneWithoutConsumerSaleInput!
-  adjustedBy: UserCreateNestedOneWithoutConsumerSaleAdjustedBysInput
-  quotation: QuotationCreateNestedOneWithoutConsumerSaleInput
-  items: ConsumerSaleItemCreateNestedManyWithoutSaleInput
-  receipt: ConsumerReceiptCreateNestedOneWithoutSaleInput
-  SalesReturn: SalesReturnCreateNestedManyWithoutConsumerSaleInput
-  CustomerProfile: CustomerProfileCreateNestedManyWithoutSalesInput
-  SaleOrder: SaleOrderCreateNestedOneWithoutConsumerSaleInput!
-}
-
-input CustomerProfileCreateNestedManyWithoutSalesInput {
-  create: [CustomerProfileCreateWithoutSalesInput!]
-  connectOrCreate: [CustomerProfileCreateOrConnectWithoutSalesInput!]
-  connect: [CustomerProfileWhereUniqueInput!]
-}
-
-input CustomerProfileCreateWithoutSalesInput {
-  fullName: String!
-  phone: String
-  email: String
-  gender: String
-  birthday: DateTime
-  profileStatus: ProfileStatus
-  requestedAt: DateTime
-  activatedAt: DateTime
-  isPhoneVerified: Boolean
-  phoneVerificationCode: String
-  phoneVerificationCodeExpiry: DateTime
-  user: UserCreateNestedOneWithoutCustomerProfileInput!
-  preferredStore: StoreCreateNestedOneWithoutCustomerProfileInput
-  referredBy: CustomerProfileCreateNestedOneWithoutReferralsInput
-  referrals: CustomerProfileCreateNestedManyWithoutReferredByInput
-  preferences: CustomerPreferenceProfileCreateNestedOneWithoutCustomerProfileInput
-}
-
-input CustomerProfileCreateNestedManyWithoutReferredByInput {
-  create: [CustomerProfileCreateWithoutReferredByInput!]
-  connectOrCreate: [CustomerProfileCreateOrConnectWithoutReferredByInput!]
-  createMany: CustomerProfileCreateManyReferredByInputEnvelope
-  connect: [CustomerProfileWhereUniqueInput!]
-}
-
-input CustomerProfileCreateWithoutReferredByInput {
-  fullName: String!
-  phone: String
-  email: String
-  gender: String
-  birthday: DateTime
-  profileStatus: ProfileStatus
-  requestedAt: DateTime
-  activatedAt: DateTime
-  isPhoneVerified: Boolean
-  phoneVerificationCode: String
-  phoneVerificationCodeExpiry: DateTime
-  user: UserCreateNestedOneWithoutCustomerProfileInput!
-  preferredStore: StoreCreateNestedOneWithoutCustomerProfileInput
-  referrals: CustomerProfileCreateNestedManyWithoutReferredByInput
-  sales: ConsumerSaleCreateNestedManyWithoutCustomerProfileInput
-  preferences: CustomerPreferenceProfileCreateNestedOneWithoutCustomerProfileInput
-}
-
-input CustomerPreferenceProfileCreateNestedOneWithoutCustomerProfileInput {
-  create: CustomerPreferenceProfileCreateWithoutCustomerProfileInput
-  connectOrCreate: CustomerPreferenceProfileCreateOrConnectWithoutCustomerProfileInput
-  connect: CustomerPreferenceProfileWhereUniqueInput
-}
-
-input CustomerPreferenceProfileCreateWithoutCustomerProfileInput {
-  id: String
-  frequentlyBoughtVariants: JSON!
-  lastPurchaseDate: DateTime
-  eligibleForDiscounts: Boolean
-  customer: CustomerCreateNestedOneWithoutCustomerPreferenceProfileInput!
-}
-
-input CustomerCreateNestedOneWithoutCustomerPreferenceProfileInput {
-  create: CustomerCreateWithoutCustomerPreferenceProfileInput
-  connectOrCreate: CustomerCreateOrConnectWithoutCustomerPreferenceProfileInput
-  connect: CustomerWhereUniqueInput
-}
-
-input CustomerCreateWithoutCustomerPreferenceProfileInput {
-  id: String
-  fullName: String!
-  phone: String
-  email: String
-  preferredStore: StoreCreateNestedOneWithoutCustomerInput
-  sales: ConsumerSaleCreateNestedManyWithoutCustomerInput
-  Quotation: QuotationCreateNestedManyWithoutConsumerInput
-}
-
-input QuotationCreateNestedManyWithoutConsumerInput {
-  create: [QuotationCreateWithoutConsumerInput!]
-  connectOrCreate: [QuotationCreateOrConnectWithoutConsumerInput!]
-  createMany: QuotationCreateManyConsumerInputEnvelope
-  connect: [QuotationWhereUniqueInput!]
-}
-
-input QuotationCreateWithoutConsumerInput {
-  id: String
-  type: SaleType!
-  channel: SaleChannel!
-  status: QuotationStatus
-  totalAmount: Float!
-  createdAt: DateTime
-  updatedAt: DateTime
-  store: StoreCreateNestedOneWithoutQuotationInput!
-  biller: UserCreateNestedOneWithoutBillerQuotationInput
-  reseller: UserCreateNestedOneWithoutResellerQuotationInput
-  items: QuotationItemCreateNestedManyWithoutQuotationInput
-  sale: ResellerSaleCreateNestedOneWithoutQuotationInput
-  SaleOrder: SaleOrderCreateNestedOneWithoutQuotationInput
-  ConsumerSale: ConsumerSaleCreateNestedManyWithoutQuotationInput
-}
-
-input ConsumerSaleCreateNestedManyWithoutQuotationInput {
-  create: [ConsumerSaleCreateWithoutQuotationInput!]
-  connectOrCreate: [ConsumerSaleCreateOrConnectWithoutQuotationInput!]
-  createMany: ConsumerSaleCreateManyQuotationInputEnvelope
-  connect: [ConsumerSaleWhereUniqueInput!]
-}
-
-input ConsumerSaleCreateWithoutQuotationInput {
-  id: String
-  channel: SaleChannel!
-  status: SaleStatus!
-  totalAmount: Float!
-  adjustmentType: AdjustmentType
-  createdAt: DateTime
-  updatedAt: DateTime
-  customer: CustomerCreateNestedOneWithoutSalesInput
-  store: StoreCreateNestedOneWithoutCustomerSalesInput!
-  biller: UserCreateNestedOneWithoutConsumerSaleInput!
-  adjustedBy: UserCreateNestedOneWithoutConsumerSaleAdjustedBysInput
-  items: ConsumerSaleItemCreateNestedManyWithoutSaleInput
-  payments: ConsumerPaymentCreateNestedManyWithoutSaleInput
-  receipt: ConsumerReceiptCreateNestedOneWithoutSaleInput
-  SalesReturn: SalesReturnCreateNestedManyWithoutConsumerSaleInput
-  CustomerProfile: CustomerProfileCreateNestedManyWithoutSalesInput
-  SaleOrder: SaleOrderCreateNestedOneWithoutConsumerSaleInput!
-}
-
-input SaleOrderCreateNestedOneWithoutConsumerSaleInput {
-  create: SaleOrderCreateWithoutConsumerSaleInput
-  connectOrCreate: SaleOrderCreateOrConnectWithoutConsumerSaleInput
-  connect: SaleOrderWhereUniqueInput
-}
-
-input SaleOrderCreateWithoutConsumerSaleInput {
-  id: String
-  storeId: String!
-  billerId: String!
-  type: SaleType!
-  status: SaleStatus
-  phase: OrderPhase
-  workflowState: String
-  workflowContext: JSON
-  totalAmount: Float!
-  createdAt: DateTime
-  updatedAt: DateTime
-  resellerSaleid: String
-  resellerSale: ResellerSaleCreateNestedOneWithoutSaleOrderInput
-  fulfillment: FulfillmentCreateNestedOneWithoutSaleOrderInput
-  quotation: QuotationCreateNestedOneWithoutSaleOrderInput
-  ConsumerPayment: ConsumerPaymentCreateNestedManyWithoutSaleOrderInput
-  ResellerPayment: ResellerPaymentCreateNestedManyWithoutSaleOrderInput
-  transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
-}
-
-input ResellerPaymentCreateNestedManyWithoutSaleOrderInput {
-  create: [ResellerPaymentCreateWithoutSaleOrderInput!]
-  connectOrCreate: [ResellerPaymentCreateOrConnectWithoutSaleOrderInput!]
-  createMany: ResellerPaymentCreateManySaleOrderInputEnvelope
-  connect: [ResellerPaymentWhereUniqueInput!]
-}
-
-input ResellerPaymentCreateWithoutSaleOrderInput {
-  id: String
-  amount: Float!
-  method: PaymentMethod!
-  reference: String
-  status: PaymentStatus
-  receivedAt: DateTime
-  reseller: UserCreateNestedOneWithoutResellerPaymentsMadeInput!
-  sale: ResellerSaleCreateNestedOneWithoutPaymentsInput
-  receivedBy: UserCreateNestedOneWithoutResellerPaymentsReceivedInput!
-}
-
-input ResellerSaleCreateNestedOneWithoutPaymentsInput {
-  create: ResellerSaleCreateWithoutPaymentsInput
-  connectOrCreate: ResellerSaleCreateOrConnectWithoutPaymentsInput
-  connect: ResellerSaleWhereUniqueInput
-}
-
-input ResellerSaleCreateWithoutPaymentsInput {
-  id: String
-  status: SaleStatus!
-  totalAmount: Float!
-  approvedAt: DateTime
-  createdAt: DateTime
-  updatedAt: DateTime
-  reseller: UserCreateNestedOneWithoutResellerSalesInput!
-  biller: UserCreateNestedOneWithoutBillerResellerSaleInput!
-  approvedBy: UserCreateNestedOneWithoutResellerSaleInput
-  quotation: QuotationCreateNestedOneWithoutSaleInput
-  store: StoreCreateNestedOneWithoutResellerSalesInput!
-  items: ResellerSaleItemCreateNestedManyWithoutSaleInput
-  SalesReturn: SalesReturnCreateNestedManyWithoutResellerSaleInput
-  SaleOrder: SaleOrderCreateNestedOneWithoutResellerSaleInput!
-}
-
-input SaleOrderCreateNestedOneWithoutResellerSaleInput {
-  create: SaleOrderCreateWithoutResellerSaleInput
-  connectOrCreate: SaleOrderCreateOrConnectWithoutResellerSaleInput
-  connect: SaleOrderWhereUniqueInput
-}
-
-input SaleOrderCreateWithoutResellerSaleInput {
-  id: String
-  storeId: String!
-  billerId: String!
-  type: SaleType!
-  status: SaleStatus
-  phase: OrderPhase
-  workflowState: String
-  workflowContext: JSON
-  totalAmount: Float!
-  createdAt: DateTime
-  updatedAt: DateTime
-  resellerSaleid: String
-  consumerSale: ConsumerSaleCreateNestedOneWithoutSaleOrderInput
-  fulfillment: FulfillmentCreateNestedOneWithoutSaleOrderInput
-  quotation: QuotationCreateNestedOneWithoutSaleOrderInput
-  ConsumerPayment: ConsumerPaymentCreateNestedManyWithoutSaleOrderInput
-  ResellerPayment: ResellerPaymentCreateNestedManyWithoutSaleOrderInput
-  transitionLogs: SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput
-}
-
-input SaleOrderTransitionLogCreateNestedManyWithoutSaleOrderInput {
-  create: [SaleOrderTransitionLogCreateWithoutSaleOrderInput!]
-  connectOrCreate: [SaleOrderTransitionLogCreateOrConnectWithoutSaleOrderInput!]
-  createMany: SaleOrderTransitionLogCreateManySaleOrderInputEnvelope
-  connect: [SaleOrderTransitionLogWhereUniqueInput!]
-}
-
-input SaleOrderTransitionLogCreateWithoutSaleOrderInput {
-  id: String
-  fromState: String
-  toState: String!
-  event: String
-  metadata: JSON
-  occurredAt: DateTime
-}
-
-input SaleOrderTransitionLogCreateOrConnectWithoutSaleOrderInput {
-  where: SaleOrderTransitionLogWhereUniqueInput!
-  create: SaleOrderTransitionLogCreateWithoutSaleOrderInput!
-}
-
-input SaleOrderTransitionLogWhereUniqueInput {
-  id: String
-  AND: [SaleOrderTransitionLogWhereInput!]
-  OR: [SaleOrderTransitionLogWhereInput!]
-  NOT: [SaleOrderTransitionLogWhereInput!]
-  saleOrderId: StringFilter
-  fromState: StringNullableFilter
-  toState: StringFilter
-  event: StringNullableFilter
-  metadata: JsonNullableFilter
-  occurredAt: DateTimeFilter
-  saleOrder: SaleOrderScalarRelationFilter
-}
-
-input SaleOrderTransitionLogCreateManySaleOrderInputEnvelope {
-  data: [SaleOrderTransitionLogCreateManySaleOrderInput!]!
-  skipDuplicates: Boolean
-}
-
-input SaleOrderTransitionLogCreateManySaleOrderInput {
-  id: String
-  fromState: String
-  toState: String!
-  event: String
-  metadata: JSON
-  occurredAt: DateTime
+  create: UserCreateWithoutBillerSaleOrdersInput!
 }
 
 input SaleOrderCreateOrConnectWithoutResellerSaleInput {
@@ -13688,6 +13741,7 @@ input SaleOrderWhereUniqueInput {
   ConsumerPayment: ConsumerPaymentListRelationFilter
   ResellerPayment: ResellerPaymentListRelationFilter
   transitionLogs: SaleOrderTransitionLogListRelationFilter
+  biller: UserScalarRelationFilter
 }
 
 input ResellerSaleCreateOrConnectWithoutPaymentsInput {
@@ -14390,9 +14444,79 @@ input SaleOrderCreateOrConnectWithoutFulfillmentInput {
   create: SaleOrderCreateWithoutFulfillmentInput!
 }
 
+input FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput {
+  create: [FulfillmentTransitionLogCreateWithoutFulfillmentInput!]
+  connectOrCreate: [FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput!]
+  createMany: FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope
+  connect: [FulfillmentTransitionLogWhereUniqueInput!]
+}
+
+input FulfillmentTransitionLogCreateWithoutFulfillmentInput {
+  id: String
+  fromState: String
+  toState: String!
+  event: String
+  metadata: JSON
+  occurredAt: DateTime
+}
+
+input FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput {
+  where: FulfillmentTransitionLogWhereUniqueInput!
+  create: FulfillmentTransitionLogCreateWithoutFulfillmentInput!
+}
+
+input FulfillmentTransitionLogWhereUniqueInput {
+  id: String
+  AND: [FulfillmentTransitionLogWhereInput!]
+  OR: [FulfillmentTransitionLogWhereInput!]
+  NOT: [FulfillmentTransitionLogWhereInput!]
+  fulfillmentId: StringFilter
+  fromState: StringNullableFilter
+  toState: StringFilter
+  event: StringNullableFilter
+  metadata: JsonNullableFilter
+  occurredAt: DateTimeFilter
+  fulfillment: FulfillmentScalarRelationFilter
+}
+
+input FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope {
+  data: [FulfillmentTransitionLogCreateManyFulfillmentInput!]!
+  skipDuplicates: Boolean
+}
+
+input FulfillmentTransitionLogCreateManyFulfillmentInput {
+  id: String
+  fromState: String
+  toState: String!
+  event: String
+  metadata: JSON
+  occurredAt: DateTime
+}
+
 input FulfillmentCreateOrConnectWithoutDeliveryPersonnelInput {
   where: FulfillmentWhereUniqueInput!
   create: FulfillmentCreateWithoutDeliveryPersonnelInput!
+}
+
+input FulfillmentWhereUniqueInput {
+  id: String
+  saleOrderId: String
+  AND: [FulfillmentWhereInput!]
+  OR: [FulfillmentWhereInput!]
+  NOT: [FulfillmentWhereInput!]
+  type: EnumFulfillmentTypeFilter
+  deliveryPersonnelId: StringNullableFilter
+  deliveryAddress: StringNullableFilter
+  status: EnumFulfillmentStatusFilter
+  workflowState: StringNullableFilter
+  workflowContext: JsonNullableFilter
+  cost: FloatNullableFilter
+  confirmationPin: StringNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  saleOrder: SaleOrderScalarRelationFilter
+  deliveryPersonnel: UserNullableScalarRelationFilter
+  transitionLogs: FulfillmentTransitionLogListRelationFilter
 }
 
 input FulfillmentCreateManyDeliveryPersonnelInputEnvelope {
@@ -14764,6 +14888,40 @@ input SalesReturnCreateManyReceivedByInput {
   approvedById: String
   createdAt: DateTime
   updatedAt: DateTime
+}
+
+input UserCreateOrConnectWithoutFulfillmentInput {
+  where: UserWhereUniqueInput!
+  create: UserCreateWithoutFulfillmentInput!
+}
+
+input FulfillmentCreateOrConnectWithoutSaleOrderInput {
+  where: FulfillmentWhereUniqueInput!
+  create: FulfillmentCreateWithoutSaleOrderInput!
+}
+
+input SaleOrderCreateOrConnectWithoutBillerInput {
+  where: SaleOrderWhereUniqueInput!
+  create: SaleOrderCreateWithoutBillerInput!
+}
+
+input SaleOrderCreateManyBillerInputEnvelope {
+  data: [SaleOrderCreateManyBillerInput!]!
+  skipDuplicates: Boolean
+}
+
+input SaleOrderCreateManyBillerInput {
+  id: String
+  storeId: String!
+  type: SaleType!
+  status: SaleStatus
+  phase: OrderPhase
+  workflowState: String
+  workflowContext: JSON
+  totalAmount: Float!
+  createdAt: DateTime
+  updatedAt: DateTime
+  resellerSaleid: String
 }
 
 input UserCreateOrConnectWithoutResellerPaymentsReceivedInput {
@@ -16187,6 +16345,7 @@ input UserUpdateWithoutStoreInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -16378,6 +16537,7 @@ input UserUpdateWithoutResellerProfileInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -16928,6 +17088,7 @@ input UserUpdateWithoutStockReceiptBatchReceivedBysInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -17003,7 +17164,6 @@ input SaleOrderUpsertWithoutResellerPaymentInput {
 input SaleOrderUpdateWithoutResellerPaymentInput {
   id: StringFieldUpdateOperationsInput
   storeId: StringFieldUpdateOperationsInput
-  billerId: StringFieldUpdateOperationsInput
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
   phase: EnumOrderPhaseFieldUpdateOperationsInput
@@ -17019,6 +17179,7 @@ input SaleOrderUpdateWithoutResellerPaymentInput {
   quotation: QuotationUpdateOneWithoutSaleOrderNestedInput
   ConsumerPayment: ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput
   transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
+  biller: UserUpdateOneRequiredWithoutBillerSaleOrdersNestedInput
 }
 
 input EnumSaleTypeFieldUpdateOperationsInput {
@@ -17294,6 +17455,7 @@ input UserUpdateWithoutConsumerSaleInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -17387,6 +17549,7 @@ input UserUpdateWithoutResellerPaymentsMadeInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -17727,6 +17890,7 @@ input UserUpdateWithoutConsumerSaleAdjustedBysInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -17820,6 +17984,7 @@ input UserUpdateWithoutStockReceiptBatchConfirmedBysInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -18033,6 +18198,7 @@ input UserUpdateWithoutResellerSalesInput {
   ConsumerReceipt: ConsumerReceiptUpdateManyWithoutIssuedByNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -18254,6 +18420,7 @@ input UserUpdateWithoutBillerQuotationInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -18344,6 +18511,7 @@ input UserUpdateWithoutStockTransferApprovalsInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -18612,6 +18780,7 @@ input UserUpdateWithoutBillerResellerSaleInput {
   ConsumerReceipt: ConsumerReceiptUpdateManyWithoutIssuedByNestedInput
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -18703,6 +18872,7 @@ input UserUpdateWithoutStockTransferRequestsInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -18985,6 +19155,7 @@ input UserUpdateWithoutResellerSaleInput {
   ConsumerReceipt: ConsumerReceiptUpdateManyWithoutIssuedByNestedInput
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -19186,7 +19357,6 @@ input SaleOrderUpsertWithoutConsumerPaymentInput {
 input SaleOrderUpdateWithoutConsumerPaymentInput {
   id: StringFieldUpdateOperationsInput
   storeId: StringFieldUpdateOperationsInput
-  billerId: StringFieldUpdateOperationsInput
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
   phase: EnumOrderPhaseFieldUpdateOperationsInput
@@ -19202,6 +19372,7 @@ input SaleOrderUpdateWithoutConsumerPaymentInput {
   quotation: QuotationUpdateOneWithoutSaleOrderNestedInput
   ResellerPayment: ResellerPaymentUpdateManyWithoutSaleOrderNestedInput
   transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
+  biller: UserUpdateOneRequiredWithoutBillerSaleOrdersNestedInput
 }
 
 input ResellerSaleUpdateOneWithoutSaleOrderNestedInput {
@@ -19415,6 +19586,7 @@ input UserUpdateWithoutCustomerProfileInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -19665,6 +19837,7 @@ input UserUpdateWithoutConsumerReceiptInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -19795,6 +19968,7 @@ input UserUpdateWithoutResellerPaymentsReceivedInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -19807,6 +19981,158 @@ input UserUpdateWithoutResellerPaymentsReceivedInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
+  ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
+  PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
+}
+
+input SaleOrderUpdateManyWithoutBillerNestedInput {
+  create: [SaleOrderCreateWithoutBillerInput!]
+  connectOrCreate: [SaleOrderCreateOrConnectWithoutBillerInput!]
+  upsert: [SaleOrderUpsertWithWhereUniqueWithoutBillerInput!]
+  createMany: SaleOrderCreateManyBillerInputEnvelope
+  set: [SaleOrderWhereUniqueInput!]
+  disconnect: [SaleOrderWhereUniqueInput!]
+  delete: [SaleOrderWhereUniqueInput!]
+  connect: [SaleOrderWhereUniqueInput!]
+  update: [SaleOrderUpdateWithWhereUniqueWithoutBillerInput!]
+  updateMany: [SaleOrderUpdateManyWithWhereWithoutBillerInput!]
+  deleteMany: [SaleOrderScalarWhereInput!]
+}
+
+input SaleOrderUpsertWithWhereUniqueWithoutBillerInput {
+  where: SaleOrderWhereUniqueInput!
+  update: SaleOrderUpdateWithoutBillerInput!
+  create: SaleOrderCreateWithoutBillerInput!
+}
+
+input SaleOrderUpdateWithoutBillerInput {
+  id: StringFieldUpdateOperationsInput
+  storeId: StringFieldUpdateOperationsInput
+  type: EnumSaleTypeFieldUpdateOperationsInput
+  status: EnumSaleStatusFieldUpdateOperationsInput
+  phase: EnumOrderPhaseFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
+  totalAmount: FloatFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  resellerSaleid: NullableStringFieldUpdateOperationsInput
+  consumerSale: ConsumerSaleUpdateOneWithoutSaleOrderNestedInput
+  resellerSale: ResellerSaleUpdateOneWithoutSaleOrderNestedInput
+  fulfillment: FulfillmentUpdateOneWithoutSaleOrderNestedInput
+  quotation: QuotationUpdateOneWithoutSaleOrderNestedInput
+  ConsumerPayment: ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput
+  ResellerPayment: ResellerPaymentUpdateManyWithoutSaleOrderNestedInput
+  transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
+}
+
+input FulfillmentUpdateOneWithoutSaleOrderNestedInput {
+  create: FulfillmentCreateWithoutSaleOrderInput
+  connectOrCreate: FulfillmentCreateOrConnectWithoutSaleOrderInput
+  upsert: FulfillmentUpsertWithoutSaleOrderInput
+  disconnect: FulfillmentWhereInput
+  delete: FulfillmentWhereInput
+  connect: FulfillmentWhereUniqueInput
+  update: FulfillmentUpdateToOneWithWhereWithoutSaleOrderInput
+}
+
+input FulfillmentUpsertWithoutSaleOrderInput {
+  update: FulfillmentUpdateWithoutSaleOrderInput!
+  create: FulfillmentCreateWithoutSaleOrderInput!
+  where: FulfillmentWhereInput
+}
+
+input FulfillmentUpdateWithoutSaleOrderInput {
+  id: StringFieldUpdateOperationsInput
+  type: EnumFulfillmentTypeFieldUpdateOperationsInput
+  deliveryAddress: NullableStringFieldUpdateOperationsInput
+  status: EnumFulfillmentStatusFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
+  cost: NullableFloatFieldUpdateOperationsInput
+  confirmationPin: NullableStringFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  deliveryPersonnel: UserUpdateOneWithoutFulfillmentNestedInput
+  transitionLogs: FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput
+}
+
+input EnumFulfillmentTypeFieldUpdateOperationsInput {
+  set: FulfillmentType
+}
+
+input EnumFulfillmentStatusFieldUpdateOperationsInput {
+  set: FulfillmentStatus
+}
+
+input NullableFloatFieldUpdateOperationsInput {
+  set: Float
+  increment: Float
+  decrement: Float
+  multiply: Float
+  divide: Float
+}
+
+input UserUpdateOneWithoutFulfillmentNestedInput {
+  create: UserCreateWithoutFulfillmentInput
+  connectOrCreate: UserCreateOrConnectWithoutFulfillmentInput
+  upsert: UserUpsertWithoutFulfillmentInput
+  disconnect: UserWhereInput
+  delete: UserWhereInput
+  connect: UserWhereUniqueInput
+  update: UserUpdateToOneWithWhereWithoutFulfillmentInput
+}
+
+input UserUpsertWithoutFulfillmentInput {
+  update: UserUpdateWithoutFulfillmentInput!
+  create: UserCreateWithoutFulfillmentInput!
+  where: UserWhereInput
+}
+
+input UserUpdateWithoutFulfillmentInput {
+  id: StringFieldUpdateOperationsInput
+  email: StringFieldUpdateOperationsInput
+  passwordHash: StringFieldUpdateOperationsInput
+  tier: NullableEnumUserTierFieldUpdateOperationsInput
+  referralCode: NullableStringFieldUpdateOperationsInput
+  referredBy: NullableStringFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  isEmailVerified: BoolFieldUpdateOperationsInput
+  emailVerificationToken: NullableStringFieldUpdateOperationsInput
+  emailVerificationTokenExpiry: NullableDateTimeFieldUpdateOperationsInput
+  role: RoleUpdateOneRequiredWithoutUsersNestedInput
+  resellerProfile: ResellerProfileUpdateOneWithoutUserNestedInput
+  customerProfile: CustomerProfileUpdateOneWithoutUserNestedInput
+  resellerPaymentsMade: ResellerPaymentUpdateManyWithoutResellerNestedInput
+  resellerPaymentsReceived: ResellerPaymentUpdateManyWithoutReceivedByNestedInput
+  adminLogs: AdminActionLogUpdateManyWithoutAdminNestedInput
+  supportMessages: SupportMessageUpdateManyWithoutUserNestedInput
+  ConsumerSale: ConsumerSaleUpdateManyWithoutBillerNestedInput
+  ConsumerSaleAdjustedBys: ConsumerSaleUpdateManyWithoutAdjustedByNestedInput
+  StockReceiptBatchReceivedBys: StockReceiptBatchUpdateManyWithoutReceivedByNestedInput
+  StockReceiptBatchConfirmedBys: StockReceiptBatchUpdateManyWithoutConfirmedByNestedInput
+  StockTransferRequests: StockTransferUpdateManyWithoutRequestedByNestedInput
+  StockTransferApprovals: StockTransferUpdateManyWithoutApprovedByNestedInput
+  Store: StoreUpdateManyWithoutManagerNestedInput
+  ConsumerReceipt: ConsumerReceiptUpdateManyWithoutIssuedByNestedInput
+  ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
+  BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
+  ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
+  SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
+  SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
+  SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
+  PurchaseReturnInitiators: PurchaseReturnUpdateManyWithoutInitiatedByNestedInput
+  PurchaseReturnApprovers: PurchaseReturnUpdateManyWithoutApprovedByNestedInput
+  Payment: PaymentUpdateManyWithoutReceivedByNestedInput
+  ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
+  ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
+  ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
+  Notification: NotificationUpdateManyWithoutUserNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -19893,6 +20219,7 @@ input UserUpdateWithoutSalesReturnRequestersInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
   PurchaseReturnInitiators: PurchaseReturnUpdateManyWithoutInitiatedByNestedInput
@@ -19990,6 +20317,7 @@ input UserUpdateWithoutSalesReturnReceiversInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
   PurchaseReturnInitiators: PurchaseReturnUpdateManyWithoutInitiatedByNestedInput
@@ -20089,6 +20417,7 @@ input UserUpdateWithoutSalesReturnInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   PurchaseReturnInitiators: PurchaseReturnUpdateManyWithoutInitiatedByNestedInput
@@ -20522,6 +20851,7 @@ input UserUpdateWithoutResellerQuotationInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -20614,6 +20944,7 @@ input UserUpdateWithoutPurchaseReturnInitiatorsInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -20774,6 +21105,7 @@ input UserUpdateWithoutResellerTierHistoryChangedBysInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -20884,6 +21216,7 @@ input UserUpdateWithoutRequestedResellersInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -20973,6 +21306,7 @@ input UserUpdateWithoutResellerTierHistoryInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -21157,22 +21491,6 @@ input FulfillmentUpdateWithoutDeliveryPersonnelInput {
   transitionLogs: FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput
 }
 
-input EnumFulfillmentTypeFieldUpdateOperationsInput {
-  set: FulfillmentType
-}
-
-input EnumFulfillmentStatusFieldUpdateOperationsInput {
-  set: FulfillmentStatus
-}
-
-input NullableFloatFieldUpdateOperationsInput {
-  set: Float
-  increment: Float
-  decrement: Float
-  multiply: Float
-  divide: Float
-}
-
 input SaleOrderUpdateOneRequiredWithoutFulfillmentNestedInput {
   create: SaleOrderCreateWithoutFulfillmentInput
   connectOrCreate: SaleOrderCreateOrConnectWithoutFulfillmentInput
@@ -21190,7 +21508,6 @@ input SaleOrderUpsertWithoutFulfillmentInput {
 input SaleOrderUpdateWithoutFulfillmentInput {
   id: StringFieldUpdateOperationsInput
   storeId: StringFieldUpdateOperationsInput
-  billerId: StringFieldUpdateOperationsInput
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
   phase: EnumOrderPhaseFieldUpdateOperationsInput
@@ -21206,6 +21523,7 @@ input SaleOrderUpdateWithoutFulfillmentInput {
   ConsumerPayment: ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput
   ResellerPayment: ResellerPaymentUpdateManyWithoutSaleOrderNestedInput
   transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
+  biller: UserUpdateOneRequiredWithoutBillerSaleOrdersNestedInput
 }
 
 input QuotationUpdateOneWithoutSaleOrderNestedInput {
@@ -21405,6 +21723,7 @@ input UserUpdateWithoutPurchaseReturnApproversInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -22087,6 +22406,7 @@ input UserUpdateWithoutPurchaseRequisitionInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -22160,7 +22480,6 @@ input SaleOrderUpsertWithoutQuotationInput {
 input SaleOrderUpdateWithoutQuotationInput {
   id: StringFieldUpdateOperationsInput
   storeId: StringFieldUpdateOperationsInput
-  billerId: StringFieldUpdateOperationsInput
   type: EnumSaleTypeFieldUpdateOperationsInput
   status: EnumSaleStatusFieldUpdateOperationsInput
   phase: EnumOrderPhaseFieldUpdateOperationsInput
@@ -22176,56 +22495,486 @@ input SaleOrderUpdateWithoutQuotationInput {
   ConsumerPayment: ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput
   ResellerPayment: ResellerPaymentUpdateManyWithoutSaleOrderNestedInput
   transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
+  biller: UserUpdateOneRequiredWithoutBillerSaleOrdersNestedInput
 }
 
-input FulfillmentUpdateOneWithoutSaleOrderNestedInput {
-  create: FulfillmentCreateWithoutSaleOrderInput
-  connectOrCreate: FulfillmentCreateOrConnectWithoutSaleOrderInput
-  upsert: FulfillmentUpsertWithoutSaleOrderInput
-  disconnect: FulfillmentWhereInput
-  delete: FulfillmentWhereInput
-  connect: FulfillmentWhereUniqueInput
-  update: FulfillmentUpdateToOneWithWhereWithoutSaleOrderInput
+input ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput {
+  create: [ConsumerPaymentCreateWithoutSaleOrderInput!]
+  connectOrCreate: [ConsumerPaymentCreateOrConnectWithoutSaleOrderInput!]
+  upsert: [ConsumerPaymentUpsertWithWhereUniqueWithoutSaleOrderInput!]
+  createMany: ConsumerPaymentCreateManySaleOrderInputEnvelope
+  set: [ConsumerPaymentWhereUniqueInput!]
+  disconnect: [ConsumerPaymentWhereUniqueInput!]
+  delete: [ConsumerPaymentWhereUniqueInput!]
+  connect: [ConsumerPaymentWhereUniqueInput!]
+  update: [ConsumerPaymentUpdateWithWhereUniqueWithoutSaleOrderInput!]
+  updateMany: [ConsumerPaymentUpdateManyWithWhereWithoutSaleOrderInput!]
+  deleteMany: [ConsumerPaymentScalarWhereInput!]
 }
 
-input FulfillmentUpsertWithoutSaleOrderInput {
-  update: FulfillmentUpdateWithoutSaleOrderInput!
-  create: FulfillmentCreateWithoutSaleOrderInput!
-  where: FulfillmentWhereInput
+input ConsumerPaymentUpsertWithWhereUniqueWithoutSaleOrderInput {
+  where: ConsumerPaymentWhereUniqueInput!
+  update: ConsumerPaymentUpdateWithoutSaleOrderInput!
+  create: ConsumerPaymentCreateWithoutSaleOrderInput!
 }
 
-input FulfillmentUpdateWithoutSaleOrderInput {
+input ConsumerPaymentUpdateWithoutSaleOrderInput {
   id: StringFieldUpdateOperationsInput
-  type: EnumFulfillmentTypeFieldUpdateOperationsInput
-  deliveryAddress: NullableStringFieldUpdateOperationsInput
-  status: EnumFulfillmentStatusFieldUpdateOperationsInput
-  workflowState: NullableStringFieldUpdateOperationsInput
-  workflowContext: JSON
-  cost: NullableFloatFieldUpdateOperationsInput
-  confirmationPin: NullableStringFieldUpdateOperationsInput
+  amount: FloatFieldUpdateOperationsInput
+  method: EnumPaymentMethodFieldUpdateOperationsInput
+  status: EnumPaymentStatusFieldUpdateOperationsInput
+  receivedAt: DateTimeFieldUpdateOperationsInput
+  reference: NullableStringFieldUpdateOperationsInput
+  sale: ConsumerSaleUpdateOneRequiredWithoutPaymentsNestedInput
+}
+
+input ConsumerSaleUpdateOneRequiredWithoutPaymentsNestedInput {
+  create: ConsumerSaleCreateWithoutPaymentsInput
+  connectOrCreate: ConsumerSaleCreateOrConnectWithoutPaymentsInput
+  upsert: ConsumerSaleUpsertWithoutPaymentsInput
+  connect: ConsumerSaleWhereUniqueInput
+  update: ConsumerSaleUpdateToOneWithWhereWithoutPaymentsInput
+}
+
+input ConsumerSaleUpsertWithoutPaymentsInput {
+  update: ConsumerSaleUpdateWithoutPaymentsInput!
+  create: ConsumerSaleCreateWithoutPaymentsInput!
+  where: ConsumerSaleWhereInput
+}
+
+input ConsumerSaleUpdateWithoutPaymentsInput {
+  id: StringFieldUpdateOperationsInput
+  channel: EnumSaleChannelFieldUpdateOperationsInput
+  status: EnumSaleStatusFieldUpdateOperationsInput
+  totalAmount: FloatFieldUpdateOperationsInput
+  adjustmentType: NullableEnumAdjustmentTypeFieldUpdateOperationsInput
   createdAt: DateTimeFieldUpdateOperationsInput
   updatedAt: DateTimeFieldUpdateOperationsInput
-  deliveryPersonnel: UserUpdateOneWithoutFulfillmentNestedInput
-  transitionLogs: FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput
+  customer: CustomerUpdateOneWithoutSalesNestedInput
+  store: StoreUpdateOneRequiredWithoutCustomerSalesNestedInput
+  biller: UserUpdateOneRequiredWithoutConsumerSaleNestedInput
+  adjustedBy: UserUpdateOneWithoutConsumerSaleAdjustedBysNestedInput
+  quotation: QuotationUpdateOneWithoutConsumerSaleNestedInput
+  items: ConsumerSaleItemUpdateManyWithoutSaleNestedInput
+  receipt: ConsumerReceiptUpdateOneWithoutSaleNestedInput
+  SalesReturn: SalesReturnUpdateManyWithoutConsumerSaleNestedInput
+  CustomerProfile: CustomerProfileUpdateManyWithoutSalesNestedInput
+  SaleOrder: SaleOrderUpdateOneRequiredWithoutConsumerSaleNestedInput
 }
 
-input UserUpdateOneWithoutFulfillmentNestedInput {
-  create: UserCreateWithoutFulfillmentInput
-  connectOrCreate: UserCreateOrConnectWithoutFulfillmentInput
-  upsert: UserUpsertWithoutFulfillmentInput
-  disconnect: UserWhereInput
-  delete: UserWhereInput
+input CustomerProfileUpdateManyWithoutSalesNestedInput {
+  create: [CustomerProfileCreateWithoutSalesInput!]
+  connectOrCreate: [CustomerProfileCreateOrConnectWithoutSalesInput!]
+  upsert: [CustomerProfileUpsertWithWhereUniqueWithoutSalesInput!]
+  set: [CustomerProfileWhereUniqueInput!]
+  disconnect: [CustomerProfileWhereUniqueInput!]
+  delete: [CustomerProfileWhereUniqueInput!]
+  connect: [CustomerProfileWhereUniqueInput!]
+  update: [CustomerProfileUpdateWithWhereUniqueWithoutSalesInput!]
+  updateMany: [CustomerProfileUpdateManyWithWhereWithoutSalesInput!]
+  deleteMany: [CustomerProfileScalarWhereInput!]
+}
+
+input CustomerProfileUpsertWithWhereUniqueWithoutSalesInput {
+  where: CustomerProfileWhereUniqueInput!
+  update: CustomerProfileUpdateWithoutSalesInput!
+  create: CustomerProfileCreateWithoutSalesInput!
+}
+
+input CustomerProfileUpdateWithoutSalesInput {
+  fullName: StringFieldUpdateOperationsInput
+  phone: NullableStringFieldUpdateOperationsInput
+  email: NullableStringFieldUpdateOperationsInput
+  gender: NullableStringFieldUpdateOperationsInput
+  birthday: NullableDateTimeFieldUpdateOperationsInput
+  profileStatus: EnumProfileStatusFieldUpdateOperationsInput
+  requestedAt: DateTimeFieldUpdateOperationsInput
+  activatedAt: NullableDateTimeFieldUpdateOperationsInput
+  isPhoneVerified: BoolFieldUpdateOperationsInput
+  phoneVerificationCode: NullableStringFieldUpdateOperationsInput
+  phoneVerificationCodeExpiry: NullableDateTimeFieldUpdateOperationsInput
+  user: UserUpdateOneRequiredWithoutCustomerProfileNestedInput
+  preferredStore: StoreUpdateOneWithoutCustomerProfileNestedInput
+  referredBy: CustomerProfileUpdateOneWithoutReferralsNestedInput
+  referrals: CustomerProfileUpdateManyWithoutReferredByNestedInput
+  preferences: CustomerPreferenceProfileUpdateOneWithoutCustomerProfileNestedInput
+}
+
+input CustomerProfileUpdateManyWithoutReferredByNestedInput {
+  create: [CustomerProfileCreateWithoutReferredByInput!]
+  connectOrCreate: [CustomerProfileCreateOrConnectWithoutReferredByInput!]
+  upsert: [CustomerProfileUpsertWithWhereUniqueWithoutReferredByInput!]
+  createMany: CustomerProfileCreateManyReferredByInputEnvelope
+  set: [CustomerProfileWhereUniqueInput!]
+  disconnect: [CustomerProfileWhereUniqueInput!]
+  delete: [CustomerProfileWhereUniqueInput!]
+  connect: [CustomerProfileWhereUniqueInput!]
+  update: [CustomerProfileUpdateWithWhereUniqueWithoutReferredByInput!]
+  updateMany: [CustomerProfileUpdateManyWithWhereWithoutReferredByInput!]
+  deleteMany: [CustomerProfileScalarWhereInput!]
+}
+
+input CustomerProfileUpsertWithWhereUniqueWithoutReferredByInput {
+  where: CustomerProfileWhereUniqueInput!
+  update: CustomerProfileUpdateWithoutReferredByInput!
+  create: CustomerProfileCreateWithoutReferredByInput!
+}
+
+input CustomerProfileUpdateWithoutReferredByInput {
+  fullName: StringFieldUpdateOperationsInput
+  phone: NullableStringFieldUpdateOperationsInput
+  email: NullableStringFieldUpdateOperationsInput
+  gender: NullableStringFieldUpdateOperationsInput
+  birthday: NullableDateTimeFieldUpdateOperationsInput
+  profileStatus: EnumProfileStatusFieldUpdateOperationsInput
+  requestedAt: DateTimeFieldUpdateOperationsInput
+  activatedAt: NullableDateTimeFieldUpdateOperationsInput
+  isPhoneVerified: BoolFieldUpdateOperationsInput
+  phoneVerificationCode: NullableStringFieldUpdateOperationsInput
+  phoneVerificationCodeExpiry: NullableDateTimeFieldUpdateOperationsInput
+  user: UserUpdateOneRequiredWithoutCustomerProfileNestedInput
+  preferredStore: StoreUpdateOneWithoutCustomerProfileNestedInput
+  referrals: CustomerProfileUpdateManyWithoutReferredByNestedInput
+  sales: ConsumerSaleUpdateManyWithoutCustomerProfileNestedInput
+  preferences: CustomerPreferenceProfileUpdateOneWithoutCustomerProfileNestedInput
+}
+
+input CustomerPreferenceProfileUpdateOneWithoutCustomerProfileNestedInput {
+  create: CustomerPreferenceProfileCreateWithoutCustomerProfileInput
+  connectOrCreate: CustomerPreferenceProfileCreateOrConnectWithoutCustomerProfileInput
+  upsert: CustomerPreferenceProfileUpsertWithoutCustomerProfileInput
+  disconnect: CustomerPreferenceProfileWhereInput
+  delete: CustomerPreferenceProfileWhereInput
+  connect: CustomerPreferenceProfileWhereUniqueInput
+  update: CustomerPreferenceProfileUpdateToOneWithWhereWithoutCustomerProfileInput
+}
+
+input CustomerPreferenceProfileUpsertWithoutCustomerProfileInput {
+  update: CustomerPreferenceProfileUpdateWithoutCustomerProfileInput!
+  create: CustomerPreferenceProfileCreateWithoutCustomerProfileInput!
+  where: CustomerPreferenceProfileWhereInput
+}
+
+input CustomerPreferenceProfileUpdateWithoutCustomerProfileInput {
+  id: StringFieldUpdateOperationsInput
+  frequentlyBoughtVariants: JSON
+  lastPurchaseDate: NullableDateTimeFieldUpdateOperationsInput
+  eligibleForDiscounts: BoolFieldUpdateOperationsInput
+  customer: CustomerUpdateOneRequiredWithoutCustomerPreferenceProfileNestedInput
+}
+
+input CustomerUpdateOneRequiredWithoutCustomerPreferenceProfileNestedInput {
+  create: CustomerCreateWithoutCustomerPreferenceProfileInput
+  connectOrCreate: CustomerCreateOrConnectWithoutCustomerPreferenceProfileInput
+  upsert: CustomerUpsertWithoutCustomerPreferenceProfileInput
+  connect: CustomerWhereUniqueInput
+  update: CustomerUpdateToOneWithWhereWithoutCustomerPreferenceProfileInput
+}
+
+input CustomerUpsertWithoutCustomerPreferenceProfileInput {
+  update: CustomerUpdateWithoutCustomerPreferenceProfileInput!
+  create: CustomerCreateWithoutCustomerPreferenceProfileInput!
+  where: CustomerWhereInput
+}
+
+input CustomerUpdateWithoutCustomerPreferenceProfileInput {
+  id: StringFieldUpdateOperationsInput
+  fullName: StringFieldUpdateOperationsInput
+  phone: NullableStringFieldUpdateOperationsInput
+  email: NullableStringFieldUpdateOperationsInput
+  preferredStore: StoreUpdateOneWithoutCustomerNestedInput
+  sales: ConsumerSaleUpdateManyWithoutCustomerNestedInput
+  Quotation: QuotationUpdateManyWithoutConsumerNestedInput
+}
+
+input QuotationUpdateManyWithoutConsumerNestedInput {
+  create: [QuotationCreateWithoutConsumerInput!]
+  connectOrCreate: [QuotationCreateOrConnectWithoutConsumerInput!]
+  upsert: [QuotationUpsertWithWhereUniqueWithoutConsumerInput!]
+  createMany: QuotationCreateManyConsumerInputEnvelope
+  set: [QuotationWhereUniqueInput!]
+  disconnect: [QuotationWhereUniqueInput!]
+  delete: [QuotationWhereUniqueInput!]
+  connect: [QuotationWhereUniqueInput!]
+  update: [QuotationUpdateWithWhereUniqueWithoutConsumerInput!]
+  updateMany: [QuotationUpdateManyWithWhereWithoutConsumerInput!]
+  deleteMany: [QuotationScalarWhereInput!]
+}
+
+input QuotationUpsertWithWhereUniqueWithoutConsumerInput {
+  where: QuotationWhereUniqueInput!
+  update: QuotationUpdateWithoutConsumerInput!
+  create: QuotationCreateWithoutConsumerInput!
+}
+
+input QuotationUpdateWithoutConsumerInput {
+  id: StringFieldUpdateOperationsInput
+  type: EnumSaleTypeFieldUpdateOperationsInput
+  channel: EnumSaleChannelFieldUpdateOperationsInput
+  status: EnumQuotationStatusFieldUpdateOperationsInput
+  totalAmount: FloatFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  store: StoreUpdateOneRequiredWithoutQuotationNestedInput
+  biller: UserUpdateOneWithoutBillerQuotationNestedInput
+  reseller: UserUpdateOneWithoutResellerQuotationNestedInput
+  items: QuotationItemUpdateManyWithoutQuotationNestedInput
+  sale: ResellerSaleUpdateOneWithoutQuotationNestedInput
+  SaleOrder: SaleOrderUpdateOneWithoutQuotationNestedInput
+  ConsumerSale: ConsumerSaleUpdateManyWithoutQuotationNestedInput
+}
+
+input ConsumerSaleUpdateManyWithoutQuotationNestedInput {
+  create: [ConsumerSaleCreateWithoutQuotationInput!]
+  connectOrCreate: [ConsumerSaleCreateOrConnectWithoutQuotationInput!]
+  upsert: [ConsumerSaleUpsertWithWhereUniqueWithoutQuotationInput!]
+  createMany: ConsumerSaleCreateManyQuotationInputEnvelope
+  set: [ConsumerSaleWhereUniqueInput!]
+  disconnect: [ConsumerSaleWhereUniqueInput!]
+  delete: [ConsumerSaleWhereUniqueInput!]
+  connect: [ConsumerSaleWhereUniqueInput!]
+  update: [ConsumerSaleUpdateWithWhereUniqueWithoutQuotationInput!]
+  updateMany: [ConsumerSaleUpdateManyWithWhereWithoutQuotationInput!]
+  deleteMany: [ConsumerSaleScalarWhereInput!]
+}
+
+input ConsumerSaleUpsertWithWhereUniqueWithoutQuotationInput {
+  where: ConsumerSaleWhereUniqueInput!
+  update: ConsumerSaleUpdateWithoutQuotationInput!
+  create: ConsumerSaleCreateWithoutQuotationInput!
+}
+
+input ConsumerSaleUpdateWithoutQuotationInput {
+  id: StringFieldUpdateOperationsInput
+  channel: EnumSaleChannelFieldUpdateOperationsInput
+  status: EnumSaleStatusFieldUpdateOperationsInput
+  totalAmount: FloatFieldUpdateOperationsInput
+  adjustmentType: NullableEnumAdjustmentTypeFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  customer: CustomerUpdateOneWithoutSalesNestedInput
+  store: StoreUpdateOneRequiredWithoutCustomerSalesNestedInput
+  biller: UserUpdateOneRequiredWithoutConsumerSaleNestedInput
+  adjustedBy: UserUpdateOneWithoutConsumerSaleAdjustedBysNestedInput
+  items: ConsumerSaleItemUpdateManyWithoutSaleNestedInput
+  payments: ConsumerPaymentUpdateManyWithoutSaleNestedInput
+  receipt: ConsumerReceiptUpdateOneWithoutSaleNestedInput
+  SalesReturn: SalesReturnUpdateManyWithoutConsumerSaleNestedInput
+  CustomerProfile: CustomerProfileUpdateManyWithoutSalesNestedInput
+  SaleOrder: SaleOrderUpdateOneRequiredWithoutConsumerSaleNestedInput
+}
+
+input SaleOrderUpdateOneRequiredWithoutConsumerSaleNestedInput {
+  create: SaleOrderCreateWithoutConsumerSaleInput
+  connectOrCreate: SaleOrderCreateOrConnectWithoutConsumerSaleInput
+  upsert: SaleOrderUpsertWithoutConsumerSaleInput
+  connect: SaleOrderWhereUniqueInput
+  update: SaleOrderUpdateToOneWithWhereWithoutConsumerSaleInput
+}
+
+input SaleOrderUpsertWithoutConsumerSaleInput {
+  update: SaleOrderUpdateWithoutConsumerSaleInput!
+  create: SaleOrderCreateWithoutConsumerSaleInput!
+  where: SaleOrderWhereInput
+}
+
+input SaleOrderUpdateWithoutConsumerSaleInput {
+  id: StringFieldUpdateOperationsInput
+  storeId: StringFieldUpdateOperationsInput
+  type: EnumSaleTypeFieldUpdateOperationsInput
+  status: EnumSaleStatusFieldUpdateOperationsInput
+  phase: EnumOrderPhaseFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
+  totalAmount: FloatFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  resellerSaleid: NullableStringFieldUpdateOperationsInput
+  resellerSale: ResellerSaleUpdateOneWithoutSaleOrderNestedInput
+  fulfillment: FulfillmentUpdateOneWithoutSaleOrderNestedInput
+  quotation: QuotationUpdateOneWithoutSaleOrderNestedInput
+  ConsumerPayment: ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput
+  ResellerPayment: ResellerPaymentUpdateManyWithoutSaleOrderNestedInput
+  transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
+  biller: UserUpdateOneRequiredWithoutBillerSaleOrdersNestedInput
+}
+
+input ResellerPaymentUpdateManyWithoutSaleOrderNestedInput {
+  create: [ResellerPaymentCreateWithoutSaleOrderInput!]
+  connectOrCreate: [ResellerPaymentCreateOrConnectWithoutSaleOrderInput!]
+  upsert: [ResellerPaymentUpsertWithWhereUniqueWithoutSaleOrderInput!]
+  createMany: ResellerPaymentCreateManySaleOrderInputEnvelope
+  set: [ResellerPaymentWhereUniqueInput!]
+  disconnect: [ResellerPaymentWhereUniqueInput!]
+  delete: [ResellerPaymentWhereUniqueInput!]
+  connect: [ResellerPaymentWhereUniqueInput!]
+  update: [ResellerPaymentUpdateWithWhereUniqueWithoutSaleOrderInput!]
+  updateMany: [ResellerPaymentUpdateManyWithWhereWithoutSaleOrderInput!]
+  deleteMany: [ResellerPaymentScalarWhereInput!]
+}
+
+input ResellerPaymentUpsertWithWhereUniqueWithoutSaleOrderInput {
+  where: ResellerPaymentWhereUniqueInput!
+  update: ResellerPaymentUpdateWithoutSaleOrderInput!
+  create: ResellerPaymentCreateWithoutSaleOrderInput!
+}
+
+input ResellerPaymentUpdateWithoutSaleOrderInput {
+  id: StringFieldUpdateOperationsInput
+  amount: FloatFieldUpdateOperationsInput
+  method: EnumPaymentMethodFieldUpdateOperationsInput
+  reference: NullableStringFieldUpdateOperationsInput
+  status: EnumPaymentStatusFieldUpdateOperationsInput
+  receivedAt: DateTimeFieldUpdateOperationsInput
+  reseller: UserUpdateOneRequiredWithoutResellerPaymentsMadeNestedInput
+  sale: ResellerSaleUpdateOneWithoutPaymentsNestedInput
+  receivedBy: UserUpdateOneRequiredWithoutResellerPaymentsReceivedNestedInput
+}
+
+input ResellerSaleUpdateOneWithoutPaymentsNestedInput {
+  create: ResellerSaleCreateWithoutPaymentsInput
+  connectOrCreate: ResellerSaleCreateOrConnectWithoutPaymentsInput
+  upsert: ResellerSaleUpsertWithoutPaymentsInput
+  disconnect: ResellerSaleWhereInput
+  delete: ResellerSaleWhereInput
+  connect: ResellerSaleWhereUniqueInput
+  update: ResellerSaleUpdateToOneWithWhereWithoutPaymentsInput
+}
+
+input ResellerSaleUpsertWithoutPaymentsInput {
+  update: ResellerSaleUpdateWithoutPaymentsInput!
+  create: ResellerSaleCreateWithoutPaymentsInput!
+  where: ResellerSaleWhereInput
+}
+
+input ResellerSaleUpdateWithoutPaymentsInput {
+  id: StringFieldUpdateOperationsInput
+  status: EnumSaleStatusFieldUpdateOperationsInput
+  totalAmount: FloatFieldUpdateOperationsInput
+  approvedAt: NullableDateTimeFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  reseller: UserUpdateOneRequiredWithoutResellerSalesNestedInput
+  biller: UserUpdateOneRequiredWithoutBillerResellerSaleNestedInput
+  approvedBy: UserUpdateOneWithoutResellerSaleNestedInput
+  quotation: QuotationUpdateOneWithoutSaleNestedInput
+  store: StoreUpdateOneRequiredWithoutResellerSalesNestedInput
+  items: ResellerSaleItemUpdateManyWithoutSaleNestedInput
+  SalesReturn: SalesReturnUpdateManyWithoutResellerSaleNestedInput
+  SaleOrder: SaleOrderUpdateOneRequiredWithoutResellerSaleNestedInput
+}
+
+input SaleOrderUpdateOneRequiredWithoutResellerSaleNestedInput {
+  create: SaleOrderCreateWithoutResellerSaleInput
+  connectOrCreate: SaleOrderCreateOrConnectWithoutResellerSaleInput
+  upsert: SaleOrderUpsertWithoutResellerSaleInput
+  connect: SaleOrderWhereUniqueInput
+  update: SaleOrderUpdateToOneWithWhereWithoutResellerSaleInput
+}
+
+input SaleOrderUpsertWithoutResellerSaleInput {
+  update: SaleOrderUpdateWithoutResellerSaleInput!
+  create: SaleOrderCreateWithoutResellerSaleInput!
+  where: SaleOrderWhereInput
+}
+
+input SaleOrderUpdateWithoutResellerSaleInput {
+  id: StringFieldUpdateOperationsInput
+  storeId: StringFieldUpdateOperationsInput
+  type: EnumSaleTypeFieldUpdateOperationsInput
+  status: EnumSaleStatusFieldUpdateOperationsInput
+  phase: EnumOrderPhaseFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
+  totalAmount: FloatFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  resellerSaleid: NullableStringFieldUpdateOperationsInput
+  consumerSale: ConsumerSaleUpdateOneWithoutSaleOrderNestedInput
+  fulfillment: FulfillmentUpdateOneWithoutSaleOrderNestedInput
+  quotation: QuotationUpdateOneWithoutSaleOrderNestedInput
+  ConsumerPayment: ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput
+  ResellerPayment: ResellerPaymentUpdateManyWithoutSaleOrderNestedInput
+  transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
+  biller: UserUpdateOneRequiredWithoutBillerSaleOrdersNestedInput
+}
+
+input SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput {
+  create: [SaleOrderTransitionLogCreateWithoutSaleOrderInput!]
+  connectOrCreate: [SaleOrderTransitionLogCreateOrConnectWithoutSaleOrderInput!]
+  upsert: [SaleOrderTransitionLogUpsertWithWhereUniqueWithoutSaleOrderInput!]
+  createMany: SaleOrderTransitionLogCreateManySaleOrderInputEnvelope
+  set: [SaleOrderTransitionLogWhereUniqueInput!]
+  disconnect: [SaleOrderTransitionLogWhereUniqueInput!]
+  delete: [SaleOrderTransitionLogWhereUniqueInput!]
+  connect: [SaleOrderTransitionLogWhereUniqueInput!]
+  update: [SaleOrderTransitionLogUpdateWithWhereUniqueWithoutSaleOrderInput!]
+  updateMany: [SaleOrderTransitionLogUpdateManyWithWhereWithoutSaleOrderInput!]
+  deleteMany: [SaleOrderTransitionLogScalarWhereInput!]
+}
+
+input SaleOrderTransitionLogUpsertWithWhereUniqueWithoutSaleOrderInput {
+  where: SaleOrderTransitionLogWhereUniqueInput!
+  update: SaleOrderTransitionLogUpdateWithoutSaleOrderInput!
+  create: SaleOrderTransitionLogCreateWithoutSaleOrderInput!
+}
+
+input SaleOrderTransitionLogUpdateWithoutSaleOrderInput {
+  id: StringFieldUpdateOperationsInput
+  fromState: NullableStringFieldUpdateOperationsInput
+  toState: StringFieldUpdateOperationsInput
+  event: NullableStringFieldUpdateOperationsInput
+  metadata: JSON
+  occurredAt: DateTimeFieldUpdateOperationsInput
+}
+
+input SaleOrderTransitionLogUpdateWithWhereUniqueWithoutSaleOrderInput {
+  where: SaleOrderTransitionLogWhereUniqueInput!
+  data: SaleOrderTransitionLogUpdateWithoutSaleOrderInput!
+}
+
+input SaleOrderTransitionLogUpdateManyWithWhereWithoutSaleOrderInput {
+  where: SaleOrderTransitionLogScalarWhereInput!
+  data: SaleOrderTransitionLogUpdateManyMutationInput!
+}
+
+input SaleOrderTransitionLogScalarWhereInput {
+  AND: [SaleOrderTransitionLogScalarWhereInput!]
+  OR: [SaleOrderTransitionLogScalarWhereInput!]
+  NOT: [SaleOrderTransitionLogScalarWhereInput!]
+  id: StringFilter
+  saleOrderId: StringFilter
+  fromState: StringNullableFilter
+  toState: StringFilter
+  event: StringNullableFilter
+  metadata: JsonNullableFilter
+  occurredAt: DateTimeFilter
+}
+
+input SaleOrderTransitionLogUpdateManyMutationInput {
+  id: StringFieldUpdateOperationsInput
+  fromState: NullableStringFieldUpdateOperationsInput
+  toState: StringFieldUpdateOperationsInput
+  event: NullableStringFieldUpdateOperationsInput
+  metadata: JSON
+  occurredAt: DateTimeFieldUpdateOperationsInput
+}
+
+input UserUpdateOneRequiredWithoutBillerSaleOrdersNestedInput {
+  create: UserCreateWithoutBillerSaleOrdersInput
+  connectOrCreate: UserCreateOrConnectWithoutBillerSaleOrdersInput
+  upsert: UserUpsertWithoutBillerSaleOrdersInput
   connect: UserWhereUniqueInput
-  update: UserUpdateToOneWithWhereWithoutFulfillmentInput
+  update: UserUpdateToOneWithWhereWithoutBillerSaleOrdersInput
 }
 
-input UserUpsertWithoutFulfillmentInput {
-  update: UserUpdateWithoutFulfillmentInput!
-  create: UserCreateWithoutFulfillmentInput!
+input UserUpsertWithoutBillerSaleOrdersInput {
+  update: UserUpdateWithoutBillerSaleOrdersInput!
+  create: UserCreateWithoutBillerSaleOrdersInput!
   where: UserWhereInput
 }
 
-input UserUpdateWithoutFulfillmentInput {
+input UserUpdateWithoutBillerSaleOrdersInput {
   id: StringFieldUpdateOperationsInput
   email: StringFieldUpdateOperationsInput
   passwordHash: StringFieldUpdateOperationsInput
@@ -22266,6 +23015,7 @@ input UserUpdateWithoutFulfillmentInput {
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
+  Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -23471,6 +24221,7 @@ input UserUpdateWithoutSupplierInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
@@ -24047,537 +24798,9 @@ input SupplierUpdateManyMutationInput {
   updatedAt: DateTimeFieldUpdateOperationsInput
 }
 
-input UserUpdateToOneWithWhereWithoutFulfillmentInput {
+input UserUpdateToOneWithWhereWithoutBillerSaleOrdersInput {
   where: UserWhereInput
-  data: UserUpdateWithoutFulfillmentInput!
-}
-
-input FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput {
-  create: [FulfillmentTransitionLogCreateWithoutFulfillmentInput!]
-  connectOrCreate: [FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput!]
-  upsert: [FulfillmentTransitionLogUpsertWithWhereUniqueWithoutFulfillmentInput!]
-  createMany: FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope
-  set: [FulfillmentTransitionLogWhereUniqueInput!]
-  disconnect: [FulfillmentTransitionLogWhereUniqueInput!]
-  delete: [FulfillmentTransitionLogWhereUniqueInput!]
-  connect: [FulfillmentTransitionLogWhereUniqueInput!]
-  update: [FulfillmentTransitionLogUpdateWithWhereUniqueWithoutFulfillmentInput!]
-  updateMany: [FulfillmentTransitionLogUpdateManyWithWhereWithoutFulfillmentInput!]
-  deleteMany: [FulfillmentTransitionLogScalarWhereInput!]
-}
-
-input FulfillmentTransitionLogUpsertWithWhereUniqueWithoutFulfillmentInput {
-  where: FulfillmentTransitionLogWhereUniqueInput!
-  update: FulfillmentTransitionLogUpdateWithoutFulfillmentInput!
-  create: FulfillmentTransitionLogCreateWithoutFulfillmentInput!
-}
-
-input FulfillmentTransitionLogUpdateWithoutFulfillmentInput {
-  id: StringFieldUpdateOperationsInput
-  fromState: NullableStringFieldUpdateOperationsInput
-  toState: StringFieldUpdateOperationsInput
-  event: NullableStringFieldUpdateOperationsInput
-  metadata: JSON
-  occurredAt: DateTimeFieldUpdateOperationsInput
-}
-
-input FulfillmentTransitionLogUpdateWithWhereUniqueWithoutFulfillmentInput {
-  where: FulfillmentTransitionLogWhereUniqueInput!
-  data: FulfillmentTransitionLogUpdateWithoutFulfillmentInput!
-}
-
-input FulfillmentTransitionLogUpdateManyWithWhereWithoutFulfillmentInput {
-  where: FulfillmentTransitionLogScalarWhereInput!
-  data: FulfillmentTransitionLogUpdateManyMutationInput!
-}
-
-input FulfillmentTransitionLogScalarWhereInput {
-  AND: [FulfillmentTransitionLogScalarWhereInput!]
-  OR: [FulfillmentTransitionLogScalarWhereInput!]
-  NOT: [FulfillmentTransitionLogScalarWhereInput!]
-  id: StringFilter
-  fulfillmentId: StringFilter
-  fromState: StringNullableFilter
-  toState: StringFilter
-  event: StringNullableFilter
-  metadata: JsonNullableFilter
-  occurredAt: DateTimeFilter
-}
-
-input FulfillmentTransitionLogUpdateManyMutationInput {
-  id: StringFieldUpdateOperationsInput
-  fromState: NullableStringFieldUpdateOperationsInput
-  toState: StringFieldUpdateOperationsInput
-  event: NullableStringFieldUpdateOperationsInput
-  metadata: JSON
-  occurredAt: DateTimeFieldUpdateOperationsInput
-}
-
-input FulfillmentUpdateToOneWithWhereWithoutSaleOrderInput {
-  where: FulfillmentWhereInput
-  data: FulfillmentUpdateWithoutSaleOrderInput!
-}
-
-input ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput {
-  create: [ConsumerPaymentCreateWithoutSaleOrderInput!]
-  connectOrCreate: [ConsumerPaymentCreateOrConnectWithoutSaleOrderInput!]
-  upsert: [ConsumerPaymentUpsertWithWhereUniqueWithoutSaleOrderInput!]
-  createMany: ConsumerPaymentCreateManySaleOrderInputEnvelope
-  set: [ConsumerPaymentWhereUniqueInput!]
-  disconnect: [ConsumerPaymentWhereUniqueInput!]
-  delete: [ConsumerPaymentWhereUniqueInput!]
-  connect: [ConsumerPaymentWhereUniqueInput!]
-  update: [ConsumerPaymentUpdateWithWhereUniqueWithoutSaleOrderInput!]
-  updateMany: [ConsumerPaymentUpdateManyWithWhereWithoutSaleOrderInput!]
-  deleteMany: [ConsumerPaymentScalarWhereInput!]
-}
-
-input ConsumerPaymentUpsertWithWhereUniqueWithoutSaleOrderInput {
-  where: ConsumerPaymentWhereUniqueInput!
-  update: ConsumerPaymentUpdateWithoutSaleOrderInput!
-  create: ConsumerPaymentCreateWithoutSaleOrderInput!
-}
-
-input ConsumerPaymentUpdateWithoutSaleOrderInput {
-  id: StringFieldUpdateOperationsInput
-  amount: FloatFieldUpdateOperationsInput
-  method: EnumPaymentMethodFieldUpdateOperationsInput
-  status: EnumPaymentStatusFieldUpdateOperationsInput
-  receivedAt: DateTimeFieldUpdateOperationsInput
-  reference: NullableStringFieldUpdateOperationsInput
-  sale: ConsumerSaleUpdateOneRequiredWithoutPaymentsNestedInput
-}
-
-input ConsumerSaleUpdateOneRequiredWithoutPaymentsNestedInput {
-  create: ConsumerSaleCreateWithoutPaymentsInput
-  connectOrCreate: ConsumerSaleCreateOrConnectWithoutPaymentsInput
-  upsert: ConsumerSaleUpsertWithoutPaymentsInput
-  connect: ConsumerSaleWhereUniqueInput
-  update: ConsumerSaleUpdateToOneWithWhereWithoutPaymentsInput
-}
-
-input ConsumerSaleUpsertWithoutPaymentsInput {
-  update: ConsumerSaleUpdateWithoutPaymentsInput!
-  create: ConsumerSaleCreateWithoutPaymentsInput!
-  where: ConsumerSaleWhereInput
-}
-
-input ConsumerSaleUpdateWithoutPaymentsInput {
-  id: StringFieldUpdateOperationsInput
-  channel: EnumSaleChannelFieldUpdateOperationsInput
-  status: EnumSaleStatusFieldUpdateOperationsInput
-  totalAmount: FloatFieldUpdateOperationsInput
-  adjustmentType: NullableEnumAdjustmentTypeFieldUpdateOperationsInput
-  createdAt: DateTimeFieldUpdateOperationsInput
-  updatedAt: DateTimeFieldUpdateOperationsInput
-  customer: CustomerUpdateOneWithoutSalesNestedInput
-  store: StoreUpdateOneRequiredWithoutCustomerSalesNestedInput
-  biller: UserUpdateOneRequiredWithoutConsumerSaleNestedInput
-  adjustedBy: UserUpdateOneWithoutConsumerSaleAdjustedBysNestedInput
-  quotation: QuotationUpdateOneWithoutConsumerSaleNestedInput
-  items: ConsumerSaleItemUpdateManyWithoutSaleNestedInput
-  receipt: ConsumerReceiptUpdateOneWithoutSaleNestedInput
-  SalesReturn: SalesReturnUpdateManyWithoutConsumerSaleNestedInput
-  CustomerProfile: CustomerProfileUpdateManyWithoutSalesNestedInput
-  SaleOrder: SaleOrderUpdateOneRequiredWithoutConsumerSaleNestedInput
-}
-
-input CustomerProfileUpdateManyWithoutSalesNestedInput {
-  create: [CustomerProfileCreateWithoutSalesInput!]
-  connectOrCreate: [CustomerProfileCreateOrConnectWithoutSalesInput!]
-  upsert: [CustomerProfileUpsertWithWhereUniqueWithoutSalesInput!]
-  set: [CustomerProfileWhereUniqueInput!]
-  disconnect: [CustomerProfileWhereUniqueInput!]
-  delete: [CustomerProfileWhereUniqueInput!]
-  connect: [CustomerProfileWhereUniqueInput!]
-  update: [CustomerProfileUpdateWithWhereUniqueWithoutSalesInput!]
-  updateMany: [CustomerProfileUpdateManyWithWhereWithoutSalesInput!]
-  deleteMany: [CustomerProfileScalarWhereInput!]
-}
-
-input CustomerProfileUpsertWithWhereUniqueWithoutSalesInput {
-  where: CustomerProfileWhereUniqueInput!
-  update: CustomerProfileUpdateWithoutSalesInput!
-  create: CustomerProfileCreateWithoutSalesInput!
-}
-
-input CustomerProfileUpdateWithoutSalesInput {
-  fullName: StringFieldUpdateOperationsInput
-  phone: NullableStringFieldUpdateOperationsInput
-  email: NullableStringFieldUpdateOperationsInput
-  gender: NullableStringFieldUpdateOperationsInput
-  birthday: NullableDateTimeFieldUpdateOperationsInput
-  profileStatus: EnumProfileStatusFieldUpdateOperationsInput
-  requestedAt: DateTimeFieldUpdateOperationsInput
-  activatedAt: NullableDateTimeFieldUpdateOperationsInput
-  isPhoneVerified: BoolFieldUpdateOperationsInput
-  phoneVerificationCode: NullableStringFieldUpdateOperationsInput
-  phoneVerificationCodeExpiry: NullableDateTimeFieldUpdateOperationsInput
-  user: UserUpdateOneRequiredWithoutCustomerProfileNestedInput
-  preferredStore: StoreUpdateOneWithoutCustomerProfileNestedInput
-  referredBy: CustomerProfileUpdateOneWithoutReferralsNestedInput
-  referrals: CustomerProfileUpdateManyWithoutReferredByNestedInput
-  preferences: CustomerPreferenceProfileUpdateOneWithoutCustomerProfileNestedInput
-}
-
-input CustomerProfileUpdateManyWithoutReferredByNestedInput {
-  create: [CustomerProfileCreateWithoutReferredByInput!]
-  connectOrCreate: [CustomerProfileCreateOrConnectWithoutReferredByInput!]
-  upsert: [CustomerProfileUpsertWithWhereUniqueWithoutReferredByInput!]
-  createMany: CustomerProfileCreateManyReferredByInputEnvelope
-  set: [CustomerProfileWhereUniqueInput!]
-  disconnect: [CustomerProfileWhereUniqueInput!]
-  delete: [CustomerProfileWhereUniqueInput!]
-  connect: [CustomerProfileWhereUniqueInput!]
-  update: [CustomerProfileUpdateWithWhereUniqueWithoutReferredByInput!]
-  updateMany: [CustomerProfileUpdateManyWithWhereWithoutReferredByInput!]
-  deleteMany: [CustomerProfileScalarWhereInput!]
-}
-
-input CustomerProfileUpsertWithWhereUniqueWithoutReferredByInput {
-  where: CustomerProfileWhereUniqueInput!
-  update: CustomerProfileUpdateWithoutReferredByInput!
-  create: CustomerProfileCreateWithoutReferredByInput!
-}
-
-input CustomerProfileUpdateWithoutReferredByInput {
-  fullName: StringFieldUpdateOperationsInput
-  phone: NullableStringFieldUpdateOperationsInput
-  email: NullableStringFieldUpdateOperationsInput
-  gender: NullableStringFieldUpdateOperationsInput
-  birthday: NullableDateTimeFieldUpdateOperationsInput
-  profileStatus: EnumProfileStatusFieldUpdateOperationsInput
-  requestedAt: DateTimeFieldUpdateOperationsInput
-  activatedAt: NullableDateTimeFieldUpdateOperationsInput
-  isPhoneVerified: BoolFieldUpdateOperationsInput
-  phoneVerificationCode: NullableStringFieldUpdateOperationsInput
-  phoneVerificationCodeExpiry: NullableDateTimeFieldUpdateOperationsInput
-  user: UserUpdateOneRequiredWithoutCustomerProfileNestedInput
-  preferredStore: StoreUpdateOneWithoutCustomerProfileNestedInput
-  referrals: CustomerProfileUpdateManyWithoutReferredByNestedInput
-  sales: ConsumerSaleUpdateManyWithoutCustomerProfileNestedInput
-  preferences: CustomerPreferenceProfileUpdateOneWithoutCustomerProfileNestedInput
-}
-
-input CustomerPreferenceProfileUpdateOneWithoutCustomerProfileNestedInput {
-  create: CustomerPreferenceProfileCreateWithoutCustomerProfileInput
-  connectOrCreate: CustomerPreferenceProfileCreateOrConnectWithoutCustomerProfileInput
-  upsert: CustomerPreferenceProfileUpsertWithoutCustomerProfileInput
-  disconnect: CustomerPreferenceProfileWhereInput
-  delete: CustomerPreferenceProfileWhereInput
-  connect: CustomerPreferenceProfileWhereUniqueInput
-  update: CustomerPreferenceProfileUpdateToOneWithWhereWithoutCustomerProfileInput
-}
-
-input CustomerPreferenceProfileUpsertWithoutCustomerProfileInput {
-  update: CustomerPreferenceProfileUpdateWithoutCustomerProfileInput!
-  create: CustomerPreferenceProfileCreateWithoutCustomerProfileInput!
-  where: CustomerPreferenceProfileWhereInput
-}
-
-input CustomerPreferenceProfileUpdateWithoutCustomerProfileInput {
-  id: StringFieldUpdateOperationsInput
-  frequentlyBoughtVariants: JSON
-  lastPurchaseDate: NullableDateTimeFieldUpdateOperationsInput
-  eligibleForDiscounts: BoolFieldUpdateOperationsInput
-  customer: CustomerUpdateOneRequiredWithoutCustomerPreferenceProfileNestedInput
-}
-
-input CustomerUpdateOneRequiredWithoutCustomerPreferenceProfileNestedInput {
-  create: CustomerCreateWithoutCustomerPreferenceProfileInput
-  connectOrCreate: CustomerCreateOrConnectWithoutCustomerPreferenceProfileInput
-  upsert: CustomerUpsertWithoutCustomerPreferenceProfileInput
-  connect: CustomerWhereUniqueInput
-  update: CustomerUpdateToOneWithWhereWithoutCustomerPreferenceProfileInput
-}
-
-input CustomerUpsertWithoutCustomerPreferenceProfileInput {
-  update: CustomerUpdateWithoutCustomerPreferenceProfileInput!
-  create: CustomerCreateWithoutCustomerPreferenceProfileInput!
-  where: CustomerWhereInput
-}
-
-input CustomerUpdateWithoutCustomerPreferenceProfileInput {
-  id: StringFieldUpdateOperationsInput
-  fullName: StringFieldUpdateOperationsInput
-  phone: NullableStringFieldUpdateOperationsInput
-  email: NullableStringFieldUpdateOperationsInput
-  preferredStore: StoreUpdateOneWithoutCustomerNestedInput
-  sales: ConsumerSaleUpdateManyWithoutCustomerNestedInput
-  Quotation: QuotationUpdateManyWithoutConsumerNestedInput
-}
-
-input QuotationUpdateManyWithoutConsumerNestedInput {
-  create: [QuotationCreateWithoutConsumerInput!]
-  connectOrCreate: [QuotationCreateOrConnectWithoutConsumerInput!]
-  upsert: [QuotationUpsertWithWhereUniqueWithoutConsumerInput!]
-  createMany: QuotationCreateManyConsumerInputEnvelope
-  set: [QuotationWhereUniqueInput!]
-  disconnect: [QuotationWhereUniqueInput!]
-  delete: [QuotationWhereUniqueInput!]
-  connect: [QuotationWhereUniqueInput!]
-  update: [QuotationUpdateWithWhereUniqueWithoutConsumerInput!]
-  updateMany: [QuotationUpdateManyWithWhereWithoutConsumerInput!]
-  deleteMany: [QuotationScalarWhereInput!]
-}
-
-input QuotationUpsertWithWhereUniqueWithoutConsumerInput {
-  where: QuotationWhereUniqueInput!
-  update: QuotationUpdateWithoutConsumerInput!
-  create: QuotationCreateWithoutConsumerInput!
-}
-
-input QuotationUpdateWithoutConsumerInput {
-  id: StringFieldUpdateOperationsInput
-  type: EnumSaleTypeFieldUpdateOperationsInput
-  channel: EnumSaleChannelFieldUpdateOperationsInput
-  status: EnumQuotationStatusFieldUpdateOperationsInput
-  totalAmount: FloatFieldUpdateOperationsInput
-  createdAt: DateTimeFieldUpdateOperationsInput
-  updatedAt: DateTimeFieldUpdateOperationsInput
-  store: StoreUpdateOneRequiredWithoutQuotationNestedInput
-  biller: UserUpdateOneWithoutBillerQuotationNestedInput
-  reseller: UserUpdateOneWithoutResellerQuotationNestedInput
-  items: QuotationItemUpdateManyWithoutQuotationNestedInput
-  sale: ResellerSaleUpdateOneWithoutQuotationNestedInput
-  SaleOrder: SaleOrderUpdateOneWithoutQuotationNestedInput
-  ConsumerSale: ConsumerSaleUpdateManyWithoutQuotationNestedInput
-}
-
-input ConsumerSaleUpdateManyWithoutQuotationNestedInput {
-  create: [ConsumerSaleCreateWithoutQuotationInput!]
-  connectOrCreate: [ConsumerSaleCreateOrConnectWithoutQuotationInput!]
-  upsert: [ConsumerSaleUpsertWithWhereUniqueWithoutQuotationInput!]
-  createMany: ConsumerSaleCreateManyQuotationInputEnvelope
-  set: [ConsumerSaleWhereUniqueInput!]
-  disconnect: [ConsumerSaleWhereUniqueInput!]
-  delete: [ConsumerSaleWhereUniqueInput!]
-  connect: [ConsumerSaleWhereUniqueInput!]
-  update: [ConsumerSaleUpdateWithWhereUniqueWithoutQuotationInput!]
-  updateMany: [ConsumerSaleUpdateManyWithWhereWithoutQuotationInput!]
-  deleteMany: [ConsumerSaleScalarWhereInput!]
-}
-
-input ConsumerSaleUpsertWithWhereUniqueWithoutQuotationInput {
-  where: ConsumerSaleWhereUniqueInput!
-  update: ConsumerSaleUpdateWithoutQuotationInput!
-  create: ConsumerSaleCreateWithoutQuotationInput!
-}
-
-input ConsumerSaleUpdateWithoutQuotationInput {
-  id: StringFieldUpdateOperationsInput
-  channel: EnumSaleChannelFieldUpdateOperationsInput
-  status: EnumSaleStatusFieldUpdateOperationsInput
-  totalAmount: FloatFieldUpdateOperationsInput
-  adjustmentType: NullableEnumAdjustmentTypeFieldUpdateOperationsInput
-  createdAt: DateTimeFieldUpdateOperationsInput
-  updatedAt: DateTimeFieldUpdateOperationsInput
-  customer: CustomerUpdateOneWithoutSalesNestedInput
-  store: StoreUpdateOneRequiredWithoutCustomerSalesNestedInput
-  biller: UserUpdateOneRequiredWithoutConsumerSaleNestedInput
-  adjustedBy: UserUpdateOneWithoutConsumerSaleAdjustedBysNestedInput
-  items: ConsumerSaleItemUpdateManyWithoutSaleNestedInput
-  payments: ConsumerPaymentUpdateManyWithoutSaleNestedInput
-  receipt: ConsumerReceiptUpdateOneWithoutSaleNestedInput
-  SalesReturn: SalesReturnUpdateManyWithoutConsumerSaleNestedInput
-  CustomerProfile: CustomerProfileUpdateManyWithoutSalesNestedInput
-  SaleOrder: SaleOrderUpdateOneRequiredWithoutConsumerSaleNestedInput
-}
-
-input SaleOrderUpdateOneRequiredWithoutConsumerSaleNestedInput {
-  create: SaleOrderCreateWithoutConsumerSaleInput
-  connectOrCreate: SaleOrderCreateOrConnectWithoutConsumerSaleInput
-  upsert: SaleOrderUpsertWithoutConsumerSaleInput
-  connect: SaleOrderWhereUniqueInput
-  update: SaleOrderUpdateToOneWithWhereWithoutConsumerSaleInput
-}
-
-input SaleOrderUpsertWithoutConsumerSaleInput {
-  update: SaleOrderUpdateWithoutConsumerSaleInput!
-  create: SaleOrderCreateWithoutConsumerSaleInput!
-  where: SaleOrderWhereInput
-}
-
-input SaleOrderUpdateWithoutConsumerSaleInput {
-  id: StringFieldUpdateOperationsInput
-  storeId: StringFieldUpdateOperationsInput
-  billerId: StringFieldUpdateOperationsInput
-  type: EnumSaleTypeFieldUpdateOperationsInput
-  status: EnumSaleStatusFieldUpdateOperationsInput
-  phase: EnumOrderPhaseFieldUpdateOperationsInput
-  workflowState: NullableStringFieldUpdateOperationsInput
-  workflowContext: JSON
-  totalAmount: FloatFieldUpdateOperationsInput
-  createdAt: DateTimeFieldUpdateOperationsInput
-  updatedAt: DateTimeFieldUpdateOperationsInput
-  resellerSaleid: NullableStringFieldUpdateOperationsInput
-  resellerSale: ResellerSaleUpdateOneWithoutSaleOrderNestedInput
-  fulfillment: FulfillmentUpdateOneWithoutSaleOrderNestedInput
-  quotation: QuotationUpdateOneWithoutSaleOrderNestedInput
-  ConsumerPayment: ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput
-  ResellerPayment: ResellerPaymentUpdateManyWithoutSaleOrderNestedInput
-  transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
-}
-
-input ResellerPaymentUpdateManyWithoutSaleOrderNestedInput {
-  create: [ResellerPaymentCreateWithoutSaleOrderInput!]
-  connectOrCreate: [ResellerPaymentCreateOrConnectWithoutSaleOrderInput!]
-  upsert: [ResellerPaymentUpsertWithWhereUniqueWithoutSaleOrderInput!]
-  createMany: ResellerPaymentCreateManySaleOrderInputEnvelope
-  set: [ResellerPaymentWhereUniqueInput!]
-  disconnect: [ResellerPaymentWhereUniqueInput!]
-  delete: [ResellerPaymentWhereUniqueInput!]
-  connect: [ResellerPaymentWhereUniqueInput!]
-  update: [ResellerPaymentUpdateWithWhereUniqueWithoutSaleOrderInput!]
-  updateMany: [ResellerPaymentUpdateManyWithWhereWithoutSaleOrderInput!]
-  deleteMany: [ResellerPaymentScalarWhereInput!]
-}
-
-input ResellerPaymentUpsertWithWhereUniqueWithoutSaleOrderInput {
-  where: ResellerPaymentWhereUniqueInput!
-  update: ResellerPaymentUpdateWithoutSaleOrderInput!
-  create: ResellerPaymentCreateWithoutSaleOrderInput!
-}
-
-input ResellerPaymentUpdateWithoutSaleOrderInput {
-  id: StringFieldUpdateOperationsInput
-  amount: FloatFieldUpdateOperationsInput
-  method: EnumPaymentMethodFieldUpdateOperationsInput
-  reference: NullableStringFieldUpdateOperationsInput
-  status: EnumPaymentStatusFieldUpdateOperationsInput
-  receivedAt: DateTimeFieldUpdateOperationsInput
-  reseller: UserUpdateOneRequiredWithoutResellerPaymentsMadeNestedInput
-  sale: ResellerSaleUpdateOneWithoutPaymentsNestedInput
-  receivedBy: UserUpdateOneRequiredWithoutResellerPaymentsReceivedNestedInput
-}
-
-input ResellerSaleUpdateOneWithoutPaymentsNestedInput {
-  create: ResellerSaleCreateWithoutPaymentsInput
-  connectOrCreate: ResellerSaleCreateOrConnectWithoutPaymentsInput
-  upsert: ResellerSaleUpsertWithoutPaymentsInput
-  disconnect: ResellerSaleWhereInput
-  delete: ResellerSaleWhereInput
-  connect: ResellerSaleWhereUniqueInput
-  update: ResellerSaleUpdateToOneWithWhereWithoutPaymentsInput
-}
-
-input ResellerSaleUpsertWithoutPaymentsInput {
-  update: ResellerSaleUpdateWithoutPaymentsInput!
-  create: ResellerSaleCreateWithoutPaymentsInput!
-  where: ResellerSaleWhereInput
-}
-
-input ResellerSaleUpdateWithoutPaymentsInput {
-  id: StringFieldUpdateOperationsInput
-  status: EnumSaleStatusFieldUpdateOperationsInput
-  totalAmount: FloatFieldUpdateOperationsInput
-  approvedAt: NullableDateTimeFieldUpdateOperationsInput
-  createdAt: DateTimeFieldUpdateOperationsInput
-  updatedAt: DateTimeFieldUpdateOperationsInput
-  reseller: UserUpdateOneRequiredWithoutResellerSalesNestedInput
-  biller: UserUpdateOneRequiredWithoutBillerResellerSaleNestedInput
-  approvedBy: UserUpdateOneWithoutResellerSaleNestedInput
-  quotation: QuotationUpdateOneWithoutSaleNestedInput
-  store: StoreUpdateOneRequiredWithoutResellerSalesNestedInput
-  items: ResellerSaleItemUpdateManyWithoutSaleNestedInput
-  SalesReturn: SalesReturnUpdateManyWithoutResellerSaleNestedInput
-  SaleOrder: SaleOrderUpdateOneRequiredWithoutResellerSaleNestedInput
-}
-
-input SaleOrderUpdateOneRequiredWithoutResellerSaleNestedInput {
-  create: SaleOrderCreateWithoutResellerSaleInput
-  connectOrCreate: SaleOrderCreateOrConnectWithoutResellerSaleInput
-  upsert: SaleOrderUpsertWithoutResellerSaleInput
-  connect: SaleOrderWhereUniqueInput
-  update: SaleOrderUpdateToOneWithWhereWithoutResellerSaleInput
-}
-
-input SaleOrderUpsertWithoutResellerSaleInput {
-  update: SaleOrderUpdateWithoutResellerSaleInput!
-  create: SaleOrderCreateWithoutResellerSaleInput!
-  where: SaleOrderWhereInput
-}
-
-input SaleOrderUpdateWithoutResellerSaleInput {
-  id: StringFieldUpdateOperationsInput
-  storeId: StringFieldUpdateOperationsInput
-  billerId: StringFieldUpdateOperationsInput
-  type: EnumSaleTypeFieldUpdateOperationsInput
-  status: EnumSaleStatusFieldUpdateOperationsInput
-  phase: EnumOrderPhaseFieldUpdateOperationsInput
-  workflowState: NullableStringFieldUpdateOperationsInput
-  workflowContext: JSON
-  totalAmount: FloatFieldUpdateOperationsInput
-  createdAt: DateTimeFieldUpdateOperationsInput
-  updatedAt: DateTimeFieldUpdateOperationsInput
-  resellerSaleid: NullableStringFieldUpdateOperationsInput
-  consumerSale: ConsumerSaleUpdateOneWithoutSaleOrderNestedInput
-  fulfillment: FulfillmentUpdateOneWithoutSaleOrderNestedInput
-  quotation: QuotationUpdateOneWithoutSaleOrderNestedInput
-  ConsumerPayment: ConsumerPaymentUpdateManyWithoutSaleOrderNestedInput
-  ResellerPayment: ResellerPaymentUpdateManyWithoutSaleOrderNestedInput
-  transitionLogs: SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput
-}
-
-input SaleOrderTransitionLogUpdateManyWithoutSaleOrderNestedInput {
-  create: [SaleOrderTransitionLogCreateWithoutSaleOrderInput!]
-  connectOrCreate: [SaleOrderTransitionLogCreateOrConnectWithoutSaleOrderInput!]
-  upsert: [SaleOrderTransitionLogUpsertWithWhereUniqueWithoutSaleOrderInput!]
-  createMany: SaleOrderTransitionLogCreateManySaleOrderInputEnvelope
-  set: [SaleOrderTransitionLogWhereUniqueInput!]
-  disconnect: [SaleOrderTransitionLogWhereUniqueInput!]
-  delete: [SaleOrderTransitionLogWhereUniqueInput!]
-  connect: [SaleOrderTransitionLogWhereUniqueInput!]
-  update: [SaleOrderTransitionLogUpdateWithWhereUniqueWithoutSaleOrderInput!]
-  updateMany: [SaleOrderTransitionLogUpdateManyWithWhereWithoutSaleOrderInput!]
-  deleteMany: [SaleOrderTransitionLogScalarWhereInput!]
-}
-
-input SaleOrderTransitionLogUpsertWithWhereUniqueWithoutSaleOrderInput {
-  where: SaleOrderTransitionLogWhereUniqueInput!
-  update: SaleOrderTransitionLogUpdateWithoutSaleOrderInput!
-  create: SaleOrderTransitionLogCreateWithoutSaleOrderInput!
-}
-
-input SaleOrderTransitionLogUpdateWithoutSaleOrderInput {
-  id: StringFieldUpdateOperationsInput
-  fromState: NullableStringFieldUpdateOperationsInput
-  toState: StringFieldUpdateOperationsInput
-  event: NullableStringFieldUpdateOperationsInput
-  metadata: JSON
-  occurredAt: DateTimeFieldUpdateOperationsInput
-}
-
-input SaleOrderTransitionLogUpdateWithWhereUniqueWithoutSaleOrderInput {
-  where: SaleOrderTransitionLogWhereUniqueInput!
-  data: SaleOrderTransitionLogUpdateWithoutSaleOrderInput!
-}
-
-input SaleOrderTransitionLogUpdateManyWithWhereWithoutSaleOrderInput {
-  where: SaleOrderTransitionLogScalarWhereInput!
-  data: SaleOrderTransitionLogUpdateManyMutationInput!
-}
-
-input SaleOrderTransitionLogScalarWhereInput {
-  AND: [SaleOrderTransitionLogScalarWhereInput!]
-  OR: [SaleOrderTransitionLogScalarWhereInput!]
-  NOT: [SaleOrderTransitionLogScalarWhereInput!]
-  id: StringFilter
-  saleOrderId: StringFilter
-  fromState: StringNullableFilter
-  toState: StringFilter
-  event: StringNullableFilter
-  metadata: JsonNullableFilter
-  occurredAt: DateTimeFilter
-}
-
-input SaleOrderTransitionLogUpdateManyMutationInput {
-  id: StringFieldUpdateOperationsInput
-  fromState: NullableStringFieldUpdateOperationsInput
-  toState: StringFieldUpdateOperationsInput
-  event: NullableStringFieldUpdateOperationsInput
-  metadata: JSON
-  occurredAt: DateTimeFieldUpdateOperationsInput
+  data: UserUpdateWithoutBillerSaleOrdersInput!
 }
 
 input SaleOrderUpdateToOneWithWhereWithoutResellerSaleInput {
@@ -25090,6 +25313,67 @@ input SaleOrderUpdateToOneWithWhereWithoutFulfillmentInput {
   data: SaleOrderUpdateWithoutFulfillmentInput!
 }
 
+input FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput {
+  create: [FulfillmentTransitionLogCreateWithoutFulfillmentInput!]
+  connectOrCreate: [FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput!]
+  upsert: [FulfillmentTransitionLogUpsertWithWhereUniqueWithoutFulfillmentInput!]
+  createMany: FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope
+  set: [FulfillmentTransitionLogWhereUniqueInput!]
+  disconnect: [FulfillmentTransitionLogWhereUniqueInput!]
+  delete: [FulfillmentTransitionLogWhereUniqueInput!]
+  connect: [FulfillmentTransitionLogWhereUniqueInput!]
+  update: [FulfillmentTransitionLogUpdateWithWhereUniqueWithoutFulfillmentInput!]
+  updateMany: [FulfillmentTransitionLogUpdateManyWithWhereWithoutFulfillmentInput!]
+  deleteMany: [FulfillmentTransitionLogScalarWhereInput!]
+}
+
+input FulfillmentTransitionLogUpsertWithWhereUniqueWithoutFulfillmentInput {
+  where: FulfillmentTransitionLogWhereUniqueInput!
+  update: FulfillmentTransitionLogUpdateWithoutFulfillmentInput!
+  create: FulfillmentTransitionLogCreateWithoutFulfillmentInput!
+}
+
+input FulfillmentTransitionLogUpdateWithoutFulfillmentInput {
+  id: StringFieldUpdateOperationsInput
+  fromState: NullableStringFieldUpdateOperationsInput
+  toState: StringFieldUpdateOperationsInput
+  event: NullableStringFieldUpdateOperationsInput
+  metadata: JSON
+  occurredAt: DateTimeFieldUpdateOperationsInput
+}
+
+input FulfillmentTransitionLogUpdateWithWhereUniqueWithoutFulfillmentInput {
+  where: FulfillmentTransitionLogWhereUniqueInput!
+  data: FulfillmentTransitionLogUpdateWithoutFulfillmentInput!
+}
+
+input FulfillmentTransitionLogUpdateManyWithWhereWithoutFulfillmentInput {
+  where: FulfillmentTransitionLogScalarWhereInput!
+  data: FulfillmentTransitionLogUpdateManyMutationInput!
+}
+
+input FulfillmentTransitionLogScalarWhereInput {
+  AND: [FulfillmentTransitionLogScalarWhereInput!]
+  OR: [FulfillmentTransitionLogScalarWhereInput!]
+  NOT: [FulfillmentTransitionLogScalarWhereInput!]
+  id: StringFilter
+  fulfillmentId: StringFilter
+  fromState: StringNullableFilter
+  toState: StringFilter
+  event: StringNullableFilter
+  metadata: JsonNullableFilter
+  occurredAt: DateTimeFilter
+}
+
+input FulfillmentTransitionLogUpdateManyMutationInput {
+  id: StringFieldUpdateOperationsInput
+  fromState: NullableStringFieldUpdateOperationsInput
+  toState: StringFieldUpdateOperationsInput
+  event: NullableStringFieldUpdateOperationsInput
+  metadata: JSON
+  occurredAt: DateTimeFieldUpdateOperationsInput
+}
+
 input FulfillmentUpdateWithWhereUniqueWithoutDeliveryPersonnelInput {
   where: FulfillmentWhereUniqueInput!
   data: FulfillmentUpdateWithoutDeliveryPersonnelInput!
@@ -25338,6 +25622,58 @@ input SalesReturnUpdateWithWhereUniqueWithoutReceivedByInput {
 input SalesReturnUpdateManyWithWhereWithoutReceivedByInput {
   where: SalesReturnScalarWhereInput!
   data: SalesReturnUpdateManyMutationInput!
+}
+
+input UserUpdateToOneWithWhereWithoutFulfillmentInput {
+  where: UserWhereInput
+  data: UserUpdateWithoutFulfillmentInput!
+}
+
+input FulfillmentUpdateToOneWithWhereWithoutSaleOrderInput {
+  where: FulfillmentWhereInput
+  data: FulfillmentUpdateWithoutSaleOrderInput!
+}
+
+input SaleOrderUpdateWithWhereUniqueWithoutBillerInput {
+  where: SaleOrderWhereUniqueInput!
+  data: SaleOrderUpdateWithoutBillerInput!
+}
+
+input SaleOrderUpdateManyWithWhereWithoutBillerInput {
+  where: SaleOrderScalarWhereInput!
+  data: SaleOrderUpdateManyMutationInput!
+}
+
+input SaleOrderScalarWhereInput {
+  AND: [SaleOrderScalarWhereInput!]
+  OR: [SaleOrderScalarWhereInput!]
+  NOT: [SaleOrderScalarWhereInput!]
+  id: StringFilter
+  storeId: StringFilter
+  billerId: StringFilter
+  type: EnumSaleTypeFilter
+  status: EnumSaleStatusFilter
+  phase: EnumOrderPhaseFilter
+  workflowState: StringNullableFilter
+  workflowContext: JsonNullableFilter
+  totalAmount: FloatFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  resellerSaleid: StringNullableFilter
+}
+
+input SaleOrderUpdateManyMutationInput {
+  id: StringFieldUpdateOperationsInput
+  storeId: StringFieldUpdateOperationsInput
+  type: EnumSaleTypeFieldUpdateOperationsInput
+  status: EnumSaleStatusFieldUpdateOperationsInput
+  phase: EnumOrderPhaseFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
+  totalAmount: FloatFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  resellerSaleid: NullableStringFieldUpdateOperationsInput
 }
 
 input UserUpdateToOneWithWhereWithoutResellerPaymentsReceivedInput {
@@ -27390,6 +27726,7 @@ input UserCreateInput {
   ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
   BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
   ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
   SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
   SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
   SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
@@ -27453,6 +27790,7 @@ input UserUpdateInput {
   ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
   BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
   ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
   SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
   SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
   SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput

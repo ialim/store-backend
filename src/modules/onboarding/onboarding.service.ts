@@ -198,7 +198,11 @@ export class OnboardingService {
   async listBillers() {
     return this.prisma.user.findMany({
       where: { role: { is: { name: 'BILLER' } } },
-      select: { id: true, email: true },
+      select: {
+        id: true,
+        email: true,
+        customerProfile: { select: { fullName: true } },
+      },
       orderBy: { email: 'asc' },
       take: 200,
     });

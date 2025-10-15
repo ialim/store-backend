@@ -90,6 +90,14 @@ export class OnboardingResolver {
     return this.onboardingService.listBillers();
   }
 
+  @Query(() => [User])
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.order.READ as string)
+  orderBillers() {
+    return this.onboardingService.listBillers();
+  }
+
   @Query(() => [ResellerProfile])
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')

@@ -21,6 +21,13 @@ export const Orders = gql`
       createdAt
       updatedAt
       resellerSaleid
+      biller {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
       quotation {
         id
         status
@@ -36,6 +43,18 @@ export const Orders = gql`
         type
         createdAt
         updatedAt
+      }
+    }
+  }
+`;
+
+export const OrderBillers = gql`
+  query OrderBillers {
+    orderBillers {
+      id
+      email
+      customerProfile {
+        fullName
       }
     }
   }
@@ -69,6 +88,51 @@ export const Order = gql`
       createdAt
       updatedAt
       resellerSaleid
+      consumerSale {
+        id
+        status
+        store {
+          id
+          name
+          location
+        }
+        biller {
+          id
+          email
+          customerProfile {
+            fullName
+          }
+        }
+        customer {
+          id
+          fullName
+          email
+        }
+      }
+      resellerSale {
+        id
+        status
+        resellerId
+        biller {
+          id
+          email
+          customerProfile {
+            fullName
+          }
+        }
+        reseller {
+          id
+          email
+          customerProfile {
+            fullName
+          }
+        }
+        store {
+          id
+          name
+          location
+        }
+      }
       quotation {
         id
         status
@@ -99,6 +163,31 @@ export const Order = gql`
           context
         }
       }
+      ConsumerPayment {
+        id
+        amount
+        method
+        status
+        reference
+        receivedAt
+      }
+      ResellerPayment {
+        id
+        amount
+        method
+        status
+        reference
+        receivedAt
+        resellerId
+        receivedById
+      }
+      biller {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
     }
   }
 `;
@@ -110,6 +199,36 @@ export const UpdateQuotationStatus = gql`
       status
       saleOrderId
       updatedAt
+    }
+  }
+`;
+
+export const RegisterConsumerPayment = gql`
+  mutation RegisterConsumerPayment($input: CreateConsumerPaymentInput!) {
+    registerConsumerPayment(input: $input) {
+      id
+      saleOrderId
+      amount
+      method
+      status
+      reference
+      receivedAt
+    }
+  }
+`;
+
+export const RegisterResellerPayment = gql`
+  mutation RegisterResellerPayment($input: CreateResellerPaymentInput!) {
+    registerResellerPayment(input: $input) {
+      id
+      saleOrderId
+      amount
+      method
+      status
+      reference
+      receivedAt
+      resellerId
+      receivedById
     }
   }
 `;
@@ -150,6 +269,23 @@ export const ConsumerSales = gql`
       totalAmount
       createdAt
       updatedAt
+      store {
+        id
+        name
+        location
+      }
+      customer {
+        id
+        fullName
+        email
+      }
+      biller {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
     }
   }
 `;
@@ -166,6 +302,25 @@ export const ResellerSales = gql`
       totalAmount
       createdAt
       updatedAt
+      store {
+        id
+        name
+        location
+      }
+      reseller {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
+      biller {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
     }
   }
 `;
@@ -256,6 +411,23 @@ export const ConsumerSaleDetail = gql`
         quantity
         unitPrice
       }
+      store {
+        id
+        name
+        location
+      }
+      customer {
+        id
+        fullName
+        email
+      }
+      biller {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
     }
   }
 `;
@@ -276,6 +448,25 @@ export const ResellerSaleDetail = gql`
         productVariantId
         quantity
         unitPrice
+      }
+      store {
+        id
+        name
+        location
+      }
+      reseller {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
+      biller {
+        id
+        email
+        customerProfile {
+          fullName
+        }
       }
     }
   }

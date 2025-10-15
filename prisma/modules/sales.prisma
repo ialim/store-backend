@@ -48,6 +48,7 @@ model SaleOrder {
 
   ResellerPayment ResellerPayment[]
   transitionLogs  SaleOrderTransitionLog[]
+  biller         User       @relation("SaleOrderBiller", fields: [billerId], references: [id])
 }
 
 model Quotation {

@@ -8,15 +8,16 @@ import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { GraphQLAuthContext } from '../types/auth-context.type';
 import { AuthenticatedUser } from '../auth.service';
+import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredPermissions = this.reflector.get<string[]>(
-      'permissions',
-      context.getHandler(),
+    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
+      PERMISSIONS_KEY,
+      [context.getHandler(), context.getClass()],
     );
     if (!requiredPermissions) {
       return true;
@@ -26,6 +27,9 @@ export class PermissionsGuard implements CanActivate {
     const user: AuthenticatedUser | undefined = graphqlContext.req.user;
     if (!user || !user.role) {
       throw new ForbiddenException('No user or role found in request');
+    }
+    if (user.role.name === 'SUPERADMIN') {
+      return true;
     }
     const userPermissions = (user.role.permissions ?? []).map((p) => p.name);
     const hasPermission = requiredPermissions.every((permission) =>

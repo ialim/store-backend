@@ -78,7 +78,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return [];
     }
   });
-  const hasPermission = (...perms: string[]) => perms.some((p) => permissions.includes(p));
+  const hasPermission = (...perms: string[]) => {
+    if (user?.roleName === 'SUPERADMIN') return true;
+    return perms.some((p) => permissions.includes(p));
+  };
 
   // Fetch permissions when token changes
   useEffect(() => {
