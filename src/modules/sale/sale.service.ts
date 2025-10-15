@@ -30,7 +30,7 @@ import { CreateResellerPaymentInput } from './dto/create-reseller-payment.input'
 import { PaymentService } from '../payment/payment.service';
 import { SaleChannel } from 'src/shared/prismagraphql/prisma/sale-channel.enum';
 import { QuotationStatus } from 'src/shared/prismagraphql/prisma/quotation-status.enum';
-import { ensureQuotationTransition } from 'src/shared/workflows/quotation-state';
+import { ensureQuotationTransition } from '../../shared/workflows/quotation-state';
 import {
   runSaleMachine,
   saleStatusToState,
