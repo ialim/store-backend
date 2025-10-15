@@ -58,6 +58,6 @@ Each slice should be deployable independently so we can gate the new behaviour b
 ## 6. Follow-up TODOs
 
 - [x] Automate stale-sale expiry: scheduled worker that reverts unpaid sales after a configurable timeout, releases reserved stock, and notifies stakeholders. (Implemented via `SaleExpiryService`, configurable through `SALE_PENDING_EXPIRY_MINUTES` / `SALE_EXPIRY_CRON`).  
-- [ ] Provider webhooks: expose endpoints for payment providers to call, translating status updates into `registerConsumerPayment` / `registerResellerPayment` mutations and triggering workflow credit checks automatically.  
+- [x] Provider webhooks: expose endpoints for payment providers to call, translating status updates into `registerConsumerPayment` / `registerResellerPayment` mutations and triggering workflow credit checks automatically (`/payments/webhooks/:provider/...`).  
 - [ ] Payment receipt attachments: extend the payment module to accept optional receipt uploads (store in S3 + reference path in `ConsumerPayment` / `ResellerPayment`) and expose in UI detail views.  
 - [ ] UI polish sweep: revisit order/sales tables after backend changes to ensure human-readable labels, responsive layout, and consistent action button states across roles.
