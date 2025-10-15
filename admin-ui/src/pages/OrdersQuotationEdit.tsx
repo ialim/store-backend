@@ -21,6 +21,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { QuotationDetail, UpdateQuotation } from '../operations/orders';
 import { notify } from '../shared/notify';
 import { StoreSelect, UserSelect, VariantSelect } from '../shared/IdSelects';
+import { useAuth } from '../shared/AuthProvider';
 
 type QuotationDetailData = {
   quotation: {
@@ -73,6 +74,7 @@ export default function OrdersQuotationEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [formError, setFormError] = React.useState<string | null>(null);
+  const { hasRole, user } = useAuth();
 
   const { data, loading: loadingDetail, error: detailError } =
     useQuery<QuotationDetailData>(QuotationDetail, {
@@ -82,6 +84,16 @@ export default function OrdersQuotationEdit() {
     });
 
   const quotation = data?.quotation;
+  const isReseller = hasRole('RESELLER');
+  const isCustomer = hasRole('CUSTOMER');
+  const ownsQuotation =
+    isReseller && quotation?.resellerId && quotation.resellerId === user?.id;
+  const ownsConsumerQuotation =
+    isCustomer && quotation?.consumerId && quotation.consumerId === user?.id;
+  const isStatusConfirmed = (quotation?.status || '').toUpperCase() === 'CONFIRMED';
+  const isEditableByStakeholder =
+    (ownsQuotation || ownsConsumerQuotation) && !isStatusConfirmed;
+  const isPriceReadOnly = isReseller || isCustomer;
 
   const [type, setType] = React.useState<'CONSUMER' | 'RESELLER'>('CONSUMER');
   const [channel, setChannel] = React.useState<'WEB' | 'APP' | 'IN_STORE'>('IN_STORE');
@@ -208,6 +220,19 @@ export default function OrdersQuotationEdit() {
     }
   };
 
+  if (!isEditableByStakeholder && (isReseller || isCustomer)) {
+    return (
+      <Stack spacing={3}>
+        <Alert severity="warning">
+          Quotation editing is only available while the quotation remains in Draft or Sent status.
+        </Alert>
+        <Button variant="contained" onClick={() => navigate(`/orders/quotations/${id}`)}>
+          Back to Quotation
+        </Button>
+      </Stack>
+    );
+  }
+
   return (
     <Stack spacing={3} component="form" onSubmit={handleSubmit}>
       <Stack direction="row" spacing={1.5} alignItems="center">
@@ -323,6 +348,7 @@ export default function OrdersQuotationEdit() {
                 startIcon={<AddIcon />}
                 variant="outlined"
                 size="small"
+                disabled={isReseller || isCustomer}
               >
                 Add Item
               </Button>
@@ -373,10 +399,13 @@ export default function OrdersQuotationEdit() {
                       label="Unit Price"
                       type="number"
                       inputProps={{ min: 0, step: '0.01' }}
+                      InputProps={{ readOnly: isPriceReadOnly }}
                       value={item.unitPrice}
-                      onChange={(event) =>
-                        handleItemChange(index, 'unitPrice', event.target.value)
-                      }
+                      onChange={(event) => {
+                        if (!isPriceReadOnly) {
+                          handleItemChange(index, 'unitPrice', event.target.value);
+                        }
+                      }}
                       required
                     />
                   </Grid>
@@ -387,7 +416,7 @@ export default function OrdersQuotationEdit() {
                         color="error"
                         startIcon={<DeleteIcon />}
                         variant="text"
-                        disabled={items.length === 1}
+                        disabled={items.length === 1 || isReseller || isCustomer}
                         onClick={() => removeItem(index)}
                       >
                         Remove

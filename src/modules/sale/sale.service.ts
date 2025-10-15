@@ -30,7 +30,7 @@ import { CreateResellerPaymentInput } from './dto/create-reseller-payment.input'
 import { PaymentService } from '../payment/payment.service';
 import { SaleChannel } from 'src/shared/prismagraphql/prisma/sale-channel.enum';
 import { QuotationStatus } from 'src/shared/prismagraphql/prisma/quotation-status.enum';
-import { ensureQuotationTransition } from '../../shared/workflows/quotation-state';
+import { ensureQuotationTransition } from 'src/shared/workflows/quotation-state';
 import {
   runSaleMachine,
   saleStatusToState,
@@ -58,6 +58,8 @@ import { UpdateQuotationInput } from './dto/update-quotation.input';
 import { WorkflowService } from '../../state/workflow.service';
 import { SaleOrder } from '@prisma/client';
 
+type PrismaCustomerClient = PrismaService | Prisma.TransactionClient;
+
 type SaleWorkflowComputation = {
   order: {
     id: string;
@@ -69,7 +71,7 @@ type SaleWorkflowComputation = {
     workflowState: string | null;
     workflowContext: Prisma.JsonValue | null;
   };
-  previousState: SaleWorkflowState;
+  previousState: SaleWorkflowState | null;
   previousContext: SaleContext | null;
   baseContext: SaleContext;
   paid: number;
@@ -89,6 +91,56 @@ export class SalesService {
     private phaseCoordinator: PhaseCoordinator,
     private workflow: WorkflowService,
   ) {}
+
+  private async ensureCustomerRecord(
+    prisma: PrismaCustomerClient,
+    consumerId: string,
+  ): Promise<void> {
+    if (!consumerId) return;
+    const existing = await prisma.customer.findUnique({
+      where: { id: consumerId },
+    });
+    if (existing) return;
+
+    const profile = await prisma.customerProfile.findUnique({
+      where: { userId: consumerId },
+      include: { user: true },
+    });
+
+    const fallbackUser =
+      profile?.user ??
+      (await prisma.user.findUnique({ where: { id: consumerId } }));
+
+    if (!profile && !fallbackUser) {
+      throw new BadRequestException('Consumer profile not found');
+    }
+
+    const fullName =
+      profile?.fullName?.trim() || fallbackUser?.email || 'Customer';
+    const email = profile?.email?.trim() || fallbackUser?.email || null;
+    const phone = profile?.phone?.trim() || null;
+    const preferredStoreId = profile?.preferredStoreId || null;
+
+    try {
+      await prisma.customer.create({
+        data: {
+          id: consumerId,
+          fullName,
+          email,
+          phone,
+          preferredStoreId,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return;
+      }
+      throw error;
+    }
+  }
 
   private cloneOverrides(
     overrides?: SaleContext['overrides'],
@@ -173,6 +225,9 @@ export class SalesService {
         (!input.type && current.type === SaleType.CONSUMER)
       ) {
         if (input.consumerId !== undefined) {
+          if (input.consumerId) {
+            await this.ensureCustomerRecord(trx, input.consumerId);
+          }
           quotationData.consumer = input.consumerId
             ? { connect: { id: input.consumerId } }
             : { disconnect: true };
@@ -288,6 +343,10 @@ export class SalesService {
       clearToFulfil: false,
     };
 
+    if (input.type === SaleType.CONSUMER && input.consumerId) {
+      await this.ensureCustomerRecord(this.prisma, input.consumerId);
+    }
+
     // Create a SaleOrder up-front so order lifecycle starts in QUOTATION phase
     const order = await this.prisma.saleOrder.create({
       data: {
@@ -297,18 +356,13 @@ export class SalesService {
         status: SaleStatus.PENDING,
         phase: OrderPhase.QUOTATION,
         totalAmount: total,
-        workflowState: 'AWAITING_PAYMENT_METHOD',
-        workflowContext: toSaleContextPayload({
-          ...initialContext,
-          orderId: '', // placeholder, will be replaced below
-        }) as Prisma.InputJsonValue,
       },
     });
     initialContext.orderId = order.id;
     await this.workflow.recordSaleTransition({
       orderId: order.id,
       fromState: null,
-      toState: 'AWAITING_PAYMENT_METHOD',
+      toState: 'QUOTATION_DRAFT',
       event: 'quotation.draft_created',
       context: toSaleContextPayload(initialContext) as Prisma.InputJsonValue,
     });
@@ -1073,9 +1127,13 @@ export class SalesService {
         order.workflowContext && typeof order.workflowContext === 'object'
           ? (order.workflowContext as unknown as SaleContext)
           : null;
-      const previousState =
-        (order.workflowState as SaleWorkflowState | null) ??
-        saleStatusToState(order.status as SaleStatus);
+      const rawState = order.workflowState as SaleWorkflowState | null;
+      const isQuotationPhase = order.phase === PrismaOrderPhase.QUOTATION;
+      const previousState = isQuotationPhase
+        ? null
+        : rawState && rawState !== 'QUOTATION_DRAFT'
+          ? rawState
+          : saleStatusToState(order.status as SaleStatus);
 
       const baseContext: SaleContext = {
         orderId: order.id,
@@ -1495,8 +1553,10 @@ export class SalesService {
       orderBy: { occurredAt: 'desc' },
     });
     const state =
-      (snapshot.order.workflowState as SaleWorkflowState | null) ??
-      saleStatusToState(snapshot.order.status as SaleStatus);
+      snapshot.order.phase === PrismaOrderPhase.QUOTATION
+        ? 'QUOTATION_DRAFT'
+        : (snapshot.previousState ??
+          saleStatusToState(snapshot.order.status as SaleStatus));
     return {
       saleOrderId: snapshot.order.id,
       state,
@@ -1507,9 +1567,14 @@ export class SalesService {
 
   async creditCheck(orderId: string) {
     const snapshot = await this.loadSaleWorkflowSnapshot(orderId);
+    if (snapshot.order.phase === PrismaOrderPhase.QUOTATION) {
+      return null;
+    }
     const state =
-      (snapshot.order.workflowState as SaleWorkflowState | null) ??
-      saleStatusToState(snapshot.order.status as SaleStatus);
+      snapshot.order.workflowState &&
+      snapshot.order.workflowState !== 'QUOTATION_DRAFT'
+        ? (snapshot.order.workflowState as SaleWorkflowState)
+        : saleStatusToState(snapshot.order.status as SaleStatus);
     return {
       saleOrderId: snapshot.order.id,
       state,

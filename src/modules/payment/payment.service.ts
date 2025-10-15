@@ -37,6 +37,9 @@ export class PaymentService {
         method: data.method as PrismaPaymentMethod,
         status: PrismaPaymentStatus.PENDING,
         reference: data.reference || undefined,
+        receiptBucket: data.receiptBucket || undefined,
+        receiptKey: data.receiptKey || undefined,
+        receiptUrl: data.receiptUrl || undefined,
       },
     });
     await this.notifications.createNotification(
@@ -76,6 +79,9 @@ export class PaymentService {
         status: PrismaPaymentStatus.PENDING,
         reference: data.reference || undefined,
         receivedById: data.receivedById,
+        receiptBucket: data.receiptBucket || undefined,
+        receiptKey: data.receiptKey || undefined,
+        receiptUrl: data.receiptUrl || undefined,
       },
     });
     await this.notifications.createNotification(

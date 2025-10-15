@@ -219,7 +219,7 @@ export class OrderResolver {
     return this.orders.saleWorkflow(saleOrderId, user);
   }
 
-  @Query(() => SaleWorkflowSummary)
+  @Query(() => SaleWorkflowSummary, { nullable: true })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('RESELLER', 'BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   @Permissions(PERMISSIONS.order.READ as string)

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
-import { FulfillmentStatus, Prisma } from '@prisma/client';
+import { FulfillmentStatus, Prisma, SaleStatus } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { DomainEventsService } from '../modules/events/services/domain-events.service';
 import { WorkflowService } from './workflow.service';
@@ -48,9 +48,14 @@ export class PhaseCoordinator {
       );
       return;
     }
-    const previousState: SaleWorkflowState =
-      (quotation.SaleOrder.workflowState as SaleWorkflowState | null) ??
-      saleStatusToState(quotation.SaleOrder.status as any);
+    const rawState = quotation.SaleOrder
+      .workflowState as SaleWorkflowState | null;
+    const previousState: SaleWorkflowState | null =
+      rawState && rawState !== 'QUOTATION_DRAFT'
+        ? rawState
+        : rawState === 'QUOTATION_DRAFT'
+          ? null
+          : saleStatusToState(quotation.SaleOrder.status as SaleStatus);
     const existingContext =
       quotation.SaleOrder.workflowContext &&
       typeof quotation.SaleOrder.workflowContext === 'object'

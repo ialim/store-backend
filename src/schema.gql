@@ -511,6 +511,9 @@ type ResellerPayment {
   status: PaymentStatus!
   receivedAt: DateTime!
   receivedById: String!
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
   saleOrder: SaleOrder!
   reseller: User!
   sale: ResellerSale
@@ -756,6 +759,9 @@ type ConsumerPayment {
   status: PaymentStatus!
   receivedAt: DateTime!
   reference: String
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
   saleOrder: SaleOrder!
   sale: ConsumerSale!
 }
@@ -2323,6 +2329,9 @@ type ConsumerPaymentCountAggregate {
   status: Int!
   receivedAt: Int!
   reference: Int!
+  receiptBucket: Int!
+  receiptKey: Int!
+  receiptUrl: Int!
   _all: Int!
 }
 
@@ -2343,6 +2352,9 @@ type ConsumerPaymentMinAggregate {
   status: PaymentStatus
   receivedAt: DateTime
   reference: String
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
 }
 
 type ConsumerPaymentMaxAggregate {
@@ -2354,6 +2366,9 @@ type ConsumerPaymentMaxAggregate {
   status: PaymentStatus
   receivedAt: DateTime
   reference: String
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
 }
 
 type ConsumerReceiptCountAggregate {
@@ -2446,6 +2461,9 @@ type ResellerPaymentCountAggregate {
   status: Int!
   receivedAt: Int!
   receivedById: Int!
+  receiptBucket: Int!
+  receiptKey: Int!
+  receiptUrl: Int!
   _all: Int!
 }
 
@@ -2468,6 +2486,9 @@ type ResellerPaymentMinAggregate {
   status: PaymentStatus
   receivedAt: DateTime
   receivedById: String
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
 }
 
 type ResellerPaymentMaxAggregate {
@@ -2481,6 +2502,9 @@ type ResellerPaymentMaxAggregate {
   status: PaymentStatus
   receivedAt: DateTime
   receivedById: String
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
 }
 
 type FulfillmentCountAggregate {
@@ -2866,7 +2890,7 @@ type Query {
   resellerSale(id: String!): ResellerSale!
   order(id: String!): SaleOrder!
   saleWorkflow(saleOrderId: String!): SaleWorkflowSnapshot!
-  creditCheck(saleOrderId: String!): SaleWorkflowSummary!
+  creditCheck(saleOrderId: String!): SaleWorkflowSummary
   fulfilmentWorkflow(saleOrderId: String!): FulfilmentWorkflowSnapshot
   salesReturnsByStore(storeId: String!): [SalesReturn!]!
   salesReturnsByConsumerSale(consumerSaleId: String!): [SalesReturn!]!
@@ -3751,6 +3775,9 @@ input ResellerPaymentWhereInput {
   status: EnumPaymentStatusFilter
   receivedAt: DateTimeFilter
   receivedById: StringFilter
+  receiptBucket: StringNullableFilter
+  receiptKey: StringNullableFilter
+  receiptUrl: StringNullableFilter
   saleOrder: SaleOrderScalarRelationFilter
   reseller: UserScalarRelationFilter
   sale: ResellerSaleNullableScalarRelationFilter
@@ -3971,6 +3998,9 @@ input ConsumerPaymentWhereInput {
   status: EnumPaymentStatusFilter
   receivedAt: DateTimeFilter
   reference: StringNullableFilter
+  receiptBucket: StringNullableFilter
+  receiptKey: StringNullableFilter
+  receiptUrl: StringNullableFilter
   saleOrder: SaleOrderScalarRelationFilter
   sale: ConsumerSaleScalarRelationFilter
 }
@@ -7975,6 +8005,9 @@ input ResellerPaymentCreateWithoutResellerInput {
   reference: String
   status: PaymentStatus
   receivedAt: DateTime
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
   saleOrder: SaleOrderCreateNestedOneWithoutResellerPaymentInput!
   sale: ResellerSaleCreateNestedOneWithoutPaymentsInput
   receivedBy: UserCreateNestedOneWithoutResellerPaymentsReceivedInput!
@@ -8221,6 +8254,9 @@ input ResellerPaymentCreateWithoutReceivedByInput {
   reference: String
   status: PaymentStatus
   receivedAt: DateTime
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
   saleOrder: SaleOrderCreateNestedOneWithoutResellerPaymentInput!
   reseller: UserCreateNestedOneWithoutResellerPaymentsMadeInput!
   sale: ResellerSaleCreateNestedOneWithoutPaymentsInput
@@ -9553,6 +9589,9 @@ input ConsumerPaymentCreateWithoutSaleInput {
   status: PaymentStatus
   receivedAt: DateTime
   reference: String
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
   saleOrder: SaleOrderCreateNestedOneWithoutConsumerPaymentInput!
 }
 
@@ -9964,6 +10003,9 @@ input ResellerPaymentCreateWithoutSaleInput {
   reference: String
   status: PaymentStatus
   receivedAt: DateTime
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
   saleOrder: SaleOrderCreateNestedOneWithoutResellerPaymentInput!
   reseller: UserCreateNestedOneWithoutResellerPaymentsMadeInput!
   receivedBy: UserCreateNestedOneWithoutResellerPaymentsReceivedInput!
@@ -11882,6 +11924,9 @@ input ConsumerPaymentCreateWithoutSaleOrderInput {
   status: PaymentStatus
   receivedAt: DateTime
   reference: String
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
   sale: ConsumerSaleCreateNestedOneWithoutPaymentsInput!
 }
 
@@ -12084,6 +12129,9 @@ input ResellerPaymentCreateWithoutSaleOrderInput {
   reference: String
   status: PaymentStatus
   receivedAt: DateTime
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
   reseller: UserCreateNestedOneWithoutResellerPaymentsMadeInput!
   sale: ResellerSaleCreateNestedOneWithoutPaymentsInput
   receivedBy: UserCreateNestedOneWithoutResellerPaymentsReceivedInput!
@@ -13795,6 +13843,9 @@ input ResellerPaymentWhereUniqueInput {
   status: EnumPaymentStatusFilter
   receivedAt: DateTimeFilter
   receivedById: StringFilter
+  receiptBucket: StringNullableFilter
+  receiptKey: StringNullableFilter
+  receiptUrl: StringNullableFilter
   saleOrder: SaleOrderScalarRelationFilter
   reseller: UserScalarRelationFilter
   sale: ResellerSaleNullableScalarRelationFilter
@@ -13816,6 +13867,9 @@ input ResellerPaymentCreateManySaleOrderInput {
   status: PaymentStatus
   receivedAt: DateTime
   receivedById: String!
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
 }
 
 input SaleOrderCreateOrConnectWithoutConsumerSaleInput {
@@ -14047,6 +14101,9 @@ input ConsumerPaymentWhereUniqueInput {
   status: EnumPaymentStatusFilter
   receivedAt: DateTimeFilter
   reference: StringNullableFilter
+  receiptBucket: StringNullableFilter
+  receiptKey: StringNullableFilter
+  receiptUrl: StringNullableFilter
   saleOrder: SaleOrderScalarRelationFilter
   sale: ConsumerSaleScalarRelationFilter
 }
@@ -14064,6 +14121,9 @@ input ConsumerPaymentCreateManySaleOrderInput {
   status: PaymentStatus
   receivedAt: DateTime
   reference: String
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
 }
 
 input SaleOrderCreateOrConnectWithoutQuotationInput {
@@ -14949,6 +15009,9 @@ input ResellerPaymentCreateManySaleInput {
   status: PaymentStatus
   receivedAt: DateTime
   receivedById: String!
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
 }
 
 input ResellerSaleCreateOrConnectWithoutApprovedByInput {
@@ -15191,6 +15254,9 @@ input ConsumerPaymentCreateManySaleInput {
   status: PaymentStatus
   receivedAt: DateTime
   reference: String
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
 }
 
 input ConsumerSaleCreateOrConnectWithoutCustomerInput {
@@ -15786,6 +15852,9 @@ input ResellerPaymentCreateManyReceivedByInput {
   reference: String
   status: PaymentStatus
   receivedAt: DateTime
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
 }
 
 input UserCreateOrConnectWithoutConsumerSaleInput {
@@ -15882,6 +15951,9 @@ input ResellerPaymentCreateManyResellerInput {
   status: PaymentStatus
   receivedAt: DateTime
   receivedById: String!
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
 }
 
 input UserCreateOrConnectWithoutStockReceiptBatchReceivedBysInput {
@@ -17134,6 +17206,9 @@ input ResellerPaymentUpdateWithoutResellerInput {
   reference: NullableStringFieldUpdateOperationsInput
   status: EnumPaymentStatusFieldUpdateOperationsInput
   receivedAt: DateTimeFieldUpdateOperationsInput
+  receiptBucket: NullableStringFieldUpdateOperationsInput
+  receiptKey: NullableStringFieldUpdateOperationsInput
+  receiptUrl: NullableStringFieldUpdateOperationsInput
   saleOrder: SaleOrderUpdateOneRequiredWithoutResellerPaymentNestedInput
   sale: ResellerSaleUpdateOneWithoutPaymentsNestedInput
   receivedBy: UserUpdateOneRequiredWithoutResellerPaymentsReceivedNestedInput
@@ -17501,6 +17576,9 @@ input ResellerPaymentUpdateWithoutReceivedByInput {
   reference: NullableStringFieldUpdateOperationsInput
   status: EnumPaymentStatusFieldUpdateOperationsInput
   receivedAt: DateTimeFieldUpdateOperationsInput
+  receiptBucket: NullableStringFieldUpdateOperationsInput
+  receiptKey: NullableStringFieldUpdateOperationsInput
+  receiptUrl: NullableStringFieldUpdateOperationsInput
   saleOrder: SaleOrderUpdateOneRequiredWithoutResellerPaymentNestedInput
   reseller: UserUpdateOneRequiredWithoutResellerPaymentsMadeNestedInput
   sale: ResellerSaleUpdateOneWithoutPaymentsNestedInput
@@ -19337,6 +19415,9 @@ input ConsumerPaymentUpdateWithoutSaleInput {
   status: EnumPaymentStatusFieldUpdateOperationsInput
   receivedAt: DateTimeFieldUpdateOperationsInput
   reference: NullableStringFieldUpdateOperationsInput
+  receiptBucket: NullableStringFieldUpdateOperationsInput
+  receiptKey: NullableStringFieldUpdateOperationsInput
+  receiptUrl: NullableStringFieldUpdateOperationsInput
   saleOrder: SaleOrderUpdateOneRequiredWithoutConsumerPaymentNestedInput
 }
 
@@ -19920,6 +20001,9 @@ input ResellerPaymentUpdateWithoutSaleInput {
   reference: NullableStringFieldUpdateOperationsInput
   status: EnumPaymentStatusFieldUpdateOperationsInput
   receivedAt: DateTimeFieldUpdateOperationsInput
+  receiptBucket: NullableStringFieldUpdateOperationsInput
+  receiptKey: NullableStringFieldUpdateOperationsInput
+  receiptUrl: NullableStringFieldUpdateOperationsInput
   saleOrder: SaleOrderUpdateOneRequiredWithoutResellerPaymentNestedInput
   reseller: UserUpdateOneRequiredWithoutResellerPaymentsMadeNestedInput
   receivedBy: UserUpdateOneRequiredWithoutResellerPaymentsReceivedNestedInput
@@ -22525,6 +22609,9 @@ input ConsumerPaymentUpdateWithoutSaleOrderInput {
   status: EnumPaymentStatusFieldUpdateOperationsInput
   receivedAt: DateTimeFieldUpdateOperationsInput
   reference: NullableStringFieldUpdateOperationsInput
+  receiptBucket: NullableStringFieldUpdateOperationsInput
+  receiptKey: NullableStringFieldUpdateOperationsInput
+  receiptUrl: NullableStringFieldUpdateOperationsInput
   sale: ConsumerSaleUpdateOneRequiredWithoutPaymentsNestedInput
 }
 
@@ -22826,6 +22913,9 @@ input ResellerPaymentUpdateWithoutSaleOrderInput {
   reference: NullableStringFieldUpdateOperationsInput
   status: EnumPaymentStatusFieldUpdateOperationsInput
   receivedAt: DateTimeFieldUpdateOperationsInput
+  receiptBucket: NullableStringFieldUpdateOperationsInput
+  receiptKey: NullableStringFieldUpdateOperationsInput
+  receiptUrl: NullableStringFieldUpdateOperationsInput
   reseller: UserUpdateOneRequiredWithoutResellerPaymentsMadeNestedInput
   sale: ResellerSaleUpdateOneWithoutPaymentsNestedInput
   receivedBy: UserUpdateOneRequiredWithoutResellerPaymentsReceivedNestedInput
@@ -24837,6 +24927,9 @@ input ResellerPaymentScalarWhereInput {
   status: EnumPaymentStatusFilter
   receivedAt: DateTimeFilter
   receivedById: StringFilter
+  receiptBucket: StringNullableFilter
+  receiptKey: StringNullableFilter
+  receiptUrl: StringNullableFilter
 }
 
 input ResellerPaymentUpdateManyMutationInput {
@@ -24846,6 +24939,9 @@ input ResellerPaymentUpdateManyMutationInput {
   reference: NullableStringFieldUpdateOperationsInput
   status: EnumPaymentStatusFieldUpdateOperationsInput
   receivedAt: DateTimeFieldUpdateOperationsInput
+  receiptBucket: NullableStringFieldUpdateOperationsInput
+  receiptKey: NullableStringFieldUpdateOperationsInput
+  receiptUrl: NullableStringFieldUpdateOperationsInput
 }
 
 input SaleOrderUpdateToOneWithWhereWithoutConsumerSaleInput {
@@ -25022,6 +25118,9 @@ input ConsumerPaymentScalarWhereInput {
   status: EnumPaymentStatusFilter
   receivedAt: DateTimeFilter
   reference: StringNullableFilter
+  receiptBucket: StringNullableFilter
+  receiptKey: StringNullableFilter
+  receiptUrl: StringNullableFilter
 }
 
 input ConsumerPaymentUpdateManyMutationInput {
@@ -25031,6 +25130,9 @@ input ConsumerPaymentUpdateManyMutationInput {
   status: EnumPaymentStatusFieldUpdateOperationsInput
   receivedAt: DateTimeFieldUpdateOperationsInput
   reference: NullableStringFieldUpdateOperationsInput
+  receiptBucket: NullableStringFieldUpdateOperationsInput
+  receiptKey: NullableStringFieldUpdateOperationsInput
+  receiptUrl: NullableStringFieldUpdateOperationsInput
 }
 
 input SaleOrderUpdateToOneWithWhereWithoutQuotationInput {
@@ -27143,6 +27245,9 @@ input CreateConsumerPaymentInput {
   amount: Float!
   method: PaymentMethod!
   reference: String
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
 }
 
 input ConfirmConsumerPaymentInput {
@@ -27180,6 +27285,9 @@ input CreateResellerPaymentInput {
   method: PaymentMethod!
   reference: String
   receivedById: ID!
+  receiptBucket: String
+  receiptKey: String
+  receiptUrl: String
 }
 
 input CreateFulfillmentInput {

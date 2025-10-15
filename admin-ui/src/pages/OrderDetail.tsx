@@ -25,9 +25,11 @@ import {
   Typography,
   Button,
   MenuItem,
+  Link,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { formatMoney } from '../shared/format';
 import {
   Order,
@@ -40,6 +42,7 @@ import {
 } from '../operations/orders';
 import { Stores } from '../operations/stores';
 import { useAuth } from '../shared/AuthProvider';
+import { getApiBase, getAuthToken } from '../shared/api';
 import { PERMISSIONS } from '../shared/permissions';
 import { PaymentMethod } from '../generated/graphql';
 
@@ -149,6 +152,9 @@ type OrderData = {
       status: string;
       reference?: string | null;
       receivedAt: string;
+      receiptBucket?: string | null;
+      receiptKey?: string | null;
+      receiptUrl?: string | null;
     }>;
     ResellerPayment: Array<{
       id: string;
@@ -159,6 +165,9 @@ type OrderData = {
       receivedAt: string;
       resellerId: string;
       receivedById: string;
+      receiptBucket?: string | null;
+      receiptKey?: string | null;
+      receiptUrl?: string | null;
     }>;
   };
 };
@@ -225,7 +234,7 @@ function formatStoreLabel(store: OrderStoreInfo | undefined | null, fallback?: s
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { hasRole, hasPermission, user } = useAuth();
+  const { hasRole, hasPermission, user, token } = useAuth();
   const { data, loading, error, refetch } = useQuery<OrderData>(Order, {
     variables: { id: id ?? '' },
     skip: !id,
@@ -249,6 +258,9 @@ export default function OrderDetail() {
     PaymentMethod.Transfer,
   );
   const [paymentReference, setPaymentReference] = React.useState('');
+  const [receiptFile, setReceiptFile] = React.useState<File | null>(null);
+  const [receiptUploading, setReceiptUploading] = React.useState(false);
+  const [receiptUploadError, setReceiptUploadError] = React.useState<string | null>(null);
   const [updateStatus, { loading: statusUpdating }] = useMutation(
     UpdateQuotationStatus,
   );
@@ -268,7 +280,7 @@ export default function OrderDetail() {
     [],
   );
   const paymentMutationLoading =
-    registeringConsumerPayment || registeringResellerPayment;
+    registeringConsumerPayment || registeringResellerPayment || receiptUploading;
 
   const storeMap = React.useMemo(() => {
     const entries = storesData?.listStores?.map((store) => [
@@ -286,6 +298,9 @@ export default function OrderDetail() {
         if (result?.creditCheck) {
           setWorkflowSummary(result.creditCheck);
           setActionSuccess('Credit snapshot refreshed.');
+        } else {
+          setWorkflowSummary(null);
+          setActionSuccess('No sale workflow is available yet.');
         }
       },
       onError: (error: ApolloError) => {
@@ -305,6 +320,9 @@ export default function OrderDetail() {
     status: string;
     reference?: string | null;
     receivedAt: string;
+    receiptUrl?: string | null;
+    receiptKey?: string | null;
+    receiptBucket?: string | null;
   };
 
   React.useEffect(() => {
@@ -339,7 +357,11 @@ export default function OrderDetail() {
     ownsQuotation && hasOrderUpdatePermission && (isDraft || isSent);
   const canEditQuotation =
     ownsQuotation && canUpdateOrder && (isDraft || isSent);
+  const normalizedOrderType = (order?.type || '').toUpperCase();
+  const normalizedOrderPhase = (order?.phase || '').toUpperCase();
+  const isQuotationPhase = normalizedOrderPhase === 'QUOTATION';
   const canGrantOverrides =
+    !isQuotationPhase &&
     hasPermission(PERMISSIONS.order.APPROVE ?? 'ORDER_APPROVE') &&
     (hasRole('MANAGER') || hasRole('ADMIN') || hasRole('SUPERADMIN'));
 
@@ -366,9 +388,9 @@ export default function OrderDetail() {
       ),
   );
 
-  const normalizedOrderType = (order?.type || '').toUpperCase();
   const canRegisterPayment = Boolean(
     order &&
+      !isQuotationPhase &&
       (canUpdateOrder || isSuperAdmin || isOrderBiller) &&
       (normalizedOrderType === 'CONSUMER' || normalizedOrderType === 'RESELLER'),
   );
@@ -386,6 +408,9 @@ export default function OrderDetail() {
       status: p.status,
       reference: p.reference ?? null,
       receivedAt: p.receivedAt,
+      receiptUrl: p.receiptUrl ?? null,
+      receiptKey: p.receiptKey ?? null,
+      receiptBucket: p.receiptBucket ?? null,
     }));
     const resellerPayments = (order.ResellerPayment ?? []).map((p) => ({
       id: p.id,
@@ -395,6 +420,9 @@ export default function OrderDetail() {
       status: p.status,
       reference: p.reference ?? null,
       receivedAt: p.receivedAt,
+      receiptUrl: p.receiptUrl ?? null,
+      receiptKey: p.receiptKey ?? null,
+      receiptBucket: p.receiptBucket ?? null,
     }));
     return [...consumerPayments, ...resellerPayments].sort(
       (a, b) =>
@@ -414,12 +442,28 @@ export default function OrderDetail() {
     );
     setPaymentReference('');
     setPaymentMethod(PaymentMethod.Transfer);
+    setReceiptFile(null);
+    setReceiptUploadError(null);
+    setReceiptUploading(false);
     setShowPaymentDialog(true);
   }, [order, workflowSummary?.outstanding]);
 
   const handleClosePaymentDialog = React.useCallback(() => {
     setShowPaymentDialog(false);
+    setReceiptFile(null);
+    setReceiptUploadError(null);
+    setReceiptUploading(false);
   }, []);
+
+  const handleReceiptSelection = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.currentTarget.files?.[0] ?? null;
+      setReceiptFile(file);
+      setReceiptUploadError(null);
+      event.currentTarget.value = '';
+    },
+    [],
+  );
 
   const handleStatusChange = React.useCallback(
     async (status: string) => {
@@ -449,6 +493,10 @@ export default function OrderDetail() {
 
   const handleRunCreditCheck = React.useCallback(async () => {
     if (!order?.id) return;
+    if (isQuotationPhase) {
+      setActionError('Credit snapshot is only available after the quotation is approved.');
+      return;
+    }
     setActionError(null);
     setActionSuccess(null);
     try {
@@ -458,7 +506,7 @@ export default function OrderDetail() {
         error?.message || 'Failed to refresh credit snapshot.',
       );
     }
-  }, [order?.id, runCreditCheck]);
+  }, [order?.id, runCreditCheck, isQuotationPhase]);
 
   const handleGrantAdminOverride = React.useCallback(async () => {
     if (!order?.id) return;
@@ -547,8 +595,68 @@ export default function OrderDetail() {
     const referenceRaw = paymentReference.trim();
     const reference = referenceRaw.length ? referenceRaw : undefined;
     setActionError(null);
+    setReceiptUploadError(null);
     setActionSuccess(null);
     try {
+      let receiptPayload: {
+        receiptBucket?: string;
+        receiptKey?: string;
+        receiptUrl?: string;
+      } = {};
+      if (receiptFile) {
+        try {
+          setReceiptUploading(true);
+          const apiBase = getApiBase();
+          const fd = new FormData();
+          fd.append('file', receiptFile);
+          const headers: Record<string, string> = {};
+          const authToken = token ?? getAuthToken();
+          if (authToken) {
+            headers.Authorization = `Bearer ${authToken}`;
+          }
+          const response = await fetch(`${apiBase}/payments/receipts`, {
+            method: 'POST',
+            body: fd,
+            headers,
+          });
+          if (!response.ok) {
+            let message = `Failed to upload receipt (status ${response.status})`;
+            try {
+              const body = await response.json();
+              if (body?.message) message = body.message;
+            } catch {
+              try {
+                const text = await response.text();
+                if (text) message = text;
+              } catch {}
+            }
+            throw new Error(message);
+          }
+          const uploaded = await response.json();
+          receiptPayload = {
+            receiptBucket:
+              uploaded?.bucket ??
+              uploaded?.receiptBucket ??
+              undefined,
+            receiptKey:
+              uploaded?.key ??
+              uploaded?.receiptKey ??
+              undefined,
+            receiptUrl:
+              uploaded?.url ??
+              uploaded?.receiptUrl ??
+              undefined,
+          };
+        } catch (uploadErr: any) {
+          const message =
+            uploadErr?.message || 'Failed to upload receipt. Please try again.';
+          setReceiptUploadError(message);
+          setActionError(message);
+          return;
+        } finally {
+          setReceiptUploading(false);
+        }
+      }
       if (normalizedOrderType === 'CONSUMER') {
         const consumerSaleId = order.consumerSale?.id;
         if (!consumerSaleId) {
@@ -563,6 +671,7 @@ export default function OrderDetail() {
               amount,
               method: paymentMethod,
               ...(reference ? { reference } : {}),
+              ...receiptPayload,
             },
           },
         });
@@ -589,6 +698,7 @@ export default function OrderDetail() {
               method: paymentMethod,
               ...(reference ? { reference } : {}),
               ...(resellerSaleId ? { resellerSaleId } : {}),
+              ...receiptPayload,
             },
           },
         });
@@ -599,6 +709,8 @@ export default function OrderDetail() {
       setShowPaymentDialog(false);
       setPaymentAmount('');
       setPaymentReference('');
+      setReceiptFile(null);
+      setReceiptUploadError(null);
       setActionSuccess('Payment logged successfully.');
       await Promise.all([
         refetch(),
@@ -617,6 +729,8 @@ export default function OrderDetail() {
     paymentMethod,
     paymentReference,
     quotation?.resellerId,
+    receiptFile,
+    token,
     refetch,
     registerConsumerPayment,
     registerResellerPayment,
@@ -697,7 +811,7 @@ export default function OrderDetail() {
               variant="outlined"
               color="primary"
               onClick={handleRunCreditCheck}
-              disabled={creditChecking}
+              disabled={creditChecking || isQuotationPhase}
             >
               {creditChecking ? 'Refreshing credit...' : 'Refresh Credit Snapshot'}
             </Button>
@@ -958,17 +1072,37 @@ export default function OrderDetail() {
                         </Typography>
                       </Stack>
                       <Stack
-                        direction={{ xs: 'column', md: 'row' }}
-                        spacing={1}
-                        alignItems={{ xs: 'flex-start', md: 'center' }}
+                        spacing={0.75}
+                        alignItems={{ xs: 'flex-start', md: 'flex-end' }}
                       >
-                        <Typography variant="subtitle2">
-                          {formatMoney(payment.amount)}
-                        </Typography>
-                        <Chip label={payment.method} size="small" />
-                        {paymentStatusChip(payment.status)}
+                        <Stack
+                          direction={{ xs: 'column', md: 'row' }}
+                          spacing={1}
+                          alignItems={{ xs: 'flex-start', md: 'center' }}
+                        >
+                          <Typography variant="subtitle2">
+                            {formatMoney(payment.amount)}
+                          </Typography>
+                          <Chip label={payment.method} size="small" />
+                          {paymentStatusChip(payment.status)}
+                        </Stack>
                         <Typography variant="body2" color="text.secondary">
                           Ref: {payment.reference || '—'}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Receipt:{' '}
+                          {payment.receiptUrl ? (
+                            <Link
+                              href={payment.receiptUrl}
+                              target="_blank"
+                              rel="noopener"
+                              underline="hover"
+                            >
+                              View receipt
+                            </Link>
+                          ) : (
+                            '—'
+                          )}
                         </Typography>
                       </Stack>
                     </Stack>
@@ -1220,6 +1354,53 @@ export default function OrderDetail() {
                   onChange={(e) => setPaymentReference(e.target.value)}
                   placeholder="Optional internal reference"
                 />
+                <Stack spacing={0.5}>
+                  <Typography variant="body2" color="text.secondary">
+                    Receipt attachment (optional)
+                  </Typography>
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={1}
+                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                    flexWrap="wrap"
+                  >
+                    <Button
+                      variant="outlined"
+                      component="label"
+                      startIcon={<AttachFileIcon />}
+                      disabled={receiptUploading}
+                    >
+                      {receiptFile ? 'Replace receipt' : 'Attach receipt'}
+                      <input
+                        type="file"
+                        hidden
+                        accept="image/*,application/pdf"
+                        onChange={handleReceiptSelection}
+                      />
+                    </Button>
+                    {receiptFile && (
+                      <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={0.5}
+                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                      >
+                        <Typography variant="body2">{receiptFile.name}</Typography>
+                        <Button
+                          size="small"
+                          onClick={() => setReceiptFile(null)}
+                          disabled={receiptUploading}
+                        >
+                          Remove
+                        </Button>
+                      </Stack>
+                    )}
+                  </Stack>
+                  {receiptUploadError && (
+                    <Typography variant="caption" color="error">
+                      {receiptUploadError}
+                    </Typography>
+                  )}
+                </Stack>
                 {normalizedOrderType === 'RESELLER' && !order.resellerSale?.resellerId && (
                   <Alert severity="warning">
                     Unable to detect the reseller on this order. Please ensure the

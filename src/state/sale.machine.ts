@@ -2,6 +2,7 @@ import { SaleStatus } from '@prisma/client';
 import { assign, createActor, setup, StateValue } from 'xstate';
 
 export type SaleWorkflowState =
+  | 'QUOTATION_DRAFT'
   | 'AWAITING_PAYMENT_METHOD'
   | 'PAYMENT_INITIATED'
   | 'PAYMENT_PENDING_CONFIRMATION'
@@ -373,8 +374,13 @@ export function runSaleMachine(options: {
     callbacks: options.callbacks,
   };
 
+  const normalizedWorkflowState =
+    workflowState && workflowState !== 'QUOTATION_DRAFT'
+      ? (workflowState as StateValue)
+      : undefined;
+
   const startState =
-    (workflowState as StateValue | undefined) ??
+    normalizedWorkflowState ??
     (saleStatusToState(status) as StateValue);
 
   const snapshot = saleMachine.resolveState({

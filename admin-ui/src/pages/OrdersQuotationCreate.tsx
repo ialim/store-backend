@@ -21,6 +21,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { CreateQuotationDraft } from '../operations/orders';
 import { notify } from '../shared/notify';
 import { StoreSelect, UserSelect, VariantSelect } from '../shared/IdSelects';
+import { useAuth } from '../shared/AuthProvider';
 
 type CreateQuotationDraftVariables = {
   input: {
@@ -52,6 +53,10 @@ type ItemFormRow = {
 
 export default function OrdersQuotationCreate() {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const isReseller = hasRole('RESELLER');
+  const isCustomer = hasRole('CUSTOMER');
+  const isPriceReadOnly = isReseller || isCustomer;
   const [type, setType] = React.useState<'CONSUMER' | 'RESELLER'>('CONSUMER');
   const [channel, setChannel] = React.useState<'WEB' | 'APP' | 'IN_STORE'>('IN_STORE');
   const [storeId, setStoreId] = React.useState('');
@@ -312,8 +317,16 @@ export default function OrdersQuotationCreate() {
                       type="number"
                       inputProps={{ min: 0, step: '0.01' }}
                       value={item.unitPrice}
-                      onChange={(event) =>
-                        handleItemChange(index, 'unitPrice', event.target.value)
+                      InputProps={{ readOnly: isPriceReadOnly }}
+                      onChange={
+                        isPriceReadOnly
+                          ? undefined
+                          : (event) =>
+                              handleItemChange(
+                                index,
+                                'unitPrice',
+                                event.target.value,
+                              )
                       }
                       required
                     />

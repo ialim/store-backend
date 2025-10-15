@@ -170,6 +170,9 @@ export const Order = gql`
         status
         reference
         receivedAt
+        receiptBucket
+        receiptKey
+        receiptUrl
       }
       ResellerPayment {
         id
@@ -180,6 +183,9 @@ export const Order = gql`
         receivedAt
         resellerId
         receivedById
+        receiptBucket
+        receiptKey
+        receiptUrl
       }
       biller {
         id
@@ -213,6 +219,9 @@ export const RegisterConsumerPayment = gql`
       status
       reference
       receivedAt
+      receiptBucket
+      receiptKey
+      receiptUrl
     }
   }
 `;
@@ -229,6 +238,9 @@ export const RegisterResellerPayment = gql`
       receivedAt
       resellerId
       receivedById
+      receiptBucket
+      receiptKey
+      receiptUrl
     }
   }
 `;

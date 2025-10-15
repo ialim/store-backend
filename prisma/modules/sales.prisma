@@ -144,6 +144,9 @@ model ResellerPayment {
   status         PaymentStatus   @default(PENDING)
   receivedAt     DateTime @default(now())
   receivedById   String
+  receiptBucket  String?
+  receiptKey     String?
+  receiptUrl     String?
 
   saleOrder      SaleOrder       @relation(fields: [saleOrderId], references: [id])
   reseller       User     @relation("ResellerPayments", fields: [resellerId], references: [id])
@@ -215,6 +218,9 @@ model ConsumerPayment {
   status           PaymentStatus   @default(PENDING)
   receivedAt      DateTime @default(now())
   reference       String?
+  receiptBucket   String?
+  receiptKey      String?
+  receiptUrl      String?
 
   saleOrder        SaleOrder       @relation(fields: [saleOrderId], references: [id])
   sale            ConsumerSale @relation(fields: [consumerSaleId], references: [id])

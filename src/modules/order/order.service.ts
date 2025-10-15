@@ -221,7 +221,7 @@ export class OrderService {
           'Resellers cannot reassign quotations to other users',
         );
       }
-      if (input.consumerId !== undefined) {
+      if (input.consumerId) {
         throw new BadRequestException(
           'Resellers cannot convert quotations to consumer sales',
         );

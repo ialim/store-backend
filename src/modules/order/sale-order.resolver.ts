@@ -1,6 +1,6 @@
 import { Resolver, ResolveField, Parent } from '@nestjs/graphql';
 import { SaleOrder } from '../../shared/prismagraphql/sale-order/sale-order.model';
-import { SaleStatus, FulfillmentStatus } from '@prisma/client';
+import { SaleStatus, FulfillmentStatus, OrderPhase } from '@prisma/client';
 import { saleStatusToState } from '../../state/sale.machine';
 import { fulfilmentStatusToState } from '../../state/fulfilment.machine';
 import { GraphQLJSON } from 'graphql-type-json';
@@ -12,6 +12,7 @@ import { FulfilmentWorkflowSnapshot } from './dto/fulfilment-workflow-snapshot.m
 type SaleOrderParent = {
   id: string;
   status: SaleStatus;
+  phase?: OrderPhase;
   workflowState?: string | null;
   workflowContext?: Record<string, unknown> | null;
   fulfillment?: {
@@ -32,6 +33,9 @@ export class SaleOrderResolver {
       'Current state of the sale workflow derived from the sale state machine.',
   })
   saleWorkflowState(@Parent() order: SaleOrderParent): string | null {
+    if (order?.phase === OrderPhase.QUOTATION) {
+      return null;
+    }
     if (order?.workflowState) {
       return order.workflowState;
     }
@@ -66,6 +70,9 @@ export class SaleOrderResolver {
       'Normalized sale workflow context including credit exposure and override flags.',
   })
   async saleWorkflowContext(@Parent() order: SaleOrderParent) {
+    if (order?.phase === OrderPhase.QUOTATION) {
+      return null;
+    }
     if (order?.workflowContext && typeof order.workflowContext === 'object') {
       return order.workflowContext;
     }
@@ -89,6 +96,9 @@ export class SaleOrderResolver {
       'Payment and credit readiness summary derived from the sale workflow state.',
   })
   async saleWorkflowSummary(@Parent() order: SaleOrderParent) {
+    if (order?.phase === OrderPhase.QUOTATION) {
+      return null;
+    }
     return this.sales.creditCheck(order.id);
   }
 

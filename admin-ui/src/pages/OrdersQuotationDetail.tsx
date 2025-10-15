@@ -144,6 +144,9 @@ export default function OrdersQuotationDetail() {
     privilegedRoles.some((role) => hasRole(role));
   const ownsQuotation =
     isReseller && quotation?.resellerId && quotation.resellerId === user?.id;
+  const isCustomer = hasRole('CUSTOMER');
+  const ownsConsumerQuotation =
+    isCustomer && quotation?.consumerId && quotation.consumerId === user?.id;
   const isDraft = normalizedStatus === 'DRAFT';
   const isSent = normalizedStatus === 'SENT';
   const isConfirmed = normalizedStatus === 'CONFIRMED';
@@ -155,7 +158,7 @@ export default function OrdersQuotationDetail() {
     editableStatus &&
     (ownsQuotation || canManageQuotation || privilegedEditor);
   const canApprove =
-    quotation && !isReseller && canManageQuotation && isConfirmed;
+    quotation && !isReseller && canManageQuotation && !isApproved;
   const approvalReady = isConfirmed;
   const approveDisabled = !approvalReady;
   const approvalTooltip = approveDisabled
@@ -163,10 +166,12 @@ export default function OrdersQuotationDetail() {
     : 'Approve quotation and convert to a sale';
   const canRejectStaff =
     quotation && !isReseller && canManageQuotation && (isDraft || isSent);
-  const resellerCanConfirm =
-    ownsQuotation && hasOrderUpdatePermission && (isDraft || isSent);
-  const resellerCanReject =
-    ownsQuotation && hasOrderUpdatePermission && (isDraft || isSent);
+  const resellerCanConfirm = ownsQuotation && (isDraft || isSent);
+  const resellerCanReject = ownsQuotation && (isDraft || isSent);
+  const customerCanConfirm = ownsConsumerQuotation && (isDraft || isSent);
+  const customerCanReject = ownsConsumerQuotation && (isDraft || isSent);
+  const stakeholderCanConfirm = resellerCanConfirm || customerCanConfirm;
+  const stakeholderCanReject = resellerCanReject || customerCanReject;
 
   const handleStatusChange = React.useCallback(
     async (status: string) => {
@@ -333,8 +338,8 @@ export default function OrdersQuotationDetail() {
           (canEdit ||
             canApprove ||
             canRejectStaff ||
-            resellerCanConfirm ||
-            resellerCanReject) && (
+            stakeholderCanConfirm ||
+            stakeholderCanReject) && (
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={1}
@@ -349,7 +354,7 @@ export default function OrdersQuotationDetail() {
                 Edit Quotation
               </Button>
             )}
-            {(canRejectStaff || resellerCanReject) && (
+            {(canRejectStaff || stakeholderCanReject) && (
               <Button
                 variant="outlined"
                 color="error"
@@ -359,7 +364,7 @@ export default function OrdersQuotationDetail() {
                 Reject
               </Button>
             )}
-            {resellerCanConfirm && (
+            {stakeholderCanConfirm && (
               <Button
                 variant="contained"
                 disabled={updatingStatus}
