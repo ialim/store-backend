@@ -127,7 +127,7 @@ export class PaymentService {
 
     if (status === PrismaPaymentStatus.CONFIRMED) {
       if (payment.status !== PrismaPaymentStatus.CONFIRMED) {
-        await this.confirmConsumerPayment(payment.id);
+        await this.confirmConsumerPayment({ paymentId: payment.id });
       }
     } else if (status === PrismaPaymentStatus.FAILED) {
       if (payment.status !== PrismaPaymentStatus.FAILED) {
