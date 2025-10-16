@@ -96,6 +96,7 @@ type UserCount {
   RequestedResellers: Int!
   Notification: Int!
   Fulfillment: Int!
+  FulfillmentRiderInterest: Int!
   BillerQuotation: Int!
   ResellerQuotation: Int!
   PurchaseRequisition: Int!
@@ -633,8 +634,30 @@ type FulfillmentTransitionLog {
   fulfillment: Fulfillment!
 }
 
+type FulfillmentRiderInterest {
+  id: ID!
+  fulfillmentId: String!
+  riderId: String!
+  status: FulfillmentRiderInterestStatus!
+  message: String
+  etaMinutes: Int
+  expiresAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  fulfillment: Fulfillment!
+  rider: User!
+}
+
+enum FulfillmentRiderInterestStatus {
+  ACTIVE
+  WITHDRAWN
+  ASSIGNED
+  REJECTED
+}
+
 type FulfillmentCount {
   transitionLogs: Int!
+  riderInterests: Int!
 }
 
 type Fulfillment {
@@ -653,6 +676,7 @@ type Fulfillment {
   saleOrder: SaleOrder!
   deliveryPersonnel: User
   transitionLogs: [FulfillmentTransitionLog!]
+  riderInterests: [FulfillmentRiderInterest!]
   _count: FulfillmentCount!
 
   """Normalized fulfillment workflow context including scheduling metadata."""
@@ -1277,6 +1301,7 @@ type User {
   RequestedResellers: [ResellerProfile!]
   Notification: [Notification!]
   Fulfillment: [Fulfillment!]
+  FulfillmentRiderInterest: [FulfillmentRiderInterest!]
   BillerQuotation: [Quotation!]
   ResellerQuotation: [Quotation!]
   PurchaseRequisition: [PurchaseRequisition!]
@@ -2833,6 +2858,9 @@ type Query {
   supplierCatalogBySupplier(supplierId: String!): [SupplierCatalogEntry!]!
   supplierCatalogByVariant(productVariantId: String!): [SupplierCatalogEntry!]!
   requisitionsWithNoSubmittedQuotes: [RequisitionSummary!]!
+  deliverableFulfillments: [Fulfillment!]!
+  myFulfillmentInterests: [FulfillmentRiderInterest!]!
+  fulfillmentRiderInterests(saleOrderId: String!): [FulfillmentRiderInterest!]!
   rfqPendingSuppliers(requisitionId: String!): [SupplierQuoteSummary!]!
   requisitionsWithPartialSubmissions: [RequisitionSummary!]!
   rfqStatusCounts(requisitionId: String!): RfqStatusCounts!
@@ -3275,6 +3303,7 @@ input UserWhereInput {
   RequestedResellers: ResellerProfileListRelationFilter
   Notification: NotificationListRelationFilter
   Fulfillment: FulfillmentListRelationFilter
+  FulfillmentRiderInterest: FulfillmentRiderInterestListRelationFilter
   BillerQuotation: QuotationListRelationFilter
   ResellerQuotation: QuotationListRelationFilter
   PurchaseRequisition: PurchaseRequisitionListRelationFilter
@@ -3903,6 +3932,7 @@ input FulfillmentWhereInput {
   saleOrder: SaleOrderScalarRelationFilter
   deliveryPersonnel: UserNullableScalarRelationFilter
   transitionLogs: FulfillmentTransitionLogListRelationFilter
+  riderInterests: FulfillmentRiderInterestListRelationFilter
 }
 
 input EnumFulfillmentTypeFilter {
@@ -3978,6 +4008,43 @@ input FulfillmentTransitionLogWhereInput {
 input FulfillmentScalarRelationFilter {
   is: FulfillmentWhereInput
   isNot: FulfillmentWhereInput
+}
+
+input FulfillmentRiderInterestListRelationFilter {
+  every: FulfillmentRiderInterestWhereInput
+  some: FulfillmentRiderInterestWhereInput
+  none: FulfillmentRiderInterestWhereInput
+}
+
+input FulfillmentRiderInterestWhereInput {
+  AND: [FulfillmentRiderInterestWhereInput!]
+  OR: [FulfillmentRiderInterestWhereInput!]
+  NOT: [FulfillmentRiderInterestWhereInput!]
+  id: StringFilter
+  fulfillmentId: StringFilter
+  riderId: StringFilter
+  status: EnumFulfillmentRiderInterestStatusFilter
+  message: StringNullableFilter
+  etaMinutes: IntNullableFilter
+  expiresAt: DateTimeNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  fulfillment: FulfillmentScalarRelationFilter
+  rider: UserScalarRelationFilter
+}
+
+input EnumFulfillmentRiderInterestStatusFilter {
+  equals: FulfillmentRiderInterestStatus
+  in: [FulfillmentRiderInterestStatus!]
+  notIn: [FulfillmentRiderInterestStatus!]
+  not: NestedEnumFulfillmentRiderInterestStatusFilter
+}
+
+input NestedEnumFulfillmentRiderInterestStatusFilter {
+  equals: FulfillmentRiderInterestStatus
+  in: [FulfillmentRiderInterestStatus!]
+  notIn: [FulfillmentRiderInterestStatus!]
+  not: NestedEnumFulfillmentRiderInterestStatusFilter
 }
 
 input ConsumerPaymentListRelationFilter {
@@ -5598,6 +5665,7 @@ input UserOrderByWithRelationInput {
   RequestedResellers: ResellerProfileOrderByRelationAggregateInput
   Notification: NotificationOrderByRelationAggregateInput
   Fulfillment: FulfillmentOrderByRelationAggregateInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestOrderByRelationAggregateInput
   BillerQuotation: QuotationOrderByRelationAggregateInput
   ResellerQuotation: QuotationOrderByRelationAggregateInput
   PurchaseRequisition: PurchaseRequisitionOrderByRelationAggregateInput
@@ -5805,6 +5873,10 @@ input NotificationOrderByRelationAggregateInput {
 }
 
 input FulfillmentOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input FulfillmentRiderInterestOrderByRelationAggregateInput {
   _count: SortOrder
 }
 
@@ -6642,6 +6714,7 @@ input UserWhereUniqueInput {
   RequestedResellers: ResellerProfileListRelationFilter
   Notification: NotificationListRelationFilter
   Fulfillment: FulfillmentListRelationFilter
+  FulfillmentRiderInterest: FulfillmentRiderInterestListRelationFilter
   BillerQuotation: QuotationListRelationFilter
   ResellerQuotation: QuotationListRelationFilter
   PurchaseRequisition: PurchaseRequisitionListRelationFilter
@@ -7242,6 +7315,9 @@ type Mutation {
   """
   assignFulfillmentPersonnel(input: AssignFulfillmentPersonnelInput!): Fulfillment!
   updateFulfillmentStatus(input: UpdateFulfillmentStatusInput!): Fulfillment!
+  registerFulfillmentInterest(input: RegisterFulfillmentInterestInput!): FulfillmentRiderInterest!
+  withdrawFulfillmentInterest(fulfillmentId: String!): FulfillmentRiderInterest!
+  assignFulfillmentRider(input: AssignFulfillmentRiderInput!): FulfillmentRiderInterest!
   adminRevertOrderToQuotation(saleOrderId: String!): SaleOrder!
   updateQuotation(input: UpdateQuotationInput!): Quotation!
   adminRevertToQuotation(saleOrderId: String!): SaleOrder!
@@ -7466,6 +7542,7 @@ input UserCreateWithoutStoreInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -7602,6 +7679,7 @@ input UserCreateWithoutResellerProfileInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -7985,6 +8063,7 @@ input UserCreateWithoutStockReceiptBatchReceivedBysInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -8234,6 +8313,7 @@ input UserCreateWithoutConsumerSaleInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -8310,6 +8390,7 @@ input UserCreateWithoutResellerPaymentsMadeInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -8565,6 +8646,7 @@ input UserCreateWithoutConsumerSaleAdjustedBysInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -8638,6 +8720,7 @@ input UserCreateWithoutStockReceiptBatchConfirmedBysInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -8796,6 +8879,7 @@ input UserCreateWithoutResellerSalesInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -8953,6 +9037,7 @@ input UserCreateWithoutBillerQuotationInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
   Supplier: SupplierCreateNestedManyWithoutUserInput
@@ -9023,6 +9108,7 @@ input UserCreateWithoutStockTransferApprovalsInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -9208,6 +9294,7 @@ input UserCreateWithoutBillerResellerSaleInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -9279,6 +9366,7 @@ input UserCreateWithoutStockTransferRequestsInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -9479,6 +9567,7 @@ input UserCreateWithoutResellerSaleInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -9781,6 +9870,7 @@ input UserCreateWithoutCustomerProfileInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -9959,6 +10049,7 @@ input UserCreateWithoutConsumerReceiptInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10059,6 +10150,7 @@ input UserCreateWithoutResellerPaymentsReceivedInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10112,6 +10204,7 @@ input FulfillmentCreateWithoutSaleOrderInput {
   updatedAt: DateTime
   deliveryPersonnel: UserCreateNestedOneWithoutFulfillmentInput
   transitionLogs: FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput
+  riderInterests: FulfillmentRiderInterestCreateNestedManyWithoutFulfillmentInput
 }
 
 input UserCreateNestedOneWithoutFulfillmentInput {
@@ -10162,6 +10255,7 @@ input UserCreateWithoutFulfillmentInput {
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10239,6 +10333,7 @@ input UserCreateWithoutSalesReturnRequestersInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10316,6 +10411,7 @@ input UserCreateWithoutSalesReturnReceiversInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10393,6 +10489,7 @@ input UserCreateWithoutSalesReturnInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10696,6 +10793,7 @@ input UserCreateWithoutResellerQuotationInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
   Supplier: SupplierCreateNestedManyWithoutUserInput
@@ -10767,6 +10865,7 @@ input UserCreateWithoutPurchaseReturnInitiatorsInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10891,6 +10990,7 @@ input UserCreateWithoutResellerTierHistoryChangedBysInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10966,6 +11066,7 @@ input UserCreateWithoutRequestedResellersInput {
   ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -11035,6 +11136,7 @@ input UserCreateWithoutResellerTierHistoryInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -11173,6 +11275,7 @@ input FulfillmentCreateWithoutDeliveryPersonnelInput {
   updatedAt: DateTime
   saleOrder: SaleOrderCreateNestedOneWithoutFulfillmentInput!
   transitionLogs: FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput
+  riderInterests: FulfillmentRiderInterestCreateNestedManyWithoutFulfillmentInput
 }
 
 input SaleOrderCreateNestedOneWithoutFulfillmentInput {
@@ -11351,10 +11454,171 @@ input UserCreateWithoutPurchaseReturnApproversInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
   Supplier: SupplierCreateNestedManyWithoutUserInput
+}
+
+input FulfillmentRiderInterestCreateNestedManyWithoutRiderInput {
+  create: [FulfillmentRiderInterestCreateWithoutRiderInput!]
+  connectOrCreate: [FulfillmentRiderInterestCreateOrConnectWithoutRiderInput!]
+  createMany: FulfillmentRiderInterestCreateManyRiderInputEnvelope
+  connect: [FulfillmentRiderInterestWhereUniqueInput!]
+}
+
+input FulfillmentRiderInterestCreateWithoutRiderInput {
+  id: String
+  status: FulfillmentRiderInterestStatus
+  message: String
+  etaMinutes: Int
+  expiresAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+  fulfillment: FulfillmentCreateNestedOneWithoutRiderInterestsInput!
+}
+
+input FulfillmentCreateNestedOneWithoutRiderInterestsInput {
+  create: FulfillmentCreateWithoutRiderInterestsInput
+  connectOrCreate: FulfillmentCreateOrConnectWithoutRiderInterestsInput
+  connect: FulfillmentWhereUniqueInput
+}
+
+input FulfillmentCreateWithoutRiderInterestsInput {
+  id: String
+  type: FulfillmentType!
+  deliveryAddress: String
+  status: FulfillmentStatus
+  workflowState: String
+  workflowContext: JSON
+  cost: Float
+  confirmationPin: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  saleOrder: SaleOrderCreateNestedOneWithoutFulfillmentInput!
+  deliveryPersonnel: UserCreateNestedOneWithoutFulfillmentInput
+  transitionLogs: FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput
+}
+
+input FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput {
+  create: [FulfillmentTransitionLogCreateWithoutFulfillmentInput!]
+  connectOrCreate: [FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput!]
+  createMany: FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope
+  connect: [FulfillmentTransitionLogWhereUniqueInput!]
+}
+
+input FulfillmentTransitionLogCreateWithoutFulfillmentInput {
+  id: String
+  fromState: String
+  toState: String!
+  event: String
+  metadata: JSON
+  occurredAt: DateTime
+}
+
+input FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput {
+  where: FulfillmentTransitionLogWhereUniqueInput!
+  create: FulfillmentTransitionLogCreateWithoutFulfillmentInput!
+}
+
+input FulfillmentTransitionLogWhereUniqueInput {
+  id: String
+  AND: [FulfillmentTransitionLogWhereInput!]
+  OR: [FulfillmentTransitionLogWhereInput!]
+  NOT: [FulfillmentTransitionLogWhereInput!]
+  fulfillmentId: StringFilter
+  fromState: StringNullableFilter
+  toState: StringFilter
+  event: StringNullableFilter
+  metadata: JsonNullableFilter
+  occurredAt: DateTimeFilter
+  fulfillment: FulfillmentScalarRelationFilter
+}
+
+input FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope {
+  data: [FulfillmentTransitionLogCreateManyFulfillmentInput!]!
+  skipDuplicates: Boolean
+}
+
+input FulfillmentTransitionLogCreateManyFulfillmentInput {
+  id: String
+  fromState: String
+  toState: String!
+  event: String
+  metadata: JSON
+  occurredAt: DateTime
+}
+
+input FulfillmentCreateOrConnectWithoutRiderInterestsInput {
+  where: FulfillmentWhereUniqueInput!
+  create: FulfillmentCreateWithoutRiderInterestsInput!
+}
+
+input FulfillmentWhereUniqueInput {
+  id: String
+  saleOrderId: String
+  AND: [FulfillmentWhereInput!]
+  OR: [FulfillmentWhereInput!]
+  NOT: [FulfillmentWhereInput!]
+  type: EnumFulfillmentTypeFilter
+  deliveryPersonnelId: StringNullableFilter
+  deliveryAddress: StringNullableFilter
+  status: EnumFulfillmentStatusFilter
+  workflowState: StringNullableFilter
+  workflowContext: JsonNullableFilter
+  cost: FloatNullableFilter
+  confirmationPin: StringNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  saleOrder: SaleOrderScalarRelationFilter
+  deliveryPersonnel: UserNullableScalarRelationFilter
+  transitionLogs: FulfillmentTransitionLogListRelationFilter
+  riderInterests: FulfillmentRiderInterestListRelationFilter
+}
+
+input FulfillmentRiderInterestCreateOrConnectWithoutRiderInput {
+  where: FulfillmentRiderInterestWhereUniqueInput!
+  create: FulfillmentRiderInterestCreateWithoutRiderInput!
+}
+
+input FulfillmentRiderInterestWhereUniqueInput {
+  id: String
+  fulfillmentId_riderId: FulfillmentRiderInterestFulfillmentIdRiderIdCompoundUniqueInput
+  AND: [FulfillmentRiderInterestWhereInput!]
+  OR: [FulfillmentRiderInterestWhereInput!]
+  NOT: [FulfillmentRiderInterestWhereInput!]
+  fulfillmentId: StringFilter
+  riderId: StringFilter
+  status: EnumFulfillmentRiderInterestStatusFilter
+  message: StringNullableFilter
+  etaMinutes: IntNullableFilter
+  expiresAt: DateTimeNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  fulfillment: FulfillmentScalarRelationFilter
+  rider: UserScalarRelationFilter
+}
+
+input FulfillmentRiderInterestFulfillmentIdRiderIdCompoundUniqueInput {
+  fulfillmentId: String!
+  riderId: String!
+}
+
+input FulfillmentRiderInterestCreateManyRiderInputEnvelope {
+  data: [FulfillmentRiderInterestCreateManyRiderInput!]!
+  skipDuplicates: Boolean
+}
+
+input FulfillmentRiderInterestCreateManyRiderInput {
+  id: String
+  fulfillmentId: String!
+  status: FulfillmentRiderInterestStatus
+  message: String
+  etaMinutes: Int
+  expiresAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
 input QuotationCreateNestedManyWithoutBillerInput {
@@ -11854,6 +12118,7 @@ input UserCreateWithoutPurchaseRequisitionInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   Supplier: SupplierCreateNestedManyWithoutUserInput
@@ -12284,6 +12549,7 @@ input UserCreateWithoutBillerSaleOrdersInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -13184,6 +13450,7 @@ input UserCreateWithoutSupplierInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -14504,79 +14771,108 @@ input SaleOrderCreateOrConnectWithoutFulfillmentInput {
   create: SaleOrderCreateWithoutFulfillmentInput!
 }
 
-input FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput {
-  create: [FulfillmentTransitionLogCreateWithoutFulfillmentInput!]
-  connectOrCreate: [FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput!]
-  createMany: FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope
-  connect: [FulfillmentTransitionLogWhereUniqueInput!]
+input FulfillmentRiderInterestCreateNestedManyWithoutFulfillmentInput {
+  create: [FulfillmentRiderInterestCreateWithoutFulfillmentInput!]
+  connectOrCreate: [FulfillmentRiderInterestCreateOrConnectWithoutFulfillmentInput!]
+  createMany: FulfillmentRiderInterestCreateManyFulfillmentInputEnvelope
+  connect: [FulfillmentRiderInterestWhereUniqueInput!]
 }
 
-input FulfillmentTransitionLogCreateWithoutFulfillmentInput {
+input FulfillmentRiderInterestCreateWithoutFulfillmentInput {
   id: String
-  fromState: String
-  toState: String!
-  event: String
-  metadata: JSON
-  occurredAt: DateTime
+  status: FulfillmentRiderInterestStatus
+  message: String
+  etaMinutes: Int
+  expiresAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+  rider: UserCreateNestedOneWithoutFulfillmentRiderInterestInput!
 }
 
-input FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput {
-  where: FulfillmentTransitionLogWhereUniqueInput!
-  create: FulfillmentTransitionLogCreateWithoutFulfillmentInput!
+input UserCreateNestedOneWithoutFulfillmentRiderInterestInput {
+  create: UserCreateWithoutFulfillmentRiderInterestInput
+  connectOrCreate: UserCreateOrConnectWithoutFulfillmentRiderInterestInput
+  connect: UserWhereUniqueInput
 }
 
-input FulfillmentTransitionLogWhereUniqueInput {
+input UserCreateWithoutFulfillmentRiderInterestInput {
   id: String
-  AND: [FulfillmentTransitionLogWhereInput!]
-  OR: [FulfillmentTransitionLogWhereInput!]
-  NOT: [FulfillmentTransitionLogWhereInput!]
-  fulfillmentId: StringFilter
-  fromState: StringNullableFilter
-  toState: StringFilter
-  event: StringNullableFilter
-  metadata: JsonNullableFilter
-  occurredAt: DateTimeFilter
-  fulfillment: FulfillmentScalarRelationFilter
+  email: String!
+  passwordHash: String!
+  tier: UserTier
+  referralCode: String
+  referredBy: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  isEmailVerified: Boolean
+  emailVerificationToken: String
+  emailVerificationTokenExpiry: DateTime
+  role: RoleCreateNestedOneWithoutUsersInput!
+  resellerProfile: ResellerProfileCreateNestedOneWithoutUserInput
+  customerProfile: CustomerProfileCreateNestedOneWithoutUserInput
+  resellerPaymentsMade: ResellerPaymentCreateNestedManyWithoutResellerInput
+  resellerPaymentsReceived: ResellerPaymentCreateNestedManyWithoutReceivedByInput
+  adminLogs: AdminActionLogCreateNestedManyWithoutAdminInput
+  supportMessages: SupportMessageCreateNestedManyWithoutUserInput
+  ConsumerSale: ConsumerSaleCreateNestedManyWithoutBillerInput
+  ConsumerSaleAdjustedBys: ConsumerSaleCreateNestedManyWithoutAdjustedByInput
+  StockReceiptBatchReceivedBys: StockReceiptBatchCreateNestedManyWithoutReceivedByInput
+  StockReceiptBatchConfirmedBys: StockReceiptBatchCreateNestedManyWithoutConfirmedByInput
+  StockTransferRequests: StockTransferCreateNestedManyWithoutRequestedByInput
+  StockTransferApprovals: StockTransferCreateNestedManyWithoutApprovedByInput
+  Store: StoreCreateNestedManyWithoutManagerInput
+  ConsumerReceipt: ConsumerReceiptCreateNestedManyWithoutIssuedByInput
+  ResellerSales: ResellerSaleCreateNestedManyWithoutResellerInput
+  BillerResellerSale: ResellerSaleCreateNestedManyWithoutBillerInput
+  ResellerSale: ResellerSaleCreateNestedManyWithoutApprovedByInput
+  BillerSaleOrders: SaleOrderCreateNestedManyWithoutBillerInput
+  SalesReturnReceivers: SalesReturnCreateNestedManyWithoutReceivedByInput
+  SalesReturnRequesters: SalesReturnCreateNestedManyWithoutReturnedByInput
+  SalesReturn: SalesReturnCreateNestedManyWithoutApprovedByInput
+  PurchaseReturnInitiators: PurchaseReturnCreateNestedManyWithoutInitiatedByInput
+  PurchaseReturnApprovers: PurchaseReturnCreateNestedManyWithoutApprovedByInput
+  Payment: PaymentCreateNestedManyWithoutReceivedByInput
+  ResellerTierHistory: ResellerTierHistoryCreateNestedManyWithoutUserInput
+  ResellerTierHistoryChangedBys: ResellerTierHistoryCreateNestedManyWithoutAdminInput
+  ResellerProfile: ResellerProfileCreateNestedManyWithoutBillerInput
+  RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
+  Notification: NotificationCreateNestedManyWithoutUserInput
+  Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
+  ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
+  PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
+  Supplier: SupplierCreateNestedManyWithoutUserInput
 }
 
-input FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope {
-  data: [FulfillmentTransitionLogCreateManyFulfillmentInput!]!
+input UserCreateOrConnectWithoutFulfillmentRiderInterestInput {
+  where: UserWhereUniqueInput!
+  create: UserCreateWithoutFulfillmentRiderInterestInput!
+}
+
+input FulfillmentRiderInterestCreateOrConnectWithoutFulfillmentInput {
+  where: FulfillmentRiderInterestWhereUniqueInput!
+  create: FulfillmentRiderInterestCreateWithoutFulfillmentInput!
+}
+
+input FulfillmentRiderInterestCreateManyFulfillmentInputEnvelope {
+  data: [FulfillmentRiderInterestCreateManyFulfillmentInput!]!
   skipDuplicates: Boolean
 }
 
-input FulfillmentTransitionLogCreateManyFulfillmentInput {
+input FulfillmentRiderInterestCreateManyFulfillmentInput {
   id: String
-  fromState: String
-  toState: String!
-  event: String
-  metadata: JSON
-  occurredAt: DateTime
+  riderId: String!
+  status: FulfillmentRiderInterestStatus
+  message: String
+  etaMinutes: Int
+  expiresAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
 input FulfillmentCreateOrConnectWithoutDeliveryPersonnelInput {
   where: FulfillmentWhereUniqueInput!
   create: FulfillmentCreateWithoutDeliveryPersonnelInput!
-}
-
-input FulfillmentWhereUniqueInput {
-  id: String
-  saleOrderId: String
-  AND: [FulfillmentWhereInput!]
-  OR: [FulfillmentWhereInput!]
-  NOT: [FulfillmentWhereInput!]
-  type: EnumFulfillmentTypeFilter
-  deliveryPersonnelId: StringNullableFilter
-  deliveryAddress: StringNullableFilter
-  status: EnumFulfillmentStatusFilter
-  workflowState: StringNullableFilter
-  workflowContext: JsonNullableFilter
-  cost: FloatNullableFilter
-  confirmationPin: StringNullableFilter
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-  saleOrder: SaleOrderScalarRelationFilter
-  deliveryPersonnel: UserNullableScalarRelationFilter
-  transitionLogs: FulfillmentTransitionLogListRelationFilter
 }
 
 input FulfillmentCreateManyDeliveryPersonnelInputEnvelope {
@@ -16430,6 +16726,7 @@ input UserUpdateWithoutStoreInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -16621,6 +16918,7 @@ input UserUpdateWithoutResellerProfileInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -17173,6 +17471,7 @@ input UserUpdateWithoutStockReceiptBatchReceivedBysInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -17543,6 +17842,7 @@ input UserUpdateWithoutConsumerSaleInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -17640,6 +17940,7 @@ input UserUpdateWithoutResellerPaymentsMadeInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -17981,6 +18282,7 @@ input UserUpdateWithoutConsumerSaleAdjustedBysInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -18075,6 +18377,7 @@ input UserUpdateWithoutStockReceiptBatchConfirmedBysInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -18289,6 +18592,7 @@ input UserUpdateWithoutResellerSalesInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -18511,6 +18815,7 @@ input UserUpdateWithoutBillerQuotationInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
   Supplier: SupplierUpdateManyWithoutUserNestedInput
@@ -18602,6 +18907,7 @@ input UserUpdateWithoutStockTransferApprovalsInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -18871,6 +19177,7 @@ input UserUpdateWithoutBillerResellerSaleInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -18963,6 +19270,7 @@ input UserUpdateWithoutStockTransferRequestsInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -19246,6 +19554,7 @@ input UserUpdateWithoutResellerSaleInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -19680,6 +19989,7 @@ input UserUpdateWithoutCustomerProfileInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -19931,6 +20241,7 @@ input UserUpdateWithoutConsumerReceiptInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -20065,6 +20376,7 @@ input UserUpdateWithoutResellerPaymentsReceivedInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -20141,6 +20453,7 @@ input FulfillmentUpdateWithoutSaleOrderInput {
   updatedAt: DateTimeFieldUpdateOperationsInput
   deliveryPersonnel: UserUpdateOneWithoutFulfillmentNestedInput
   transitionLogs: FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput
+  riderInterests: FulfillmentRiderInterestUpdateManyWithoutFulfillmentNestedInput
 }
 
 input EnumFulfillmentTypeFieldUpdateOperationsInput {
@@ -20217,6 +20530,7 @@ input UserUpdateWithoutFulfillmentInput {
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -20315,6 +20629,7 @@ input UserUpdateWithoutSalesReturnRequestersInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -20413,6 +20728,7 @@ input UserUpdateWithoutSalesReturnReceiversInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -20513,6 +20829,7 @@ input UserUpdateWithoutSalesReturnInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -20948,6 +21265,7 @@ input UserUpdateWithoutResellerQuotationInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
   Supplier: SupplierUpdateManyWithoutUserNestedInput
@@ -21040,6 +21358,7 @@ input UserUpdateWithoutPurchaseReturnInitiatorsInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -21201,6 +21520,7 @@ input UserUpdateWithoutResellerTierHistoryChangedBysInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -21312,6 +21632,7 @@ input UserUpdateWithoutRequestedResellersInput {
   ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -21402,6 +21723,7 @@ input UserUpdateWithoutResellerTierHistoryInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -21573,6 +21895,7 @@ input FulfillmentUpdateWithoutDeliveryPersonnelInput {
   updatedAt: DateTimeFieldUpdateOperationsInput
   saleOrder: SaleOrderUpdateOneRequiredWithoutFulfillmentNestedInput
   transitionLogs: FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput
+  riderInterests: FulfillmentRiderInterestUpdateManyWithoutFulfillmentNestedInput
 }
 
 input SaleOrderUpdateOneRequiredWithoutFulfillmentNestedInput {
@@ -21819,10 +22142,177 @@ input UserUpdateWithoutPurchaseReturnApproversInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
   Supplier: SupplierUpdateManyWithoutUserNestedInput
+}
+
+input FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput {
+  create: [FulfillmentRiderInterestCreateWithoutRiderInput!]
+  connectOrCreate: [FulfillmentRiderInterestCreateOrConnectWithoutRiderInput!]
+  upsert: [FulfillmentRiderInterestUpsertWithWhereUniqueWithoutRiderInput!]
+  createMany: FulfillmentRiderInterestCreateManyRiderInputEnvelope
+  set: [FulfillmentRiderInterestWhereUniqueInput!]
+  disconnect: [FulfillmentRiderInterestWhereUniqueInput!]
+  delete: [FulfillmentRiderInterestWhereUniqueInput!]
+  connect: [FulfillmentRiderInterestWhereUniqueInput!]
+  update: [FulfillmentRiderInterestUpdateWithWhereUniqueWithoutRiderInput!]
+  updateMany: [FulfillmentRiderInterestUpdateManyWithWhereWithoutRiderInput!]
+  deleteMany: [FulfillmentRiderInterestScalarWhereInput!]
+}
+
+input FulfillmentRiderInterestUpsertWithWhereUniqueWithoutRiderInput {
+  where: FulfillmentRiderInterestWhereUniqueInput!
+  update: FulfillmentRiderInterestUpdateWithoutRiderInput!
+  create: FulfillmentRiderInterestCreateWithoutRiderInput!
+}
+
+input FulfillmentRiderInterestUpdateWithoutRiderInput {
+  id: StringFieldUpdateOperationsInput
+  status: EnumFulfillmentRiderInterestStatusFieldUpdateOperationsInput
+  message: NullableStringFieldUpdateOperationsInput
+  etaMinutes: NullableIntFieldUpdateOperationsInput
+  expiresAt: NullableDateTimeFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  fulfillment: FulfillmentUpdateOneRequiredWithoutRiderInterestsNestedInput
+}
+
+input EnumFulfillmentRiderInterestStatusFieldUpdateOperationsInput {
+  set: FulfillmentRiderInterestStatus
+}
+
+input FulfillmentUpdateOneRequiredWithoutRiderInterestsNestedInput {
+  create: FulfillmentCreateWithoutRiderInterestsInput
+  connectOrCreate: FulfillmentCreateOrConnectWithoutRiderInterestsInput
+  upsert: FulfillmentUpsertWithoutRiderInterestsInput
+  connect: FulfillmentWhereUniqueInput
+  update: FulfillmentUpdateToOneWithWhereWithoutRiderInterestsInput
+}
+
+input FulfillmentUpsertWithoutRiderInterestsInput {
+  update: FulfillmentUpdateWithoutRiderInterestsInput!
+  create: FulfillmentCreateWithoutRiderInterestsInput!
+  where: FulfillmentWhereInput
+}
+
+input FulfillmentUpdateWithoutRiderInterestsInput {
+  id: StringFieldUpdateOperationsInput
+  type: EnumFulfillmentTypeFieldUpdateOperationsInput
+  deliveryAddress: NullableStringFieldUpdateOperationsInput
+  status: EnumFulfillmentStatusFieldUpdateOperationsInput
+  workflowState: NullableStringFieldUpdateOperationsInput
+  workflowContext: JSON
+  cost: NullableFloatFieldUpdateOperationsInput
+  confirmationPin: NullableStringFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  saleOrder: SaleOrderUpdateOneRequiredWithoutFulfillmentNestedInput
+  deliveryPersonnel: UserUpdateOneWithoutFulfillmentNestedInput
+  transitionLogs: FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput
+}
+
+input FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput {
+  create: [FulfillmentTransitionLogCreateWithoutFulfillmentInput!]
+  connectOrCreate: [FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput!]
+  upsert: [FulfillmentTransitionLogUpsertWithWhereUniqueWithoutFulfillmentInput!]
+  createMany: FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope
+  set: [FulfillmentTransitionLogWhereUniqueInput!]
+  disconnect: [FulfillmentTransitionLogWhereUniqueInput!]
+  delete: [FulfillmentTransitionLogWhereUniqueInput!]
+  connect: [FulfillmentTransitionLogWhereUniqueInput!]
+  update: [FulfillmentTransitionLogUpdateWithWhereUniqueWithoutFulfillmentInput!]
+  updateMany: [FulfillmentTransitionLogUpdateManyWithWhereWithoutFulfillmentInput!]
+  deleteMany: [FulfillmentTransitionLogScalarWhereInput!]
+}
+
+input FulfillmentTransitionLogUpsertWithWhereUniqueWithoutFulfillmentInput {
+  where: FulfillmentTransitionLogWhereUniqueInput!
+  update: FulfillmentTransitionLogUpdateWithoutFulfillmentInput!
+  create: FulfillmentTransitionLogCreateWithoutFulfillmentInput!
+}
+
+input FulfillmentTransitionLogUpdateWithoutFulfillmentInput {
+  id: StringFieldUpdateOperationsInput
+  fromState: NullableStringFieldUpdateOperationsInput
+  toState: StringFieldUpdateOperationsInput
+  event: NullableStringFieldUpdateOperationsInput
+  metadata: JSON
+  occurredAt: DateTimeFieldUpdateOperationsInput
+}
+
+input FulfillmentTransitionLogUpdateWithWhereUniqueWithoutFulfillmentInput {
+  where: FulfillmentTransitionLogWhereUniqueInput!
+  data: FulfillmentTransitionLogUpdateWithoutFulfillmentInput!
+}
+
+input FulfillmentTransitionLogUpdateManyWithWhereWithoutFulfillmentInput {
+  where: FulfillmentTransitionLogScalarWhereInput!
+  data: FulfillmentTransitionLogUpdateManyMutationInput!
+}
+
+input FulfillmentTransitionLogScalarWhereInput {
+  AND: [FulfillmentTransitionLogScalarWhereInput!]
+  OR: [FulfillmentTransitionLogScalarWhereInput!]
+  NOT: [FulfillmentTransitionLogScalarWhereInput!]
+  id: StringFilter
+  fulfillmentId: StringFilter
+  fromState: StringNullableFilter
+  toState: StringFilter
+  event: StringNullableFilter
+  metadata: JsonNullableFilter
+  occurredAt: DateTimeFilter
+}
+
+input FulfillmentTransitionLogUpdateManyMutationInput {
+  id: StringFieldUpdateOperationsInput
+  fromState: NullableStringFieldUpdateOperationsInput
+  toState: StringFieldUpdateOperationsInput
+  event: NullableStringFieldUpdateOperationsInput
+  metadata: JSON
+  occurredAt: DateTimeFieldUpdateOperationsInput
+}
+
+input FulfillmentUpdateToOneWithWhereWithoutRiderInterestsInput {
+  where: FulfillmentWhereInput
+  data: FulfillmentUpdateWithoutRiderInterestsInput!
+}
+
+input FulfillmentRiderInterestUpdateWithWhereUniqueWithoutRiderInput {
+  where: FulfillmentRiderInterestWhereUniqueInput!
+  data: FulfillmentRiderInterestUpdateWithoutRiderInput!
+}
+
+input FulfillmentRiderInterestUpdateManyWithWhereWithoutRiderInput {
+  where: FulfillmentRiderInterestScalarWhereInput!
+  data: FulfillmentRiderInterestUpdateManyMutationInput!
+}
+
+input FulfillmentRiderInterestScalarWhereInput {
+  AND: [FulfillmentRiderInterestScalarWhereInput!]
+  OR: [FulfillmentRiderInterestScalarWhereInput!]
+  NOT: [FulfillmentRiderInterestScalarWhereInput!]
+  id: StringFilter
+  fulfillmentId: StringFilter
+  riderId: StringFilter
+  status: EnumFulfillmentRiderInterestStatusFilter
+  message: StringNullableFilter
+  etaMinutes: IntNullableFilter
+  expiresAt: DateTimeNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input FulfillmentRiderInterestUpdateManyMutationInput {
+  id: StringFieldUpdateOperationsInput
+  status: EnumFulfillmentRiderInterestStatusFieldUpdateOperationsInput
+  message: NullableStringFieldUpdateOperationsInput
+  etaMinutes: NullableIntFieldUpdateOperationsInput
+  expiresAt: NullableDateTimeFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
 }
 
 input QuotationUpdateManyWithoutBillerNestedInput {
@@ -22503,6 +22993,7 @@ input UserUpdateWithoutPurchaseRequisitionInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   Supplier: SupplierUpdateManyWithoutUserNestedInput
@@ -23106,6 +23597,7 @@ input UserUpdateWithoutBillerSaleOrdersInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -24324,6 +24816,7 @@ input UserUpdateWithoutSupplierInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -25415,65 +25908,113 @@ input SaleOrderUpdateToOneWithWhereWithoutFulfillmentInput {
   data: SaleOrderUpdateWithoutFulfillmentInput!
 }
 
-input FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput {
-  create: [FulfillmentTransitionLogCreateWithoutFulfillmentInput!]
-  connectOrCreate: [FulfillmentTransitionLogCreateOrConnectWithoutFulfillmentInput!]
-  upsert: [FulfillmentTransitionLogUpsertWithWhereUniqueWithoutFulfillmentInput!]
-  createMany: FulfillmentTransitionLogCreateManyFulfillmentInputEnvelope
-  set: [FulfillmentTransitionLogWhereUniqueInput!]
-  disconnect: [FulfillmentTransitionLogWhereUniqueInput!]
-  delete: [FulfillmentTransitionLogWhereUniqueInput!]
-  connect: [FulfillmentTransitionLogWhereUniqueInput!]
-  update: [FulfillmentTransitionLogUpdateWithWhereUniqueWithoutFulfillmentInput!]
-  updateMany: [FulfillmentTransitionLogUpdateManyWithWhereWithoutFulfillmentInput!]
-  deleteMany: [FulfillmentTransitionLogScalarWhereInput!]
+input FulfillmentRiderInterestUpdateManyWithoutFulfillmentNestedInput {
+  create: [FulfillmentRiderInterestCreateWithoutFulfillmentInput!]
+  connectOrCreate: [FulfillmentRiderInterestCreateOrConnectWithoutFulfillmentInput!]
+  upsert: [FulfillmentRiderInterestUpsertWithWhereUniqueWithoutFulfillmentInput!]
+  createMany: FulfillmentRiderInterestCreateManyFulfillmentInputEnvelope
+  set: [FulfillmentRiderInterestWhereUniqueInput!]
+  disconnect: [FulfillmentRiderInterestWhereUniqueInput!]
+  delete: [FulfillmentRiderInterestWhereUniqueInput!]
+  connect: [FulfillmentRiderInterestWhereUniqueInput!]
+  update: [FulfillmentRiderInterestUpdateWithWhereUniqueWithoutFulfillmentInput!]
+  updateMany: [FulfillmentRiderInterestUpdateManyWithWhereWithoutFulfillmentInput!]
+  deleteMany: [FulfillmentRiderInterestScalarWhereInput!]
 }
 
-input FulfillmentTransitionLogUpsertWithWhereUniqueWithoutFulfillmentInput {
-  where: FulfillmentTransitionLogWhereUniqueInput!
-  update: FulfillmentTransitionLogUpdateWithoutFulfillmentInput!
-  create: FulfillmentTransitionLogCreateWithoutFulfillmentInput!
+input FulfillmentRiderInterestUpsertWithWhereUniqueWithoutFulfillmentInput {
+  where: FulfillmentRiderInterestWhereUniqueInput!
+  update: FulfillmentRiderInterestUpdateWithoutFulfillmentInput!
+  create: FulfillmentRiderInterestCreateWithoutFulfillmentInput!
 }
 
-input FulfillmentTransitionLogUpdateWithoutFulfillmentInput {
+input FulfillmentRiderInterestUpdateWithoutFulfillmentInput {
   id: StringFieldUpdateOperationsInput
-  fromState: NullableStringFieldUpdateOperationsInput
-  toState: StringFieldUpdateOperationsInput
-  event: NullableStringFieldUpdateOperationsInput
-  metadata: JSON
-  occurredAt: DateTimeFieldUpdateOperationsInput
+  status: EnumFulfillmentRiderInterestStatusFieldUpdateOperationsInput
+  message: NullableStringFieldUpdateOperationsInput
+  etaMinutes: NullableIntFieldUpdateOperationsInput
+  expiresAt: NullableDateTimeFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  rider: UserUpdateOneRequiredWithoutFulfillmentRiderInterestNestedInput
 }
 
-input FulfillmentTransitionLogUpdateWithWhereUniqueWithoutFulfillmentInput {
-  where: FulfillmentTransitionLogWhereUniqueInput!
-  data: FulfillmentTransitionLogUpdateWithoutFulfillmentInput!
+input UserUpdateOneRequiredWithoutFulfillmentRiderInterestNestedInput {
+  create: UserCreateWithoutFulfillmentRiderInterestInput
+  connectOrCreate: UserCreateOrConnectWithoutFulfillmentRiderInterestInput
+  upsert: UserUpsertWithoutFulfillmentRiderInterestInput
+  connect: UserWhereUniqueInput
+  update: UserUpdateToOneWithWhereWithoutFulfillmentRiderInterestInput
 }
 
-input FulfillmentTransitionLogUpdateManyWithWhereWithoutFulfillmentInput {
-  where: FulfillmentTransitionLogScalarWhereInput!
-  data: FulfillmentTransitionLogUpdateManyMutationInput!
+input UserUpsertWithoutFulfillmentRiderInterestInput {
+  update: UserUpdateWithoutFulfillmentRiderInterestInput!
+  create: UserCreateWithoutFulfillmentRiderInterestInput!
+  where: UserWhereInput
 }
 
-input FulfillmentTransitionLogScalarWhereInput {
-  AND: [FulfillmentTransitionLogScalarWhereInput!]
-  OR: [FulfillmentTransitionLogScalarWhereInput!]
-  NOT: [FulfillmentTransitionLogScalarWhereInput!]
-  id: StringFilter
-  fulfillmentId: StringFilter
-  fromState: StringNullableFilter
-  toState: StringFilter
-  event: StringNullableFilter
-  metadata: JsonNullableFilter
-  occurredAt: DateTimeFilter
-}
-
-input FulfillmentTransitionLogUpdateManyMutationInput {
+input UserUpdateWithoutFulfillmentRiderInterestInput {
   id: StringFieldUpdateOperationsInput
-  fromState: NullableStringFieldUpdateOperationsInput
-  toState: StringFieldUpdateOperationsInput
-  event: NullableStringFieldUpdateOperationsInput
-  metadata: JSON
-  occurredAt: DateTimeFieldUpdateOperationsInput
+  email: StringFieldUpdateOperationsInput
+  passwordHash: StringFieldUpdateOperationsInput
+  tier: NullableEnumUserTierFieldUpdateOperationsInput
+  referralCode: NullableStringFieldUpdateOperationsInput
+  referredBy: NullableStringFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+  isEmailVerified: BoolFieldUpdateOperationsInput
+  emailVerificationToken: NullableStringFieldUpdateOperationsInput
+  emailVerificationTokenExpiry: NullableDateTimeFieldUpdateOperationsInput
+  role: RoleUpdateOneRequiredWithoutUsersNestedInput
+  resellerProfile: ResellerProfileUpdateOneWithoutUserNestedInput
+  customerProfile: CustomerProfileUpdateOneWithoutUserNestedInput
+  resellerPaymentsMade: ResellerPaymentUpdateManyWithoutResellerNestedInput
+  resellerPaymentsReceived: ResellerPaymentUpdateManyWithoutReceivedByNestedInput
+  adminLogs: AdminActionLogUpdateManyWithoutAdminNestedInput
+  supportMessages: SupportMessageUpdateManyWithoutUserNestedInput
+  ConsumerSale: ConsumerSaleUpdateManyWithoutBillerNestedInput
+  ConsumerSaleAdjustedBys: ConsumerSaleUpdateManyWithoutAdjustedByNestedInput
+  StockReceiptBatchReceivedBys: StockReceiptBatchUpdateManyWithoutReceivedByNestedInput
+  StockReceiptBatchConfirmedBys: StockReceiptBatchUpdateManyWithoutConfirmedByNestedInput
+  StockTransferRequests: StockTransferUpdateManyWithoutRequestedByNestedInput
+  StockTransferApprovals: StockTransferUpdateManyWithoutApprovedByNestedInput
+  Store: StoreUpdateManyWithoutManagerNestedInput
+  ConsumerReceipt: ConsumerReceiptUpdateManyWithoutIssuedByNestedInput
+  ResellerSales: ResellerSaleUpdateManyWithoutResellerNestedInput
+  BillerResellerSale: ResellerSaleUpdateManyWithoutBillerNestedInput
+  ResellerSale: ResellerSaleUpdateManyWithoutApprovedByNestedInput
+  BillerSaleOrders: SaleOrderUpdateManyWithoutBillerNestedInput
+  SalesReturnReceivers: SalesReturnUpdateManyWithoutReceivedByNestedInput
+  SalesReturnRequesters: SalesReturnUpdateManyWithoutReturnedByNestedInput
+  SalesReturn: SalesReturnUpdateManyWithoutApprovedByNestedInput
+  PurchaseReturnInitiators: PurchaseReturnUpdateManyWithoutInitiatedByNestedInput
+  PurchaseReturnApprovers: PurchaseReturnUpdateManyWithoutApprovedByNestedInput
+  Payment: PaymentUpdateManyWithoutReceivedByNestedInput
+  ResellerTierHistory: ResellerTierHistoryUpdateManyWithoutUserNestedInput
+  ResellerTierHistoryChangedBys: ResellerTierHistoryUpdateManyWithoutAdminNestedInput
+  ResellerProfile: ResellerProfileUpdateManyWithoutBillerNestedInput
+  RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
+  Notification: NotificationUpdateManyWithoutUserNestedInput
+  Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
+  ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
+  PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
+  Supplier: SupplierUpdateManyWithoutUserNestedInput
+}
+
+input UserUpdateToOneWithWhereWithoutFulfillmentRiderInterestInput {
+  where: UserWhereInput
+  data: UserUpdateWithoutFulfillmentRiderInterestInput!
+}
+
+input FulfillmentRiderInterestUpdateWithWhereUniqueWithoutFulfillmentInput {
+  where: FulfillmentRiderInterestWhereUniqueInput!
+  data: FulfillmentRiderInterestUpdateWithoutFulfillmentInput!
+}
+
+input FulfillmentRiderInterestUpdateManyWithWhereWithoutFulfillmentInput {
+  where: FulfillmentRiderInterestScalarWhereInput!
+  data: FulfillmentRiderInterestUpdateManyMutationInput!
 }
 
 input FulfillmentUpdateWithWhereUniqueWithoutDeliveryPersonnelInput {
@@ -27309,6 +27850,17 @@ input UpdateFulfillmentStatusInput {
   confirmationPin: String
 }
 
+input RegisterFulfillmentInterestInput {
+  fulfillmentId: ID!
+  etaMinutes: Int
+  message: String
+}
+
+input AssignFulfillmentRiderInput {
+  fulfillmentId: ID!
+  riderId: ID!
+}
+
 input UpdateQuotationInput {
   id: ID!
   type: SaleType
@@ -27847,6 +28399,7 @@ input UserCreateInput {
   RequestedResellers: ResellerProfileCreateNestedManyWithoutRequestedBillerInput
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -27911,6 +28464,7 @@ input UserUpdateInput {
   RequestedResellers: ResellerProfileUpdateManyWithoutRequestedBillerNestedInput
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
+  FulfillmentRiderInterest: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput

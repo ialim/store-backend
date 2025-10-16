@@ -5,6 +5,8 @@ import { NotificationModule } from '../notification/notification.module';
 import { SaleModule } from '../sale/sale.module';
 import { SaleOrderResolver } from './sale-order.resolver';
 import { FulfillmentResolver } from './fulfillment.resolver';
+import { RiderInterestService } from './rider-interest.service';
+import { RiderInterestResolver } from './rider-interest.resolver';
 
 @Module({
   imports: [NotificationModule, SaleModule],
@@ -13,6 +15,8 @@ import { FulfillmentResolver } from './fulfillment.resolver';
     OrderService,
     SaleOrderResolver,
     FulfillmentResolver,
+    RiderInterestService,
+    RiderInterestResolver,
   ],
   exports: [OrderService],
 })

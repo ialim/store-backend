@@ -1668,6 +1668,11 @@ export type AssignFulfillmentPersonnelInput = {
   saleOrderId: Scalars['String']['input'];
 };
 
+export type AssignFulfillmentRiderInput = {
+  fulfillmentId: Scalars['ID']['input'];
+  riderId: Scalars['ID']['input'];
+};
+
 export type AssignRoleInput = {
   roleId: Scalars['String']['input'];
   userId: Scalars['String']['input'];
@@ -5203,6 +5208,17 @@ export type EnumAssetKindWithAggregatesFilter = {
   notIn?: InputMaybe<Array<AssetKind>>;
 };
 
+export type EnumFulfillmentRiderInterestStatusFieldUpdateOperationsInput = {
+  set?: InputMaybe<FulfillmentRiderInterestStatus>;
+};
+
+export type EnumFulfillmentRiderInterestStatusFilter = {
+  equals?: InputMaybe<FulfillmentRiderInterestStatus>;
+  in?: InputMaybe<Array<FulfillmentRiderInterestStatus>>;
+  not?: InputMaybe<NestedEnumFulfillmentRiderInterestStatusFilter>;
+  notIn?: InputMaybe<Array<FulfillmentRiderInterestStatus>>;
+};
+
 export type EnumFulfillmentStatusFieldUpdateOperationsInput = {
   set?: InputMaybe<FulfillmentStatus>;
 };
@@ -5734,6 +5750,7 @@ export type Fulfillment = {
   /** Normalized fulfillment workflow context including scheduling metadata. */
   fulfillmentWorkflowContext?: Maybe<Scalars['JSON']['output']>;
   id: Scalars['ID']['output'];
+  riderInterests?: Maybe<Array<FulfillmentRiderInterest>>;
   saleOrder: SaleOrder;
   saleOrderId: Scalars['String']['output'];
   status: FulfillmentStatus;
@@ -5751,6 +5768,7 @@ export type FulfillmentAvgAggregate = {
 
 export type FulfillmentCount = {
   __typename?: 'FulfillmentCount';
+  riderInterests: Scalars['Int']['output'];
   transitionLogs: Scalars['Int']['output'];
 };
 
@@ -5797,6 +5815,12 @@ export type FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput = {
   createMany?: InputMaybe<FulfillmentCreateManyDeliveryPersonnelInputEnvelope>;
 };
 
+export type FulfillmentCreateNestedOneWithoutRiderInterestsInput = {
+  connect?: InputMaybe<FulfillmentWhereUniqueInput>;
+  connectOrCreate?: InputMaybe<FulfillmentCreateOrConnectWithoutRiderInterestsInput>;
+  create?: InputMaybe<FulfillmentCreateWithoutRiderInterestsInput>;
+};
+
 export type FulfillmentCreateNestedOneWithoutSaleOrderInput = {
   connect?: InputMaybe<FulfillmentWhereUniqueInput>;
   connectOrCreate?: InputMaybe<FulfillmentCreateOrConnectWithoutSaleOrderInput>;
@@ -5805,6 +5829,11 @@ export type FulfillmentCreateNestedOneWithoutSaleOrderInput = {
 
 export type FulfillmentCreateOrConnectWithoutDeliveryPersonnelInput = {
   create: FulfillmentCreateWithoutDeliveryPersonnelInput;
+  where: FulfillmentWhereUniqueInput;
+};
+
+export type FulfillmentCreateOrConnectWithoutRiderInterestsInput = {
+  create: FulfillmentCreateWithoutRiderInterestsInput;
   where: FulfillmentWhereUniqueInput;
 };
 
@@ -5818,6 +5847,23 @@ export type FulfillmentCreateWithoutDeliveryPersonnelInput = {
   cost?: InputMaybe<Scalars['Float']['input']>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   deliveryAddress?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  riderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutFulfillmentInput>;
+  saleOrder: SaleOrderCreateNestedOneWithoutFulfillmentInput;
+  status?: InputMaybe<FulfillmentStatus>;
+  transitionLogs?: InputMaybe<FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput>;
+  type: FulfillmentType;
+  updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type FulfillmentCreateWithoutRiderInterestsInput = {
+  confirmationPin?: InputMaybe<Scalars['String']['input']>;
+  cost?: InputMaybe<Scalars['Float']['input']>;
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  deliveryAddress?: InputMaybe<Scalars['String']['input']>;
+  deliveryPersonnel?: InputMaybe<UserCreateNestedOneWithoutFulfillmentInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   saleOrder: SaleOrderCreateNestedOneWithoutFulfillmentInput;
   status?: InputMaybe<FulfillmentStatus>;
@@ -5835,6 +5881,7 @@ export type FulfillmentCreateWithoutSaleOrderInput = {
   deliveryAddress?: InputMaybe<Scalars['String']['input']>;
   deliveryPersonnel?: InputMaybe<UserCreateNestedOneWithoutFulfillmentInput>;
   id?: InputMaybe<Scalars['String']['input']>;
+  riderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutFulfillmentInput>;
   status?: InputMaybe<FulfillmentStatus>;
   transitionLogs?: InputMaybe<FulfillmentTransitionLogCreateNestedManyWithoutFulfillmentInput>;
   type: FulfillmentType;
@@ -5886,6 +5933,263 @@ export type FulfillmentNullableScalarRelationFilter = {
 
 export type FulfillmentOrderByRelationAggregateInput = {
   _count?: InputMaybe<SortOrder>;
+};
+
+export type FulfillmentRiderInterest = {
+  __typename?: 'FulfillmentRiderInterest';
+  createdAt: Scalars['DateTime']['output'];
+  etaMinutes?: Maybe<Scalars['Int']['output']>;
+  expiresAt?: Maybe<Scalars['DateTime']['output']>;
+  fulfillment: Fulfillment;
+  fulfillmentId: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  message?: Maybe<Scalars['String']['output']>;
+  rider: User;
+  riderId: Scalars['String']['output'];
+  status: FulfillmentRiderInterestStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type FulfillmentRiderInterestCreateManyFulfillmentInput = {
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  etaMinutes?: InputMaybe<Scalars['Int']['input']>;
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  message?: InputMaybe<Scalars['String']['input']>;
+  riderId: Scalars['String']['input'];
+  status?: InputMaybe<FulfillmentRiderInterestStatus>;
+  updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+export type FulfillmentRiderInterestCreateManyFulfillmentInputEnvelope = {
+  data: Array<FulfillmentRiderInterestCreateManyFulfillmentInput>;
+  skipDuplicates?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type FulfillmentRiderInterestCreateManyRiderInput = {
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  etaMinutes?: InputMaybe<Scalars['Int']['input']>;
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  fulfillmentId: Scalars['String']['input'];
+  id?: InputMaybe<Scalars['String']['input']>;
+  message?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<FulfillmentRiderInterestStatus>;
+  updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+export type FulfillmentRiderInterestCreateManyRiderInputEnvelope = {
+  data: Array<FulfillmentRiderInterestCreateManyRiderInput>;
+  skipDuplicates?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type FulfillmentRiderInterestCreateNestedManyWithoutFulfillmentInput = {
+  connect?: InputMaybe<Array<FulfillmentRiderInterestWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<FulfillmentRiderInterestCreateOrConnectWithoutFulfillmentInput>>;
+  create?: InputMaybe<Array<FulfillmentRiderInterestCreateWithoutFulfillmentInput>>;
+  createMany?: InputMaybe<FulfillmentRiderInterestCreateManyFulfillmentInputEnvelope>;
+};
+
+export type FulfillmentRiderInterestCreateNestedManyWithoutRiderInput = {
+  connect?: InputMaybe<Array<FulfillmentRiderInterestWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<FulfillmentRiderInterestCreateOrConnectWithoutRiderInput>>;
+  create?: InputMaybe<Array<FulfillmentRiderInterestCreateWithoutRiderInput>>;
+  createMany?: InputMaybe<FulfillmentRiderInterestCreateManyRiderInputEnvelope>;
+};
+
+export type FulfillmentRiderInterestCreateOrConnectWithoutFulfillmentInput = {
+  create: FulfillmentRiderInterestCreateWithoutFulfillmentInput;
+  where: FulfillmentRiderInterestWhereUniqueInput;
+};
+
+export type FulfillmentRiderInterestCreateOrConnectWithoutRiderInput = {
+  create: FulfillmentRiderInterestCreateWithoutRiderInput;
+  where: FulfillmentRiderInterestWhereUniqueInput;
+};
+
+export type FulfillmentRiderInterestCreateWithoutFulfillmentInput = {
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  etaMinutes?: InputMaybe<Scalars['Int']['input']>;
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  message?: InputMaybe<Scalars['String']['input']>;
+  rider: UserCreateNestedOneWithoutFulfillmentRiderInterestInput;
+  status?: InputMaybe<FulfillmentRiderInterestStatus>;
+  updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+export type FulfillmentRiderInterestCreateWithoutRiderInput = {
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  etaMinutes?: InputMaybe<Scalars['Int']['input']>;
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  fulfillment: FulfillmentCreateNestedOneWithoutRiderInterestsInput;
+  id?: InputMaybe<Scalars['String']['input']>;
+  message?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<FulfillmentRiderInterestStatus>;
+  updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+export type FulfillmentRiderInterestFulfillmentIdRiderIdCompoundUniqueInput = {
+  fulfillmentId: Scalars['String']['input'];
+  riderId: Scalars['String']['input'];
+};
+
+export type FulfillmentRiderInterestListRelationFilter = {
+  every?: InputMaybe<FulfillmentRiderInterestWhereInput>;
+  none?: InputMaybe<FulfillmentRiderInterestWhereInput>;
+  some?: InputMaybe<FulfillmentRiderInterestWhereInput>;
+};
+
+export type FulfillmentRiderInterestOrderByRelationAggregateInput = {
+  _count?: InputMaybe<SortOrder>;
+};
+
+export type FulfillmentRiderInterestScalarWhereInput = {
+  AND?: InputMaybe<Array<FulfillmentRiderInterestScalarWhereInput>>;
+  NOT?: InputMaybe<Array<FulfillmentRiderInterestScalarWhereInput>>;
+  OR?: InputMaybe<Array<FulfillmentRiderInterestScalarWhereInput>>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  etaMinutes?: InputMaybe<IntNullableFilter>;
+  expiresAt?: InputMaybe<DateTimeNullableFilter>;
+  fulfillmentId?: InputMaybe<StringFilter>;
+  id?: InputMaybe<StringFilter>;
+  message?: InputMaybe<StringNullableFilter>;
+  riderId?: InputMaybe<StringFilter>;
+  status?: InputMaybe<EnumFulfillmentRiderInterestStatusFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+};
+
+export enum FulfillmentRiderInterestStatus {
+  Active = 'ACTIVE',
+  Assigned = 'ASSIGNED',
+  Rejected = 'REJECTED',
+  Withdrawn = 'WITHDRAWN'
+}
+
+export type FulfillmentRiderInterestUpdateManyMutationInput = {
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  etaMinutes?: InputMaybe<NullableIntFieldUpdateOperationsInput>;
+  expiresAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  message?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  status?: InputMaybe<EnumFulfillmentRiderInterestStatusFieldUpdateOperationsInput>;
+  updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+};
+
+export type FulfillmentRiderInterestUpdateManyWithWhereWithoutFulfillmentInput = {
+  data: FulfillmentRiderInterestUpdateManyMutationInput;
+  where: FulfillmentRiderInterestScalarWhereInput;
+};
+
+export type FulfillmentRiderInterestUpdateManyWithWhereWithoutRiderInput = {
+  data: FulfillmentRiderInterestUpdateManyMutationInput;
+  where: FulfillmentRiderInterestScalarWhereInput;
+};
+
+export type FulfillmentRiderInterestUpdateManyWithoutFulfillmentNestedInput = {
+  connect?: InputMaybe<Array<FulfillmentRiderInterestWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<FulfillmentRiderInterestCreateOrConnectWithoutFulfillmentInput>>;
+  create?: InputMaybe<Array<FulfillmentRiderInterestCreateWithoutFulfillmentInput>>;
+  createMany?: InputMaybe<FulfillmentRiderInterestCreateManyFulfillmentInputEnvelope>;
+  delete?: InputMaybe<Array<FulfillmentRiderInterestWhereUniqueInput>>;
+  deleteMany?: InputMaybe<Array<FulfillmentRiderInterestScalarWhereInput>>;
+  disconnect?: InputMaybe<Array<FulfillmentRiderInterestWhereUniqueInput>>;
+  set?: InputMaybe<Array<FulfillmentRiderInterestWhereUniqueInput>>;
+  update?: InputMaybe<Array<FulfillmentRiderInterestUpdateWithWhereUniqueWithoutFulfillmentInput>>;
+  updateMany?: InputMaybe<Array<FulfillmentRiderInterestUpdateManyWithWhereWithoutFulfillmentInput>>;
+  upsert?: InputMaybe<Array<FulfillmentRiderInterestUpsertWithWhereUniqueWithoutFulfillmentInput>>;
+};
+
+export type FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput = {
+  connect?: InputMaybe<Array<FulfillmentRiderInterestWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<FulfillmentRiderInterestCreateOrConnectWithoutRiderInput>>;
+  create?: InputMaybe<Array<FulfillmentRiderInterestCreateWithoutRiderInput>>;
+  createMany?: InputMaybe<FulfillmentRiderInterestCreateManyRiderInputEnvelope>;
+  delete?: InputMaybe<Array<FulfillmentRiderInterestWhereUniqueInput>>;
+  deleteMany?: InputMaybe<Array<FulfillmentRiderInterestScalarWhereInput>>;
+  disconnect?: InputMaybe<Array<FulfillmentRiderInterestWhereUniqueInput>>;
+  set?: InputMaybe<Array<FulfillmentRiderInterestWhereUniqueInput>>;
+  update?: InputMaybe<Array<FulfillmentRiderInterestUpdateWithWhereUniqueWithoutRiderInput>>;
+  updateMany?: InputMaybe<Array<FulfillmentRiderInterestUpdateManyWithWhereWithoutRiderInput>>;
+  upsert?: InputMaybe<Array<FulfillmentRiderInterestUpsertWithWhereUniqueWithoutRiderInput>>;
+};
+
+export type FulfillmentRiderInterestUpdateWithWhereUniqueWithoutFulfillmentInput = {
+  data: FulfillmentRiderInterestUpdateWithoutFulfillmentInput;
+  where: FulfillmentRiderInterestWhereUniqueInput;
+};
+
+export type FulfillmentRiderInterestUpdateWithWhereUniqueWithoutRiderInput = {
+  data: FulfillmentRiderInterestUpdateWithoutRiderInput;
+  where: FulfillmentRiderInterestWhereUniqueInput;
+};
+
+export type FulfillmentRiderInterestUpdateWithoutFulfillmentInput = {
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  etaMinutes?: InputMaybe<NullableIntFieldUpdateOperationsInput>;
+  expiresAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  message?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  rider?: InputMaybe<UserUpdateOneRequiredWithoutFulfillmentRiderInterestNestedInput>;
+  status?: InputMaybe<EnumFulfillmentRiderInterestStatusFieldUpdateOperationsInput>;
+  updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+};
+
+export type FulfillmentRiderInterestUpdateWithoutRiderInput = {
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  etaMinutes?: InputMaybe<NullableIntFieldUpdateOperationsInput>;
+  expiresAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+  fulfillment?: InputMaybe<FulfillmentUpdateOneRequiredWithoutRiderInterestsNestedInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  message?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  status?: InputMaybe<EnumFulfillmentRiderInterestStatusFieldUpdateOperationsInput>;
+  updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+};
+
+export type FulfillmentRiderInterestUpsertWithWhereUniqueWithoutFulfillmentInput = {
+  create: FulfillmentRiderInterestCreateWithoutFulfillmentInput;
+  update: FulfillmentRiderInterestUpdateWithoutFulfillmentInput;
+  where: FulfillmentRiderInterestWhereUniqueInput;
+};
+
+export type FulfillmentRiderInterestUpsertWithWhereUniqueWithoutRiderInput = {
+  create: FulfillmentRiderInterestCreateWithoutRiderInput;
+  update: FulfillmentRiderInterestUpdateWithoutRiderInput;
+  where: FulfillmentRiderInterestWhereUniqueInput;
+};
+
+export type FulfillmentRiderInterestWhereInput = {
+  AND?: InputMaybe<Array<FulfillmentRiderInterestWhereInput>>;
+  NOT?: InputMaybe<Array<FulfillmentRiderInterestWhereInput>>;
+  OR?: InputMaybe<Array<FulfillmentRiderInterestWhereInput>>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  etaMinutes?: InputMaybe<IntNullableFilter>;
+  expiresAt?: InputMaybe<DateTimeNullableFilter>;
+  fulfillment?: InputMaybe<FulfillmentScalarRelationFilter>;
+  fulfillmentId?: InputMaybe<StringFilter>;
+  id?: InputMaybe<StringFilter>;
+  message?: InputMaybe<StringNullableFilter>;
+  rider?: InputMaybe<UserScalarRelationFilter>;
+  riderId?: InputMaybe<StringFilter>;
+  status?: InputMaybe<EnumFulfillmentRiderInterestStatusFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+};
+
+export type FulfillmentRiderInterestWhereUniqueInput = {
+  AND?: InputMaybe<Array<FulfillmentRiderInterestWhereInput>>;
+  NOT?: InputMaybe<Array<FulfillmentRiderInterestWhereInput>>;
+  OR?: InputMaybe<Array<FulfillmentRiderInterestWhereInput>>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  etaMinutes?: InputMaybe<IntNullableFilter>;
+  expiresAt?: InputMaybe<DateTimeNullableFilter>;
+  fulfillment?: InputMaybe<FulfillmentScalarRelationFilter>;
+  fulfillmentId?: InputMaybe<StringFilter>;
+  fulfillmentId_riderId?: InputMaybe<FulfillmentRiderInterestFulfillmentIdRiderIdCompoundUniqueInput>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  message?: InputMaybe<StringNullableFilter>;
+  rider?: InputMaybe<UserScalarRelationFilter>;
+  riderId?: InputMaybe<StringFilter>;
+  status?: InputMaybe<EnumFulfillmentRiderInterestStatusFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
 export type FulfillmentScalarRelationFilter = {
@@ -6103,6 +6407,14 @@ export type FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput = {
   upsert?: InputMaybe<Array<FulfillmentUpsertWithWhereUniqueWithoutDeliveryPersonnelInput>>;
 };
 
+export type FulfillmentUpdateOneRequiredWithoutRiderInterestsNestedInput = {
+  connect?: InputMaybe<FulfillmentWhereUniqueInput>;
+  connectOrCreate?: InputMaybe<FulfillmentCreateOrConnectWithoutRiderInterestsInput>;
+  create?: InputMaybe<FulfillmentCreateWithoutRiderInterestsInput>;
+  update?: InputMaybe<FulfillmentUpdateToOneWithWhereWithoutRiderInterestsInput>;
+  upsert?: InputMaybe<FulfillmentUpsertWithoutRiderInterestsInput>;
+};
+
 export type FulfillmentUpdateOneWithoutSaleOrderNestedInput = {
   connect?: InputMaybe<FulfillmentWhereUniqueInput>;
   connectOrCreate?: InputMaybe<FulfillmentCreateOrConnectWithoutSaleOrderInput>;
@@ -6111,6 +6423,11 @@ export type FulfillmentUpdateOneWithoutSaleOrderNestedInput = {
   disconnect?: InputMaybe<FulfillmentWhereInput>;
   update?: InputMaybe<FulfillmentUpdateToOneWithWhereWithoutSaleOrderInput>;
   upsert?: InputMaybe<FulfillmentUpsertWithoutSaleOrderInput>;
+};
+
+export type FulfillmentUpdateToOneWithWhereWithoutRiderInterestsInput = {
+  data: FulfillmentUpdateWithoutRiderInterestsInput;
+  where?: InputMaybe<FulfillmentWhereInput>;
 };
 
 export type FulfillmentUpdateToOneWithWhereWithoutSaleOrderInput = {
@@ -6129,6 +6446,23 @@ export type FulfillmentUpdateWithoutDeliveryPersonnelInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   deliveryAddress?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  riderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutFulfillmentNestedInput>;
+  saleOrder?: InputMaybe<SaleOrderUpdateOneRequiredWithoutFulfillmentNestedInput>;
+  status?: InputMaybe<EnumFulfillmentStatusFieldUpdateOperationsInput>;
+  transitionLogs?: InputMaybe<FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput>;
+  type?: InputMaybe<EnumFulfillmentTypeFieldUpdateOperationsInput>;
+  updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  workflowContext?: InputMaybe<Scalars['JSON']['input']>;
+  workflowState?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+};
+
+export type FulfillmentUpdateWithoutRiderInterestsInput = {
+  confirmationPin?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  cost?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  deliveryAddress?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  deliveryPersonnel?: InputMaybe<UserUpdateOneWithoutFulfillmentNestedInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
   saleOrder?: InputMaybe<SaleOrderUpdateOneRequiredWithoutFulfillmentNestedInput>;
   status?: InputMaybe<EnumFulfillmentStatusFieldUpdateOperationsInput>;
   transitionLogs?: InputMaybe<FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput>;
@@ -6145,6 +6479,7 @@ export type FulfillmentUpdateWithoutSaleOrderInput = {
   deliveryAddress?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   deliveryPersonnel?: InputMaybe<UserUpdateOneWithoutFulfillmentNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  riderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutFulfillmentNestedInput>;
   status?: InputMaybe<EnumFulfillmentStatusFieldUpdateOperationsInput>;
   transitionLogs?: InputMaybe<FulfillmentTransitionLogUpdateManyWithoutFulfillmentNestedInput>;
   type?: InputMaybe<EnumFulfillmentTypeFieldUpdateOperationsInput>;
@@ -6157,6 +6492,12 @@ export type FulfillmentUpsertWithWhereUniqueWithoutDeliveryPersonnelInput = {
   create: FulfillmentCreateWithoutDeliveryPersonnelInput;
   update: FulfillmentUpdateWithoutDeliveryPersonnelInput;
   where: FulfillmentWhereUniqueInput;
+};
+
+export type FulfillmentUpsertWithoutRiderInterestsInput = {
+  create: FulfillmentCreateWithoutRiderInterestsInput;
+  update: FulfillmentUpdateWithoutRiderInterestsInput;
+  where?: InputMaybe<FulfillmentWhereInput>;
 };
 
 export type FulfillmentUpsertWithoutSaleOrderInput = {
@@ -6176,6 +6517,7 @@ export type FulfillmentWhereInput = {
   deliveryPersonnel?: InputMaybe<UserNullableScalarRelationFilter>;
   deliveryPersonnelId?: InputMaybe<StringNullableFilter>;
   id?: InputMaybe<StringFilter>;
+  riderInterests?: InputMaybe<FulfillmentRiderInterestListRelationFilter>;
   saleOrder?: InputMaybe<SaleOrderScalarRelationFilter>;
   saleOrderId?: InputMaybe<StringFilter>;
   status?: InputMaybe<EnumFulfillmentStatusFilter>;
@@ -6197,6 +6539,7 @@ export type FulfillmentWhereUniqueInput = {
   deliveryPersonnel?: InputMaybe<UserNullableScalarRelationFilter>;
   deliveryPersonnelId?: InputMaybe<StringNullableFilter>;
   id?: InputMaybe<Scalars['String']['input']>;
+  riderInterests?: InputMaybe<FulfillmentRiderInterestListRelationFilter>;
   saleOrder?: InputMaybe<SaleOrderScalarRelationFilter>;
   saleOrderId?: InputMaybe<Scalars['String']['input']>;
   status?: InputMaybe<EnumFulfillmentStatusFilter>;
@@ -6776,6 +7119,7 @@ export type Mutation = {
   assignFacetToVariant: Scalars['String']['output'];
   /** Update fulfillment status (ASSIGNED, IN_TRANSIT, DELIVERED, CANCELLED). If DELIVERED and a PIN is set, confirmationPin is required. */
   assignFulfillmentPersonnel: Fulfillment;
+  assignFulfillmentRider: FulfillmentRiderInterest;
   assignRole: Scalars['Boolean']['output'];
   assignStoreManager: Scalars['Boolean']['output'];
   /** Attach an existing address to an owning entity (store, user, order, etc.) */
@@ -6867,6 +7211,7 @@ export type Mutation = {
   processOutbox: Scalars['Int']['output'];
   receiveStockBatch: StockReceiptBatch;
   registerConsumerPayment: ConsumerPayment;
+  registerFulfillmentInterest: FulfillmentRiderInterest;
   registerResellerPayment: ResellerPayment;
   rejectPurchaseRequisition: Scalars['Boolean']['output'];
   rejectReseller: ResellerProfile;
@@ -6919,6 +7264,7 @@ export type Mutation = {
   verifyAddress: Address;
   verifyEmail: Scalars['Boolean']['output'];
   verifyPhone: Scalars['Boolean']['output'];
+  withdrawFulfillmentInterest: FulfillmentRiderInterest;
 };
 
 
@@ -7026,6 +7372,11 @@ export type MutationAssignFacetToVariantArgs = {
 
 export type MutationAssignFulfillmentPersonnelArgs = {
   input: AssignFulfillmentPersonnelInput;
+};
+
+
+export type MutationAssignFulfillmentRiderArgs = {
+  input: AssignFulfillmentRiderInput;
 };
 
 
@@ -7481,6 +7832,11 @@ export type MutationRegisterConsumerPaymentArgs = {
 };
 
 
+export type MutationRegisterFulfillmentInterestArgs = {
+  input: RegisterFulfillmentInterestInput;
+};
+
+
 export type MutationRegisterResellerPaymentArgs = {
   input: CreateResellerPaymentInput;
 };
@@ -7746,6 +8102,11 @@ export type MutationVerifyPhoneArgs = {
   code: Scalars['String']['input'];
 };
 
+
+export type MutationWithdrawFulfillmentInterestArgs = {
+  fulfillmentId: Scalars['String']['input'];
+};
+
 export type NestedBoolFilter = {
   equals?: InputMaybe<Scalars['Boolean']['input']>;
   not?: InputMaybe<NestedBoolFilter>;
@@ -7855,6 +8216,13 @@ export type NestedEnumAssetKindWithAggregatesFilter = {
   in?: InputMaybe<Array<AssetKind>>;
   not?: InputMaybe<NestedEnumAssetKindWithAggregatesFilter>;
   notIn?: InputMaybe<Array<AssetKind>>;
+};
+
+export type NestedEnumFulfillmentRiderInterestStatusFilter = {
+  equals?: InputMaybe<FulfillmentRiderInterestStatus>;
+  in?: InputMaybe<Array<FulfillmentRiderInterestStatus>>;
+  not?: InputMaybe<NestedEnumFulfillmentRiderInterestStatusFilter>;
+  notIn?: InputMaybe<Array<FulfillmentRiderInterestStatus>>;
 };
 
 export type NestedEnumFulfillmentStatusFilter = {
@@ -13314,6 +13682,7 @@ export type Query = {
   customerAffinity: Array<CustomerAffinityEntry>;
   dailyPaymentsSeries: Array<PaymentDaySeries>;
   dailyPaymentsSeriesRange: Array<PaymentDaySeries>;
+  deliverableFulfillments: Array<Fulfillment>;
   devCounts: DevCounts;
   devExportSnapshot: Scalars['String']['output'];
   /** Estimate distance and ETA between two stored addresses using the configured routing provider. */
@@ -13330,6 +13699,7 @@ export type Query = {
   findUniqueProductVariant?: Maybe<ProductVariant>;
   findUniqueStore: Store;
   findUniqueUser: User;
+  fulfillmentRiderInterests: Array<FulfillmentRiderInterest>;
   fulfilmentWorkflow?: Maybe<FulfilmentWorkflowSnapshot>;
   groupByAddress: Array<AddressGroupBy>;
   groupByAddressAssignment: Array<AddressAssignmentGroupBy>;
@@ -13357,6 +13727,7 @@ export type Query = {
   me: User;
   monthlySalesSummary: MonthlySalesSummary;
   monthlySalesSummaryByStore: MonthlySalesSummary;
+  myFulfillmentInterests: Array<FulfillmentRiderInterest>;
   mySupportMessages: Array<SupportMessage>;
   notifications: Array<Notification>;
   order: SaleOrder;
@@ -13769,6 +14140,11 @@ export type QueryFindUniqueStoreArgs = {
 
 export type QueryFindUniqueUserArgs = {
   where: UserWhereUniqueInput;
+};
+
+
+export type QueryFulfillmentRiderInterestsArgs = {
+  saleOrderId: Scalars['String']['input'];
 };
 
 
@@ -15394,6 +15770,12 @@ export type ReceiveStockBatchInput = {
 export type ReceiveStockBatchItemInput = {
   productVariantId: Scalars['ID']['input'];
   quantity: Scalars['Int']['input'];
+};
+
+export type RegisterFulfillmentInterestInput = {
+  etaMinutes?: InputMaybe<Scalars['Int']['input']>;
+  fulfillmentId: Scalars['ID']['input'];
+  message?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type RejectRequisitionInput = {
@@ -25374,6 +25756,7 @@ export type User = {
   ConsumerSale?: Maybe<Array<ConsumerSale>>;
   ConsumerSaleAdjustedBys?: Maybe<Array<ConsumerSale>>;
   Fulfillment?: Maybe<Array<Fulfillment>>;
+  FulfillmentRiderInterest?: Maybe<Array<FulfillmentRiderInterest>>;
   Notification?: Maybe<Array<Notification>>;
   Payment?: Maybe<Array<Payment>>;
   PurchaseRequisition?: Maybe<Array<PurchaseRequisition>>;
@@ -25426,6 +25809,7 @@ export type UserCount = {
   ConsumerSale: Scalars['Int']['output'];
   ConsumerSaleAdjustedBys: Scalars['Int']['output'];
   Fulfillment: Scalars['Int']['output'];
+  FulfillmentRiderInterest: Scalars['Int']['output'];
   Notification: Scalars['Int']['output'];
   Payment: Scalars['Int']['output'];
   PurchaseRequisition: Scalars['Int']['output'];
@@ -25509,6 +25893,7 @@ export type UserCreateInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -25611,6 +25996,12 @@ export type UserCreateNestedOneWithoutFulfillmentInput = {
   connect?: InputMaybe<UserWhereUniqueInput>;
   connectOrCreate?: InputMaybe<UserCreateOrConnectWithoutFulfillmentInput>;
   create?: InputMaybe<UserCreateWithoutFulfillmentInput>;
+};
+
+export type UserCreateNestedOneWithoutFulfillmentRiderInterestInput = {
+  connect?: InputMaybe<UserWhereUniqueInput>;
+  connectOrCreate?: InputMaybe<UserCreateOrConnectWithoutFulfillmentRiderInterestInput>;
+  create?: InputMaybe<UserCreateWithoutFulfillmentRiderInterestInput>;
 };
 
 export type UserCreateNestedOneWithoutPurchaseRequisitionInput = {
@@ -25779,6 +26170,11 @@ export type UserCreateOrConnectWithoutFulfillmentInput = {
   where: UserWhereUniqueInput;
 };
 
+export type UserCreateOrConnectWithoutFulfillmentRiderInterestInput = {
+  create: UserCreateWithoutFulfillmentRiderInterestInput;
+  where: UserWhereUniqueInput;
+};
+
 export type UserCreateOrConnectWithoutPurchaseRequisitionInput = {
   create: UserCreateWithoutPurchaseRequisitionInput;
   where: UserWhereUniqueInput;
@@ -25891,6 +26287,7 @@ export type UserCreateWithoutBillerQuotationInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -25939,6 +26336,7 @@ export type UserCreateWithoutBillerResellerSaleInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -25987,6 +26385,7 @@ export type UserCreateWithoutBillerSaleOrdersInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26035,6 +26434,7 @@ export type UserCreateWithoutConsumerReceiptInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26083,6 +26483,7 @@ export type UserCreateWithoutConsumerSaleAdjustedBysInput = {
   ConsumerReceipt?: InputMaybe<ConsumerReceiptCreateNestedManyWithoutIssuedByInput>;
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26131,6 +26532,7 @@ export type UserCreateWithoutConsumerSaleInput = {
   ConsumerReceipt?: InputMaybe<ConsumerReceiptCreateNestedManyWithoutIssuedByInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26180,6 +26582,7 @@ export type UserCreateWithoutCustomerProfileInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26227,6 +26630,56 @@ export type UserCreateWithoutFulfillmentInput = {
   ConsumerReceipt?: InputMaybe<ConsumerReceiptCreateNestedManyWithoutIssuedByInput>;
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
+  Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
+  PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
+  PurchaseReturnApprovers?: InputMaybe<PurchaseReturnCreateNestedManyWithoutApprovedByInput>;
+  PurchaseReturnInitiators?: InputMaybe<PurchaseReturnCreateNestedManyWithoutInitiatedByInput>;
+  RequestedResellers?: InputMaybe<ResellerProfileCreateNestedManyWithoutRequestedBillerInput>;
+  ResellerProfile?: InputMaybe<ResellerProfileCreateNestedManyWithoutBillerInput>;
+  ResellerQuotation?: InputMaybe<QuotationCreateNestedManyWithoutResellerInput>;
+  ResellerSale?: InputMaybe<ResellerSaleCreateNestedManyWithoutApprovedByInput>;
+  ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
+  ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
+  ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
+  SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
+  SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
+  StockReceiptBatchConfirmedBys?: InputMaybe<StockReceiptBatchCreateNestedManyWithoutConfirmedByInput>;
+  StockReceiptBatchReceivedBys?: InputMaybe<StockReceiptBatchCreateNestedManyWithoutReceivedByInput>;
+  StockTransferApprovals?: InputMaybe<StockTransferCreateNestedManyWithoutApprovedByInput>;
+  StockTransferRequests?: InputMaybe<StockTransferCreateNestedManyWithoutRequestedByInput>;
+  Store?: InputMaybe<StoreCreateNestedManyWithoutManagerInput>;
+  Supplier?: InputMaybe<SupplierCreateNestedManyWithoutUserInput>;
+  adminLogs?: InputMaybe<AdminActionLogCreateNestedManyWithoutAdminInput>;
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  customerProfile?: InputMaybe<CustomerProfileCreateNestedOneWithoutUserInput>;
+  email: Scalars['String']['input'];
+  emailVerificationToken?: InputMaybe<Scalars['String']['input']>;
+  emailVerificationTokenExpiry?: InputMaybe<Scalars['DateTime']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  isEmailVerified?: InputMaybe<Scalars['Boolean']['input']>;
+  passwordHash: Scalars['String']['input'];
+  referralCode?: InputMaybe<Scalars['String']['input']>;
+  referredBy?: InputMaybe<Scalars['String']['input']>;
+  resellerPaymentsMade?: InputMaybe<ResellerPaymentCreateNestedManyWithoutResellerInput>;
+  resellerPaymentsReceived?: InputMaybe<ResellerPaymentCreateNestedManyWithoutReceivedByInput>;
+  resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
+  role: RoleCreateNestedOneWithoutUsersInput;
+  supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  tier?: InputMaybe<UserTier>;
+  updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+export type UserCreateWithoutFulfillmentRiderInterestInput = {
+  BillerQuotation?: InputMaybe<QuotationCreateNestedManyWithoutBillerInput>;
+  BillerResellerSale?: InputMaybe<ResellerSaleCreateNestedManyWithoutBillerInput>;
+  BillerSaleOrders?: InputMaybe<SaleOrderCreateNestedManyWithoutBillerInput>;
+  ConsumerReceipt?: InputMaybe<ConsumerReceiptCreateNestedManyWithoutIssuedByInput>;
+  ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
+  ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
+  Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26276,6 +26729,7 @@ export type UserCreateWithoutPurchaseRequisitionInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseReturnApprovers?: InputMaybe<PurchaseReturnCreateNestedManyWithoutApprovedByInput>;
@@ -26324,6 +26778,7 @@ export type UserCreateWithoutPurchaseReturnApproversInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26372,6 +26827,7 @@ export type UserCreateWithoutPurchaseReturnInitiatorsInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26420,6 +26876,7 @@ export type UserCreateWithoutRequestedResellersInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26468,6 +26925,7 @@ export type UserCreateWithoutResellerPaymentsMadeInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26516,6 +26974,7 @@ export type UserCreateWithoutResellerPaymentsReceivedInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26564,6 +27023,7 @@ export type UserCreateWithoutResellerProfileInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26612,6 +27072,7 @@ export type UserCreateWithoutResellerQuotationInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26660,6 +27121,7 @@ export type UserCreateWithoutResellerSaleInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26708,6 +27170,7 @@ export type UserCreateWithoutResellerSalesInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26756,6 +27219,7 @@ export type UserCreateWithoutResellerTierHistoryChangedBysInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26804,6 +27268,7 @@ export type UserCreateWithoutResellerTierHistoryInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26852,6 +27317,7 @@ export type UserCreateWithoutSalesReturnInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26900,6 +27366,7 @@ export type UserCreateWithoutSalesReturnReceiversInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26948,6 +27415,7 @@ export type UserCreateWithoutSalesReturnRequestersInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26996,6 +27464,7 @@ export type UserCreateWithoutStockReceiptBatchConfirmedBysInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27044,6 +27513,7 @@ export type UserCreateWithoutStockReceiptBatchReceivedBysInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27092,6 +27562,7 @@ export type UserCreateWithoutStockTransferApprovalsInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27140,6 +27611,7 @@ export type UserCreateWithoutStockTransferRequestsInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27188,6 +27660,7 @@ export type UserCreateWithoutStoreInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27236,6 +27709,7 @@ export type UserCreateWithoutSupplierInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27428,6 +27902,7 @@ export type UserOrderByWithRelationInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleOrderByRelationAggregateInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleOrderByRelationAggregateInput>;
   Fulfillment?: InputMaybe<FulfillmentOrderByRelationAggregateInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestOrderByRelationAggregateInput>;
   Notification?: InputMaybe<NotificationOrderByRelationAggregateInput>;
   Payment?: InputMaybe<PaymentOrderByRelationAggregateInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionOrderByRelationAggregateInput>;
@@ -27524,6 +27999,7 @@ export type UserUpdateInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -27617,6 +28093,14 @@ export type UserUpdateOneRequiredWithoutCustomerProfileNestedInput = {
   create?: InputMaybe<UserCreateWithoutCustomerProfileInput>;
   update?: InputMaybe<UserUpdateToOneWithWhereWithoutCustomerProfileInput>;
   upsert?: InputMaybe<UserUpsertWithoutCustomerProfileInput>;
+};
+
+export type UserUpdateOneRequiredWithoutFulfillmentRiderInterestNestedInput = {
+  connect?: InputMaybe<UserWhereUniqueInput>;
+  connectOrCreate?: InputMaybe<UserCreateOrConnectWithoutFulfillmentRiderInterestInput>;
+  create?: InputMaybe<UserCreateWithoutFulfillmentRiderInterestInput>;
+  update?: InputMaybe<UserUpdateToOneWithWhereWithoutFulfillmentRiderInterestInput>;
+  upsert?: InputMaybe<UserUpsertWithoutFulfillmentRiderInterestInput>;
 };
 
 export type UserUpdateOneRequiredWithoutPurchaseRequisitionNestedInput = {
@@ -27877,6 +28361,11 @@ export type UserUpdateToOneWithWhereWithoutFulfillmentInput = {
   where?: InputMaybe<UserWhereInput>;
 };
 
+export type UserUpdateToOneWithWhereWithoutFulfillmentRiderInterestInput = {
+  data: UserUpdateWithoutFulfillmentRiderInterestInput;
+  where?: InputMaybe<UserWhereInput>;
+};
+
 export type UserUpdateToOneWithWhereWithoutPurchaseRequisitionInput = {
   data: UserUpdateWithoutPurchaseRequisitionInput;
   where?: InputMaybe<UserWhereInput>;
@@ -27989,6 +28478,7 @@ export type UserUpdateWithoutBillerQuotationInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28037,6 +28527,7 @@ export type UserUpdateWithoutBillerResellerSaleInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28085,6 +28576,7 @@ export type UserUpdateWithoutBillerSaleOrdersInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28133,6 +28625,7 @@ export type UserUpdateWithoutConsumerReceiptInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28181,6 +28674,7 @@ export type UserUpdateWithoutConsumerSaleAdjustedBysInput = {
   ConsumerReceipt?: InputMaybe<ConsumerReceiptUpdateManyWithoutIssuedByNestedInput>;
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28229,6 +28723,7 @@ export type UserUpdateWithoutConsumerSaleInput = {
   ConsumerReceipt?: InputMaybe<ConsumerReceiptUpdateManyWithoutIssuedByNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28278,6 +28773,7 @@ export type UserUpdateWithoutCustomerProfileInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28325,6 +28821,56 @@ export type UserUpdateWithoutFulfillmentInput = {
   ConsumerReceipt?: InputMaybe<ConsumerReceiptUpdateManyWithoutIssuedByNestedInput>;
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
+  Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
+  PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
+  PurchaseReturnApprovers?: InputMaybe<PurchaseReturnUpdateManyWithoutApprovedByNestedInput>;
+  PurchaseReturnInitiators?: InputMaybe<PurchaseReturnUpdateManyWithoutInitiatedByNestedInput>;
+  RequestedResellers?: InputMaybe<ResellerProfileUpdateManyWithoutRequestedBillerNestedInput>;
+  ResellerProfile?: InputMaybe<ResellerProfileUpdateManyWithoutBillerNestedInput>;
+  ResellerQuotation?: InputMaybe<QuotationUpdateManyWithoutResellerNestedInput>;
+  ResellerSale?: InputMaybe<ResellerSaleUpdateManyWithoutApprovedByNestedInput>;
+  ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
+  ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
+  ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
+  SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
+  SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
+  StockReceiptBatchConfirmedBys?: InputMaybe<StockReceiptBatchUpdateManyWithoutConfirmedByNestedInput>;
+  StockReceiptBatchReceivedBys?: InputMaybe<StockReceiptBatchUpdateManyWithoutReceivedByNestedInput>;
+  StockTransferApprovals?: InputMaybe<StockTransferUpdateManyWithoutApprovedByNestedInput>;
+  StockTransferRequests?: InputMaybe<StockTransferUpdateManyWithoutRequestedByNestedInput>;
+  Store?: InputMaybe<StoreUpdateManyWithoutManagerNestedInput>;
+  Supplier?: InputMaybe<SupplierUpdateManyWithoutUserNestedInput>;
+  adminLogs?: InputMaybe<AdminActionLogUpdateManyWithoutAdminNestedInput>;
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  customerProfile?: InputMaybe<CustomerProfileUpdateOneWithoutUserNestedInput>;
+  email?: InputMaybe<StringFieldUpdateOperationsInput>;
+  emailVerificationToken?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  emailVerificationTokenExpiry?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  isEmailVerified?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  passwordHash?: InputMaybe<StringFieldUpdateOperationsInput>;
+  referralCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  referredBy?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  resellerPaymentsMade?: InputMaybe<ResellerPaymentUpdateManyWithoutResellerNestedInput>;
+  resellerPaymentsReceived?: InputMaybe<ResellerPaymentUpdateManyWithoutReceivedByNestedInput>;
+  resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
+  role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
+  supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
+  updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+};
+
+export type UserUpdateWithoutFulfillmentRiderInterestInput = {
+  BillerQuotation?: InputMaybe<QuotationUpdateManyWithoutBillerNestedInput>;
+  BillerResellerSale?: InputMaybe<ResellerSaleUpdateManyWithoutBillerNestedInput>;
+  BillerSaleOrders?: InputMaybe<SaleOrderUpdateManyWithoutBillerNestedInput>;
+  ConsumerReceipt?: InputMaybe<ConsumerReceiptUpdateManyWithoutIssuedByNestedInput>;
+  ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
+  ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
+  Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28374,6 +28920,7 @@ export type UserUpdateWithoutPurchaseRequisitionInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseReturnApprovers?: InputMaybe<PurchaseReturnUpdateManyWithoutApprovedByNestedInput>;
@@ -28422,6 +28969,7 @@ export type UserUpdateWithoutPurchaseReturnApproversInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28470,6 +29018,7 @@ export type UserUpdateWithoutPurchaseReturnInitiatorsInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28518,6 +29067,7 @@ export type UserUpdateWithoutRequestedResellersInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28566,6 +29116,7 @@ export type UserUpdateWithoutResellerPaymentsMadeInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28614,6 +29165,7 @@ export type UserUpdateWithoutResellerPaymentsReceivedInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28662,6 +29214,7 @@ export type UserUpdateWithoutResellerProfileInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28710,6 +29263,7 @@ export type UserUpdateWithoutResellerQuotationInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28758,6 +29312,7 @@ export type UserUpdateWithoutResellerSaleInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28806,6 +29361,7 @@ export type UserUpdateWithoutResellerSalesInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28854,6 +29410,7 @@ export type UserUpdateWithoutResellerTierHistoryChangedBysInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28902,6 +29459,7 @@ export type UserUpdateWithoutResellerTierHistoryInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28950,6 +29508,7 @@ export type UserUpdateWithoutSalesReturnInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28998,6 +29557,7 @@ export type UserUpdateWithoutSalesReturnReceiversInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29046,6 +29606,7 @@ export type UserUpdateWithoutSalesReturnRequestersInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29094,6 +29655,7 @@ export type UserUpdateWithoutStockReceiptBatchConfirmedBysInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29142,6 +29704,7 @@ export type UserUpdateWithoutStockReceiptBatchReceivedBysInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29190,6 +29753,7 @@ export type UserUpdateWithoutStockTransferApprovalsInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29238,6 +29802,7 @@ export type UserUpdateWithoutStockTransferRequestsInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29286,6 +29851,7 @@ export type UserUpdateWithoutStoreInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29334,6 +29900,7 @@ export type UserUpdateWithoutSupplierInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29419,6 +29986,12 @@ export type UserUpsertWithoutCustomerProfileInput = {
 export type UserUpsertWithoutFulfillmentInput = {
   create: UserCreateWithoutFulfillmentInput;
   update: UserUpdateWithoutFulfillmentInput;
+  where?: InputMaybe<UserWhereInput>;
+};
+
+export type UserUpsertWithoutFulfillmentRiderInterestInput = {
+  create: UserCreateWithoutFulfillmentRiderInterestInput;
+  update: UserUpdateWithoutFulfillmentRiderInterestInput;
   where?: InputMaybe<UserWhereInput>;
 };
 
@@ -29557,6 +30130,7 @@ export type UserWhereInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleListRelationFilter>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleListRelationFilter>;
   Fulfillment?: InputMaybe<FulfillmentListRelationFilter>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestListRelationFilter>;
   NOT?: InputMaybe<Array<UserWhereInput>>;
   Notification?: InputMaybe<NotificationListRelationFilter>;
   OR?: InputMaybe<Array<UserWhereInput>>;
@@ -29610,6 +30184,7 @@ export type UserWhereUniqueInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleListRelationFilter>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleListRelationFilter>;
   Fulfillment?: InputMaybe<FulfillmentListRelationFilter>;
+  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestListRelationFilter>;
   NOT?: InputMaybe<Array<UserWhereInput>>;
   Notification?: InputMaybe<NotificationListRelationFilter>;
   OR?: InputMaybe<Array<UserWhereInput>>;
@@ -30218,6 +30793,44 @@ export type UpdateFulfillmentStatusMutationVariables = Exact<{
 
 
 export type UpdateFulfillmentStatusMutation = { __typename?: 'Mutation', updateFulfillmentStatus: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, updatedAt: any } };
+
+export type DeliverableFulfillmentsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type DeliverableFulfillmentsQuery = { __typename?: 'Query', deliverableFulfillments: Array<{ __typename?: 'Fulfillment', id: string, saleOrderId: string, deliveryAddress?: string | null, status: FulfillmentStatus, createdAt: any }> };
+
+export type MyFulfillmentInterestsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type MyFulfillmentInterestsQuery = { __typename?: 'Query', myFulfillmentInterests: Array<{ __typename?: 'FulfillmentRiderInterest', id: string, status: FulfillmentRiderInterestStatus, etaMinutes?: number | null, message?: string | null, createdAt: any, fulfillment: { __typename?: 'Fulfillment', id: string, saleOrderId: string, deliveryAddress?: string | null, status: FulfillmentStatus } }> };
+
+export type RegisterFulfillmentInterestMutationVariables = Exact<{
+  input: RegisterFulfillmentInterestInput;
+}>;
+
+
+export type RegisterFulfillmentInterestMutation = { __typename?: 'Mutation', registerFulfillmentInterest: { __typename?: 'FulfillmentRiderInterest', id: string, status: FulfillmentRiderInterestStatus, etaMinutes?: number | null, message?: string | null, fulfillmentId: string, updatedAt: any } };
+
+export type WithdrawFulfillmentInterestMutationVariables = Exact<{
+  fulfillmentId: Scalars['String']['input'];
+}>;
+
+
+export type WithdrawFulfillmentInterestMutation = { __typename?: 'Mutation', withdrawFulfillmentInterest: { __typename?: 'FulfillmentRiderInterest', id: string, status: FulfillmentRiderInterestStatus, updatedAt: any } };
+
+export type FulfillmentRiderInterestsQueryVariables = Exact<{
+  saleOrderId: Scalars['String']['input'];
+}>;
+
+
+export type FulfillmentRiderInterestsQuery = { __typename?: 'Query', fulfillmentRiderInterests: Array<{ __typename?: 'FulfillmentRiderInterest', id: string, riderId: string, fulfillmentId: string, status: FulfillmentRiderInterestStatus, etaMinutes?: number | null, message?: string | null, createdAt: any, rider: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null, resellerProfile?: { __typename?: 'ResellerProfile', userId: string } | null } }> };
+
+export type AssignFulfillmentRiderMutationVariables = Exact<{
+  input: AssignFulfillmentRiderInput;
+}>;
+
+
+export type AssignFulfillmentRiderMutation = { __typename?: 'Mutation', assignFulfillmentRider: { __typename?: 'FulfillmentRiderInterest', id: string, status: FulfillmentRiderInterestStatus, riderId: string, fulfillmentId: string, updatedAt: any } };
 
 export type InvoiceImportQueryVariables = Exact<{
   id: Scalars['String']['input'];
@@ -33027,6 +33640,264 @@ export function useUpdateFulfillmentStatusMutation(baseOptions?: Apollo.Mutation
 export type UpdateFulfillmentStatusMutationHookResult = ReturnType<typeof useUpdateFulfillmentStatusMutation>;
 export type UpdateFulfillmentStatusMutationResult = Apollo.MutationResult<UpdateFulfillmentStatusMutation>;
 export type UpdateFulfillmentStatusMutationOptions = Apollo.BaseMutationOptions<UpdateFulfillmentStatusMutation, UpdateFulfillmentStatusMutationVariables>;
+export const DeliverableFulfillmentsDocument = gql`
+    query DeliverableFulfillments {
+  deliverableFulfillments {
+    id
+    saleOrderId
+    deliveryAddress
+    status
+    createdAt
+  }
+}
+    `;
+
+/**
+ * __useDeliverableFulfillmentsQuery__
+ *
+ * To run a query within a React component, call `useDeliverableFulfillmentsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useDeliverableFulfillmentsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useDeliverableFulfillmentsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useDeliverableFulfillmentsQuery(baseOptions?: Apollo.QueryHookOptions<DeliverableFulfillmentsQuery, DeliverableFulfillmentsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<DeliverableFulfillmentsQuery, DeliverableFulfillmentsQueryVariables>(DeliverableFulfillmentsDocument, options);
+      }
+export function useDeliverableFulfillmentsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<DeliverableFulfillmentsQuery, DeliverableFulfillmentsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<DeliverableFulfillmentsQuery, DeliverableFulfillmentsQueryVariables>(DeliverableFulfillmentsDocument, options);
+        }
+export function useDeliverableFulfillmentsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<DeliverableFulfillmentsQuery, DeliverableFulfillmentsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<DeliverableFulfillmentsQuery, DeliverableFulfillmentsQueryVariables>(DeliverableFulfillmentsDocument, options);
+        }
+export type DeliverableFulfillmentsQueryHookResult = ReturnType<typeof useDeliverableFulfillmentsQuery>;
+export type DeliverableFulfillmentsLazyQueryHookResult = ReturnType<typeof useDeliverableFulfillmentsLazyQuery>;
+export type DeliverableFulfillmentsSuspenseQueryHookResult = ReturnType<typeof useDeliverableFulfillmentsSuspenseQuery>;
+export type DeliverableFulfillmentsQueryResult = Apollo.QueryResult<DeliverableFulfillmentsQuery, DeliverableFulfillmentsQueryVariables>;
+export const MyFulfillmentInterestsDocument = gql`
+    query MyFulfillmentInterests {
+  myFulfillmentInterests {
+    id
+    status
+    etaMinutes
+    message
+    createdAt
+    fulfillment {
+      id
+      saleOrderId
+      deliveryAddress
+      status
+    }
+  }
+}
+    `;
+
+/**
+ * __useMyFulfillmentInterestsQuery__
+ *
+ * To run a query within a React component, call `useMyFulfillmentInterestsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useMyFulfillmentInterestsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useMyFulfillmentInterestsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useMyFulfillmentInterestsQuery(baseOptions?: Apollo.QueryHookOptions<MyFulfillmentInterestsQuery, MyFulfillmentInterestsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<MyFulfillmentInterestsQuery, MyFulfillmentInterestsQueryVariables>(MyFulfillmentInterestsDocument, options);
+      }
+export function useMyFulfillmentInterestsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<MyFulfillmentInterestsQuery, MyFulfillmentInterestsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<MyFulfillmentInterestsQuery, MyFulfillmentInterestsQueryVariables>(MyFulfillmentInterestsDocument, options);
+        }
+export function useMyFulfillmentInterestsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<MyFulfillmentInterestsQuery, MyFulfillmentInterestsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<MyFulfillmentInterestsQuery, MyFulfillmentInterestsQueryVariables>(MyFulfillmentInterestsDocument, options);
+        }
+export type MyFulfillmentInterestsQueryHookResult = ReturnType<typeof useMyFulfillmentInterestsQuery>;
+export type MyFulfillmentInterestsLazyQueryHookResult = ReturnType<typeof useMyFulfillmentInterestsLazyQuery>;
+export type MyFulfillmentInterestsSuspenseQueryHookResult = ReturnType<typeof useMyFulfillmentInterestsSuspenseQuery>;
+export type MyFulfillmentInterestsQueryResult = Apollo.QueryResult<MyFulfillmentInterestsQuery, MyFulfillmentInterestsQueryVariables>;
+export const RegisterFulfillmentInterestDocument = gql`
+    mutation RegisterFulfillmentInterest($input: RegisterFulfillmentInterestInput!) {
+  registerFulfillmentInterest(input: $input) {
+    id
+    status
+    etaMinutes
+    message
+    fulfillmentId
+    updatedAt
+  }
+}
+    `;
+export type RegisterFulfillmentInterestMutationFn = Apollo.MutationFunction<RegisterFulfillmentInterestMutation, RegisterFulfillmentInterestMutationVariables>;
+
+/**
+ * __useRegisterFulfillmentInterestMutation__
+ *
+ * To run a mutation, you first call `useRegisterFulfillmentInterestMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useRegisterFulfillmentInterestMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [registerFulfillmentInterestMutation, { data, loading, error }] = useRegisterFulfillmentInterestMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useRegisterFulfillmentInterestMutation(baseOptions?: Apollo.MutationHookOptions<RegisterFulfillmentInterestMutation, RegisterFulfillmentInterestMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<RegisterFulfillmentInterestMutation, RegisterFulfillmentInterestMutationVariables>(RegisterFulfillmentInterestDocument, options);
+      }
+export type RegisterFulfillmentInterestMutationHookResult = ReturnType<typeof useRegisterFulfillmentInterestMutation>;
+export type RegisterFulfillmentInterestMutationResult = Apollo.MutationResult<RegisterFulfillmentInterestMutation>;
+export type RegisterFulfillmentInterestMutationOptions = Apollo.BaseMutationOptions<RegisterFulfillmentInterestMutation, RegisterFulfillmentInterestMutationVariables>;
+export const WithdrawFulfillmentInterestDocument = gql`
+    mutation WithdrawFulfillmentInterest($fulfillmentId: String!) {
+  withdrawFulfillmentInterest(fulfillmentId: $fulfillmentId) {
+    id
+    status
+    updatedAt
+  }
+}
+    `;
+export type WithdrawFulfillmentInterestMutationFn = Apollo.MutationFunction<WithdrawFulfillmentInterestMutation, WithdrawFulfillmentInterestMutationVariables>;
+
+/**
+ * __useWithdrawFulfillmentInterestMutation__
+ *
+ * To run a mutation, you first call `useWithdrawFulfillmentInterestMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useWithdrawFulfillmentInterestMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [withdrawFulfillmentInterestMutation, { data, loading, error }] = useWithdrawFulfillmentInterestMutation({
+ *   variables: {
+ *      fulfillmentId: // value for 'fulfillmentId'
+ *   },
+ * });
+ */
+export function useWithdrawFulfillmentInterestMutation(baseOptions?: Apollo.MutationHookOptions<WithdrawFulfillmentInterestMutation, WithdrawFulfillmentInterestMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<WithdrawFulfillmentInterestMutation, WithdrawFulfillmentInterestMutationVariables>(WithdrawFulfillmentInterestDocument, options);
+      }
+export type WithdrawFulfillmentInterestMutationHookResult = ReturnType<typeof useWithdrawFulfillmentInterestMutation>;
+export type WithdrawFulfillmentInterestMutationResult = Apollo.MutationResult<WithdrawFulfillmentInterestMutation>;
+export type WithdrawFulfillmentInterestMutationOptions = Apollo.BaseMutationOptions<WithdrawFulfillmentInterestMutation, WithdrawFulfillmentInterestMutationVariables>;
+export const FulfillmentRiderInterestsDocument = gql`
+    query FulfillmentRiderInterests($saleOrderId: String!) {
+  fulfillmentRiderInterests(saleOrderId: $saleOrderId) {
+    id
+    riderId
+    fulfillmentId
+    status
+    etaMinutes
+    message
+    createdAt
+    rider {
+      id
+      email
+      customerProfile {
+        fullName
+      }
+      resellerProfile {
+        userId
+      }
+    }
+  }
+}
+    `;
+
+/**
+ * __useFulfillmentRiderInterestsQuery__
+ *
+ * To run a query within a React component, call `useFulfillmentRiderInterestsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useFulfillmentRiderInterestsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useFulfillmentRiderInterestsQuery({
+ *   variables: {
+ *      saleOrderId: // value for 'saleOrderId'
+ *   },
+ * });
+ */
+export function useFulfillmentRiderInterestsQuery(baseOptions: Apollo.QueryHookOptions<FulfillmentRiderInterestsQuery, FulfillmentRiderInterestsQueryVariables> & ({ variables: FulfillmentRiderInterestsQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<FulfillmentRiderInterestsQuery, FulfillmentRiderInterestsQueryVariables>(FulfillmentRiderInterestsDocument, options);
+      }
+export function useFulfillmentRiderInterestsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<FulfillmentRiderInterestsQuery, FulfillmentRiderInterestsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<FulfillmentRiderInterestsQuery, FulfillmentRiderInterestsQueryVariables>(FulfillmentRiderInterestsDocument, options);
+        }
+export function useFulfillmentRiderInterestsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<FulfillmentRiderInterestsQuery, FulfillmentRiderInterestsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<FulfillmentRiderInterestsQuery, FulfillmentRiderInterestsQueryVariables>(FulfillmentRiderInterestsDocument, options);
+        }
+export type FulfillmentRiderInterestsQueryHookResult = ReturnType<typeof useFulfillmentRiderInterestsQuery>;
+export type FulfillmentRiderInterestsLazyQueryHookResult = ReturnType<typeof useFulfillmentRiderInterestsLazyQuery>;
+export type FulfillmentRiderInterestsSuspenseQueryHookResult = ReturnType<typeof useFulfillmentRiderInterestsSuspenseQuery>;
+export type FulfillmentRiderInterestsQueryResult = Apollo.QueryResult<FulfillmentRiderInterestsQuery, FulfillmentRiderInterestsQueryVariables>;
+export const AssignFulfillmentRiderDocument = gql`
+    mutation AssignFulfillmentRider($input: AssignFulfillmentRiderInput!) {
+  assignFulfillmentRider(input: $input) {
+    id
+    status
+    riderId
+    fulfillmentId
+    updatedAt
+  }
+}
+    `;
+export type AssignFulfillmentRiderMutationFn = Apollo.MutationFunction<AssignFulfillmentRiderMutation, AssignFulfillmentRiderMutationVariables>;
+
+/**
+ * __useAssignFulfillmentRiderMutation__
+ *
+ * To run a mutation, you first call `useAssignFulfillmentRiderMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useAssignFulfillmentRiderMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [assignFulfillmentRiderMutation, { data, loading, error }] = useAssignFulfillmentRiderMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useAssignFulfillmentRiderMutation(baseOptions?: Apollo.MutationHookOptions<AssignFulfillmentRiderMutation, AssignFulfillmentRiderMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<AssignFulfillmentRiderMutation, AssignFulfillmentRiderMutationVariables>(AssignFulfillmentRiderDocument, options);
+      }
+export type AssignFulfillmentRiderMutationHookResult = ReturnType<typeof useAssignFulfillmentRiderMutation>;
+export type AssignFulfillmentRiderMutationResult = Apollo.MutationResult<AssignFulfillmentRiderMutation>;
+export type AssignFulfillmentRiderMutationOptions = Apollo.BaseMutationOptions<AssignFulfillmentRiderMutation, AssignFulfillmentRiderMutationVariables>;
 export const InvoiceImportDocument = gql`
     query InvoiceImport($id: String!) {
   invoiceImport(id: $id) {

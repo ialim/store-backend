@@ -61,3 +61,13 @@ Each slice should be deployable independently so we can gate the new behaviour b
 - [x] Provider webhooks: expose endpoints for payment providers to call, translating status updates into `registerConsumerPayment` / `registerResellerPayment` mutations and triggering workflow credit checks automatically (`/payments/webhooks/:provider/...`).  
 - [x] Payment receipt attachments: extend the payment module to accept optional receipt uploads (store in S3 + reference path in `ConsumerPayment` / `ResellerPayment`) and expose in UI detail views. (Implemented via `PaymentReceiptController`/`PaymentReceiptService`, schema fields `receiptBucket`/`receiptKey`/`receiptUrl`, and admin UI updates.)  
 - [ ] UI polish sweep: revisit order/sales tables after backend changes to ensure human-readable labels, responsive layout, and consistent action button states across roles.
+
+## 7. Rider Assignment Workflow (New)
+
+- Model rider interest via `FulfillmentRiderInterest` records keyed by fulfilment and rider; capture status (`ACTIVE`, `WITHDRAWN`, `ASSIGNED`), notes, and timestamps.
+- Extend the fulfilment state machine with an `AWAITING_RIDER_SELECTION` state that opens when a delivery fulfilment is ready to dispatch and transitions to `ASSIGNED` once staff confirm a rider.
+- Expose GraphQL queries for riders to list deliverable fulfilments within their coverage area and mutations to register/withdraw interest. Guard by `RIDER` role and fulfilment state.
+- Provide staff-facing mutations to assign a rider (roles: `SUPERADMIN`, `ADMIN`, `MANAGER`, `BILLER`) and mark competing interests as rejected/expired.
+- Add notifications/domain events on interest created, withdrawn, and assignment so billers/managers are alerted and riders receive feedback.
+- Build rider UI to surface nearby deliveries with a “I’m available” CTA and a section for pending/assigned routes; update fulfilment admin UI with a panel listing interested riders and assignment controls.
+- Background task: expire stale interests automatically (e.g., cron job scanning `expiresAt`).

@@ -47,6 +47,7 @@ model User {
   Notification Notification[]
 
   Fulfillment Fulfillment[]
+  FulfillmentRiderInterests FulfillmentRiderInterest[] @relation("RiderInterests")
 
   BillerQuotation Quotation[] @relation("BillerQuotation")
 

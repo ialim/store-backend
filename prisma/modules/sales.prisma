@@ -254,6 +254,7 @@ model Fulfillment {
   saleOrder           SaleOrder          @relation(fields: [saleOrderId], references: [id])
   deliveryPersonnel   User?              @relation(fields: [deliveryPersonnelId], references: [id])
   transitionLogs      FulfillmentTransitionLog[]
+  riderInterests      FulfillmentRiderInterest[]
 }
 
 enum AdjustmentType {
@@ -274,6 +275,31 @@ enum OrderPhase {
   QUOTATION
   SALE
   FULFILLMENT
+}
+
+enum FulfillmentRiderInterestStatus {
+  ACTIVE
+  WITHDRAWN
+  ASSIGNED
+  REJECTED
+}
+
+model FulfillmentRiderInterest {
+  id             String                          @id @default(uuid())
+  fulfillmentId  String
+  riderId        String
+  status         FulfillmentRiderInterestStatus  @default(ACTIVE)
+  message        String?
+  etaMinutes     Int?
+  expiresAt      DateTime?
+  createdAt      DateTime                        @default(now())
+  updatedAt      DateTime                        @updatedAt
+
+  fulfillment    Fulfillment                     @relation(fields: [fulfillmentId], references: [id], onDelete: Cascade)
+  rider          User                            @relation("RiderInterests", fields: [riderId], references: [id], onDelete: Cascade)
+
+  @@unique([fulfillmentId, riderId])
+  @@index([riderId, status])
 }
 
 model SaleOrderTransitionLog {
