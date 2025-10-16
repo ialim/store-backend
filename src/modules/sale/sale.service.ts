@@ -91,6 +91,16 @@ export class SalesService {
     private phaseCoordinator: PhaseCoordinator,
     private workflow: WorkflowService,
   ) {}
+  private readonly consumerPriceMarkup: number = (() => {
+    const raw = process.env.CONSUMER_PRICE_MARKUP_PERCENT ?? '0.05';
+    const parsed = Number.parseFloat(raw);
+    if (!Number.isFinite(parsed)) return 0.05;
+    const normalized = Math.max(
+      0,
+      Math.min(parsed / (parsed > 1 ? 100 : 1), 0.5),
+    );
+    return normalized;
+  })();
 
   private async ensureCustomerRecord(
     prisma: PrismaCustomerClient,
@@ -2015,7 +2025,8 @@ export class SalesService {
     });
     if (!variant) throw new BadRequestException('Product variant not found');
     if (saleType === SaleType.CONSUMER) {
-      return variant.price;
+      const base = variant.price ?? 0;
+      return Number((base * (1 + this.consumerPriceMarkup)).toFixed(2));
     }
     // reseller pricing
     if (!resellerId) return variant.resellerPrice;

@@ -380,8 +380,7 @@ export function runSaleMachine(options: {
       : undefined;
 
   const startState =
-    normalizedWorkflowState ??
-    (saleStatusToState(status) as StateValue);
+    normalizedWorkflowState ?? (saleStatusToState(status) as StateValue);
 
   const snapshot = saleMachine.resolveState({
     value: startState,
