@@ -172,7 +172,8 @@ export class SalesResolver {
   }
 
   @Mutation(() => SaleOrder, {
-    description: 'Update fulfillment preferences (type, delivery address) for a sale order.',
+    description:
+      'Update fulfillment preferences (type, delivery address) for a sale order.',
   })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')

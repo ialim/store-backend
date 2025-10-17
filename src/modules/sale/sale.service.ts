@@ -1317,8 +1317,7 @@ export class SalesService {
 
     const desiredFulfilmentType =
       order.fulfillmentType ?? PrismaFulfillmentType.PICKUP;
-    const normalizedAddress =
-      (order.deliveryAddress ?? '').trim() || null;
+    const normalizedAddress = (order.deliveryAddress ?? '').trim() || null;
 
     if (
       desiredFulfilmentType === PrismaFulfillmentType.DELIVERY &&
@@ -1662,8 +1661,7 @@ export class SalesService {
   }
 
   async createFulfillment(data: CreateFulfillmentInput) {
-    const trimmedAddress =
-      (data.deliveryAddress ?? '').trim() || null;
+    const trimmedAddress = (data.deliveryAddress ?? '').trim() || null;
 
     if (data.type === 'DELIVERY' && !trimmedAddress) {
       throw new BadRequestException(
@@ -1714,9 +1712,7 @@ export class SalesService {
     return fulfillment;
   }
 
-  async updateFulfillmentPreferences(
-    input: UpdateFulfillmentPreferencesInput,
-  ) {
+  async updateFulfillmentPreferences(input: UpdateFulfillmentPreferencesInput) {
     const attemptAutoAdvance = input.attemptAutoAdvance ?? true;
     const requestedType =
       input.fulfillmentType !== undefined && input.fulfillmentType !== null
@@ -1740,7 +1736,7 @@ export class SalesService {
       const nextType: PrismaFulfillmentType | null =
         requestedType !== undefined
           ? requestedType
-          : order.fulfillmentType ?? null;
+          : (order.fulfillmentType ?? null);
 
       let nextAddress: string | null;
       if (nextType === PrismaFulfillmentType.DELIVERY) {

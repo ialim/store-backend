@@ -177,8 +177,7 @@ export class PaymentsOutboxHandler {
 
       const desiredFulfilmentType =
         order.fulfillmentType ?? PrismaFulfillmentType.PICKUP;
-      const normalizedAddress =
-        (order.deliveryAddress ?? '').trim() || null;
+      const normalizedAddress = (order.deliveryAddress ?? '').trim() || null;
 
       if (
         desiredFulfilmentType === PrismaFulfillmentType.DELIVERY &&

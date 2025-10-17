@@ -125,8 +125,7 @@ export class OnboardingResolver {
       status: 'ACTIVE',
       q,
       take: take ?? 25,
-      billerId:
-        user?.role?.name === 'BILLER' && user.id ? user.id : undefined,
+      billerId: user?.role?.name === 'BILLER' && user.id ? user.id : undefined,
     });
   }
 

@@ -47,7 +47,7 @@ export class RoutingService {
 
     const url = `${this.baseUrl}/${options.profile}/${segments}?overview=false&alternatives=false&annotations=duration,distance&access_token=${this.accessToken}`;
 
-    let body: any;
+    let body: unknown;
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -59,13 +59,21 @@ export class RoutingService {
           'Failed to retrieve route from Mapbox',
         );
       }
-      body = await response.json();
+      body = (await response.json()) as unknown;
     } catch (error) {
-      this.logger.error('Mapbox directions request error', error as Error);
+      const trace = error instanceof Error ? error.stack : undefined;
+      this.logger.error('Mapbox directions request error', trace);
       throw new ServiceUnavailableException('Routing provider unavailable');
     }
 
-    const route = body?.routes?.[0];
+    if (!this.isMapboxDirectionsResponse(body)) {
+      this.logger.error(
+        'Mapbox directions response missing routes or required metrics',
+      );
+      throw new ServiceUnavailableException('Routing provider unavailable');
+    }
+
+    const route = body.routes[0];
     if (!route) {
       throw new ServiceUnavailableException(
         'No routes available for the provided coordinates',
@@ -78,5 +86,27 @@ export class RoutingService {
       provider: 'MAPBOX',
       profile: options.profile,
     };
+  }
+
+  private isMapboxDirectionsResponse(value: unknown): value is {
+    routes: Array<{ distance: number; duration: number }>;
+  } {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+    const routesRaw = (value as { routes?: unknown }).routes;
+    if (!Array.isArray(routesRaw) || routesRaw.length === 0) {
+      return false;
+    }
+    const routes: unknown[] = routesRaw;
+    const first = routes[0];
+    if (!first || typeof first !== 'object') {
+      return false;
+    }
+    const { distance, duration } = first as {
+      distance?: unknown;
+      duration?: unknown;
+    };
+    return typeof distance === 'number' && typeof duration === 'number';
   }
 }

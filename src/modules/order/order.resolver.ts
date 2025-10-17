@@ -229,7 +229,8 @@ export class OrderResolver {
     @Args('statuses', {
       type: () => [FulfillmentStatus],
       nullable: true,
-    }) statuses: FulfillmentStatus[] | null,
+    })
+    statuses: FulfillmentStatus[] | null,
     @Args('storeId', { type: () => String, nullable: true })
     storeId: string | null,
     @Args('search', { type: () => String, nullable: true })

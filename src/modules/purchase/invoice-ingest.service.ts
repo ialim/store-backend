@@ -378,7 +378,7 @@ export class InvoiceIngestService {
       parseFloat(
         String(s)
           .replace(/,/g, '')
-          .replace(/[^0-9.\-]/g, ''),
+          .replace(/[^0-9.-]/g, ''),
       );
     const pushLine = (
       desc: string,
@@ -413,7 +413,9 @@ export class InvoiceIngestService {
     for (let i = startIdx; i < lines.length; i++) {
       const l = lines[i];
       const cleaned = l
-        .replace(/[\[\]\(\)\|]/g, ' ')
+        .replace(/\[/g, ' ')
+        .replace(/\]/g, ' ')
+        .replace(/[()|]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
       // Pattern A: qty desc unit disc% discounted amount
@@ -505,7 +507,7 @@ export class InvoiceIngestService {
         if (!hasDigit) continue;
         const nt = normToken(t);
         const isPct = /%$/.test(nt) || /%/.test(nt);
-        const digits = nt.replace(/[^0-9,\.]/g, '');
+        const digits = nt.replace(/[^0-9,.]/g, '');
         if (!digits) continue;
         let val: number | null = null;
         if (digits.includes('.')) {
@@ -569,7 +571,7 @@ export class InvoiceIngestService {
 
     // Parse total amount if present
     const totMatch =
-      /\b(total|amount\s*due)\b\s*[:\-]?\s*([\d,]+(?:\.\d{2})?)/i.exec(norm);
+      /\b(total|amount\s*due)\b\s*[:-]?\s*([\d,]+(?:\.\d{2})?)/i.exec(norm);
     if (totMatch) out.total = toNumber(totMatch[2]);
 
     return out;
