@@ -1,0 +1,2 @@
+-- This migration was restored to satisfy Prisma's migration history.
+-- No schema changes were recorded for this step when the original file was lost.

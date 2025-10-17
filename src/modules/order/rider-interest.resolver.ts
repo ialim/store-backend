@@ -52,6 +52,7 @@ export class RiderInterestResolver {
       riderId: user.id,
       etaMinutes: input.etaMinutes,
       message: input.message,
+      proposedCost: input.proposedCost,
     });
   }
 

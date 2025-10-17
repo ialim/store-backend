@@ -27,7 +27,8 @@
     "prisma:backfillPoStoreId": "npx ts-node prisma/scripts/backfill-po-store-id.ts",
     "backfill:workflows": "ts-node scripts/backfill-workflows.ts",
     "legacy:extractor": "ts-node scripts/legacy-extractor.ts",
-    "db:wipe": "node scripts/reset-db.js"
+    "db:wipe": "node scripts/reset-db.js",
+    "seed:rider-coverage": "npx ts-node --transpile-only scripts/seed-rider-coverage.ts"
   },
   "prisma": {
     "schema": "./prisma"

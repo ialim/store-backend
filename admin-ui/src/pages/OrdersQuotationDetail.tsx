@@ -170,7 +170,7 @@ export default function OrdersQuotationDetail() {
   const resellerCanReject = ownsQuotation && (isDraft || isSent);
   const customerCanConfirm = ownsConsumerQuotation && (isDraft || isSent);
   const customerCanReject = ownsConsumerQuotation && (isDraft || isSent);
-  const stakeholderCanConfirm = resellerCanConfirm || customerCanConfirm;
+  const stakeholderCanConfirmBase = resellerCanConfirm || customerCanConfirm;
   const stakeholderCanReject = resellerCanReject || customerCanReject;
 
   const handleStatusChange = React.useCallback(
@@ -261,6 +261,12 @@ export default function OrdersQuotationDetail() {
     quotation?.type === 'RESELLER'
       ? resellerInfo?.id || quotation?.resellerId || '—'
       : consumerInfo?.id || quotation?.consumerId || '—';
+
+  const isQuotationBiller = Boolean(
+    user?.id && (billerId === user.id || quotation?.billerId === user.id),
+  );
+  const billerCanConfirm = isQuotationBiller && (isDraft || isSent);
+  const stakeholderCanConfirm = stakeholderCanConfirmBase || billerCanConfirm;
 
   type QuotationItemRow = NonNullable<QuotationDetailData['quotation']>['items'][number];
 

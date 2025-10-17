@@ -5,6 +5,8 @@ export type FulfilState =
   | 'ALLOCATING_STOCK'
   | 'BACKORDERED'
   | 'PICK_PACK'
+  | 'AWAITING_RIDER_SELECTION'
+  | 'RIDER_ASSIGNED'
   | 'READY_FOR_SHIPMENT'
   | 'SHIPPED'
   | 'DELIVERED'
@@ -21,6 +23,7 @@ export type FulfilEvent =
   | { type: 'RESERVE_OK' }
   | { type: 'RESERVE_MISS' }
   | { type: 'FULFILMENT_STARTED' }
+  | { type: 'RIDER_SELECTED' }
   | { type: 'PACKAGE_SHIPPED' }
   | { type: 'PACKAGE_DELIVERED' }
   | { type: 'SERVICE_SCHEDULED' }
@@ -66,6 +69,18 @@ const fulfilmentMachine = setup({
       on: {
         FULFILMENT_STARTED: 'READY_FOR_SHIPMENT',
         SERVICE_SCHEDULED: 'SCHEDULING',
+        CANCEL: 'CANCELLED',
+      },
+    },
+    AWAITING_RIDER_SELECTION: {
+      on: {
+        RIDER_SELECTED: 'RIDER_ASSIGNED',
+        CANCEL: 'CANCELLED',
+      },
+    },
+    RIDER_ASSIGNED: {
+      on: {
+        PACKAGE_SHIPPED: 'SHIPPED',
         CANCEL: 'CANCELLED',
       },
     },
@@ -181,7 +196,7 @@ export function runFulfilmentMachine(options: {
       actor.stop();
       return {
         state: currentSnapshot.value as FulfilState,
-        context: currentSnapshot.context as FulfilmentContext,
+        context: currentSnapshot.context,
         changed: false,
       };
     }
@@ -192,7 +207,7 @@ export function runFulfilmentMachine(options: {
 
   return {
     state: currentSnapshot.value as FulfilState,
-    context: currentSnapshot.context as FulfilmentContext,
+    context: currentSnapshot.context,
     changed,
   };
 }

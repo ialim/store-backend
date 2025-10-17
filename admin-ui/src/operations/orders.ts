@@ -9,6 +9,8 @@ export const Orders = gql`
       type
       status
       phase
+      fulfillmentType
+      deliveryAddress
       saleWorkflowState
       fulfillmentWorkflowState
       saleWorkflowSummary {
@@ -69,6 +71,8 @@ export const Order = gql`
       type
       status
       phase
+      fulfillmentType
+      deliveryAddress
       saleWorkflowState
       saleWorkflowContext
       saleWorkflowSummary {
@@ -153,6 +157,13 @@ export const Order = gql`
         status
         type
         deliveryPersonnelId
+        deliveryPersonnel {
+          id
+          email
+          customerProfile {
+            fullName
+          }
+        }
         deliveryAddress
         cost
         createdAt
@@ -241,6 +252,36 @@ export const RegisterResellerPayment = gql`
       receiptBucket
       receiptKey
       receiptUrl
+    }
+  }
+`;
+
+export const ConfirmConsumerPayment = gql`
+  mutation ConfirmConsumerPayment($input: ConfirmConsumerPaymentInput!) {
+    confirmConsumerPayment(input: $input) {
+      id
+      status
+    }
+  }
+`;
+
+export const ConfirmResellerPayment = gql`
+  mutation ConfirmResellerPayment($paymentId: String!) {
+    confirmResellerPayment(paymentId: $paymentId) {
+      id
+      status
+    }
+  }
+`;
+
+export const UpdateFulfillmentPreferences = gql`
+  mutation UpdateFulfillmentPreferences($input: UpdateFulfillmentPreferencesInput!) {
+    updateFulfillmentPreferences(input: $input) {
+      id
+      fulfillmentType
+      deliveryAddress
+      phase
+      updatedAt
     }
   }
 `;

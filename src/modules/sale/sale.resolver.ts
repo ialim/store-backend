@@ -20,6 +20,7 @@ import { CreateConsumerPaymentInput } from './dto/create-consumer-payment.input'
 import { ConfirmConsumerPaymentInput } from './dto/confirm-consumer-payment.input';
 import { CreateConsumerReceiptInput } from './dto/create-consumer-receipt.input';
 import { CreateFulfillmentInput } from './dto/create-fulfillment.input';
+import { UpdateFulfillmentPreferencesInput } from './dto/update-fulfillment-preferences.input';
 import { AssignFulfillmentPersonnelInput } from './dto/assign-fulfillment-personnel.input';
 import { UpdateFulfillmentStatusInput } from './dto/update-fulfillment-status.input';
 import { CreateResellerSaleInput } from './dto/create-reseller-sale.input';
@@ -168,6 +169,18 @@ export class SalesResolver {
   @Permissions(PERMISSIONS.sale.CREATE as string)
   createFulfillment(@Args('input') input: CreateFulfillmentInput) {
     return this.salesService.createFulfillment(input);
+  }
+
+  @Mutation(() => SaleOrder, {
+    description: 'Update fulfillment preferences (type, delivery address) for a sale order.',
+  })
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.order.UPDATE as string)
+  updateFulfillmentPreferences(
+    @Args('input') input: UpdateFulfillmentPreferencesInput,
+  ) {
+    return this.salesService.updateFulfillmentPreferences(input);
   }
 
   @Mutation(() => Fulfillment, {

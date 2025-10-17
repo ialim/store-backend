@@ -11,6 +11,7 @@ import { CreateResellerSaleInput } from './dto/create-reseller-sale.input';
 import {
   SaleStatus,
   FulfillmentStatus,
+  FulfillmentType as PrismaFulfillmentType,
   PaymentStatus as PrismaPaymentStatus,
   OrderPhase as PrismaOrderPhase,
   SaleType as PrismaSaleType,
@@ -26,6 +27,7 @@ import { CreateConsumerReceiptInput } from './dto/create-consumer-receipt.input'
 import { MovementDirection } from 'src/shared/prismagraphql/prisma/movement-direction.enum';
 import { MovementType } from 'src/shared/prismagraphql/prisma/movement-type.enum';
 import { CreateFulfillmentInput } from './dto/create-fulfillment.input';
+import { UpdateFulfillmentPreferencesInput } from './dto/update-fulfillment-preferences.input';
 import { CreateResellerPaymentInput } from './dto/create-reseller-payment.input';
 import { PaymentService } from '../payment/payment.service';
 import { SaleChannel } from 'src/shared/prismagraphql/prisma/sale-channel.enum';
@@ -66,6 +68,8 @@ type SaleWorkflowComputation = {
     status: SaleStatus;
     phase: PrismaOrderPhase;
     type: PrismaSaleType;
+    fulfillmentType: PrismaFulfillmentType | null;
+    deliveryAddress: string | null;
     totalAmount: number;
     storeId: string;
     workflowState: string | null;
@@ -1101,6 +1105,8 @@ export class SalesService {
           status: true,
           phase: true,
           type: true,
+          fulfillmentType: true,
+          deliveryAddress: true,
           totalAmount: true,
           storeId: true,
           workflowState: true,
@@ -1143,7 +1149,7 @@ export class SalesService {
         ? null
         : rawState && rawState !== 'QUOTATION_DRAFT'
           ? rawState
-          : saleStatusToState(order.status as SaleStatus);
+          : saleStatusToState(order.status);
 
       const baseContext: SaleContext = {
         orderId: order.id,
@@ -1250,7 +1256,7 @@ export class SalesService {
       canAdvanceByPayment,
       canAdvanceByCredit,
     } = snapshot;
-    let currentOrderStatus = order.status as SaleStatus;
+    let currentOrderStatus = order.status;
     if (order.phase !== OrderPhase.SALE) return; // Only advance from SALE phase
     if (
       currentOrderStatus === SaleStatus.PAID ||
@@ -1309,10 +1315,26 @@ export class SalesService {
       currentOrderStatus = SaleStatus.PAID;
     }
 
-    // Enter fulfillment phase and create Fulfillment if missing
+    const desiredFulfilmentType =
+      order.fulfillmentType ?? PrismaFulfillmentType.PICKUP;
+    const normalizedAddress =
+      (order.deliveryAddress ?? '').trim() || null;
+
+    if (
+      desiredFulfilmentType === PrismaFulfillmentType.DELIVERY &&
+      !normalizedAddress
+    ) {
+      // Delivery orders must capture an address before advancing
+      return;
+    }
+
     await this.prisma.saleOrder.update({
       where: { id: orderId },
-      data: { phase: OrderPhase.FULFILLMENT },
+      data: {
+        phase: OrderPhase.FULFILLMENT,
+        fulfillmentType: desiredFulfilmentType,
+        deliveryAddress: normalizedAddress,
+      },
     });
     const existing = await this.prisma.fulfillment.findUnique({
       where: { saleOrderId: orderId },
@@ -1321,9 +1343,10 @@ export class SalesService {
       const fulfilment = await this.prisma.fulfillment.create({
         data: {
           saleOrderId: orderId,
-          type: 'PICKUP',
+          type: desiredFulfilmentType,
           status: 'PENDING',
           workflowState: 'ALLOCATING_STOCK',
+          deliveryAddress: normalizedAddress,
         },
       });
       await this.workflow.recordFulfilmentTransition({
@@ -1383,9 +1406,9 @@ export class SalesService {
         : null;
     const previousState =
       (order.workflowState as SaleWorkflowState | null) ??
-      saleStatusToState(order.status as SaleStatus);
+      saleStatusToState(order.status);
     const revertResult = runSaleMachine({
-      status: order.status as SaleStatus,
+      status: order.status,
       workflowState: previousState,
       workflowContext: previousContext ?? undefined,
       event: { type: 'RESET' },
@@ -1475,7 +1498,7 @@ export class SalesService {
     } as SaleContext['overrides']['admin'];
 
     const machineResult = runSaleMachine({
-      status: snapshot.order.status as SaleStatus,
+      status: snapshot.order.status,
       workflowState: snapshot.previousState,
       workflowContext: snapshot.previousContext ?? undefined,
       event: { type: 'ADMIN_OVERRIDE_APPROVED', expiresAt: expiresAtIso },
@@ -1521,7 +1544,7 @@ export class SalesService {
     } as SaleContext['overrides']['credit'];
 
     const machineResult = runSaleMachine({
-      status: snapshot.order.status as SaleStatus,
+      status: snapshot.order.status,
       workflowState: snapshot.previousState,
       workflowContext: snapshot.previousContext ?? undefined,
       event: {
@@ -1565,8 +1588,7 @@ export class SalesService {
     const state =
       snapshot.order.phase === PrismaOrderPhase.QUOTATION
         ? 'QUOTATION_DRAFT'
-        : (snapshot.previousState ??
-          saleStatusToState(snapshot.order.status as SaleStatus));
+        : (snapshot.previousState ?? saleStatusToState(snapshot.order.status));
     return {
       saleOrderId: snapshot.order.id,
       state,
@@ -1584,7 +1606,7 @@ export class SalesService {
       snapshot.order.workflowState &&
       snapshot.order.workflowState !== 'QUOTATION_DRAFT'
         ? (snapshot.order.workflowState as SaleWorkflowState)
-        : saleStatusToState(snapshot.order.status as SaleStatus);
+        : saleStatusToState(snapshot.order.status);
     return {
       saleOrderId: snapshot.order.id,
       state,
@@ -1616,8 +1638,7 @@ export class SalesService {
       return null;
     }
     const state =
-      fulfillment.workflowState ??
-      fulfilmentStatusToState(fulfillment.status as FulfillmentStatus);
+      fulfillment.workflowState ?? fulfilmentStatusToState(fulfillment.status);
     const contextPayload = fulfillment.workflowContext
       ? toFulfilmentContextPayload(
           fulfillment.workflowContext as unknown as FulfilmentContext,
@@ -1641,30 +1662,173 @@ export class SalesService {
   }
 
   async createFulfillment(data: CreateFulfillmentInput) {
-    const f = await this.prisma.fulfillment.create({
-      data: {
-        ...data,
-        workflowState: 'ALLOCATING_STOCK',
-        workflowContext: toFulfilmentContextPayload({
-          saleOrderId: data.saleOrderId,
+    const trimmedAddress =
+      (data.deliveryAddress ?? '').trim() || null;
+
+    if (data.type === 'DELIVERY' && !trimmedAddress) {
+      throw new BadRequestException(
+        'Delivery fulfillment requires a delivery address.',
+      );
+    }
+
+    const fulfillment = await this.prisma.$transaction(async (trx) => {
+      const created = await trx.fulfillment.create({
+        data: {
+          ...data,
+          deliveryAddress: trimmedAddress,
+          workflowState: 'ALLOCATING_STOCK',
+          workflowContext: toFulfilmentContextPayload({
+            saleOrderId: data.saleOrderId,
+          }) as Prisma.InputJsonValue,
+        },
+      });
+
+      await this.workflow.recordFulfilmentTransition({
+        fulfillmentId: created.id,
+        fromState: null,
+        toState: 'ALLOCATING_STOCK',
+        event: 'fulfilment.created_manual',
+        context: toFulfilmentContextPayload({
+          saleOrderId: created.saleOrderId,
         }) as Prisma.InputJsonValue,
-      },
+        tx: trx,
+      });
+
+      await trx.saleOrder.update({
+        where: { id: data.saleOrderId },
+        data: {
+          phase: OrderPhase.FULFILLMENT,
+          fulfillmentType: data.type as PrismaFulfillmentType,
+          deliveryAddress: trimmedAddress,
+        },
+      });
+
+      return created;
     });
-    await this.workflow.recordFulfilmentTransition({
-      fulfillmentId: f.id,
-      fromState: null,
-      toState: 'ALLOCATING_STOCK',
-      event: 'fulfilment.created_manual',
-      context: toFulfilmentContextPayload({
-        saleOrderId: f.saleOrderId,
-      }) as Prisma.InputJsonValue,
-    });
+
     await this.notificationService.createNotification(
       data.deliveryPersonnelId || data.saleOrderId,
       'FULFILLMENT_CREATED',
       `Fulfillment for order ${data.saleOrderId} created.`,
     );
-    return f;
+    return fulfillment;
+  }
+
+  async updateFulfillmentPreferences(
+    input: UpdateFulfillmentPreferencesInput,
+  ) {
+    const attemptAutoAdvance = input.attemptAutoAdvance ?? true;
+    const requestedType =
+      input.fulfillmentType !== undefined && input.fulfillmentType !== null
+        ? (input.fulfillmentType as PrismaFulfillmentType)
+        : undefined;
+    const providedAddress =
+      input.deliveryAddress !== undefined
+        ? (input.deliveryAddress ?? '').trim()
+        : undefined;
+
+    await this.prisma.$transaction(async (trx) => {
+      const order = await trx.saleOrder.findUnique({
+        where: { id: input.saleOrderId },
+        include: { fulfillment: true },
+      });
+      if (!order) {
+        throw new NotFoundException('Sale order not found');
+      }
+
+      const currentTrimmedAddress = (order.deliveryAddress ?? '').trim();
+      const nextType: PrismaFulfillmentType | null =
+        requestedType !== undefined
+          ? requestedType
+          : order.fulfillmentType ?? null;
+
+      let nextAddress: string | null;
+      if (nextType === PrismaFulfillmentType.DELIVERY) {
+        const candidate =
+          providedAddress !== undefined
+            ? providedAddress
+            : currentTrimmedAddress;
+        nextAddress = candidate ? candidate : null;
+      } else {
+        nextAddress = null;
+      }
+
+      if (nextType === PrismaFulfillmentType.DELIVERY && !nextAddress) {
+        throw new BadRequestException(
+          'Delivery orders require a delivery address.',
+        );
+      }
+
+      const saleOrderUpdate: Prisma.SaleOrderUpdateInput = {};
+      if (requestedType !== undefined && nextType !== order.fulfillmentType) {
+        saleOrderUpdate.fulfillmentType = nextType;
+      }
+      if (nextAddress !== currentTrimmedAddress) {
+        saleOrderUpdate.deliveryAddress = nextAddress;
+      }
+
+      if (Object.keys(saleOrderUpdate).length) {
+        await trx.saleOrder.update({
+          where: { id: order.id },
+          data: saleOrderUpdate,
+        });
+      }
+
+      if (order.fulfillment) {
+        const fulfilmentUpdate: Prisma.FulfillmentUpdateInput = {};
+        if (
+          requestedType !== undefined &&
+          nextType !== order.fulfillment.type &&
+          order.fulfillment.status !== FulfillmentStatus.PENDING
+        ) {
+          throw new BadRequestException(
+            'Cannot change fulfillment type once fulfillment has progressed.',
+          );
+        }
+
+        if (
+          providedAddress !== undefined &&
+          order.fulfillment.status !== FulfillmentStatus.PENDING &&
+          order.fulfillment.status !== FulfillmentStatus.ASSIGNED
+        ) {
+          throw new BadRequestException(
+            'Cannot change delivery address after fulfillment is in transit.',
+          );
+        }
+
+        if (
+          requestedType !== undefined &&
+          nextType !== order.fulfillment.type &&
+          order.fulfillment.status === FulfillmentStatus.PENDING
+        ) {
+          fulfilmentUpdate.type = nextType ?? PrismaFulfillmentType.PICKUP;
+        }
+
+        if (
+          (nextType === PrismaFulfillmentType.DELIVERY &&
+            nextAddress !== (order.fulfillment.deliveryAddress ?? null)) ||
+          (nextType !== PrismaFulfillmentType.DELIVERY &&
+            order.fulfillment.deliveryAddress)
+        ) {
+          fulfilmentUpdate.deliveryAddress = nextAddress;
+        }
+
+        if (Object.keys(fulfilmentUpdate).length) {
+          await trx.fulfillment.update({
+            where: { id: order.fulfillment.id },
+            data: fulfilmentUpdate,
+          });
+        }
+      }
+    });
+
+    if (attemptAutoAdvance) {
+      await this.maybeAdvanceOrderToFulfillment(input.saleOrderId);
+    }
+
+    return this.prisma.saleOrder.findUnique({
+      where: { id: input.saleOrderId },
+    });
   }
 
   // Assign delivery personnel
@@ -1684,7 +1848,7 @@ export class SalesService {
     if (!existing) {
       throw new NotFoundException('Fulfillment not found');
     }
-    const fromStatus = existing.status as FulfillmentStatus;
+    const fromStatus = existing.status;
     const events = eventsForFulfilmentTransition(
       fromStatus,
       FulfillmentStatus.ASSIGNED,
@@ -1764,8 +1928,8 @@ export class SalesService {
       },
     });
     if (!f) throw new NotFoundException('Fulfillment not found');
-    const fromStatus = f.status as FulfillmentStatus;
-    const toStatus = params.status as FulfillmentStatus;
+    const fromStatus = f.status;
+    const toStatus = params.status;
     const events = eventsForFulfilmentTransition(fromStatus, toStatus);
     if (fromStatus !== toStatus && !events.length) {
       throw new BadRequestException(
@@ -1842,7 +2006,7 @@ export class SalesService {
         where: { id: params.saleOrderId },
       });
       if (order) {
-        let orderStatus = order.status as SaleStatus;
+        let orderStatus = order.status;
         const cSale = await this.prisma.consumerSale.findFirst({
           where: { saleOrderId: order.id },
           include: { items: true },

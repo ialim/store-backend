@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -17,6 +17,8 @@ import { ResellerPayment } from '../../shared/prismagraphql/reseller-payment/res
 import { ConsumerSale } from '../../shared/prismagraphql/consumer-sale/consumer-sale.model';
 import { ResellerSale } from '../../shared/prismagraphql/reseller-sale/reseller-sale.model';
 import { QuotationViewContext } from './dto/quotation-context.model';
+import { Fulfillment } from '../../shared/prismagraphql/fulfillment/fulfillment.model';
+import { FulfillmentStatus } from '../../shared/prismagraphql/prisma/fulfillment-status.enum';
 
 import { CreateQuotationDraftInput } from '../sale/dto/create-quotation-draft.input';
 import { UpdateQuotationStatusInput } from '../sale/dto/update-quotation-status.input';
@@ -217,6 +219,29 @@ export class OrderResolver {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.orders.saleWorkflow(saleOrderId, user);
+  }
+
+  @Query(() => [Fulfillment])
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.order.READ as string)
+  fulfillmentsInProgress(
+    @Args('statuses', {
+      type: () => [FulfillmentStatus],
+      nullable: true,
+    }) statuses: FulfillmentStatus[] | null,
+    @Args('storeId', { type: () => String, nullable: true })
+    storeId: string | null,
+    @Args('search', { type: () => String, nullable: true })
+    search: string | null,
+    @Args('take', { type: () => Int, nullable: true }) take: number | null,
+  ) {
+    return this.orders.fulfillmentsInProgress({
+      statuses,
+      storeId,
+      search,
+      take,
+    });
   }
 
   @Query(() => SaleWorkflowSummary, { nullable: true })

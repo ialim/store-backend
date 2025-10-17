@@ -5,6 +5,7 @@ import {
   PaymentType as PrismaPaymentType,
   PurchaseOrderStatus as PrismaPurchaseOrderStatus,
   PurchasePhase as PrismaPurchasePhase,
+  Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
@@ -17,6 +18,7 @@ import {
   ProviderConsumerPaymentPayload,
   ProviderResellerPaymentPayload,
 } from './dto/provider-webhook.dto';
+import { PaymentsOutboxHandler } from '../events/handlers/payments-outbox.handler';
 
 @Injectable()
 export class PaymentService {
@@ -25,6 +27,7 @@ export class PaymentService {
     private prisma: PrismaService,
     private notifications: NotificationService,
     private domainEvents: DomainEventsService,
+    private paymentsOutboxHandler: PaymentsOutboxHandler,
   ) {}
 
   // Consumer payments
@@ -64,6 +67,21 @@ export class PaymentService {
       },
       { aggregateType: 'Payment', aggregateId: payment.id },
     );
+    try {
+      await this.paymentsOutboxHandler.tryHandle({
+        id: `inline-consumer-${payment.id}`,
+        type: 'PAYMENT_CONFIRMED',
+        payload: {
+          paymentId: payment.id,
+          saleOrderId: payment.saleOrderId,
+          channel: 'CONSUMER',
+        } as Prisma.JsonValue,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Inline payment confirmation handler failed for payment ${payment.id}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
     return payment;
   }
 
@@ -232,6 +250,21 @@ export class PaymentService {
       },
       { aggregateType: 'Payment', aggregateId: payment.id },
     );
+    try {
+      await this.paymentsOutboxHandler.tryHandle({
+        id: `inline-reseller-${payment.id}`,
+        type: 'PAYMENT_CONFIRMED',
+        payload: {
+          paymentId: payment.id,
+          saleOrderId: payment.saleOrderId,
+          channel: 'RESELLER',
+        } as Prisma.JsonValue,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Inline payment confirmation handler failed for payment ${payment.id}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
     return payment;
   }
 

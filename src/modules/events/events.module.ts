@@ -21,6 +21,11 @@ import { WorkflowService } from '../../state/workflow.service';
     EventsResolver,
     OutboxSchedulerService,
   ],
-  exports: [DomainEventsService, PhaseCoordinator, WorkflowService],
+  exports: [
+    DomainEventsService,
+    PhaseCoordinator,
+    WorkflowService,
+    PaymentsOutboxHandler,
+  ],
 })
 export class EventsModule {}

@@ -39,6 +39,9 @@ import {
   GrantCreditOverride,
   RegisterConsumerPayment,
   RegisterResellerPayment,
+  ConfirmConsumerPayment,
+  ConfirmResellerPayment,
+  UpdateFulfillmentPreferences,
 } from '../operations/orders';
 import { Stores } from '../operations/stores';
 import { useAuth } from '../shared/AuthProvider';
@@ -93,6 +96,8 @@ type OrderData = {
     type: string;
     status: string;
     phase: string;
+    fulfillmentType?: string | null;
+    deliveryAddress?: string | null;
     saleWorkflowState?: string | null;
     saleWorkflowContext?: any;
     saleWorkflowSummary?: WorkflowSummary | null;
@@ -261,6 +266,8 @@ export default function OrderDetail() {
   const [receiptFile, setReceiptFile] = React.useState<File | null>(null);
   const [receiptUploading, setReceiptUploading] = React.useState(false);
   const [receiptUploadError, setReceiptUploadError] = React.useState<string | null>(null);
+  const [fulfillmentTypeDraft, setFulfillmentTypeDraft] = React.useState<'PICKUP' | 'DELIVERY'>('PICKUP');
+  const [deliveryAddressDraft, setDeliveryAddressDraft] = React.useState('');
   const [updateStatus, { loading: statusUpdating }] = useMutation(
     UpdateQuotationStatus,
   );
@@ -272,6 +279,12 @@ export default function OrderDetail() {
     useMutation(RegisterConsumerPayment);
   const [registerResellerPayment, { loading: registeringResellerPayment }] =
     useMutation(RegisterResellerPayment);
+  const [confirmConsumerPaymentMutation, { loading: confirmingConsumerPayment }] =
+    useMutation(ConfirmConsumerPayment);
+  const [confirmResellerPaymentMutation, { loading: confirmingResellerPayment }] =
+    useMutation(ConfirmResellerPayment);
+  const [updateFulfillmentPreferencesMutation, { loading: updatingFulfillmentPreferences }] =
+    useMutation(UpdateFulfillmentPreferences);
 
   type CreditCheckResult = { creditCheck?: WorkflowSummary | null };
 
@@ -281,6 +294,8 @@ export default function OrderDetail() {
   );
   const paymentMutationLoading =
     registeringConsumerPayment || registeringResellerPayment || receiptUploading;
+  const confirmingPayment =
+    confirmingConsumerPayment || confirmingResellerPayment;
 
   const storeMap = React.useMemo(() => {
     const entries = storesData?.listStores?.map((store) => [
@@ -339,24 +354,30 @@ export default function OrderDetail() {
       setCreditAmount('');
     }
   }, [order?.saleWorkflowSummary]);
+
+  React.useEffect(() => {
+    if (!order) return;
+    const normalizedType =
+      (order.fulfillmentType as 'PICKUP' | 'DELIVERY' | null) ?? 'PICKUP';
+    setFulfillmentTypeDraft(normalizedType);
+    setDeliveryAddressDraft(order.deliveryAddress ?? '');
+  }, [order?.id, order?.fulfillmentType, order?.deliveryAddress]);
   const quotation = order?.quotation ?? null;
   const normalizedStatus = (quotation?.status || '').toUpperCase();
   const hasOrderUpdatePermission = hasPermission(
     PERMISSIONS.order.UPDATE ?? 'ORDER_UPDATE',
   );
+  const hasPaymentApprovalPermission = hasPermission(
+    PERMISSIONS.order.APPROVE ?? 'ORDER_APPROVE',
+  );
   const isReseller = hasRole('RESELLER');
   const isSuperAdmin = hasRole('SUPERADMIN');
+  const canConfirmPayments =
+    hasPaymentApprovalPermission &&
+    (hasRole('ACCOUNTANT') || hasRole('ADMIN') || isSuperAdmin);
   const canUpdateOrder = hasOrderUpdatePermission;
   const ownsQuotation =
     isReseller && quotation?.resellerId && quotation.resellerId === user?.id;
-  const isDraft = normalizedStatus === 'DRAFT';
-  const isSent = normalizedStatus === 'SENT';
-  const canConfirm =
-    ownsQuotation && hasOrderUpdatePermission && (isDraft || isSent);
-  const canReject =
-    ownsQuotation && hasOrderUpdatePermission && (isDraft || isSent);
-  const canEditQuotation =
-    ownsQuotation && canUpdateOrder && (isDraft || isSent);
   const normalizedOrderType = (order?.type || '').toUpperCase();
   const normalizedOrderPhase = (order?.phase || '').toUpperCase();
   const isQuotationPhase = normalizedOrderPhase === 'QUOTATION';
@@ -364,6 +385,19 @@ export default function OrderDetail() {
     !isQuotationPhase &&
     hasPermission(PERMISSIONS.order.APPROVE ?? 'ORDER_APPROVE') &&
     (hasRole('MANAGER') || hasRole('ADMIN') || hasRole('SUPERADMIN'));
+
+  const initialFulfillmentType =
+    (order?.fulfillmentType as 'PICKUP' | 'DELIVERY' | null) ?? 'PICKUP';
+  const initialDeliveryAddress = order?.deliveryAddress ?? '';
+  const isDelivery = fulfillmentTypeDraft === 'DELIVERY';
+  const deliveryAddressError = isDelivery && !deliveryAddressDraft.trim();
+  const preferencesDirty =
+    fulfillmentTypeDraft !== initialFulfillmentType ||
+    (isDelivery &&
+      deliveryAddressDraft.trim() !== initialDeliveryAddress.trim());
+  const canEditFulfillmentPreferences = hasPermission(
+    PERMISSIONS.order.UPDATE ?? 'ORDER_UPDATE',
+  );
 
   const billerUser =
     order?.consumerSale?.biller ??
@@ -387,6 +421,16 @@ export default function OrderDetail() {
         order?.quotation?.billerId === user.id
       ),
   );
+  const isDraft = normalizedStatus === 'DRAFT';
+  const isSent = normalizedStatus === 'SENT';
+  const canConfirm = Boolean(
+    ((ownsQuotation && hasOrderUpdatePermission) || isOrderBiller) &&
+      (isDraft || isSent),
+  );
+  const canReject =
+    ownsQuotation && hasOrderUpdatePermission && (isDraft || isSent);
+  const canEditQuotation =
+    ownsQuotation && canUpdateOrder && (isDraft || isSent);
 
   const canRegisterPayment = Boolean(
     order &&
@@ -507,6 +551,36 @@ export default function OrderDetail() {
       );
     }
   }, [order?.id, runCreditCheck, isQuotationPhase]);
+
+  const handleSaveFulfillmentPreferences = React.useCallback(async () => {
+    if (!order) return;
+    try {
+      await updateFulfillmentPreferencesMutation({
+        variables: {
+          input: {
+            saleOrderId: order.id,
+            fulfillmentType: fulfillmentTypeDraft,
+            deliveryAddress: isDelivery
+              ? deliveryAddressDraft.trim() || null
+              : null,
+          },
+        },
+        refetchQueries: [{ query: Order, variables: { id: order.id } }],
+      });
+      setActionError(null);
+      setActionSuccess('Fulfillment preferences updated.');
+    } catch (error: any) {
+      setActionError(
+        error?.message || 'Failed to update fulfillment preferences.',
+      );
+    }
+  }, [
+    order,
+    fulfillmentTypeDraft,
+    deliveryAddressDraft,
+    isDelivery,
+    updateFulfillmentPreferencesMutation,
+  ]);
 
   const handleGrantAdminOverride = React.useCallback(async () => {
     if (!order?.id) return;
@@ -737,6 +811,43 @@ export default function OrderDetail() {
     runCreditCheck,
     user?.id,
   ]);
+
+  const handleConfirmPayment = React.useCallback(
+    async (payment: PaymentRow) => {
+      if (!order?.id) return;
+      const normalizedStatus = (payment.status || '').toUpperCase();
+      if (normalizedStatus === 'CONFIRMED') return;
+      setActionError(null);
+      setActionSuccess(null);
+      try {
+        if (payment.channel === 'Consumer') {
+          await confirmConsumerPaymentMutation({
+            variables: { input: { paymentId: payment.id } },
+          });
+        } else {
+          await confirmResellerPaymentMutation({
+            variables: { paymentId: payment.id },
+          });
+        }
+        setActionSuccess('Payment confirmed successfully.');
+        await Promise.all([
+          refetch(),
+          runCreditCheck({ variables: { saleOrderId: order.id } }),
+        ]);
+      } catch (confirmErr: any) {
+        setActionError(
+          confirmErr?.message || 'Failed to confirm payment. Please try again.',
+        );
+      }
+    },
+    [
+      order?.id,
+      confirmConsumerPaymentMutation,
+      confirmResellerPaymentMutation,
+      refetch,
+      runCreditCheck,
+    ],
+  );
 
   const summaryContext = (workflowSummary?.context ?? {}) as any;
   const adminOverride = summaryContext?.overrides?.admin;
@@ -1046,6 +1157,73 @@ export default function OrderDetail() {
             <Divider />
             <Stack spacing={1}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Fulfillment Preferences
+              </Typography>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'flex-end' }}>
+                <TextField
+                  select
+                  label="Fulfillment Type"
+                  size="small"
+                  value={fulfillmentTypeDraft}
+                  onChange={(event) =>
+                    setFulfillmentTypeDraft(event.target.value as 'PICKUP' | 'DELIVERY')
+                  }
+                  sx={{ maxWidth: 220 }}
+                  disabled={!canEditFulfillmentPreferences || updatingFulfillmentPreferences}
+                >
+                  <MenuItem value="PICKUP">Pickup</MenuItem>
+                  <MenuItem value="DELIVERY">Delivery</MenuItem>
+                </TextField>
+                <TextField
+                  label="Delivery Address"
+                  size="small"
+                  value={deliveryAddressDraft}
+                  onChange={(event) => setDeliveryAddressDraft(event.target.value)}
+                  disabled=
+                    {!canEditFulfillmentPreferences || !isDelivery || updatingFulfillmentPreferences}
+                  error={deliveryAddressError}
+                  helperText={
+                    isDelivery
+                      ? deliveryAddressError
+                        ? 'Delivery address is required for delivery orders.'
+                        : 'Shared with the rider and fulfillment team.'
+                      : 'Pickup orders do not require a delivery address.'
+                  }
+                  sx={{ flex: 1 }}
+                  multiline
+                  minRows={isDelivery ? 2 : 1}
+                />
+              </Stack>
+              {canEditFulfillmentPreferences && (
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={handleSaveFulfillmentPreferences}
+                    disabled={
+                      deliveryAddressError ||
+                      !preferencesDirty ||
+                      updatingFulfillmentPreferences
+                    }
+                  >
+                    {updatingFulfillmentPreferences ? 'Saving…' : 'Save Preferences'}
+                  </Button>
+                  <Button
+                    size="small"
+                    disabled={!preferencesDirty || updatingFulfillmentPreferences}
+                    onClick={() => {
+                      setFulfillmentTypeDraft(initialFulfillmentType);
+                      setDeliveryAddressDraft(initialDeliveryAddress);
+                    }}
+                  >
+                    Reset
+                  </Button>
+                </Stack>
+              )}
+            </Stack>
+            <Divider />
+            <Stack spacing={1}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                 Payments
               </Typography>
               {payments.length > 0 ? (
@@ -1104,6 +1282,17 @@ export default function OrderDetail() {
                             '—'
                           )}
                         </Typography>
+                        {canConfirmPayments &&
+                          payment.status?.toUpperCase() !== 'CONFIRMED' && (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => handleConfirmPayment(payment)}
+                              disabled={confirmingPayment}
+                            >
+                              {confirmingPayment ? 'Confirming…' : 'Confirm payment'}
+                            </Button>
+                          )}
                       </Stack>
                     </Stack>
                   ))}

@@ -333,15 +333,24 @@ export class OnboardingService {
     take,
     skip,
     q,
+    billerId,
   }: {
     status?: 'PENDING' | 'ACTIVE' | 'REJECTED';
     take?: number;
     skip?: number;
     q?: string;
+    billerId?: string | null;
   } = {}) {
     const where: Prisma.ResellerProfileWhereInput = {};
     if (status) where.profileStatus = PrismaProfileStatus[status];
-    if (q) where.user = { email: { contains: q, mode: 'insensitive' } };
+    if (q) {
+      where.user = {
+        email: { contains: q, mode: 'insensitive' },
+      };
+    }
+    if (billerId) {
+      where.billerId = billerId;
+    }
     return this.prisma.resellerProfile.findMany({
       where,
       include: { user: true, biller: true, requestedBiller: true },

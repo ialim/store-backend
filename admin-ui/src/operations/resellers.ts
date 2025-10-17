@@ -127,6 +127,24 @@ export const ResellerProfile = gql`
   }
 `;
 
+export const MyResellerProfile = gql`
+  query MyResellerProfile {
+    myResellerProfile {
+      userId
+      billerId
+      profileStatus
+      biller {
+        id
+        email
+      }
+      user {
+        id
+        email
+      }
+    }
+  }
+`;
+
 export const ApplyReseller = gql`
   mutation ApplyReseller($input: ApplyResellerInput!) {
     applyReseller(input: $input) { userId profileStatus }

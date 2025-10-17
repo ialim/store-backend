@@ -85,6 +85,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     PERMISSIONS.product.DELETE,
   );
   const orderRead = permissionList(PERMISSIONS.order.READ);
+  const saleRead = permissionList(PERMISSIONS.sale.READ);
   const userManage = permissionList(
     PERMISSIONS.user.CREATE,
     PERMISSIONS.user.READ,
@@ -100,6 +101,8 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
   );
   const addressRead = permissionList(PERMISSIONS.address.READ);
   const fulfillmentAccess = permissionList(PERMISSIONS.sale.UPDATE);
+  const isRider = hasRole('RIDER');
+  const isBiller = hasRole('BILLER');
 
   const toggleMobileDrawer = () => setMobileOpen((prev) => !prev);
   const [collapsedSections, setCollapsedSections] = React.useState<Record<string, boolean>>({});
@@ -190,45 +193,65 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           label: 'Products',
           to: '/products',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-            hasPermission(...productRead, ...productWrite),
+            !isRider &&
+            (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+              hasPermission(...productRead, ...productWrite)),
           icon: <Inventory2Icon fontSize="small" />,
         },
-        { label: 'Variants', to: '/variants', show: true, icon: <Inventory2Icon fontSize="small" /> },
+        {
+          label: 'Variants',
+          to: '/variants',
+          show: !isRider,
+          icon: <Inventory2Icon fontSize="small" />,
+        },
         {
           label: 'Import Variants',
           to: '/variants/import',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-            hasPermission(...productWrite),
+            !isRider &&
+            (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+              hasPermission(...productWrite)),
           icon: <CloudUploadIcon fontSize="small" />,
         },
         {
           label: 'Assets',
           to: '/assets',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-            hasPermission(...productWrite),
+            !isRider &&
+            (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+              hasPermission(...productWrite)),
           icon: <PhotoLibraryIcon fontSize="small" />,
         },
         {
           label: 'Collections',
           to: '/collections',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-            hasPermission(...productWrite),
+            !isRider &&
+            (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+              hasPermission(...productWrite)),
           icon: <AssignmentIcon fontSize="small" />,
         },
         {
           label: 'Facets',
           to: '/facets',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-            hasPermission(...productWrite),
+            !isRider &&
+            (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+              hasPermission(...productWrite)),
           icon: <AssignmentIcon fontSize="small" />,
         },
-        { label: 'Stock', to: '/stock', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <Inventory2Icon fontSize="small" /> },
-        { label: 'Stores', to: '/stores', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <StoreIcon fontSize="small" /> },
+        {
+          label: 'Stock',
+          to: '/stock',
+          show: !isRider && hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <Inventory2Icon fontSize="small" />,
+        },
+        {
+          label: 'Stores',
+          to: '/stores',
+          show: !isRider && hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <StoreIcon fontSize="small" />,
+        },
       ],
     },
     {
@@ -240,30 +263,28 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           label: 'Orders',
           to: '/orders',
           show:
-            hasRole(
+            !isBiller &&
+            (hasRole(
               'SUPERADMIN',
               'ADMIN',
               'MANAGER',
-              'BILLER',
               'ACCOUNTANT',
               'RESELLER',
-            ) ||
-            hasPermission(...orderRead),
+            ) || hasPermission(...orderRead, ...saleRead)),
           icon: <ReceiptLongIcon fontSize="small" />,
         },
         {
           label: 'Sales',
           to: '/orders/sales',
           show:
-            hasRole(
+            !isBiller &&
+            (hasRole(
               'SUPERADMIN',
               'ADMIN',
               'MANAGER',
-              'BILLER',
               'ACCOUNTANT',
               'RESELLER',
-            ) ||
-            hasPermission(...orderRead),
+            ) || hasPermission(...orderRead, ...saleRead)),
           icon: <LocalMallIcon fontSize="small" />,
         },
       ],
@@ -311,10 +332,10 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       collapsible: true,
       items: [
         {
-          label: 'Fulfillment Board',
-          to: '/fulfillment',
+          label: 'Fulfillments',
+          to: '/fulfillments',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT', 'RIDER') ||
             hasPermission(...fulfillmentAccess),
           icon: <LocalShippingIcon fontSize="small" />,
         },
@@ -350,7 +371,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           to: '/customers/sales',
           show:
             hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
-            hasPermission(...orderRead),
+            hasPermission(...orderRead, ...saleRead),
           icon: <LocalMallIcon fontSize="small" />,
         },
         {
@@ -379,7 +400,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           to: '/resellers/sales',
           show:
             hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
-            hasPermission(...orderRead),
+            hasPermission(...orderRead, ...saleRead),
           icon: <ReceiptLongIcon fontSize="small" />,
         },
         {
@@ -393,7 +414,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
               'BILLER',
               'ACCOUNTANT',
               'RESELLER',
-            ) || hasPermission(...orderRead),
+            ) || hasPermission(...orderRead, ...saleRead),
           icon: <AssignmentIcon fontSize="small" />,
         },
         {
@@ -478,14 +499,6 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
             hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT') ||
             hasPermission(...analyticsRead),
           icon: <DashboardIcon fontSize="small" />,
-        },
-        {
-          label: 'Fulfillment',
-          to: '/fulfillment',
-          show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER') ||
-            hasPermission(...assignmentAccess),
-          icon: <LocalShippingIcon fontSize="small" />,
         },
         {
           label: 'Low Stock',

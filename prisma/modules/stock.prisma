@@ -28,6 +28,7 @@ model Store {
   InvoiceImport InvoiceImport[]
 
   legacyMappings LegacyStoreMapping[]
+  RiderCoverageAreas RiderCoverageArea[]
 }
 
 model Stock {

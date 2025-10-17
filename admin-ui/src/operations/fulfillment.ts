@@ -40,6 +40,7 @@ export const MyFulfillmentInterests = gql`
       status
       etaMinutes
       message
+      proposedCost
       createdAt
       fulfillment {
         id
@@ -58,6 +59,7 @@ export const RegisterFulfillmentInterest = gql`
       status
       etaMinutes
       message
+      proposedCost
       fulfillmentId
       updatedAt
     }
@@ -83,6 +85,7 @@ export const FulfillmentRiderInterests = gql`
       status
       etaMinutes
       message
+      proposedCost
       createdAt
       rider {
         id
@@ -104,8 +107,93 @@ export const AssignFulfillmentRider = gql`
       id
       status
       riderId
+      proposedCost
       fulfillmentId
       updatedAt
+    }
+  }
+`;
+
+export const FulfillmentsInProgress = gql`
+  query FulfillmentsInProgress(
+    $statuses: [FulfillmentStatus!]
+    $storeId: String
+    $search: String
+    $take: Int
+  ) {
+    fulfillmentsInProgress(
+      statuses: $statuses
+      storeId: $storeId
+      search: $search
+      take: $take
+    ) {
+      id
+      saleOrderId
+      type
+      status
+      deliveryAddress
+      createdAt
+      updatedAt
+      deliveryPersonnel {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
+      saleOrder {
+        id
+        storeId
+        type
+        status
+        phase
+        totalAmount
+        biller {
+          id
+          email
+          customerProfile {
+            fullName
+          }
+        }
+        consumerSale {
+          id
+          store {
+            id
+            name
+          }
+          customer {
+            id
+            fullName
+            email
+          }
+        }
+        resellerSale {
+          id
+          store {
+            id
+            name
+          }
+          reseller {
+            id
+            email
+            customerProfile {
+              fullName
+            }
+          }
+        }
+      }
+      riderInterests {
+        id
+        status
+        createdAt
+        rider {
+          id
+          email
+          customerProfile {
+            fullName
+          }
+        }
+      }
     }
   }
 `;

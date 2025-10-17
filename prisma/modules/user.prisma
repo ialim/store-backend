@@ -48,6 +48,7 @@ model User {
 
   Fulfillment Fulfillment[]
   FulfillmentRiderInterests FulfillmentRiderInterest[] @relation("RiderInterests")
+  RiderCoverageAreas RiderCoverageArea[] @relation("RiderCoverageAreas")
 
   BillerQuotation Quotation[] @relation("BillerQuotation")
 

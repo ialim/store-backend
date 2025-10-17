@@ -65,6 +65,8 @@ export class PaymentsOutboxHandler {
           workflowState: true,
           workflowContext: true,
           storeId: true,
+          fulfillmentType: true,
+          deliveryAddress: true,
         },
       });
       if (!order) return true;
@@ -97,7 +99,7 @@ export class PaymentsOutboxHandler {
           : null;
       const previousState =
         (order.workflowState as SaleWorkflowState | null) ??
-        saleStatusToState(order.status as PrismaSaleStatus);
+        saleStatusToState(order.status);
       let creditLimit =
         previousContext?.credit?.limit ?? order.totalAmount ?? 0;
       let creditExposure = previousContext?.credit?.exposure ?? 0;
@@ -130,7 +132,7 @@ export class PaymentsOutboxHandler {
       }
 
       const saleMachineResult = runSaleMachine({
-        status: order.status as PrismaSaleStatus,
+        status: order.status,
         workflowState: previousState,
         workflowContext: previousContext ?? undefined,
         event: { type: 'PAYMENT_CONFIRMED', amount: paid },
@@ -173,6 +175,21 @@ export class PaymentsOutboxHandler {
         });
       }
 
+      const desiredFulfilmentType =
+        order.fulfillmentType ?? PrismaFulfillmentType.PICKUP;
+      const normalizedAddress =
+        (order.deliveryAddress ?? '').trim() || null;
+
+      if (
+        desiredFulfilmentType === PrismaFulfillmentType.DELIVERY &&
+        !normalizedAddress
+      ) {
+        this.logger.warn(
+          `Order ${orderId} cleared for fulfillment as delivery but missing address; skipping auto-transition.`,
+        );
+        return true;
+      }
+
       if (
         paid >= (order.totalAmount || 0) &&
         order.status !== PrismaSaleStatus.PAID &&
@@ -187,8 +204,14 @@ export class PaymentsOutboxHandler {
       // Move to fulfillment and create record if missing
       await this.prisma.saleOrder.update({
         where: { id: orderId },
-        data: { phase: PrismaOrderPhase.FULFILLMENT },
+        data: {
+          phase: PrismaOrderPhase.FULFILLMENT,
+          fulfillmentType: desiredFulfilmentType,
+          deliveryAddress: normalizedAddress,
+        },
       });
+      order.fulfillmentType = desiredFulfilmentType;
+      order.deliveryAddress = normalizedAddress;
       const existing = await this.prisma.fulfillment.findUnique({
         where: { saleOrderId: orderId },
       });
@@ -196,9 +219,10 @@ export class PaymentsOutboxHandler {
         const fulfillment = await this.prisma.fulfillment.create({
           data: {
             saleOrderId: orderId,
-            type: PrismaFulfillmentType.PICKUP,
+            type: desiredFulfilmentType,
             status: PrismaFulfillmentStatus.PENDING,
             workflowState: 'ALLOCATING_STOCK',
+            deliveryAddress: normalizedAddress,
           },
         });
         await this.workflow.recordFulfilmentTransition({

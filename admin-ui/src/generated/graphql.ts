@@ -5944,6 +5944,7 @@ export type FulfillmentRiderInterest = {
   fulfillmentId: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   message?: Maybe<Scalars['String']['output']>;
+  proposedCost?: Maybe<Scalars['Float']['output']>;
   rider: User;
   riderId: Scalars['String']['output'];
   status: FulfillmentRiderInterestStatus;
@@ -5956,6 +5957,7 @@ export type FulfillmentRiderInterestCreateManyFulfillmentInput = {
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
   id?: InputMaybe<Scalars['String']['input']>;
   message?: InputMaybe<Scalars['String']['input']>;
+  proposedCost?: InputMaybe<Scalars['Float']['input']>;
   riderId: Scalars['String']['input'];
   status?: InputMaybe<FulfillmentRiderInterestStatus>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
@@ -5973,6 +5975,7 @@ export type FulfillmentRiderInterestCreateManyRiderInput = {
   fulfillmentId: Scalars['String']['input'];
   id?: InputMaybe<Scalars['String']['input']>;
   message?: InputMaybe<Scalars['String']['input']>;
+  proposedCost?: InputMaybe<Scalars['Float']['input']>;
   status?: InputMaybe<FulfillmentRiderInterestStatus>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -6012,7 +6015,8 @@ export type FulfillmentRiderInterestCreateWithoutFulfillmentInput = {
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
   id?: InputMaybe<Scalars['String']['input']>;
   message?: InputMaybe<Scalars['String']['input']>;
-  rider: UserCreateNestedOneWithoutFulfillmentRiderInterestInput;
+  proposedCost?: InputMaybe<Scalars['Float']['input']>;
+  rider: UserCreateNestedOneWithoutFulfillmentRiderInterestsInput;
   status?: InputMaybe<FulfillmentRiderInterestStatus>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -6024,6 +6028,7 @@ export type FulfillmentRiderInterestCreateWithoutRiderInput = {
   fulfillment: FulfillmentCreateNestedOneWithoutRiderInterestsInput;
   id?: InputMaybe<Scalars['String']['input']>;
   message?: InputMaybe<Scalars['String']['input']>;
+  proposedCost?: InputMaybe<Scalars['Float']['input']>;
   status?: InputMaybe<FulfillmentRiderInterestStatus>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -6053,6 +6058,7 @@ export type FulfillmentRiderInterestScalarWhereInput = {
   fulfillmentId?: InputMaybe<StringFilter>;
   id?: InputMaybe<StringFilter>;
   message?: InputMaybe<StringNullableFilter>;
+  proposedCost?: InputMaybe<FloatNullableFilter>;
   riderId?: InputMaybe<StringFilter>;
   status?: InputMaybe<EnumFulfillmentRiderInterestStatusFilter>;
   updatedAt?: InputMaybe<DateTimeFilter>;
@@ -6061,6 +6067,7 @@ export type FulfillmentRiderInterestScalarWhereInput = {
 export enum FulfillmentRiderInterestStatus {
   Active = 'ACTIVE',
   Assigned = 'ASSIGNED',
+  Expired = 'EXPIRED',
   Rejected = 'REJECTED',
   Withdrawn = 'WITHDRAWN'
 }
@@ -6071,6 +6078,7 @@ export type FulfillmentRiderInterestUpdateManyMutationInput = {
   expiresAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   message?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  proposedCost?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
   status?: InputMaybe<EnumFulfillmentRiderInterestStatusFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -6129,7 +6137,8 @@ export type FulfillmentRiderInterestUpdateWithoutFulfillmentInput = {
   expiresAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   message?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
-  rider?: InputMaybe<UserUpdateOneRequiredWithoutFulfillmentRiderInterestNestedInput>;
+  proposedCost?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
+  rider?: InputMaybe<UserUpdateOneRequiredWithoutFulfillmentRiderInterestsNestedInput>;
   status?: InputMaybe<EnumFulfillmentRiderInterestStatusFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -6141,6 +6150,7 @@ export type FulfillmentRiderInterestUpdateWithoutRiderInput = {
   fulfillment?: InputMaybe<FulfillmentUpdateOneRequiredWithoutRiderInterestsNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   message?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  proposedCost?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
   status?: InputMaybe<EnumFulfillmentRiderInterestStatusFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -6168,6 +6178,7 @@ export type FulfillmentRiderInterestWhereInput = {
   fulfillmentId?: InputMaybe<StringFilter>;
   id?: InputMaybe<StringFilter>;
   message?: InputMaybe<StringNullableFilter>;
+  proposedCost?: InputMaybe<FloatNullableFilter>;
   rider?: InputMaybe<UserScalarRelationFilter>;
   riderId?: InputMaybe<StringFilter>;
   status?: InputMaybe<EnumFulfillmentRiderInterestStatusFilter>;
@@ -6186,6 +6197,7 @@ export type FulfillmentRiderInterestWhereUniqueInput = {
   fulfillmentId_riderId?: InputMaybe<FulfillmentRiderInterestFulfillmentIdRiderIdCompoundUniqueInput>;
   id?: InputMaybe<Scalars['String']['input']>;
   message?: InputMaybe<StringNullableFilter>;
+  proposedCost?: InputMaybe<FloatNullableFilter>;
   rider?: InputMaybe<UserScalarRelationFilter>;
   riderId?: InputMaybe<StringFilter>;
   status?: InputMaybe<EnumFulfillmentRiderInterestStatusFilter>;
@@ -7237,6 +7249,8 @@ export type Mutation = {
   updateAddressAssignment?: Maybe<AddressAssignment>;
   updateCollection: CollectionGql;
   updateFacet: FacetGql;
+  /** Update fulfillment type or delivery address for a sale order. */
+  updateFulfillmentPreferences: SaleOrder;
   updateFulfillmentStatus: Fulfillment;
   updateManyAddress?: Maybe<AffectedRows>;
   updateManyAddressAssignment?: Maybe<AffectedRows>;
@@ -7256,6 +7270,7 @@ export type Mutation = {
   updateStore?: Maybe<Store>;
   updateSupplier: Supplier;
   updateUser?: Maybe<User>;
+  upsertRiderCoverage: Array<RiderCoverageArea>;
   upsertSupplierCatalog: SupplierCatalogEntry;
   upsertSupplierCatalogBulk: Array<Scalars['String']['output']>;
   upsertVariantSupplierCatalog: SupplierCatalogEntry;
@@ -7955,6 +7970,11 @@ export type MutationUpdateFacetArgs = {
 };
 
 
+export type MutationUpdateFulfillmentPreferencesArgs = {
+  input: UpdateFulfillmentPreferencesInput;
+};
+
+
 export type MutationUpdateFulfillmentStatusArgs = {
   input: UpdateFulfillmentStatusInput;
 };
@@ -8064,6 +8084,11 @@ export type MutationUpdateSupplierArgs = {
 export type MutationUpdateUserArgs = {
   data: UserUpdateInput;
   where: UserWhereUniqueInput;
+};
+
+
+export type MutationUpsertRiderCoverageArgs = {
+  input: UpsertRiderCoverageInput;
 };
 
 
@@ -13700,6 +13725,7 @@ export type Query = {
   findUniqueStore: Store;
   findUniqueUser: User;
   fulfillmentRiderInterests: Array<FulfillmentRiderInterest>;
+  fulfillmentsInProgress: Array<Fulfillment>;
   fulfilmentWorkflow?: Maybe<FulfilmentWorkflowSnapshot>;
   groupByAddress: Array<AddressGroupBy>;
   groupByAddressAssignment: Array<AddressAssignmentGroupBy>;
@@ -13727,12 +13753,15 @@ export type Query = {
   me: User;
   monthlySalesSummary: MonthlySalesSummary;
   monthlySalesSummaryByStore: MonthlySalesSummary;
+  myCoverageAreas: Array<RiderCoverageArea>;
   myFulfillmentInterests: Array<FulfillmentRiderInterest>;
+  myResellerProfile?: Maybe<ResellerProfile>;
   mySupportMessages: Array<SupportMessage>;
   notifications: Array<Notification>;
   order: SaleOrder;
   orderBillers: Array<User>;
   orderPaymentSummary: PaymentOrderSummary;
+  orderResellers: Array<ResellerProfile>;
   ordersQuery: Array<SaleOrder>;
   outboxStatus: OutboxStatusCounts;
   outboxStatusByType: Array<OutboxTypeCount>;
@@ -13782,6 +13811,7 @@ export type Query = {
   rfqPendingSuppliers: Array<SupplierQuoteSummary>;
   rfqStatusCounts: RfqStatusCounts;
   rfqStatusCountsByStore: RfqStatusCounts;
+  riderCoverageAreas: Array<RiderCoverageArea>;
   rolePermissions: Array<Permission>;
   roles: Array<Role>;
   saleWorkflow: SaleWorkflowSnapshot;
@@ -14148,6 +14178,14 @@ export type QueryFulfillmentRiderInterestsArgs = {
 };
 
 
+export type QueryFulfillmentsInProgressArgs = {
+  search?: InputMaybe<Scalars['String']['input']>;
+  statuses?: InputMaybe<Array<FulfillmentStatus>>;
+  storeId?: InputMaybe<Scalars['String']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type QueryFulfilmentWorkflowArgs = {
   saleOrderId: Scalars['String']['input'];
 };
@@ -14365,6 +14403,12 @@ export type QueryOrderArgs = {
 
 export type QueryOrderPaymentSummaryArgs = {
   saleOrderId: Scalars['String']['input'];
+};
+
+
+export type QueryOrderResellersArgs = {
+  q?: InputMaybe<Scalars['String']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -14595,6 +14639,11 @@ export type QueryRfqStatusCountsArgs = {
 
 export type QueryRfqStatusCountsByStoreArgs = {
   storeId: Scalars['String']['input'];
+};
+
+
+export type QueryRiderCoverageAreasArgs = {
+  riderId: Scalars['String']['input'];
 };
 
 
@@ -15773,9 +15822,12 @@ export type ReceiveStockBatchItemInput = {
 };
 
 export type RegisterFulfillmentInterestInput = {
+  /** Estimated arrival time in minutes */
   etaMinutes?: InputMaybe<Scalars['Int']['input']>;
   fulfillmentId: Scalars['ID']['input'];
   message?: InputMaybe<Scalars['String']['input']>;
+  /** Proposed delivery cost from the rider */
+  proposedCost?: InputMaybe<Scalars['Float']['input']>;
 };
 
 export type RejectRequisitionInput = {
@@ -18042,6 +18094,218 @@ export type RfqStatusCounts = {
   total: Scalars['Float']['output'];
 };
 
+export type RiderCoverageArea = {
+  __typename?: 'RiderCoverageArea';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  rider: User;
+  riderId: Scalars['String']['output'];
+  serviceRadiusKm?: Maybe<Scalars['Float']['output']>;
+  store: Store;
+  storeId: Scalars['String']['output'];
+};
+
+export type RiderCoverageAreaCreateManyRiderInput = {
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  serviceRadiusKm?: InputMaybe<Scalars['Float']['input']>;
+  storeId: Scalars['String']['input'];
+};
+
+export type RiderCoverageAreaCreateManyRiderInputEnvelope = {
+  data: Array<RiderCoverageAreaCreateManyRiderInput>;
+  skipDuplicates?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type RiderCoverageAreaCreateManyStoreInput = {
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  riderId: Scalars['String']['input'];
+  serviceRadiusKm?: InputMaybe<Scalars['Float']['input']>;
+};
+
+export type RiderCoverageAreaCreateManyStoreInputEnvelope = {
+  data: Array<RiderCoverageAreaCreateManyStoreInput>;
+  skipDuplicates?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type RiderCoverageAreaCreateNestedManyWithoutRiderInput = {
+  connect?: InputMaybe<Array<RiderCoverageAreaWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<RiderCoverageAreaCreateOrConnectWithoutRiderInput>>;
+  create?: InputMaybe<Array<RiderCoverageAreaCreateWithoutRiderInput>>;
+  createMany?: InputMaybe<RiderCoverageAreaCreateManyRiderInputEnvelope>;
+};
+
+export type RiderCoverageAreaCreateNestedManyWithoutStoreInput = {
+  connect?: InputMaybe<Array<RiderCoverageAreaWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<RiderCoverageAreaCreateOrConnectWithoutStoreInput>>;
+  create?: InputMaybe<Array<RiderCoverageAreaCreateWithoutStoreInput>>;
+  createMany?: InputMaybe<RiderCoverageAreaCreateManyStoreInputEnvelope>;
+};
+
+export type RiderCoverageAreaCreateOrConnectWithoutRiderInput = {
+  create: RiderCoverageAreaCreateWithoutRiderInput;
+  where: RiderCoverageAreaWhereUniqueInput;
+};
+
+export type RiderCoverageAreaCreateOrConnectWithoutStoreInput = {
+  create: RiderCoverageAreaCreateWithoutStoreInput;
+  where: RiderCoverageAreaWhereUniqueInput;
+};
+
+export type RiderCoverageAreaCreateWithoutRiderInput = {
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  serviceRadiusKm?: InputMaybe<Scalars['Float']['input']>;
+  store: StoreCreateNestedOneWithoutRiderCoverageAreasInput;
+};
+
+export type RiderCoverageAreaCreateWithoutStoreInput = {
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  rider: UserCreateNestedOneWithoutRiderCoverageAreasInput;
+  serviceRadiusKm?: InputMaybe<Scalars['Float']['input']>;
+};
+
+export type RiderCoverageAreaInput = {
+  /** Optional service radius in kilometers */
+  serviceRadiusKm?: InputMaybe<Scalars['Float']['input']>;
+  storeId: Scalars['ID']['input'];
+};
+
+export type RiderCoverageAreaListRelationFilter = {
+  every?: InputMaybe<RiderCoverageAreaWhereInput>;
+  none?: InputMaybe<RiderCoverageAreaWhereInput>;
+  some?: InputMaybe<RiderCoverageAreaWhereInput>;
+};
+
+export type RiderCoverageAreaOrderByRelationAggregateInput = {
+  _count?: InputMaybe<SortOrder>;
+};
+
+export type RiderCoverageAreaRiderIdStoreIdCompoundUniqueInput = {
+  riderId: Scalars['String']['input'];
+  storeId: Scalars['String']['input'];
+};
+
+export type RiderCoverageAreaScalarWhereInput = {
+  AND?: InputMaybe<Array<RiderCoverageAreaScalarWhereInput>>;
+  NOT?: InputMaybe<Array<RiderCoverageAreaScalarWhereInput>>;
+  OR?: InputMaybe<Array<RiderCoverageAreaScalarWhereInput>>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  id?: InputMaybe<StringFilter>;
+  riderId?: InputMaybe<StringFilter>;
+  serviceRadiusKm?: InputMaybe<FloatNullableFilter>;
+  storeId?: InputMaybe<StringFilter>;
+};
+
+export type RiderCoverageAreaUpdateManyMutationInput = {
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  serviceRadiusKm?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
+};
+
+export type RiderCoverageAreaUpdateManyWithWhereWithoutRiderInput = {
+  data: RiderCoverageAreaUpdateManyMutationInput;
+  where: RiderCoverageAreaScalarWhereInput;
+};
+
+export type RiderCoverageAreaUpdateManyWithWhereWithoutStoreInput = {
+  data: RiderCoverageAreaUpdateManyMutationInput;
+  where: RiderCoverageAreaScalarWhereInput;
+};
+
+export type RiderCoverageAreaUpdateManyWithoutRiderNestedInput = {
+  connect?: InputMaybe<Array<RiderCoverageAreaWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<RiderCoverageAreaCreateOrConnectWithoutRiderInput>>;
+  create?: InputMaybe<Array<RiderCoverageAreaCreateWithoutRiderInput>>;
+  createMany?: InputMaybe<RiderCoverageAreaCreateManyRiderInputEnvelope>;
+  delete?: InputMaybe<Array<RiderCoverageAreaWhereUniqueInput>>;
+  deleteMany?: InputMaybe<Array<RiderCoverageAreaScalarWhereInput>>;
+  disconnect?: InputMaybe<Array<RiderCoverageAreaWhereUniqueInput>>;
+  set?: InputMaybe<Array<RiderCoverageAreaWhereUniqueInput>>;
+  update?: InputMaybe<Array<RiderCoverageAreaUpdateWithWhereUniqueWithoutRiderInput>>;
+  updateMany?: InputMaybe<Array<RiderCoverageAreaUpdateManyWithWhereWithoutRiderInput>>;
+  upsert?: InputMaybe<Array<RiderCoverageAreaUpsertWithWhereUniqueWithoutRiderInput>>;
+};
+
+export type RiderCoverageAreaUpdateManyWithoutStoreNestedInput = {
+  connect?: InputMaybe<Array<RiderCoverageAreaWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<RiderCoverageAreaCreateOrConnectWithoutStoreInput>>;
+  create?: InputMaybe<Array<RiderCoverageAreaCreateWithoutStoreInput>>;
+  createMany?: InputMaybe<RiderCoverageAreaCreateManyStoreInputEnvelope>;
+  delete?: InputMaybe<Array<RiderCoverageAreaWhereUniqueInput>>;
+  deleteMany?: InputMaybe<Array<RiderCoverageAreaScalarWhereInput>>;
+  disconnect?: InputMaybe<Array<RiderCoverageAreaWhereUniqueInput>>;
+  set?: InputMaybe<Array<RiderCoverageAreaWhereUniqueInput>>;
+  update?: InputMaybe<Array<RiderCoverageAreaUpdateWithWhereUniqueWithoutStoreInput>>;
+  updateMany?: InputMaybe<Array<RiderCoverageAreaUpdateManyWithWhereWithoutStoreInput>>;
+  upsert?: InputMaybe<Array<RiderCoverageAreaUpsertWithWhereUniqueWithoutStoreInput>>;
+};
+
+export type RiderCoverageAreaUpdateWithWhereUniqueWithoutRiderInput = {
+  data: RiderCoverageAreaUpdateWithoutRiderInput;
+  where: RiderCoverageAreaWhereUniqueInput;
+};
+
+export type RiderCoverageAreaUpdateWithWhereUniqueWithoutStoreInput = {
+  data: RiderCoverageAreaUpdateWithoutStoreInput;
+  where: RiderCoverageAreaWhereUniqueInput;
+};
+
+export type RiderCoverageAreaUpdateWithoutRiderInput = {
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  serviceRadiusKm?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
+  store?: InputMaybe<StoreUpdateOneRequiredWithoutRiderCoverageAreasNestedInput>;
+};
+
+export type RiderCoverageAreaUpdateWithoutStoreInput = {
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  rider?: InputMaybe<UserUpdateOneRequiredWithoutRiderCoverageAreasNestedInput>;
+  serviceRadiusKm?: InputMaybe<NullableFloatFieldUpdateOperationsInput>;
+};
+
+export type RiderCoverageAreaUpsertWithWhereUniqueWithoutRiderInput = {
+  create: RiderCoverageAreaCreateWithoutRiderInput;
+  update: RiderCoverageAreaUpdateWithoutRiderInput;
+  where: RiderCoverageAreaWhereUniqueInput;
+};
+
+export type RiderCoverageAreaUpsertWithWhereUniqueWithoutStoreInput = {
+  create: RiderCoverageAreaCreateWithoutStoreInput;
+  update: RiderCoverageAreaUpdateWithoutStoreInput;
+  where: RiderCoverageAreaWhereUniqueInput;
+};
+
+export type RiderCoverageAreaWhereInput = {
+  AND?: InputMaybe<Array<RiderCoverageAreaWhereInput>>;
+  NOT?: InputMaybe<Array<RiderCoverageAreaWhereInput>>;
+  OR?: InputMaybe<Array<RiderCoverageAreaWhereInput>>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  id?: InputMaybe<StringFilter>;
+  rider?: InputMaybe<UserScalarRelationFilter>;
+  riderId?: InputMaybe<StringFilter>;
+  serviceRadiusKm?: InputMaybe<FloatNullableFilter>;
+  store?: InputMaybe<StoreScalarRelationFilter>;
+  storeId?: InputMaybe<StringFilter>;
+};
+
+export type RiderCoverageAreaWhereUniqueInput = {
+  AND?: InputMaybe<Array<RiderCoverageAreaWhereInput>>;
+  NOT?: InputMaybe<Array<RiderCoverageAreaWhereInput>>;
+  OR?: InputMaybe<Array<RiderCoverageAreaWhereInput>>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  rider?: InputMaybe<UserScalarRelationFilter>;
+  riderId?: InputMaybe<StringFilter>;
+  riderId_storeId?: InputMaybe<RiderCoverageAreaRiderIdStoreIdCompoundUniqueInput>;
+  serviceRadiusKm?: InputMaybe<FloatNullableFilter>;
+  store?: InputMaybe<StoreScalarRelationFilter>;
+  storeId?: InputMaybe<StringFilter>;
+};
+
 export type Role = {
   __typename?: 'Role';
   _count: RoleCount;
@@ -18184,7 +18448,9 @@ export type SaleOrder = {
   billerId: Scalars['String']['output'];
   consumerSale?: Maybe<ConsumerSale>;
   createdAt: Scalars['DateTime']['output'];
+  deliveryAddress?: Maybe<Scalars['String']['output']>;
   fulfillment?: Maybe<Fulfillment>;
+  fulfillmentType?: Maybe<FulfillmentType>;
   /** Current state of the fulfillment workflow derived from the fulfillment state machine. */
   fulfillmentWorkflowState?: Maybe<Scalars['String']['output']>;
   /** Fulfilment workflow snapshot for the associated fulfillment, if any. */
@@ -22166,6 +22432,7 @@ export type Store = {
   InvoiceImport?: Maybe<Array<InvoiceImport>>;
   PurchaseRequisition?: Maybe<Array<PurchaseRequisition>>;
   Quotation?: Maybe<Array<Quotation>>;
+  RiderCoverageAreas?: Maybe<Array<RiderCoverageArea>>;
   _count: StoreCount;
   /** Addresses that have been linked to this store via the AddressAssignment table. */
   addresses: Array<Address>;
@@ -22207,6 +22474,7 @@ export type StoreCount = {
   InvoiceImport: Scalars['Int']['output'];
   PurchaseRequisition: Scalars['Int']['output'];
   Quotation: Scalars['Int']['output'];
+  RiderCoverageAreas: Scalars['Int']['output'];
   customerSales: Scalars['Int']['output'];
   legacyMappings: Scalars['Int']['output'];
   movements: Scalars['Int']['output'];
@@ -22258,6 +22526,7 @@ export type StoreCreateInput = {
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
   Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -22362,6 +22631,12 @@ export type StoreCreateNestedOneWithoutResellerSalesInput = {
   create?: InputMaybe<StoreCreateWithoutResellerSalesInput>;
 };
 
+export type StoreCreateNestedOneWithoutRiderCoverageAreasInput = {
+  connect?: InputMaybe<StoreWhereUniqueInput>;
+  connectOrCreate?: InputMaybe<StoreCreateOrConnectWithoutRiderCoverageAreasInput>;
+  create?: InputMaybe<StoreCreateWithoutRiderCoverageAreasInput>;
+};
+
 export type StoreCreateNestedOneWithoutSalesReturnsInput = {
   connect?: InputMaybe<StoreWhereUniqueInput>;
   connectOrCreate?: InputMaybe<StoreCreateOrConnectWithoutSalesReturnsInput>;
@@ -22436,6 +22711,11 @@ export type StoreCreateOrConnectWithoutResellerSalesInput = {
   where: StoreWhereUniqueInput;
 };
 
+export type StoreCreateOrConnectWithoutRiderCoverageAreasInput = {
+  create: StoreCreateWithoutRiderCoverageAreasInput;
+  where: StoreWhereUniqueInput;
+};
+
 export type StoreCreateOrConnectWithoutSalesReturnsInput = {
   create: StoreCreateWithoutSalesReturnsInput;
   where: StoreWhereUniqueInput;
@@ -22461,6 +22741,7 @@ export type StoreCreateWithoutCustomerInput = {
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
   Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -22485,6 +22766,7 @@ export type StoreCreateWithoutCustomerProfileInput = {
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
   Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -22510,6 +22792,7 @@ export type StoreCreateWithoutCustomerSalesInput = {
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
   Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   id?: InputMaybe<Scalars['String']['input']>;
   isMain?: InputMaybe<Scalars['Boolean']['input']>;
@@ -22534,6 +22817,7 @@ export type StoreCreateWithoutManagerInput = {
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
   Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -22558,6 +22842,7 @@ export type StoreCreateWithoutMovementsInput = {
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
   Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -22582,6 +22867,7 @@ export type StoreCreateWithoutPurchaseOrdersInput = {
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
   Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -22605,6 +22891,7 @@ export type StoreCreateWithoutPurchaseRequisitionInput = {
   CustomerProfile?: InputMaybe<CustomerProfileCreateNestedManyWithoutPreferredStoreInput>;
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -22629,6 +22916,7 @@ export type StoreCreateWithoutQuotationInput = {
   CustomerProfile?: InputMaybe<CustomerProfileCreateNestedManyWithoutPreferredStoreInput>;
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -22654,6 +22942,7 @@ export type StoreCreateWithoutReceiptsInput = {
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
   Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -22678,6 +22967,7 @@ export type StoreCreateWithoutResellerSalesInput = {
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
   Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -22696,12 +22986,38 @@ export type StoreCreateWithoutResellerSalesInput = {
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
 
+export type StoreCreateWithoutRiderCoverageAreasInput = {
+  Customer?: InputMaybe<CustomerCreateNestedManyWithoutPreferredStoreInput>;
+  CustomerProfile?: InputMaybe<CustomerProfileCreateNestedManyWithoutPreferredStoreInput>;
+  InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
+  PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
+  Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  isMain?: InputMaybe<Scalars['Boolean']['input']>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingCreateNestedManyWithoutStoreInput>;
+  location?: InputMaybe<Scalars['String']['input']>;
+  manager: UserCreateNestedOneWithoutStoreInput;
+  movements?: InputMaybe<StockMovementCreateNestedManyWithoutStoreInput>;
+  name: Scalars['String']['input'];
+  purchaseOrders?: InputMaybe<PurchaseOrderCreateNestedManyWithoutStoreInput>;
+  receipts?: InputMaybe<StockReceiptBatchCreateNestedManyWithoutStoreInput>;
+  resellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutStoreInput>;
+  salesReturns?: InputMaybe<SalesReturnCreateNestedManyWithoutStoreInput>;
+  stocks?: InputMaybe<StockCreateNestedManyWithoutStoreInput>;
+  transfersIn?: InputMaybe<StockTransferCreateNestedManyWithoutToStoreInput>;
+  transfersOut?: InputMaybe<StockTransferCreateNestedManyWithoutFromStoreInput>;
+  updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
 export type StoreCreateWithoutSalesReturnsInput = {
   Customer?: InputMaybe<CustomerCreateNestedManyWithoutPreferredStoreInput>;
   CustomerProfile?: InputMaybe<CustomerProfileCreateNestedManyWithoutPreferredStoreInput>;
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
   Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -22726,6 +23042,7 @@ export type StoreCreateWithoutStocksInput = {
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
   Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -22750,6 +23067,7 @@ export type StoreCreateWithoutTransfersInInput = {
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
   Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -22774,6 +23092,7 @@ export type StoreCreateWithoutTransfersOutInput = {
   InvoiceImport?: InputMaybe<InvoiceImportCreateNestedManyWithoutStoreInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutStoreInput>;
   Quotation?: InputMaybe<QuotationCreateNestedManyWithoutStoreInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutStoreInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
   customerSales?: InputMaybe<ConsumerSaleCreateNestedManyWithoutStoreInput>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -22911,6 +23230,7 @@ export type StoreOrderByWithRelationInput = {
   InvoiceImport?: InputMaybe<InvoiceImportOrderByRelationAggregateInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionOrderByRelationAggregateInput>;
   Quotation?: InputMaybe<QuotationOrderByRelationAggregateInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaOrderByRelationAggregateInput>;
   createdAt?: InputMaybe<SortOrder>;
   customerSales?: InputMaybe<ConsumerSaleOrderByRelationAggregateInput>;
   id?: InputMaybe<SortOrder>;
@@ -22987,6 +23307,7 @@ export type StoreUpdateInput = {
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
   Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -23080,6 +23401,14 @@ export type StoreUpdateOneRequiredWithoutResellerSalesNestedInput = {
   create?: InputMaybe<StoreCreateWithoutResellerSalesInput>;
   update?: InputMaybe<StoreUpdateToOneWithWhereWithoutResellerSalesInput>;
   upsert?: InputMaybe<StoreUpsertWithoutResellerSalesInput>;
+};
+
+export type StoreUpdateOneRequiredWithoutRiderCoverageAreasNestedInput = {
+  connect?: InputMaybe<StoreWhereUniqueInput>;
+  connectOrCreate?: InputMaybe<StoreCreateOrConnectWithoutRiderCoverageAreasInput>;
+  create?: InputMaybe<StoreCreateWithoutRiderCoverageAreasInput>;
+  update?: InputMaybe<StoreUpdateToOneWithWhereWithoutRiderCoverageAreasInput>;
+  upsert?: InputMaybe<StoreUpsertWithoutRiderCoverageAreasInput>;
 };
 
 export type StoreUpdateOneRequiredWithoutSalesReturnsNestedInput = {
@@ -23189,6 +23518,11 @@ export type StoreUpdateToOneWithWhereWithoutResellerSalesInput = {
   where?: InputMaybe<StoreWhereInput>;
 };
 
+export type StoreUpdateToOneWithWhereWithoutRiderCoverageAreasInput = {
+  data: StoreUpdateWithoutRiderCoverageAreasInput;
+  where?: InputMaybe<StoreWhereInput>;
+};
+
 export type StoreUpdateToOneWithWhereWithoutSalesReturnsInput = {
   data: StoreUpdateWithoutSalesReturnsInput;
   where?: InputMaybe<StoreWhereInput>;
@@ -23219,6 +23553,7 @@ export type StoreUpdateWithoutCustomerInput = {
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
   Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -23243,6 +23578,7 @@ export type StoreUpdateWithoutCustomerProfileInput = {
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
   Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -23268,6 +23604,7 @@ export type StoreUpdateWithoutCustomerSalesInput = {
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
   Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
@@ -23292,6 +23629,7 @@ export type StoreUpdateWithoutManagerInput = {
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
   Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -23316,6 +23654,7 @@ export type StoreUpdateWithoutMovementsInput = {
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
   Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -23340,6 +23679,7 @@ export type StoreUpdateWithoutPurchaseOrdersInput = {
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
   Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -23363,6 +23703,7 @@ export type StoreUpdateWithoutPurchaseRequisitionInput = {
   CustomerProfile?: InputMaybe<CustomerProfileUpdateManyWithoutPreferredStoreNestedInput>;
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -23387,6 +23728,7 @@ export type StoreUpdateWithoutQuotationInput = {
   CustomerProfile?: InputMaybe<CustomerProfileUpdateManyWithoutPreferredStoreNestedInput>;
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -23412,6 +23754,7 @@ export type StoreUpdateWithoutReceiptsInput = {
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
   Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -23436,6 +23779,7 @@ export type StoreUpdateWithoutResellerSalesInput = {
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
   Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -23454,12 +23798,38 @@ export type StoreUpdateWithoutResellerSalesInput = {
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
 
+export type StoreUpdateWithoutRiderCoverageAreasInput = {
+  Customer?: InputMaybe<CustomerUpdateManyWithoutPreferredStoreNestedInput>;
+  CustomerProfile?: InputMaybe<CustomerProfileUpdateManyWithoutPreferredStoreNestedInput>;
+  InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
+  PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
+  Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  isMain?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  legacyMappings?: InputMaybe<LegacyStoreMappingUpdateManyWithoutStoreNestedInput>;
+  location?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  manager?: InputMaybe<UserUpdateOneRequiredWithoutStoreNestedInput>;
+  movements?: InputMaybe<StockMovementUpdateManyWithoutStoreNestedInput>;
+  name?: InputMaybe<StringFieldUpdateOperationsInput>;
+  purchaseOrders?: InputMaybe<PurchaseOrderUpdateManyWithoutStoreNestedInput>;
+  receipts?: InputMaybe<StockReceiptBatchUpdateManyWithoutStoreNestedInput>;
+  resellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutStoreNestedInput>;
+  salesReturns?: InputMaybe<SalesReturnUpdateManyWithoutStoreNestedInput>;
+  stocks?: InputMaybe<StockUpdateManyWithoutStoreNestedInput>;
+  transfersIn?: InputMaybe<StockTransferUpdateManyWithoutToStoreNestedInput>;
+  transfersOut?: InputMaybe<StockTransferUpdateManyWithoutFromStoreNestedInput>;
+  updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+};
+
 export type StoreUpdateWithoutSalesReturnsInput = {
   Customer?: InputMaybe<CustomerUpdateManyWithoutPreferredStoreNestedInput>;
   CustomerProfile?: InputMaybe<CustomerProfileUpdateManyWithoutPreferredStoreNestedInput>;
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
   Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -23484,6 +23854,7 @@ export type StoreUpdateWithoutStocksInput = {
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
   Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -23508,6 +23879,7 @@ export type StoreUpdateWithoutTransfersInInput = {
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
   Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -23532,6 +23904,7 @@ export type StoreUpdateWithoutTransfersOutInput = {
   InvoiceImport?: InputMaybe<InvoiceImportUpdateManyWithoutStoreNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutStoreNestedInput>;
   Quotation?: InputMaybe<QuotationUpdateManyWithoutStoreNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutStoreNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
   customerSales?: InputMaybe<ConsumerSaleUpdateManyWithoutStoreNestedInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -23610,6 +23983,12 @@ export type StoreUpsertWithoutResellerSalesInput = {
   where?: InputMaybe<StoreWhereInput>;
 };
 
+export type StoreUpsertWithoutRiderCoverageAreasInput = {
+  create: StoreCreateWithoutRiderCoverageAreasInput;
+  update: StoreUpdateWithoutRiderCoverageAreasInput;
+  where?: InputMaybe<StoreWhereInput>;
+};
+
 export type StoreUpsertWithoutSalesReturnsInput = {
   create: StoreCreateWithoutSalesReturnsInput;
   update: StoreUpdateWithoutSalesReturnsInput;
@@ -23643,6 +24022,7 @@ export type StoreWhereInput = {
   OR?: InputMaybe<Array<StoreWhereInput>>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionListRelationFilter>;
   Quotation?: InputMaybe<QuotationListRelationFilter>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaListRelationFilter>;
   createdAt?: InputMaybe<DateTimeFilter>;
   customerSales?: InputMaybe<ConsumerSaleListRelationFilter>;
   id?: InputMaybe<StringFilter>;
@@ -23672,6 +24052,7 @@ export type StoreWhereUniqueInput = {
   OR?: InputMaybe<Array<StoreWhereInput>>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionListRelationFilter>;
   Quotation?: InputMaybe<QuotationListRelationFilter>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaListRelationFilter>;
   createdAt?: InputMaybe<DateTimeFilter>;
   customerSales?: InputMaybe<ConsumerSaleListRelationFilter>;
   id?: InputMaybe<Scalars['String']['input']>;
@@ -25653,6 +26034,13 @@ export type UpdateFacetInput = {
   values?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
+export type UpdateFulfillmentPreferencesInput = {
+  attemptAutoAdvance?: InputMaybe<Scalars['Boolean']['input']>;
+  deliveryAddress?: InputMaybe<Scalars['String']['input']>;
+  fulfillmentType?: InputMaybe<FulfillmentType>;
+  saleOrderId: Scalars['String']['input'];
+};
+
 export type UpdateFulfillmentStatusInput = {
   confirmationPin?: InputMaybe<Scalars['String']['input']>;
   saleOrderId: Scalars['String']['input'];
@@ -25721,6 +26109,12 @@ export type UpdateSupplierInput = {
   paymentTerms?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type UpsertRiderCoverageInput = {
+  /** Coverage entries to upsert; omitting clears existing entries. */
+  coverage: Array<RiderCoverageAreaInput>;
+  riderId: Scalars['ID']['input'];
+};
+
 export type UpsertSupplierCatalogBulkInput = {
   items: Array<UpsertSupplierCatalogInput>;
 };
@@ -25756,7 +26150,7 @@ export type User = {
   ConsumerSale?: Maybe<Array<ConsumerSale>>;
   ConsumerSaleAdjustedBys?: Maybe<Array<ConsumerSale>>;
   Fulfillment?: Maybe<Array<Fulfillment>>;
-  FulfillmentRiderInterest?: Maybe<Array<FulfillmentRiderInterest>>;
+  FulfillmentRiderInterests?: Maybe<Array<FulfillmentRiderInterest>>;
   Notification?: Maybe<Array<Notification>>;
   Payment?: Maybe<Array<Payment>>;
   PurchaseRequisition?: Maybe<Array<PurchaseRequisition>>;
@@ -25769,6 +26163,7 @@ export type User = {
   ResellerSales?: Maybe<Array<ResellerSale>>;
   ResellerTierHistory?: Maybe<Array<ResellerTierHistory>>;
   ResellerTierHistoryChangedBys?: Maybe<Array<ResellerTierHistory>>;
+  RiderCoverageAreas?: Maybe<Array<RiderCoverageArea>>;
   SalesReturn?: Maybe<Array<SalesReturn>>;
   SalesReturnReceivers?: Maybe<Array<SalesReturn>>;
   SalesReturnRequesters?: Maybe<Array<SalesReturn>>;
@@ -25809,7 +26204,7 @@ export type UserCount = {
   ConsumerSale: Scalars['Int']['output'];
   ConsumerSaleAdjustedBys: Scalars['Int']['output'];
   Fulfillment: Scalars['Int']['output'];
-  FulfillmentRiderInterest: Scalars['Int']['output'];
+  FulfillmentRiderInterests: Scalars['Int']['output'];
   Notification: Scalars['Int']['output'];
   Payment: Scalars['Int']['output'];
   PurchaseRequisition: Scalars['Int']['output'];
@@ -25822,6 +26217,7 @@ export type UserCount = {
   ResellerSales: Scalars['Int']['output'];
   ResellerTierHistory: Scalars['Int']['output'];
   ResellerTierHistoryChangedBys: Scalars['Int']['output'];
+  RiderCoverageAreas: Scalars['Int']['output'];
   SalesReturn: Scalars['Int']['output'];
   SalesReturnReceivers: Scalars['Int']['output'];
   SalesReturnRequesters: Scalars['Int']['output'];
@@ -25893,7 +26289,7 @@ export type UserCreateInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -25906,6 +26302,7 @@ export type UserCreateInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -25998,10 +26395,10 @@ export type UserCreateNestedOneWithoutFulfillmentInput = {
   create?: InputMaybe<UserCreateWithoutFulfillmentInput>;
 };
 
-export type UserCreateNestedOneWithoutFulfillmentRiderInterestInput = {
+export type UserCreateNestedOneWithoutFulfillmentRiderInterestsInput = {
   connect?: InputMaybe<UserWhereUniqueInput>;
-  connectOrCreate?: InputMaybe<UserCreateOrConnectWithoutFulfillmentRiderInterestInput>;
-  create?: InputMaybe<UserCreateWithoutFulfillmentRiderInterestInput>;
+  connectOrCreate?: InputMaybe<UserCreateOrConnectWithoutFulfillmentRiderInterestsInput>;
+  create?: InputMaybe<UserCreateWithoutFulfillmentRiderInterestsInput>;
 };
 
 export type UserCreateNestedOneWithoutPurchaseRequisitionInput = {
@@ -26074,6 +26471,12 @@ export type UserCreateNestedOneWithoutResellerTierHistoryInput = {
   connect?: InputMaybe<UserWhereUniqueInput>;
   connectOrCreate?: InputMaybe<UserCreateOrConnectWithoutResellerTierHistoryInput>;
   create?: InputMaybe<UserCreateWithoutResellerTierHistoryInput>;
+};
+
+export type UserCreateNestedOneWithoutRiderCoverageAreasInput = {
+  connect?: InputMaybe<UserWhereUniqueInput>;
+  connectOrCreate?: InputMaybe<UserCreateOrConnectWithoutRiderCoverageAreasInput>;
+  create?: InputMaybe<UserCreateWithoutRiderCoverageAreasInput>;
 };
 
 export type UserCreateNestedOneWithoutSalesReturnInput = {
@@ -26170,8 +26573,8 @@ export type UserCreateOrConnectWithoutFulfillmentInput = {
   where: UserWhereUniqueInput;
 };
 
-export type UserCreateOrConnectWithoutFulfillmentRiderInterestInput = {
-  create: UserCreateWithoutFulfillmentRiderInterestInput;
+export type UserCreateOrConnectWithoutFulfillmentRiderInterestsInput = {
+  create: UserCreateWithoutFulfillmentRiderInterestsInput;
   where: UserWhereUniqueInput;
 };
 
@@ -26235,6 +26638,11 @@ export type UserCreateOrConnectWithoutResellerTierHistoryInput = {
   where: UserWhereUniqueInput;
 };
 
+export type UserCreateOrConnectWithoutRiderCoverageAreasInput = {
+  create: UserCreateWithoutRiderCoverageAreasInput;
+  where: UserWhereUniqueInput;
+};
+
 export type UserCreateOrConnectWithoutSalesReturnInput = {
   create: UserCreateWithoutSalesReturnInput;
   where: UserWhereUniqueInput;
@@ -26287,7 +26695,7 @@ export type UserCreateWithoutBillerQuotationInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26300,6 +26708,7 @@ export type UserCreateWithoutBillerQuotationInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -26336,7 +26745,7 @@ export type UserCreateWithoutBillerResellerSaleInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26349,6 +26758,7 @@ export type UserCreateWithoutBillerResellerSaleInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -26385,7 +26795,7 @@ export type UserCreateWithoutBillerSaleOrdersInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26398,6 +26808,7 @@ export type UserCreateWithoutBillerSaleOrdersInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -26434,7 +26845,7 @@ export type UserCreateWithoutConsumerReceiptInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26447,6 +26858,7 @@ export type UserCreateWithoutConsumerReceiptInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -26483,7 +26895,7 @@ export type UserCreateWithoutConsumerSaleAdjustedBysInput = {
   ConsumerReceipt?: InputMaybe<ConsumerReceiptCreateNestedManyWithoutIssuedByInput>;
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26496,6 +26908,7 @@ export type UserCreateWithoutConsumerSaleAdjustedBysInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -26532,7 +26945,7 @@ export type UserCreateWithoutConsumerSaleInput = {
   ConsumerReceipt?: InputMaybe<ConsumerReceiptCreateNestedManyWithoutIssuedByInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26545,6 +26958,7 @@ export type UserCreateWithoutConsumerSaleInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -26582,7 +26996,7 @@ export type UserCreateWithoutCustomerProfileInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26595,6 +27009,7 @@ export type UserCreateWithoutCustomerProfileInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -26630,7 +27045,7 @@ export type UserCreateWithoutFulfillmentInput = {
   ConsumerReceipt?: InputMaybe<ConsumerReceiptCreateNestedManyWithoutIssuedByInput>;
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26643,6 +27058,7 @@ export type UserCreateWithoutFulfillmentInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -26672,7 +27088,7 @@ export type UserCreateWithoutFulfillmentInput = {
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
 
-export type UserCreateWithoutFulfillmentRiderInterestInput = {
+export type UserCreateWithoutFulfillmentRiderInterestsInput = {
   BillerQuotation?: InputMaybe<QuotationCreateNestedManyWithoutBillerInput>;
   BillerResellerSale?: InputMaybe<ResellerSaleCreateNestedManyWithoutBillerInput>;
   BillerSaleOrders?: InputMaybe<SaleOrderCreateNestedManyWithoutBillerInput>;
@@ -26692,6 +27108,7 @@ export type UserCreateWithoutFulfillmentRiderInterestInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -26729,7 +27146,7 @@ export type UserCreateWithoutPurchaseRequisitionInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseReturnApprovers?: InputMaybe<PurchaseReturnCreateNestedManyWithoutApprovedByInput>;
@@ -26741,6 +27158,7 @@ export type UserCreateWithoutPurchaseRequisitionInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -26778,7 +27196,7 @@ export type UserCreateWithoutPurchaseReturnApproversInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26790,6 +27208,7 @@ export type UserCreateWithoutPurchaseReturnApproversInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -26827,7 +27246,7 @@ export type UserCreateWithoutPurchaseReturnInitiatorsInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26839,6 +27258,7 @@ export type UserCreateWithoutPurchaseReturnInitiatorsInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -26876,7 +27296,7 @@ export type UserCreateWithoutRequestedResellersInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26888,6 +27308,7 @@ export type UserCreateWithoutRequestedResellersInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -26925,7 +27346,7 @@ export type UserCreateWithoutResellerPaymentsMadeInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26938,6 +27359,7 @@ export type UserCreateWithoutResellerPaymentsMadeInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -26974,7 +27396,7 @@ export type UserCreateWithoutResellerPaymentsReceivedInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -26987,6 +27409,7 @@ export type UserCreateWithoutResellerPaymentsReceivedInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -27023,7 +27446,7 @@ export type UserCreateWithoutResellerProfileInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27035,6 +27458,7 @@ export type UserCreateWithoutResellerProfileInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -27072,7 +27496,7 @@ export type UserCreateWithoutResellerQuotationInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27084,6 +27508,7 @@ export type UserCreateWithoutResellerQuotationInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -27121,7 +27546,7 @@ export type UserCreateWithoutResellerSaleInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27133,6 +27558,7 @@ export type UserCreateWithoutResellerSaleInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -27170,7 +27596,7 @@ export type UserCreateWithoutResellerSalesInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27182,6 +27608,7 @@ export type UserCreateWithoutResellerSalesInput = {
   ResellerSale?: InputMaybe<ResellerSaleCreateNestedManyWithoutApprovedByInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -27219,7 +27646,7 @@ export type UserCreateWithoutResellerTierHistoryChangedBysInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27231,6 +27658,7 @@ export type UserCreateWithoutResellerTierHistoryChangedBysInput = {
   ResellerSale?: InputMaybe<ResellerSaleCreateNestedManyWithoutApprovedByInput>;
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -27268,7 +27696,7 @@ export type UserCreateWithoutResellerTierHistoryInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27279,6 +27707,57 @@ export type UserCreateWithoutResellerTierHistoryInput = {
   ResellerQuotation?: InputMaybe<QuotationCreateNestedManyWithoutResellerInput>;
   ResellerSale?: InputMaybe<ResellerSaleCreateNestedManyWithoutApprovedByInput>;
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
+  ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
+  SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
+  SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
+  SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
+  StockReceiptBatchConfirmedBys?: InputMaybe<StockReceiptBatchCreateNestedManyWithoutConfirmedByInput>;
+  StockReceiptBatchReceivedBys?: InputMaybe<StockReceiptBatchCreateNestedManyWithoutReceivedByInput>;
+  StockTransferApprovals?: InputMaybe<StockTransferCreateNestedManyWithoutApprovedByInput>;
+  StockTransferRequests?: InputMaybe<StockTransferCreateNestedManyWithoutRequestedByInput>;
+  Store?: InputMaybe<StoreCreateNestedManyWithoutManagerInput>;
+  Supplier?: InputMaybe<SupplierCreateNestedManyWithoutUserInput>;
+  adminLogs?: InputMaybe<AdminActionLogCreateNestedManyWithoutAdminInput>;
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  customerProfile?: InputMaybe<CustomerProfileCreateNestedOneWithoutUserInput>;
+  email: Scalars['String']['input'];
+  emailVerificationToken?: InputMaybe<Scalars['String']['input']>;
+  emailVerificationTokenExpiry?: InputMaybe<Scalars['DateTime']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  isEmailVerified?: InputMaybe<Scalars['Boolean']['input']>;
+  passwordHash: Scalars['String']['input'];
+  referralCode?: InputMaybe<Scalars['String']['input']>;
+  referredBy?: InputMaybe<Scalars['String']['input']>;
+  resellerPaymentsMade?: InputMaybe<ResellerPaymentCreateNestedManyWithoutResellerInput>;
+  resellerPaymentsReceived?: InputMaybe<ResellerPaymentCreateNestedManyWithoutReceivedByInput>;
+  resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
+  role: RoleCreateNestedOneWithoutUsersInput;
+  supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  tier?: InputMaybe<UserTier>;
+  updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+export type UserCreateWithoutRiderCoverageAreasInput = {
+  BillerQuotation?: InputMaybe<QuotationCreateNestedManyWithoutBillerInput>;
+  BillerResellerSale?: InputMaybe<ResellerSaleCreateNestedManyWithoutBillerInput>;
+  BillerSaleOrders?: InputMaybe<SaleOrderCreateNestedManyWithoutBillerInput>;
+  ConsumerReceipt?: InputMaybe<ConsumerReceiptCreateNestedManyWithoutIssuedByInput>;
+  ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
+  ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
+  Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
+  Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
+  PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
+  PurchaseReturnApprovers?: InputMaybe<PurchaseReturnCreateNestedManyWithoutApprovedByInput>;
+  PurchaseReturnInitiators?: InputMaybe<PurchaseReturnCreateNestedManyWithoutInitiatedByInput>;
+  RequestedResellers?: InputMaybe<ResellerProfileCreateNestedManyWithoutRequestedBillerInput>;
+  ResellerProfile?: InputMaybe<ResellerProfileCreateNestedManyWithoutBillerInput>;
+  ResellerQuotation?: InputMaybe<QuotationCreateNestedManyWithoutResellerInput>;
+  ResellerSale?: InputMaybe<ResellerSaleCreateNestedManyWithoutApprovedByInput>;
+  ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
+  ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
@@ -27317,7 +27796,7 @@ export type UserCreateWithoutSalesReturnInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27330,6 +27809,7 @@ export type UserCreateWithoutSalesReturnInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
   StockReceiptBatchConfirmedBys?: InputMaybe<StockReceiptBatchCreateNestedManyWithoutConfirmedByInput>;
@@ -27366,7 +27846,7 @@ export type UserCreateWithoutSalesReturnReceiversInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27379,6 +27859,7 @@ export type UserCreateWithoutSalesReturnReceiversInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
   StockReceiptBatchConfirmedBys?: InputMaybe<StockReceiptBatchCreateNestedManyWithoutConfirmedByInput>;
@@ -27415,7 +27896,7 @@ export type UserCreateWithoutSalesReturnRequestersInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27428,6 +27909,7 @@ export type UserCreateWithoutSalesReturnRequestersInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   StockReceiptBatchConfirmedBys?: InputMaybe<StockReceiptBatchCreateNestedManyWithoutConfirmedByInput>;
@@ -27464,7 +27946,7 @@ export type UserCreateWithoutStockReceiptBatchConfirmedBysInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27477,6 +27959,7 @@ export type UserCreateWithoutStockReceiptBatchConfirmedBysInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -27513,7 +27996,7 @@ export type UserCreateWithoutStockReceiptBatchReceivedBysInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27526,6 +28009,7 @@ export type UserCreateWithoutStockReceiptBatchReceivedBysInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -27562,7 +28046,7 @@ export type UserCreateWithoutStockTransferApprovalsInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27575,6 +28059,7 @@ export type UserCreateWithoutStockTransferApprovalsInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -27611,7 +28096,7 @@ export type UserCreateWithoutStockTransferRequestsInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27624,6 +28109,7 @@ export type UserCreateWithoutStockTransferRequestsInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -27660,7 +28146,7 @@ export type UserCreateWithoutStoreInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27673,6 +28159,7 @@ export type UserCreateWithoutStoreInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -27709,7 +28196,7 @@ export type UserCreateWithoutSupplierInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleCreateNestedManyWithoutBillerInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleCreateNestedManyWithoutAdjustedByInput>;
   Fulfillment?: InputMaybe<FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestCreateNestedManyWithoutRiderInput>;
   Notification?: InputMaybe<NotificationCreateNestedManyWithoutUserInput>;
   Payment?: InputMaybe<PaymentCreateNestedManyWithoutReceivedByInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionCreateNestedManyWithoutRequestedByInput>;
@@ -27722,6 +28209,7 @@ export type UserCreateWithoutSupplierInput = {
   ResellerSales?: InputMaybe<ResellerSaleCreateNestedManyWithoutResellerInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutUserInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryCreateNestedManyWithoutAdminInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaCreateNestedManyWithoutRiderInput>;
   SalesReturn?: InputMaybe<SalesReturnCreateNestedManyWithoutApprovedByInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnCreateNestedManyWithoutReceivedByInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnCreateNestedManyWithoutReturnedByInput>;
@@ -27902,7 +28390,7 @@ export type UserOrderByWithRelationInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleOrderByRelationAggregateInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleOrderByRelationAggregateInput>;
   Fulfillment?: InputMaybe<FulfillmentOrderByRelationAggregateInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestOrderByRelationAggregateInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestOrderByRelationAggregateInput>;
   Notification?: InputMaybe<NotificationOrderByRelationAggregateInput>;
   Payment?: InputMaybe<PaymentOrderByRelationAggregateInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionOrderByRelationAggregateInput>;
@@ -27915,6 +28403,7 @@ export type UserOrderByWithRelationInput = {
   ResellerSales?: InputMaybe<ResellerSaleOrderByRelationAggregateInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryOrderByRelationAggregateInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryOrderByRelationAggregateInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaOrderByRelationAggregateInput>;
   SalesReturn?: InputMaybe<SalesReturnOrderByRelationAggregateInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnOrderByRelationAggregateInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnOrderByRelationAggregateInput>;
@@ -27999,7 +28488,7 @@ export type UserUpdateInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28012,6 +28501,7 @@ export type UserUpdateInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -28095,12 +28585,12 @@ export type UserUpdateOneRequiredWithoutCustomerProfileNestedInput = {
   upsert?: InputMaybe<UserUpsertWithoutCustomerProfileInput>;
 };
 
-export type UserUpdateOneRequiredWithoutFulfillmentRiderInterestNestedInput = {
+export type UserUpdateOneRequiredWithoutFulfillmentRiderInterestsNestedInput = {
   connect?: InputMaybe<UserWhereUniqueInput>;
-  connectOrCreate?: InputMaybe<UserCreateOrConnectWithoutFulfillmentRiderInterestInput>;
-  create?: InputMaybe<UserCreateWithoutFulfillmentRiderInterestInput>;
-  update?: InputMaybe<UserUpdateToOneWithWhereWithoutFulfillmentRiderInterestInput>;
-  upsert?: InputMaybe<UserUpsertWithoutFulfillmentRiderInterestInput>;
+  connectOrCreate?: InputMaybe<UserCreateOrConnectWithoutFulfillmentRiderInterestsInput>;
+  create?: InputMaybe<UserCreateWithoutFulfillmentRiderInterestsInput>;
+  update?: InputMaybe<UserUpdateToOneWithWhereWithoutFulfillmentRiderInterestsInput>;
+  upsert?: InputMaybe<UserUpsertWithoutFulfillmentRiderInterestsInput>;
 };
 
 export type UserUpdateOneRequiredWithoutPurchaseRequisitionNestedInput = {
@@ -28173,6 +28663,14 @@ export type UserUpdateOneRequiredWithoutResellerTierHistoryNestedInput = {
   create?: InputMaybe<UserCreateWithoutResellerTierHistoryInput>;
   update?: InputMaybe<UserUpdateToOneWithWhereWithoutResellerTierHistoryInput>;
   upsert?: InputMaybe<UserUpsertWithoutResellerTierHistoryInput>;
+};
+
+export type UserUpdateOneRequiredWithoutRiderCoverageAreasNestedInput = {
+  connect?: InputMaybe<UserWhereUniqueInput>;
+  connectOrCreate?: InputMaybe<UserCreateOrConnectWithoutRiderCoverageAreasInput>;
+  create?: InputMaybe<UserCreateWithoutRiderCoverageAreasInput>;
+  update?: InputMaybe<UserUpdateToOneWithWhereWithoutRiderCoverageAreasInput>;
+  upsert?: InputMaybe<UserUpsertWithoutRiderCoverageAreasInput>;
 };
 
 export type UserUpdateOneRequiredWithoutSalesReturnReceiversNestedInput = {
@@ -28361,8 +28859,8 @@ export type UserUpdateToOneWithWhereWithoutFulfillmentInput = {
   where?: InputMaybe<UserWhereInput>;
 };
 
-export type UserUpdateToOneWithWhereWithoutFulfillmentRiderInterestInput = {
-  data: UserUpdateWithoutFulfillmentRiderInterestInput;
+export type UserUpdateToOneWithWhereWithoutFulfillmentRiderInterestsInput = {
+  data: UserUpdateWithoutFulfillmentRiderInterestsInput;
   where?: InputMaybe<UserWhereInput>;
 };
 
@@ -28426,6 +28924,11 @@ export type UserUpdateToOneWithWhereWithoutResellerTierHistoryInput = {
   where?: InputMaybe<UserWhereInput>;
 };
 
+export type UserUpdateToOneWithWhereWithoutRiderCoverageAreasInput = {
+  data: UserUpdateWithoutRiderCoverageAreasInput;
+  where?: InputMaybe<UserWhereInput>;
+};
+
 export type UserUpdateToOneWithWhereWithoutSalesReturnInput = {
   data: UserUpdateWithoutSalesReturnInput;
   where?: InputMaybe<UserWhereInput>;
@@ -28478,7 +28981,7 @@ export type UserUpdateWithoutBillerQuotationInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28491,6 +28994,7 @@ export type UserUpdateWithoutBillerQuotationInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -28527,7 +29031,7 @@ export type UserUpdateWithoutBillerResellerSaleInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28540,6 +29044,7 @@ export type UserUpdateWithoutBillerResellerSaleInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -28576,7 +29081,7 @@ export type UserUpdateWithoutBillerSaleOrdersInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28589,6 +29094,7 @@ export type UserUpdateWithoutBillerSaleOrdersInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -28625,7 +29131,7 @@ export type UserUpdateWithoutConsumerReceiptInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28638,6 +29144,7 @@ export type UserUpdateWithoutConsumerReceiptInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -28674,7 +29181,7 @@ export type UserUpdateWithoutConsumerSaleAdjustedBysInput = {
   ConsumerReceipt?: InputMaybe<ConsumerReceiptUpdateManyWithoutIssuedByNestedInput>;
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28687,6 +29194,7 @@ export type UserUpdateWithoutConsumerSaleAdjustedBysInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -28723,7 +29231,7 @@ export type UserUpdateWithoutConsumerSaleInput = {
   ConsumerReceipt?: InputMaybe<ConsumerReceiptUpdateManyWithoutIssuedByNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28736,6 +29244,7 @@ export type UserUpdateWithoutConsumerSaleInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -28773,7 +29282,7 @@ export type UserUpdateWithoutCustomerProfileInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28786,6 +29295,7 @@ export type UserUpdateWithoutCustomerProfileInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -28821,7 +29331,7 @@ export type UserUpdateWithoutFulfillmentInput = {
   ConsumerReceipt?: InputMaybe<ConsumerReceiptUpdateManyWithoutIssuedByNestedInput>;
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28834,6 +29344,7 @@ export type UserUpdateWithoutFulfillmentInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -28863,7 +29374,7 @@ export type UserUpdateWithoutFulfillmentInput = {
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
 
-export type UserUpdateWithoutFulfillmentRiderInterestInput = {
+export type UserUpdateWithoutFulfillmentRiderInterestsInput = {
   BillerQuotation?: InputMaybe<QuotationUpdateManyWithoutBillerNestedInput>;
   BillerResellerSale?: InputMaybe<ResellerSaleUpdateManyWithoutBillerNestedInput>;
   BillerSaleOrders?: InputMaybe<SaleOrderUpdateManyWithoutBillerNestedInput>;
@@ -28883,6 +29394,7 @@ export type UserUpdateWithoutFulfillmentRiderInterestInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -28920,7 +29432,7 @@ export type UserUpdateWithoutPurchaseRequisitionInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseReturnApprovers?: InputMaybe<PurchaseReturnUpdateManyWithoutApprovedByNestedInput>;
@@ -28932,6 +29444,7 @@ export type UserUpdateWithoutPurchaseRequisitionInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -28969,7 +29482,7 @@ export type UserUpdateWithoutPurchaseReturnApproversInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -28981,6 +29494,7 @@ export type UserUpdateWithoutPurchaseReturnApproversInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29018,7 +29532,7 @@ export type UserUpdateWithoutPurchaseReturnInitiatorsInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29030,6 +29544,7 @@ export type UserUpdateWithoutPurchaseReturnInitiatorsInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29067,7 +29582,7 @@ export type UserUpdateWithoutRequestedResellersInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29079,6 +29594,7 @@ export type UserUpdateWithoutRequestedResellersInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29116,7 +29632,7 @@ export type UserUpdateWithoutResellerPaymentsMadeInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29129,6 +29645,7 @@ export type UserUpdateWithoutResellerPaymentsMadeInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29165,7 +29682,7 @@ export type UserUpdateWithoutResellerPaymentsReceivedInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29178,6 +29695,7 @@ export type UserUpdateWithoutResellerPaymentsReceivedInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29214,7 +29732,7 @@ export type UserUpdateWithoutResellerProfileInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29226,6 +29744,7 @@ export type UserUpdateWithoutResellerProfileInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29263,7 +29782,7 @@ export type UserUpdateWithoutResellerQuotationInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29275,6 +29794,7 @@ export type UserUpdateWithoutResellerQuotationInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29312,7 +29832,7 @@ export type UserUpdateWithoutResellerSaleInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29324,6 +29844,7 @@ export type UserUpdateWithoutResellerSaleInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29361,7 +29882,7 @@ export type UserUpdateWithoutResellerSalesInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29373,6 +29894,7 @@ export type UserUpdateWithoutResellerSalesInput = {
   ResellerSale?: InputMaybe<ResellerSaleUpdateManyWithoutApprovedByNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29410,7 +29932,7 @@ export type UserUpdateWithoutResellerTierHistoryChangedBysInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29422,6 +29944,7 @@ export type UserUpdateWithoutResellerTierHistoryChangedBysInput = {
   ResellerSale?: InputMaybe<ResellerSaleUpdateManyWithoutApprovedByNestedInput>;
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29459,7 +29982,7 @@ export type UserUpdateWithoutResellerTierHistoryInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29470,6 +29993,57 @@ export type UserUpdateWithoutResellerTierHistoryInput = {
   ResellerQuotation?: InputMaybe<QuotationUpdateManyWithoutResellerNestedInput>;
   ResellerSale?: InputMaybe<ResellerSaleUpdateManyWithoutApprovedByNestedInput>;
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
+  ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
+  SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
+  SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
+  SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
+  StockReceiptBatchConfirmedBys?: InputMaybe<StockReceiptBatchUpdateManyWithoutConfirmedByNestedInput>;
+  StockReceiptBatchReceivedBys?: InputMaybe<StockReceiptBatchUpdateManyWithoutReceivedByNestedInput>;
+  StockTransferApprovals?: InputMaybe<StockTransferUpdateManyWithoutApprovedByNestedInput>;
+  StockTransferRequests?: InputMaybe<StockTransferUpdateManyWithoutRequestedByNestedInput>;
+  Store?: InputMaybe<StoreUpdateManyWithoutManagerNestedInput>;
+  Supplier?: InputMaybe<SupplierUpdateManyWithoutUserNestedInput>;
+  adminLogs?: InputMaybe<AdminActionLogUpdateManyWithoutAdminNestedInput>;
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  customerProfile?: InputMaybe<CustomerProfileUpdateOneWithoutUserNestedInput>;
+  email?: InputMaybe<StringFieldUpdateOperationsInput>;
+  emailVerificationToken?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  emailVerificationTokenExpiry?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  isEmailVerified?: InputMaybe<BoolFieldUpdateOperationsInput>;
+  passwordHash?: InputMaybe<StringFieldUpdateOperationsInput>;
+  referralCode?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  referredBy?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  resellerPaymentsMade?: InputMaybe<ResellerPaymentUpdateManyWithoutResellerNestedInput>;
+  resellerPaymentsReceived?: InputMaybe<ResellerPaymentUpdateManyWithoutReceivedByNestedInput>;
+  resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
+  role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
+  supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
+  updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+};
+
+export type UserUpdateWithoutRiderCoverageAreasInput = {
+  BillerQuotation?: InputMaybe<QuotationUpdateManyWithoutBillerNestedInput>;
+  BillerResellerSale?: InputMaybe<ResellerSaleUpdateManyWithoutBillerNestedInput>;
+  BillerSaleOrders?: InputMaybe<SaleOrderUpdateManyWithoutBillerNestedInput>;
+  ConsumerReceipt?: InputMaybe<ConsumerReceiptUpdateManyWithoutIssuedByNestedInput>;
+  ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
+  ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
+  Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
+  Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
+  PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
+  PurchaseReturnApprovers?: InputMaybe<PurchaseReturnUpdateManyWithoutApprovedByNestedInput>;
+  PurchaseReturnInitiators?: InputMaybe<PurchaseReturnUpdateManyWithoutInitiatedByNestedInput>;
+  RequestedResellers?: InputMaybe<ResellerProfileUpdateManyWithoutRequestedBillerNestedInput>;
+  ResellerProfile?: InputMaybe<ResellerProfileUpdateManyWithoutBillerNestedInput>;
+  ResellerQuotation?: InputMaybe<QuotationUpdateManyWithoutResellerNestedInput>;
+  ResellerSale?: InputMaybe<ResellerSaleUpdateManyWithoutApprovedByNestedInput>;
+  ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
+  ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
@@ -29508,7 +30082,7 @@ export type UserUpdateWithoutSalesReturnInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29521,6 +30095,7 @@ export type UserUpdateWithoutSalesReturnInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
   StockReceiptBatchConfirmedBys?: InputMaybe<StockReceiptBatchUpdateManyWithoutConfirmedByNestedInput>;
@@ -29557,7 +30132,7 @@ export type UserUpdateWithoutSalesReturnReceiversInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29570,6 +30145,7 @@ export type UserUpdateWithoutSalesReturnReceiversInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
   StockReceiptBatchConfirmedBys?: InputMaybe<StockReceiptBatchUpdateManyWithoutConfirmedByNestedInput>;
@@ -29606,7 +30182,7 @@ export type UserUpdateWithoutSalesReturnRequestersInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29619,6 +30195,7 @@ export type UserUpdateWithoutSalesReturnRequestersInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   StockReceiptBatchConfirmedBys?: InputMaybe<StockReceiptBatchUpdateManyWithoutConfirmedByNestedInput>;
@@ -29655,7 +30232,7 @@ export type UserUpdateWithoutStockReceiptBatchConfirmedBysInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29668,6 +30245,7 @@ export type UserUpdateWithoutStockReceiptBatchConfirmedBysInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29704,7 +30282,7 @@ export type UserUpdateWithoutStockReceiptBatchReceivedBysInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29717,6 +30295,7 @@ export type UserUpdateWithoutStockReceiptBatchReceivedBysInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29753,7 +30332,7 @@ export type UserUpdateWithoutStockTransferApprovalsInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29766,6 +30345,7 @@ export type UserUpdateWithoutStockTransferApprovalsInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29802,7 +30382,7 @@ export type UserUpdateWithoutStockTransferRequestsInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29815,6 +30395,7 @@ export type UserUpdateWithoutStockTransferRequestsInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29851,7 +30432,7 @@ export type UserUpdateWithoutStoreInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29864,6 +30445,7 @@ export type UserUpdateWithoutStoreInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29900,7 +30482,7 @@ export type UserUpdateWithoutSupplierInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleUpdateManyWithoutBillerNestedInput>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleUpdateManyWithoutAdjustedByNestedInput>;
   Fulfillment?: InputMaybe<FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput>;
   Notification?: InputMaybe<NotificationUpdateManyWithoutUserNestedInput>;
   Payment?: InputMaybe<PaymentUpdateManyWithoutReceivedByNestedInput>;
   PurchaseRequisition?: InputMaybe<PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput>;
@@ -29913,6 +30495,7 @@ export type UserUpdateWithoutSupplierInput = {
   ResellerSales?: InputMaybe<ResellerSaleUpdateManyWithoutResellerNestedInput>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryUpdateManyWithoutUserNestedInput>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryUpdateManyWithoutAdminNestedInput>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaUpdateManyWithoutRiderNestedInput>;
   SalesReturn?: InputMaybe<SalesReturnUpdateManyWithoutApprovedByNestedInput>;
   SalesReturnReceivers?: InputMaybe<SalesReturnUpdateManyWithoutReceivedByNestedInput>;
   SalesReturnRequesters?: InputMaybe<SalesReturnUpdateManyWithoutReturnedByNestedInput>;
@@ -29989,9 +30572,9 @@ export type UserUpsertWithoutFulfillmentInput = {
   where?: InputMaybe<UserWhereInput>;
 };
 
-export type UserUpsertWithoutFulfillmentRiderInterestInput = {
-  create: UserCreateWithoutFulfillmentRiderInterestInput;
-  update: UserUpdateWithoutFulfillmentRiderInterestInput;
+export type UserUpsertWithoutFulfillmentRiderInterestsInput = {
+  create: UserCreateWithoutFulfillmentRiderInterestsInput;
+  update: UserUpdateWithoutFulfillmentRiderInterestsInput;
   where?: InputMaybe<UserWhereInput>;
 };
 
@@ -30067,6 +30650,12 @@ export type UserUpsertWithoutResellerTierHistoryInput = {
   where?: InputMaybe<UserWhereInput>;
 };
 
+export type UserUpsertWithoutRiderCoverageAreasInput = {
+  create: UserCreateWithoutRiderCoverageAreasInput;
+  update: UserUpdateWithoutRiderCoverageAreasInput;
+  where?: InputMaybe<UserWhereInput>;
+};
+
 export type UserUpsertWithoutSalesReturnInput = {
   create: UserCreateWithoutSalesReturnInput;
   update: UserUpdateWithoutSalesReturnInput;
@@ -30130,7 +30719,7 @@ export type UserWhereInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleListRelationFilter>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleListRelationFilter>;
   Fulfillment?: InputMaybe<FulfillmentListRelationFilter>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestListRelationFilter>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestListRelationFilter>;
   NOT?: InputMaybe<Array<UserWhereInput>>;
   Notification?: InputMaybe<NotificationListRelationFilter>;
   OR?: InputMaybe<Array<UserWhereInput>>;
@@ -30145,6 +30734,7 @@ export type UserWhereInput = {
   ResellerSales?: InputMaybe<ResellerSaleListRelationFilter>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryListRelationFilter>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryListRelationFilter>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaListRelationFilter>;
   SalesReturn?: InputMaybe<SalesReturnListRelationFilter>;
   SalesReturnReceivers?: InputMaybe<SalesReturnListRelationFilter>;
   SalesReturnRequesters?: InputMaybe<SalesReturnListRelationFilter>;
@@ -30184,7 +30774,7 @@ export type UserWhereUniqueInput = {
   ConsumerSale?: InputMaybe<ConsumerSaleListRelationFilter>;
   ConsumerSaleAdjustedBys?: InputMaybe<ConsumerSaleListRelationFilter>;
   Fulfillment?: InputMaybe<FulfillmentListRelationFilter>;
-  FulfillmentRiderInterest?: InputMaybe<FulfillmentRiderInterestListRelationFilter>;
+  FulfillmentRiderInterests?: InputMaybe<FulfillmentRiderInterestListRelationFilter>;
   NOT?: InputMaybe<Array<UserWhereInput>>;
   Notification?: InputMaybe<NotificationListRelationFilter>;
   OR?: InputMaybe<Array<UserWhereInput>>;
@@ -30199,6 +30789,7 @@ export type UserWhereUniqueInput = {
   ResellerSales?: InputMaybe<ResellerSaleListRelationFilter>;
   ResellerTierHistory?: InputMaybe<ResellerTierHistoryListRelationFilter>;
   ResellerTierHistoryChangedBys?: InputMaybe<ResellerTierHistoryListRelationFilter>;
+  RiderCoverageAreas?: InputMaybe<RiderCoverageAreaListRelationFilter>;
   SalesReturn?: InputMaybe<SalesReturnListRelationFilter>;
   SalesReturnReceivers?: InputMaybe<SalesReturnListRelationFilter>;
   SalesReturnRequesters?: InputMaybe<SalesReturnListRelationFilter>;
@@ -30802,14 +31393,14 @@ export type DeliverableFulfillmentsQuery = { __typename?: 'Query', deliverableFu
 export type MyFulfillmentInterestsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MyFulfillmentInterestsQuery = { __typename?: 'Query', myFulfillmentInterests: Array<{ __typename?: 'FulfillmentRiderInterest', id: string, status: FulfillmentRiderInterestStatus, etaMinutes?: number | null, message?: string | null, createdAt: any, fulfillment: { __typename?: 'Fulfillment', id: string, saleOrderId: string, deliveryAddress?: string | null, status: FulfillmentStatus } }> };
+export type MyFulfillmentInterestsQuery = { __typename?: 'Query', myFulfillmentInterests: Array<{ __typename?: 'FulfillmentRiderInterest', id: string, status: FulfillmentRiderInterestStatus, etaMinutes?: number | null, message?: string | null, proposedCost?: number | null, createdAt: any, fulfillment: { __typename?: 'Fulfillment', id: string, saleOrderId: string, deliveryAddress?: string | null, status: FulfillmentStatus } }> };
 
 export type RegisterFulfillmentInterestMutationVariables = Exact<{
   input: RegisterFulfillmentInterestInput;
 }>;
 
 
-export type RegisterFulfillmentInterestMutation = { __typename?: 'Mutation', registerFulfillmentInterest: { __typename?: 'FulfillmentRiderInterest', id: string, status: FulfillmentRiderInterestStatus, etaMinutes?: number | null, message?: string | null, fulfillmentId: string, updatedAt: any } };
+export type RegisterFulfillmentInterestMutation = { __typename?: 'Mutation', registerFulfillmentInterest: { __typename?: 'FulfillmentRiderInterest', id: string, status: FulfillmentRiderInterestStatus, etaMinutes?: number | null, message?: string | null, proposedCost?: number | null, fulfillmentId: string, updatedAt: any } };
 
 export type WithdrawFulfillmentInterestMutationVariables = Exact<{
   fulfillmentId: Scalars['String']['input'];
@@ -30823,14 +31414,24 @@ export type FulfillmentRiderInterestsQueryVariables = Exact<{
 }>;
 
 
-export type FulfillmentRiderInterestsQuery = { __typename?: 'Query', fulfillmentRiderInterests: Array<{ __typename?: 'FulfillmentRiderInterest', id: string, riderId: string, fulfillmentId: string, status: FulfillmentRiderInterestStatus, etaMinutes?: number | null, message?: string | null, createdAt: any, rider: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null, resellerProfile?: { __typename?: 'ResellerProfile', userId: string } | null } }> };
+export type FulfillmentRiderInterestsQuery = { __typename?: 'Query', fulfillmentRiderInterests: Array<{ __typename?: 'FulfillmentRiderInterest', id: string, riderId: string, fulfillmentId: string, status: FulfillmentRiderInterestStatus, etaMinutes?: number | null, message?: string | null, proposedCost?: number | null, createdAt: any, rider: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null, resellerProfile?: { __typename?: 'ResellerProfile', userId: string } | null } }> };
 
 export type AssignFulfillmentRiderMutationVariables = Exact<{
   input: AssignFulfillmentRiderInput;
 }>;
 
 
-export type AssignFulfillmentRiderMutation = { __typename?: 'Mutation', assignFulfillmentRider: { __typename?: 'FulfillmentRiderInterest', id: string, status: FulfillmentRiderInterestStatus, riderId: string, fulfillmentId: string, updatedAt: any } };
+export type AssignFulfillmentRiderMutation = { __typename?: 'Mutation', assignFulfillmentRider: { __typename?: 'FulfillmentRiderInterest', id: string, status: FulfillmentRiderInterestStatus, riderId: string, proposedCost?: number | null, fulfillmentId: string, updatedAt: any } };
+
+export type FulfillmentsInProgressQueryVariables = Exact<{
+  statuses?: InputMaybe<Array<FulfillmentStatus> | FulfillmentStatus>;
+  storeId?: InputMaybe<Scalars['String']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type FulfillmentsInProgressQuery = { __typename?: 'Query', fulfillmentsInProgress: Array<{ __typename?: 'Fulfillment', id: string, saleOrderId: string, type: FulfillmentType, status: FulfillmentStatus, deliveryAddress?: string | null, createdAt: any, updatedAt: any, deliveryPersonnel?: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } | null, saleOrder: { __typename?: 'SaleOrder', id: string, storeId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, totalAmount: number, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, consumerSale?: { __typename?: 'ConsumerSale', id: string, store: { __typename?: 'Store', id: string, name: string }, customer?: { __typename?: 'Customer', id: string, fullName: string, email?: string | null } | null } | null, resellerSale?: { __typename?: 'ResellerSale', id: string, store: { __typename?: 'Store', id: string, name: string }, reseller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } } | null }, riderInterests?: Array<{ __typename?: 'FulfillmentRiderInterest', id: string, status: FulfillmentRiderInterestStatus, createdAt: any, rider: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } }> | null }> };
 
 export type InvoiceImportQueryVariables = Exact<{
   id: Scalars['String']['input'];
@@ -30921,7 +31522,7 @@ export type MarkNotificationAsReadMutation = { __typename?: 'Mutation', markAsRe
 export type OrdersQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type OrdersQuery = { __typename?: 'Query', ordersQuery: Array<{ __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, saleWorkflowState?: string | null, fulfillmentWorkflowState?: string | null, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, saleWorkflowSummary?: { __typename?: 'SaleWorkflowSummary', saleOrderId: string, outstanding: number, canAdvanceByPayment: boolean, canAdvanceByCredit: boolean } | null, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, quotation?: { __typename?: 'Quotation', id: string, status: QuotationStatus, type: SaleType, billerId?: string | null, resellerId?: string | null, totalAmount: number, updatedAt: any } | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, createdAt: any, updatedAt: any } | null }> };
+export type OrdersQuery = { __typename?: 'Query', ordersQuery: Array<{ __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, fulfillmentType?: FulfillmentType | null, deliveryAddress?: string | null, saleWorkflowState?: string | null, fulfillmentWorkflowState?: string | null, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, saleWorkflowSummary?: { __typename?: 'SaleWorkflowSummary', saleOrderId: string, outstanding: number, canAdvanceByPayment: boolean, canAdvanceByCredit: boolean } | null, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, quotation?: { __typename?: 'Quotation', id: string, status: QuotationStatus, type: SaleType, billerId?: string | null, resellerId?: string | null, totalAmount: number, updatedAt: any } | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, createdAt: any, updatedAt: any } | null }> };
 
 export type OrderBillersQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -30933,7 +31534,7 @@ export type OrderQueryVariables = Exact<{
 }>;
 
 
-export type OrderQuery = { __typename?: 'Query', order: { __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, saleWorkflowState?: string | null, saleWorkflowContext?: any | null, fulfillmentWorkflowState?: string | null, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, saleWorkflowSummary?: { __typename?: 'SaleWorkflowSummary', saleOrderId: string, state: string, grandTotal: number, paid: number, outstanding: number, creditLimit: number, creditExposure: number, canAdvanceByPayment: boolean, canAdvanceByCredit: boolean, context?: any | null } | null, consumerSale?: { __typename?: 'ConsumerSale', id: string, status: SaleStatus, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, customer?: { __typename?: 'Customer', id: string, fullName: string, email?: string | null } | null } | null, resellerSale?: { __typename?: 'ResellerSale', id: string, status: SaleStatus, resellerId: string, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, reseller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, store: { __typename?: 'Store', id: string, name: string, location?: string | null } } | null, quotation?: { __typename?: 'Quotation', id: string, status: QuotationStatus, type: SaleType, totalAmount: number, billerId?: string | null, resellerId?: string | null, updatedAt: any, saleOrderId?: string | null, items?: Array<{ __typename?: 'QuotationItem', productVariantId: string, quantity: number, unitPrice: number }> | null } | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, deliveryPersonnelId?: string | null, deliveryAddress?: string | null, cost?: number | null, createdAt: any, updatedAt: any, fulfillmentWorkflowContext?: any | null, fulfillmentWorkflow?: { __typename?: 'FulfilmentWorkflowSnapshot', state: string, context?: any | null } | null } | null, ConsumerPayment?: Array<{ __typename?: 'ConsumerPayment', id: string, amount: number, method: PaymentMethod, status: PaymentStatus, reference?: string | null, receivedAt: any, receiptBucket?: string | null, receiptKey?: string | null, receiptUrl?: string | null }> | null, ResellerPayment?: Array<{ __typename?: 'ResellerPayment', id: string, amount: number, method: PaymentMethod, status: PaymentStatus, reference?: string | null, receivedAt: any, resellerId: string, receivedById: string, receiptBucket?: string | null, receiptKey?: string | null, receiptUrl?: string | null }> | null, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } } };
+export type OrderQuery = { __typename?: 'Query', order: { __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, fulfillmentType?: FulfillmentType | null, deliveryAddress?: string | null, saleWorkflowState?: string | null, saleWorkflowContext?: any | null, fulfillmentWorkflowState?: string | null, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, saleWorkflowSummary?: { __typename?: 'SaleWorkflowSummary', saleOrderId: string, state: string, grandTotal: number, paid: number, outstanding: number, creditLimit: number, creditExposure: number, canAdvanceByPayment: boolean, canAdvanceByCredit: boolean, context?: any | null } | null, consumerSale?: { __typename?: 'ConsumerSale', id: string, status: SaleStatus, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, customer?: { __typename?: 'Customer', id: string, fullName: string, email?: string | null } | null } | null, resellerSale?: { __typename?: 'ResellerSale', id: string, status: SaleStatus, resellerId: string, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, reseller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, store: { __typename?: 'Store', id: string, name: string, location?: string | null } } | null, quotation?: { __typename?: 'Quotation', id: string, status: QuotationStatus, type: SaleType, totalAmount: number, billerId?: string | null, resellerId?: string | null, updatedAt: any, saleOrderId?: string | null, items?: Array<{ __typename?: 'QuotationItem', productVariantId: string, quantity: number, unitPrice: number }> | null } | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, deliveryPersonnelId?: string | null, deliveryAddress?: string | null, cost?: number | null, createdAt: any, updatedAt: any, fulfillmentWorkflowContext?: any | null, deliveryPersonnel?: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } | null, fulfillmentWorkflow?: { __typename?: 'FulfilmentWorkflowSnapshot', state: string, context?: any | null } | null } | null, ConsumerPayment?: Array<{ __typename?: 'ConsumerPayment', id: string, amount: number, method: PaymentMethod, status: PaymentStatus, reference?: string | null, receivedAt: any, receiptBucket?: string | null, receiptKey?: string | null, receiptUrl?: string | null }> | null, ResellerPayment?: Array<{ __typename?: 'ResellerPayment', id: string, amount: number, method: PaymentMethod, status: PaymentStatus, reference?: string | null, receivedAt: any, resellerId: string, receivedById: string, receiptBucket?: string | null, receiptKey?: string | null, receiptUrl?: string | null }> | null, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } } };
 
 export type UpdateQuotationStatusMutationVariables = Exact<{
   input: UpdateQuotationStatusInput;
@@ -30955,6 +31556,27 @@ export type RegisterResellerPaymentMutationVariables = Exact<{
 
 
 export type RegisterResellerPaymentMutation = { __typename?: 'Mutation', registerResellerPayment: { __typename?: 'ResellerPayment', id: string, saleOrderId: string, amount: number, method: PaymentMethod, status: PaymentStatus, reference?: string | null, receivedAt: any, resellerId: string, receivedById: string, receiptBucket?: string | null, receiptKey?: string | null, receiptUrl?: string | null } };
+
+export type ConfirmConsumerPaymentMutationVariables = Exact<{
+  input: ConfirmConsumerPaymentInput;
+}>;
+
+
+export type ConfirmConsumerPaymentMutation = { __typename?: 'Mutation', confirmConsumerPayment: { __typename?: 'ConsumerPayment', id: string, status: PaymentStatus } };
+
+export type ConfirmResellerPaymentMutationVariables = Exact<{
+  paymentId: Scalars['String']['input'];
+}>;
+
+
+export type ConfirmResellerPaymentMutation = { __typename?: 'Mutation', confirmResellerPayment: { __typename?: 'ResellerPayment', id: string, status: PaymentStatus } };
+
+export type UpdateFulfillmentPreferencesMutationVariables = Exact<{
+  input: UpdateFulfillmentPreferencesInput;
+}>;
+
+
+export type UpdateFulfillmentPreferencesMutation = { __typename?: 'Mutation', updateFulfillmentPreferences: { __typename?: 'SaleOrder', id: string, fulfillmentType?: FulfillmentType | null, deliveryAddress?: string | null, phase: OrderPhase, updatedAt: any } };
 
 export type QuotationsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -31443,6 +32065,11 @@ export type ResellerProfileQueryVariables = Exact<{
 
 export type ResellerProfileQuery = { __typename?: 'Query', resellerProfile?: { __typename?: 'ResellerProfile', userId: string, profileStatus: ProfileStatus, tier: UserTier, creditLimit: number, outstandingBalance: number, requestedAt: any, activatedAt?: any | null, rejectedAt?: any | null, rejectionReason?: string | null, biller?: { __typename?: 'User', id: string, email: string } | null, requestedBiller?: { __typename?: 'User', id: string, email: string } | null, user: { __typename?: 'User', id: string, email: string } } | null };
 
+export type MyResellerProfileQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type MyResellerProfileQuery = { __typename?: 'Query', myResellerProfile?: { __typename?: 'ResellerProfile', userId: string, billerId?: string | null, profileStatus: ProfileStatus, biller?: { __typename?: 'User', id: string, email: string } | null, user: { __typename?: 'User', id: string, email: string } } | null };
+
 export type ApplyResellerMutationVariables = Exact<{
   input: ApplyResellerInput;
 }>;
@@ -31477,6 +32104,27 @@ export type FulfillPurchaseReturnMutationVariables = Exact<{
 
 
 export type FulfillPurchaseReturnMutation = { __typename?: 'Mutation', fulfillPurchaseReturn: boolean };
+
+export type ListRidersQueryVariables = Exact<{
+  take?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type ListRidersQuery = { __typename?: 'Query', listUsers: Array<{ __typename?: 'User', id: string, email: string, createdAt: any, role: { __typename?: 'Role', name: string }, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }> };
+
+export type RiderCoverageAreasQueryVariables = Exact<{
+  riderId: Scalars['String']['input'];
+}>;
+
+
+export type RiderCoverageAreasQuery = { __typename?: 'Query', riderCoverageAreas: Array<{ __typename?: 'RiderCoverageArea', id: string, storeId: string, serviceRadiusKm?: number | null, createdAt: any, store: { __typename?: 'Store', id: string, name: string } }> };
+
+export type UpsertRiderCoverageMutationVariables = Exact<{
+  input: UpsertRiderCoverageInput;
+}>;
+
+
+export type UpsertRiderCoverageMutation = { __typename?: 'Mutation', upsertRiderCoverage: Array<{ __typename?: 'RiderCoverageArea', id: string, storeId: string, serviceRadiusKm?: number | null, createdAt: any, store: { __typename?: 'Store', id: string, name: string } }> };
 
 export type RolesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -31812,6 +32460,14 @@ export type SearchUsersQueryVariables = Exact<{
 
 
 export type SearchUsersQuery = { __typename?: 'Query', listUsers: Array<{ __typename?: 'User', id: string, email: string }> };
+
+export type OrderResellersQueryVariables = Exact<{
+  q?: InputMaybe<Scalars['String']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type OrderResellersQuery = { __typename?: 'Query', orderResellers: Array<{ __typename?: 'ResellerProfile', user: { __typename?: 'User', id: string, email: string } }> };
 
 export type SearchStoresQueryVariables = Exact<{
   where?: InputMaybe<StoreWhereInput>;
@@ -33690,6 +34346,7 @@ export const MyFulfillmentInterestsDocument = gql`
     status
     etaMinutes
     message
+    proposedCost
     createdAt
     fulfillment {
       id
@@ -33739,6 +34396,7 @@ export const RegisterFulfillmentInterestDocument = gql`
     status
     etaMinutes
     message
+    proposedCost
     fulfillmentId
     updatedAt
   }
@@ -33814,6 +34472,7 @@ export const FulfillmentRiderInterestsDocument = gql`
     status
     etaMinutes
     message
+    proposedCost
     createdAt
     rider {
       id
@@ -33867,6 +34526,7 @@ export const AssignFulfillmentRiderDocument = gql`
     id
     status
     riderId
+    proposedCost
     fulfillmentId
     updatedAt
   }
@@ -33898,6 +34558,120 @@ export function useAssignFulfillmentRiderMutation(baseOptions?: Apollo.MutationH
 export type AssignFulfillmentRiderMutationHookResult = ReturnType<typeof useAssignFulfillmentRiderMutation>;
 export type AssignFulfillmentRiderMutationResult = Apollo.MutationResult<AssignFulfillmentRiderMutation>;
 export type AssignFulfillmentRiderMutationOptions = Apollo.BaseMutationOptions<AssignFulfillmentRiderMutation, AssignFulfillmentRiderMutationVariables>;
+export const FulfillmentsInProgressDocument = gql`
+    query FulfillmentsInProgress($statuses: [FulfillmentStatus!], $storeId: String, $search: String, $take: Int) {
+  fulfillmentsInProgress(
+    statuses: $statuses
+    storeId: $storeId
+    search: $search
+    take: $take
+  ) {
+    id
+    saleOrderId
+    type
+    status
+    deliveryAddress
+    createdAt
+    updatedAt
+    deliveryPersonnel {
+      id
+      email
+      customerProfile {
+        fullName
+      }
+    }
+    saleOrder {
+      id
+      storeId
+      type
+      status
+      phase
+      totalAmount
+      biller {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
+      consumerSale {
+        id
+        store {
+          id
+          name
+        }
+        customer {
+          id
+          fullName
+          email
+        }
+      }
+      resellerSale {
+        id
+        store {
+          id
+          name
+        }
+        reseller {
+          id
+          email
+          customerProfile {
+            fullName
+          }
+        }
+      }
+    }
+    riderInterests {
+      id
+      status
+      createdAt
+      rider {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
+    }
+  }
+}
+    `;
+
+/**
+ * __useFulfillmentsInProgressQuery__
+ *
+ * To run a query within a React component, call `useFulfillmentsInProgressQuery` and pass it any options that fit your needs.
+ * When your component renders, `useFulfillmentsInProgressQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useFulfillmentsInProgressQuery({
+ *   variables: {
+ *      statuses: // value for 'statuses'
+ *      storeId: // value for 'storeId'
+ *      search: // value for 'search'
+ *      take: // value for 'take'
+ *   },
+ * });
+ */
+export function useFulfillmentsInProgressQuery(baseOptions?: Apollo.QueryHookOptions<FulfillmentsInProgressQuery, FulfillmentsInProgressQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<FulfillmentsInProgressQuery, FulfillmentsInProgressQueryVariables>(FulfillmentsInProgressDocument, options);
+      }
+export function useFulfillmentsInProgressLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<FulfillmentsInProgressQuery, FulfillmentsInProgressQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<FulfillmentsInProgressQuery, FulfillmentsInProgressQueryVariables>(FulfillmentsInProgressDocument, options);
+        }
+export function useFulfillmentsInProgressSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<FulfillmentsInProgressQuery, FulfillmentsInProgressQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<FulfillmentsInProgressQuery, FulfillmentsInProgressQueryVariables>(FulfillmentsInProgressDocument, options);
+        }
+export type FulfillmentsInProgressQueryHookResult = ReturnType<typeof useFulfillmentsInProgressQuery>;
+export type FulfillmentsInProgressLazyQueryHookResult = ReturnType<typeof useFulfillmentsInProgressLazyQuery>;
+export type FulfillmentsInProgressSuspenseQueryHookResult = ReturnType<typeof useFulfillmentsInProgressSuspenseQuery>;
+export type FulfillmentsInProgressQueryResult = Apollo.QueryResult<FulfillmentsInProgressQuery, FulfillmentsInProgressQueryVariables>;
 export const InvoiceImportDocument = gql`
     query InvoiceImport($id: String!) {
   invoiceImport(id: $id) {
@@ -34412,6 +35186,8 @@ export const OrdersDocument = gql`
     type
     status
     phase
+    fulfillmentType
+    deliveryAddress
     saleWorkflowState
     fulfillmentWorkflowState
     saleWorkflowSummary {
@@ -34534,6 +35310,8 @@ export const OrderDocument = gql`
     type
     status
     phase
+    fulfillmentType
+    deliveryAddress
     saleWorkflowState
     saleWorkflowContext
     saleWorkflowSummary {
@@ -34618,6 +35396,13 @@ export const OrderDocument = gql`
       status
       type
       deliveryPersonnelId
+      deliveryPersonnel {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
       deliveryAddress
       cost
       createdAt
@@ -34817,6 +35602,111 @@ export function useRegisterResellerPaymentMutation(baseOptions?: Apollo.Mutation
 export type RegisterResellerPaymentMutationHookResult = ReturnType<typeof useRegisterResellerPaymentMutation>;
 export type RegisterResellerPaymentMutationResult = Apollo.MutationResult<RegisterResellerPaymentMutation>;
 export type RegisterResellerPaymentMutationOptions = Apollo.BaseMutationOptions<RegisterResellerPaymentMutation, RegisterResellerPaymentMutationVariables>;
+export const ConfirmConsumerPaymentDocument = gql`
+    mutation ConfirmConsumerPayment($input: ConfirmConsumerPaymentInput!) {
+  confirmConsumerPayment(input: $input) {
+    id
+    status
+  }
+}
+    `;
+export type ConfirmConsumerPaymentMutationFn = Apollo.MutationFunction<ConfirmConsumerPaymentMutation, ConfirmConsumerPaymentMutationVariables>;
+
+/**
+ * __useConfirmConsumerPaymentMutation__
+ *
+ * To run a mutation, you first call `useConfirmConsumerPaymentMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useConfirmConsumerPaymentMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [confirmConsumerPaymentMutation, { data, loading, error }] = useConfirmConsumerPaymentMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useConfirmConsumerPaymentMutation(baseOptions?: Apollo.MutationHookOptions<ConfirmConsumerPaymentMutation, ConfirmConsumerPaymentMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ConfirmConsumerPaymentMutation, ConfirmConsumerPaymentMutationVariables>(ConfirmConsumerPaymentDocument, options);
+      }
+export type ConfirmConsumerPaymentMutationHookResult = ReturnType<typeof useConfirmConsumerPaymentMutation>;
+export type ConfirmConsumerPaymentMutationResult = Apollo.MutationResult<ConfirmConsumerPaymentMutation>;
+export type ConfirmConsumerPaymentMutationOptions = Apollo.BaseMutationOptions<ConfirmConsumerPaymentMutation, ConfirmConsumerPaymentMutationVariables>;
+export const ConfirmResellerPaymentDocument = gql`
+    mutation ConfirmResellerPayment($paymentId: String!) {
+  confirmResellerPayment(paymentId: $paymentId) {
+    id
+    status
+  }
+}
+    `;
+export type ConfirmResellerPaymentMutationFn = Apollo.MutationFunction<ConfirmResellerPaymentMutation, ConfirmResellerPaymentMutationVariables>;
+
+/**
+ * __useConfirmResellerPaymentMutation__
+ *
+ * To run a mutation, you first call `useConfirmResellerPaymentMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useConfirmResellerPaymentMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [confirmResellerPaymentMutation, { data, loading, error }] = useConfirmResellerPaymentMutation({
+ *   variables: {
+ *      paymentId: // value for 'paymentId'
+ *   },
+ * });
+ */
+export function useConfirmResellerPaymentMutation(baseOptions?: Apollo.MutationHookOptions<ConfirmResellerPaymentMutation, ConfirmResellerPaymentMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ConfirmResellerPaymentMutation, ConfirmResellerPaymentMutationVariables>(ConfirmResellerPaymentDocument, options);
+      }
+export type ConfirmResellerPaymentMutationHookResult = ReturnType<typeof useConfirmResellerPaymentMutation>;
+export type ConfirmResellerPaymentMutationResult = Apollo.MutationResult<ConfirmResellerPaymentMutation>;
+export type ConfirmResellerPaymentMutationOptions = Apollo.BaseMutationOptions<ConfirmResellerPaymentMutation, ConfirmResellerPaymentMutationVariables>;
+export const UpdateFulfillmentPreferencesDocument = gql`
+    mutation UpdateFulfillmentPreferences($input: UpdateFulfillmentPreferencesInput!) {
+  updateFulfillmentPreferences(input: $input) {
+    id
+    fulfillmentType
+    deliveryAddress
+    phase
+    updatedAt
+  }
+}
+    `;
+export type UpdateFulfillmentPreferencesMutationFn = Apollo.MutationFunction<UpdateFulfillmentPreferencesMutation, UpdateFulfillmentPreferencesMutationVariables>;
+
+/**
+ * __useUpdateFulfillmentPreferencesMutation__
+ *
+ * To run a mutation, you first call `useUpdateFulfillmentPreferencesMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateFulfillmentPreferencesMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateFulfillmentPreferencesMutation, { data, loading, error }] = useUpdateFulfillmentPreferencesMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateFulfillmentPreferencesMutation(baseOptions?: Apollo.MutationHookOptions<UpdateFulfillmentPreferencesMutation, UpdateFulfillmentPreferencesMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateFulfillmentPreferencesMutation, UpdateFulfillmentPreferencesMutationVariables>(UpdateFulfillmentPreferencesDocument, options);
+      }
+export type UpdateFulfillmentPreferencesMutationHookResult = ReturnType<typeof useUpdateFulfillmentPreferencesMutation>;
+export type UpdateFulfillmentPreferencesMutationResult = Apollo.MutationResult<UpdateFulfillmentPreferencesMutation>;
+export type UpdateFulfillmentPreferencesMutationOptions = Apollo.BaseMutationOptions<UpdateFulfillmentPreferencesMutation, UpdateFulfillmentPreferencesMutationVariables>;
 export const QuotationsDocument = gql`
     query Quotations {
   quotations {
@@ -37703,6 +38593,55 @@ export type ResellerProfileQueryHookResult = ReturnType<typeof useResellerProfil
 export type ResellerProfileLazyQueryHookResult = ReturnType<typeof useResellerProfileLazyQuery>;
 export type ResellerProfileSuspenseQueryHookResult = ReturnType<typeof useResellerProfileSuspenseQuery>;
 export type ResellerProfileQueryResult = Apollo.QueryResult<ResellerProfileQuery, ResellerProfileQueryVariables>;
+export const MyResellerProfileDocument = gql`
+    query MyResellerProfile {
+  myResellerProfile {
+    userId
+    billerId
+    profileStatus
+    biller {
+      id
+      email
+    }
+    user {
+      id
+      email
+    }
+  }
+}
+    `;
+
+/**
+ * __useMyResellerProfileQuery__
+ *
+ * To run a query within a React component, call `useMyResellerProfileQuery` and pass it any options that fit your needs.
+ * When your component renders, `useMyResellerProfileQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useMyResellerProfileQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useMyResellerProfileQuery(baseOptions?: Apollo.QueryHookOptions<MyResellerProfileQuery, MyResellerProfileQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<MyResellerProfileQuery, MyResellerProfileQueryVariables>(MyResellerProfileDocument, options);
+      }
+export function useMyResellerProfileLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<MyResellerProfileQuery, MyResellerProfileQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<MyResellerProfileQuery, MyResellerProfileQueryVariables>(MyResellerProfileDocument, options);
+        }
+export function useMyResellerProfileSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<MyResellerProfileQuery, MyResellerProfileQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<MyResellerProfileQuery, MyResellerProfileQueryVariables>(MyResellerProfileDocument, options);
+        }
+export type MyResellerProfileQueryHookResult = ReturnType<typeof useMyResellerProfileQuery>;
+export type MyResellerProfileLazyQueryHookResult = ReturnType<typeof useMyResellerProfileLazyQuery>;
+export type MyResellerProfileSuspenseQueryHookResult = ReturnType<typeof useMyResellerProfileSuspenseQuery>;
+export type MyResellerProfileQueryResult = Apollo.QueryResult<MyResellerProfileQuery, MyResellerProfileQueryVariables>;
 export const ApplyResellerDocument = gql`
     mutation ApplyReseller($input: ApplyResellerInput!) {
   applyReseller(input: $input) {
@@ -37886,6 +38825,141 @@ export function useFulfillPurchaseReturnMutation(baseOptions?: Apollo.MutationHo
 export type FulfillPurchaseReturnMutationHookResult = ReturnType<typeof useFulfillPurchaseReturnMutation>;
 export type FulfillPurchaseReturnMutationResult = Apollo.MutationResult<FulfillPurchaseReturnMutation>;
 export type FulfillPurchaseReturnMutationOptions = Apollo.BaseMutationOptions<FulfillPurchaseReturnMutation, FulfillPurchaseReturnMutationVariables>;
+export const ListRidersDocument = gql`
+    query ListRiders($take: Int) {
+  listUsers(take: $take, where: {role: {is: {name: {equals: "RIDER"}}}}) {
+    id
+    email
+    createdAt
+    role {
+      name
+    }
+    customerProfile {
+      fullName
+    }
+  }
+}
+    `;
+
+/**
+ * __useListRidersQuery__
+ *
+ * To run a query within a React component, call `useListRidersQuery` and pass it any options that fit your needs.
+ * When your component renders, `useListRidersQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useListRidersQuery({
+ *   variables: {
+ *      take: // value for 'take'
+ *   },
+ * });
+ */
+export function useListRidersQuery(baseOptions?: Apollo.QueryHookOptions<ListRidersQuery, ListRidersQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ListRidersQuery, ListRidersQueryVariables>(ListRidersDocument, options);
+      }
+export function useListRidersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ListRidersQuery, ListRidersQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ListRidersQuery, ListRidersQueryVariables>(ListRidersDocument, options);
+        }
+export function useListRidersSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ListRidersQuery, ListRidersQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ListRidersQuery, ListRidersQueryVariables>(ListRidersDocument, options);
+        }
+export type ListRidersQueryHookResult = ReturnType<typeof useListRidersQuery>;
+export type ListRidersLazyQueryHookResult = ReturnType<typeof useListRidersLazyQuery>;
+export type ListRidersSuspenseQueryHookResult = ReturnType<typeof useListRidersSuspenseQuery>;
+export type ListRidersQueryResult = Apollo.QueryResult<ListRidersQuery, ListRidersQueryVariables>;
+export const RiderCoverageAreasDocument = gql`
+    query RiderCoverageAreas($riderId: String!) {
+  riderCoverageAreas(riderId: $riderId) {
+    id
+    storeId
+    serviceRadiusKm
+    createdAt
+    store {
+      id
+      name
+    }
+  }
+}
+    `;
+
+/**
+ * __useRiderCoverageAreasQuery__
+ *
+ * To run a query within a React component, call `useRiderCoverageAreasQuery` and pass it any options that fit your needs.
+ * When your component renders, `useRiderCoverageAreasQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useRiderCoverageAreasQuery({
+ *   variables: {
+ *      riderId: // value for 'riderId'
+ *   },
+ * });
+ */
+export function useRiderCoverageAreasQuery(baseOptions: Apollo.QueryHookOptions<RiderCoverageAreasQuery, RiderCoverageAreasQueryVariables> & ({ variables: RiderCoverageAreasQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<RiderCoverageAreasQuery, RiderCoverageAreasQueryVariables>(RiderCoverageAreasDocument, options);
+      }
+export function useRiderCoverageAreasLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<RiderCoverageAreasQuery, RiderCoverageAreasQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<RiderCoverageAreasQuery, RiderCoverageAreasQueryVariables>(RiderCoverageAreasDocument, options);
+        }
+export function useRiderCoverageAreasSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<RiderCoverageAreasQuery, RiderCoverageAreasQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<RiderCoverageAreasQuery, RiderCoverageAreasQueryVariables>(RiderCoverageAreasDocument, options);
+        }
+export type RiderCoverageAreasQueryHookResult = ReturnType<typeof useRiderCoverageAreasQuery>;
+export type RiderCoverageAreasLazyQueryHookResult = ReturnType<typeof useRiderCoverageAreasLazyQuery>;
+export type RiderCoverageAreasSuspenseQueryHookResult = ReturnType<typeof useRiderCoverageAreasSuspenseQuery>;
+export type RiderCoverageAreasQueryResult = Apollo.QueryResult<RiderCoverageAreasQuery, RiderCoverageAreasQueryVariables>;
+export const UpsertRiderCoverageDocument = gql`
+    mutation UpsertRiderCoverage($input: UpsertRiderCoverageInput!) {
+  upsertRiderCoverage(input: $input) {
+    id
+    storeId
+    serviceRadiusKm
+    createdAt
+    store {
+      id
+      name
+    }
+  }
+}
+    `;
+export type UpsertRiderCoverageMutationFn = Apollo.MutationFunction<UpsertRiderCoverageMutation, UpsertRiderCoverageMutationVariables>;
+
+/**
+ * __useUpsertRiderCoverageMutation__
+ *
+ * To run a mutation, you first call `useUpsertRiderCoverageMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpsertRiderCoverageMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [upsertRiderCoverageMutation, { data, loading, error }] = useUpsertRiderCoverageMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpsertRiderCoverageMutation(baseOptions?: Apollo.MutationHookOptions<UpsertRiderCoverageMutation, UpsertRiderCoverageMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpsertRiderCoverageMutation, UpsertRiderCoverageMutationVariables>(UpsertRiderCoverageDocument, options);
+      }
+export type UpsertRiderCoverageMutationHookResult = ReturnType<typeof useUpsertRiderCoverageMutation>;
+export type UpsertRiderCoverageMutationResult = Apollo.MutationResult<UpsertRiderCoverageMutation>;
+export type UpsertRiderCoverageMutationOptions = Apollo.BaseMutationOptions<UpsertRiderCoverageMutation, UpsertRiderCoverageMutationVariables>;
 export const RolesDocument = gql`
     query Roles {
   roles {
@@ -39834,6 +40908,50 @@ export type SearchUsersQueryHookResult = ReturnType<typeof useSearchUsersQuery>;
 export type SearchUsersLazyQueryHookResult = ReturnType<typeof useSearchUsersLazyQuery>;
 export type SearchUsersSuspenseQueryHookResult = ReturnType<typeof useSearchUsersSuspenseQuery>;
 export type SearchUsersQueryResult = Apollo.QueryResult<SearchUsersQuery, SearchUsersQueryVariables>;
+export const OrderResellersDocument = gql`
+    query OrderResellers($q: String, $take: Int) {
+  orderResellers(q: $q, take: $take) {
+    user {
+      id
+      email
+    }
+  }
+}
+    `;
+
+/**
+ * __useOrderResellersQuery__
+ *
+ * To run a query within a React component, call `useOrderResellersQuery` and pass it any options that fit your needs.
+ * When your component renders, `useOrderResellersQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useOrderResellersQuery({
+ *   variables: {
+ *      q: // value for 'q'
+ *      take: // value for 'take'
+ *   },
+ * });
+ */
+export function useOrderResellersQuery(baseOptions?: Apollo.QueryHookOptions<OrderResellersQuery, OrderResellersQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<OrderResellersQuery, OrderResellersQueryVariables>(OrderResellersDocument, options);
+      }
+export function useOrderResellersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<OrderResellersQuery, OrderResellersQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<OrderResellersQuery, OrderResellersQueryVariables>(OrderResellersDocument, options);
+        }
+export function useOrderResellersSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<OrderResellersQuery, OrderResellersQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<OrderResellersQuery, OrderResellersQueryVariables>(OrderResellersDocument, options);
+        }
+export type OrderResellersQueryHookResult = ReturnType<typeof useOrderResellersQuery>;
+export type OrderResellersLazyQueryHookResult = ReturnType<typeof useOrderResellersLazyQuery>;
+export type OrderResellersSuspenseQueryHookResult = ReturnType<typeof useOrderResellersSuspenseQuery>;
+export type OrderResellersQueryResult = Apollo.QueryResult<OrderResellersQuery, OrderResellersQueryVariables>;
 export const SearchStoresDocument = gql`
     query SearchStores($where: StoreWhereInput, $take: Int) {
   listStores(where: $where, take: $take) {

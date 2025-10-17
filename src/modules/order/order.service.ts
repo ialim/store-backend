@@ -12,7 +12,7 @@ import { CreateResellerPaymentInput } from '../sale/dto/create-reseller-payment.
 import { ConfirmConsumerPaymentInput } from '../sale/dto/confirm-consumer-payment.input';
 import { UpdateQuotationInput } from '../sale/dto/update-quotation.input';
 import { AuthenticatedUser } from '../auth/auth.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, FulfillmentStatus } from '@prisma/client';
 import {
   QuotationViewContext,
   QuotationPartyInfo,
@@ -73,7 +73,21 @@ export class OrderService {
         fulfillment: true,
         transitionLogs: { orderBy: { occurredAt: 'desc' } },
         quotation: { include: { items: true } },
-        resellerSale: { include: { items: true } },
+        consumerSale: {
+          include: {
+            store: true,
+            customer: true,
+            biller: { include: { customerProfile: true } },
+          },
+        },
+        resellerSale: {
+          include: {
+            items: true,
+            biller: { include: { customerProfile: true } },
+            reseller: { include: { customerProfile: true } },
+            store: true,
+          },
+        },
         ResellerPayment: true,
         biller: { include: { customerProfile: true } },
       },
@@ -88,7 +102,21 @@ export class OrderService {
         fulfillment: true,
         transitionLogs: { orderBy: { occurredAt: 'desc' } },
         quotation: { include: { items: true } },
-        resellerSale: { include: { items: true } },
+        consumerSale: {
+          include: {
+            store: true,
+            customer: true,
+            biller: { include: { customerProfile: true } },
+          },
+        },
+        resellerSale: {
+          include: {
+            items: true,
+            biller: { include: { customerProfile: true } },
+            reseller: { include: { customerProfile: true } },
+            store: true,
+          },
+        },
         ResellerPayment: true,
         biller: { include: { customerProfile: true } },
       },
@@ -146,7 +174,13 @@ export class OrderService {
     if (this.isReseller(user)) {
       return this.prisma.resellerSale.findMany({
         where: { resellerId: user?.id },
-        include: { items: true, SaleOrder: true },
+        include: {
+          items: true,
+          SaleOrder: true,
+          biller: { include: { customerProfile: true } },
+          reseller: { include: { customerProfile: true } },
+          store: true,
+        },
         orderBy: { createdAt: 'desc' },
       });
     }
@@ -157,7 +191,13 @@ export class OrderService {
     if (this.isReseller(user)) {
       const sale = await this.prisma.resellerSale.findFirst({
         where: { id, resellerId: user?.id },
-        include: { items: true, SaleOrder: true },
+        include: {
+          items: true,
+          SaleOrder: true,
+          biller: { include: { customerProfile: true } },
+          reseller: { include: { customerProfile: true } },
+          store: true,
+        },
       });
       if (!sale) {
         throw new NotFoundException('Reseller sale not found');
@@ -295,6 +335,116 @@ export class OrderService {
   ) {
     await this.order(saleOrderId, user);
     return this.sales.getFulfilmentWorkflowSnapshot(saleOrderId);
+  }
+
+  async fulfillmentsInProgress(options: {
+    statuses?: FulfillmentStatus[] | null;
+    storeId?: string | null;
+    search?: string | null;
+    take?: number | null;
+  }) {
+    const statuses =
+      options.statuses && options.statuses.length
+        ? options.statuses
+        : [
+            FulfillmentStatus.PENDING,
+            FulfillmentStatus.ASSIGNED,
+            FulfillmentStatus.IN_TRANSIT,
+          ];
+
+    const where: Prisma.FulfillmentWhereInput = {
+      status: { in: statuses },
+    };
+
+    if (options.storeId) {
+      where.saleOrder = {
+        is: {
+          storeId: options.storeId,
+        },
+      };
+    }
+
+    if (options.search?.trim()) {
+      const term = options.search.trim();
+      where.OR = [
+        { saleOrderId: { contains: term, mode: 'insensitive' } },
+        {
+          deliveryAddress: { contains: term, mode: 'insensitive' },
+        },
+      ];
+    }
+
+    const take = options.take && options.take > 0 ? options.take : 100;
+
+    return this.prisma.fulfillment.findMany({
+      where,
+      include: {
+        saleOrder: {
+          select: {
+            id: true,
+            storeId: true,
+            type: true,
+            status: true,
+            phase: true,
+            totalAmount: true,
+            biller: {
+              select: {
+                id: true,
+                email: true,
+                customerProfile: { select: { fullName: true } },
+              },
+            },
+            consumerSale: {
+              select: {
+                id: true,
+                store: { select: { id: true, name: true } },
+                customer: {
+                  select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+            resellerSale: {
+              select: {
+                id: true,
+                store: { select: { id: true, name: true } },
+                reseller: {
+                  select: {
+                    id: true,
+                    email: true,
+                    customerProfile: { select: { fullName: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+        deliveryPersonnel: {
+          select: {
+            id: true,
+            email: true,
+            customerProfile: { select: { fullName: true } },
+          },
+        },
+        riderInterests: {
+          include: {
+            rider: {
+              select: {
+                id: true,
+                email: true,
+                customerProfile: { select: { fullName: true } },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(take, 250),
+    });
   }
 
   async quotationContext(

@@ -189,6 +189,22 @@ const saleMachine = setup({
       on: {
         SET_PAYMENT_METHOD: 'PAYMENT_INITIATED',
         PAYMENT_METHOD_SUBMITTED: 'PAYMENT_INITIATED',
+        PAYMENT_CONFIRMED: [
+          {
+            target: 'CLEARED_FOR_FULFILMENT',
+            cond: 'isPaymentSatisfied',
+            actions: ['markClearToFulfil', 'emitSaleCleared'],
+          },
+          { target: 'PAYMENT_PENDING_CONFIRMATION' },
+        ],
+        PAYMENT_CAPTURED: [
+          {
+            target: 'CLEARED_FOR_FULFILMENT',
+            cond: 'isPaymentSatisfied',
+            actions: ['markClearToFulfil', 'emitSaleCleared'],
+          },
+          { target: 'PAYMENT_PENDING_CONFIRMATION' },
+        ],
         ADMIN_OVERRIDE_APPROVED: {
           target: 'CLEARED_FOR_FULFILMENT',
           actions: [
@@ -398,7 +414,7 @@ export function runSaleMachine(options: {
 
   return {
     state: next.value as SaleWorkflowState,
-    context: next.context as SaleContext,
+    context: next.context,
     changed,
   };
 }
