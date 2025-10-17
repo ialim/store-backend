@@ -1,0 +1,14 @@
+export type SystemSettingKey =
+  | 'SALE_PENDING_EXPIRY_MINUTES'
+  | 'SALE_EXPIRY_BATCH_SIZE'
+  | 'RIDER_INTEREST_DEFAULT_EXPIRY_MINUTES'
+  | 'RIDER_INTEREST_FALLBACK_EXPIRY_MINUTES'
+  | 'RIDER_INTEREST_EXPIRY_BATCH_SIZE'
+  | 'CONSUMER_PRICE_MARKUP_PERCENT'
+  | 'ADDRESS_REFRESH_ENABLED'
+  | 'ADDRESS_REFRESH_BATCH_SIZE'
+  | 'ADDRESS_REFRESH_MAX_AGE_DAYS';
+
+export type SystemSettingValue = string | number | boolean | null | undefined;
+
+export type SystemSettingValueSource = 'DATABASE' | 'ENVIRONMENT' | 'DEFAULT';

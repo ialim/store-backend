@@ -12,9 +12,10 @@ import { WorkflowService } from '../../state/workflow.service';
 import { RiderInterestExpiryService } from './rider-interest-expiry.service';
 import { RiderCoverageService } from './rider-coverage.service';
 import { RiderCoverageResolver } from './rider-coverage.resolver';
+import { SystemSettingsModule } from '../system-settings/system-settings.module';
 
 @Module({
-  imports: [NotificationModule, SaleModule, EventsModule],
+  imports: [NotificationModule, SaleModule, EventsModule, SystemSettingsModule],
   providers: [
     OrderResolver,
     OrderService,

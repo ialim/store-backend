@@ -74,6 +74,9 @@ export default function ResellerDetail() {
                 Profile
               </Typography>
               <Stack spacing={0.5} sx={{ mt: 1 }}>
+                <Typography>Company: {r.companyName || '—'}</Typography>
+                <Typography>Contact Person: {r.contactPersonName || '—'}</Typography>
+                <Typography>Contact Phone: {r.contactPhone || '—'}</Typography>
                 <Typography>Tier: {r.tier}</Typography>
                 <Typography>Credit Limit: {formatMoney(r.creditLimit)}</Typography>
                 <Typography>Outstanding: {formatMoney(r.outstandingBalance)}</Typography>

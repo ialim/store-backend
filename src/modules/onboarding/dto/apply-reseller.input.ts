@@ -1,5 +1,4 @@
 import { InputType, Field } from '@nestjs/graphql';
-import { UserTier } from '../../../shared/prismagraphql/prisma/user-tier.enum';
 
 @InputType()
 export class ApplyResellerInput {
@@ -9,13 +8,12 @@ export class ApplyResellerInput {
   @Field()
   password: string;
 
-  // Optional requested biller during application; actual assignment happens on approval
-  @Field({ nullable: true })
-  requestedBillerId?: string;
-
-  @Field(() => UserTier)
-  tier: UserTier;
+  @Field()
+  companyName: string;
 
   @Field()
-  creditLimit: number;
+  contactPersonName: string;
+
+  @Field()
+  contactPhone: string;
 }

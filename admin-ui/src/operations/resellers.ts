@@ -8,6 +8,9 @@ export const PendingResellerApplications = gql`
       creditLimit
       requestedAt
       requestedBillerId
+      companyName
+      contactPersonName
+      contactPhone
       biller {
         id
         email
@@ -83,6 +86,9 @@ export const Resellers = gql`
       tier
       creditLimit
       requestedAt
+      companyName
+      contactPersonName
+      contactPhone
       user {
         id
         email
@@ -111,6 +117,9 @@ export const ResellerProfile = gql`
       activatedAt
       rejectedAt
       rejectionReason
+      companyName
+      contactPersonName
+      contactPhone
       biller {
         id
         email
@@ -133,6 +142,9 @@ export const MyResellerProfile = gql`
       userId
       billerId
       profileStatus
+      companyName
+      contactPersonName
+      contactPhone
       biller {
         id
         email

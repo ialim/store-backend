@@ -9,6 +9,7 @@ import { AnalyticsModule } from '../analytics/analytics.module';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { WorkflowService } from '../../state/workflow.service';
 import { SaleExpiryService } from './sale-expiry.service';
+import { SystemSettingsModule } from '../system-settings/system-settings.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { SaleExpiryService } from './sale-expiry.service';
     EventsModule,
     PaymentModule,
     AnalyticsModule,
+    SystemSettingsModule,
   ],
   providers: [
     SalesResolver,
