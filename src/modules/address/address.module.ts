@@ -10,9 +10,10 @@ import { AuthModule } from '../auth/auth.module';
 import { GEOCODING_PROVIDER } from './geocoding/geocoding.provider';
 import { LocationIqProvider } from './geocoding/locationiq.provider';
 import { AddressRefreshService } from './address-refresh.service';
+import { SystemSettingsModule } from '../system-settings/system-settings.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, SystemSettingsModule],
   providers: [
     PrismaService,
     AddressService,

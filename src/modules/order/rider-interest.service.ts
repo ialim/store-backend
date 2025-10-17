@@ -20,6 +20,7 @@ import {
 import { WorkflowService } from '../../state/workflow.service';
 import { NotificationService } from '../notification/notification.service';
 import { PhaseCoordinator } from '../../state/phase-coordinator';
+import { SystemSettingsService } from '../system-settings/system-settings.service';
 
 interface RegisterInterestParams {
   fulfillmentId: string;
@@ -29,20 +30,6 @@ interface RegisterInterestParams {
   proposedCost?: number | null;
 }
 
-const FALLBACK_INTEREST_EXPIRY_MINUTES = 45;
-
-function resolveDefaultInterestExpiryMinutes(): number | null {
-  const raw = process.env.RIDER_INTEREST_DEFAULT_EXPIRY_MINUTES;
-  if (raw === '0') {
-    return null;
-  }
-  const parsed = raw != null ? Number.parseInt(raw, 10) : NaN;
-  if (Number.isFinite(parsed) && parsed > 0) {
-    return parsed;
-  }
-  return FALLBACK_INTEREST_EXPIRY_MINUTES;
-}
-
 @Injectable()
 export class RiderInterestService {
   constructor(
@@ -50,20 +37,20 @@ export class RiderInterestService {
     private readonly workflow: WorkflowService,
     private readonly notifications: NotificationService,
     private readonly phaseCoordinator: PhaseCoordinator,
+    private readonly systemSettings: SystemSettingsService,
   ) {}
 
-  private readonly defaultInterestExpiryMinutes =
-    resolveDefaultInterestExpiryMinutes();
-
-  private computeExpiryDate(etaMinutes?: number | null): Date | null {
+  private async computeExpiryDate(
+    etaMinutes?: number | null,
+  ): Promise<Date | null> {
     if (etaMinutes != null && Number.isFinite(etaMinutes) && etaMinutes > 0) {
       return new Date(Date.now() + etaMinutes * 60000);
     }
-    if (
-      this.defaultInterestExpiryMinutes != null &&
-      this.defaultInterestExpiryMinutes > 0
-    ) {
-      return new Date(Date.now() + this.defaultInterestExpiryMinutes * 60000);
+    const defaultExpiry = await this.systemSettings.getNumber(
+      'RIDER_INTEREST_DEFAULT_EXPIRY_MINUTES',
+    );
+    if (defaultExpiry != null && defaultExpiry > 0) {
+      return new Date(Date.now() + defaultExpiry * 60000);
     }
     return null;
   }
@@ -238,7 +225,7 @@ export class RiderInterestService {
         );
       }
 
-      const expiresAt = this.computeExpiryDate(params.etaMinutes);
+      const expiresAt = await this.computeExpiryDate(params.etaMinutes);
       const interest = await trx.fulfillmentRiderInterest.upsert({
         where: {
           fulfillmentId_riderId: {

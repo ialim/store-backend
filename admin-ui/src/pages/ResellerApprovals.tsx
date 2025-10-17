@@ -5,7 +5,6 @@ import {
   useListBillersQuery,
   usePendingResellerApplicationsQuery,
   useRejectResellerMutation,
-  UserTier,
 } from '../generated/graphql';
 import {
   Alert,
@@ -47,9 +46,9 @@ export default function ResellerApprovals() {
   const [createForm, setCreateForm] = useState({
     email: '',
     password: '',
-    tier: UserTier.Bronze as UserTier,
-    creditLimit: '0',
-    requestedBillerId: '',
+    companyName: '',
+    contactPersonName: '',
+    contactPhone: '',
   });
 
   const list = data?.pendingResellerApplications ?? [];
@@ -156,6 +155,27 @@ export default function ResellerApprovals() {
         render: (row: any) => row.user?.email,
         sort: true,
         accessor: (r: any) => r.user?.email || '',
+      },
+      {
+        key: 'companyName',
+        label: 'Company',
+        render: (row: any) => row.companyName || '—',
+        sort: true,
+        accessor: (r: any) => r.companyName || '',
+      },
+      {
+        key: 'contactPersonName',
+        label: 'Contact Person',
+        render: (row: any) => row.contactPersonName || '—',
+        sort: true,
+        accessor: (r: any) => r.contactPersonName || '',
+      },
+      {
+        key: 'contactPhone',
+        label: 'Contact Phone',
+        render: (row: any) => row.contactPhone || '—',
+        sort: true,
+        accessor: (r: any) => r.contactPhone || '',
       },
       {
         key: 'tier',
@@ -312,9 +332,9 @@ export default function ResellerApprovals() {
                 setCreateForm({
                   email: '',
                   password: '',
-                  tier: UserTier.Bronze,
-                  creditLimit: '0',
-                  requestedBillerId: '',
+                  companyName: '',
+                  contactPersonName: '',
+                  contactPhone: '',
                 });
                 setCreateOpen(true);
               }}
@@ -364,45 +384,37 @@ export default function ResellerApprovals() {
                 onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
               />
               <TextField
-                label="Credit Limit"
-                type="number"
+                label="Company Name"
                 required
-                value={createForm.creditLimit}
-                onChange={(e) => setCreateForm((f) => ({ ...f, creditLimit: e.target.value }))}
+                value={createForm.companyName}
+                onChange={(e) => setCreateForm((f) => ({ ...f, companyName: e.target.value }))}
               />
               <TextField
-                label="Tier"
-                select
-                value={createForm.tier}
-                onChange={(e) => setCreateForm((f) => ({ ...f, tier: e.target.value as UserTier }))}
-              >
-                {[UserTier.Bronze, UserTier.Silver, UserTier.Gold, UserTier.Platinum].map((tier) => (
-                  <MenuItem key={tier} value={tier}>
-                    {tier}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <Select
-                value={createForm.requestedBillerId}
-                onChange={(e) => setCreateForm((f) => ({ ...f, requestedBillerId: e.target.value as string }))}
-                displayEmpty
-              >
-                <MenuItem value="">
-                  <em>No requested biller</em>
-                </MenuItem>
-                {billers.map((b) => (
-                  <MenuItem key={b.id} value={b.id}>
-                    {b.email}
-                  </MenuItem>
-                ))}
-              </Select>
+                label="Contact Person Name"
+                required
+                value={createForm.contactPersonName}
+                onChange={(e) => setCreateForm((f) => ({ ...f, contactPersonName: e.target.value }))}
+              />
+              <TextField
+                label="Contact Phone"
+                required
+                value={createForm.contactPhone}
+                onChange={(e) => setCreateForm((f) => ({ ...f, contactPhone: e.target.value }))}
+              />
             </Stack>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
             <Button
               variant="contained"
-              disabled={creating || !createForm.email || !createForm.password}
+              disabled={
+                creating ||
+                !createForm.email ||
+                !createForm.password ||
+                !createForm.companyName.trim() ||
+                !createForm.contactPersonName.trim() ||
+                !createForm.contactPhone.trim()
+              }
               onClick={async () => {
                 try {
                   await applyReseller({
@@ -410,14 +422,21 @@ export default function ResellerApprovals() {
                       input: {
                         email: createForm.email.trim(),
                         password: createForm.password,
-                        creditLimit: Number(createForm.creditLimit) || 0,
-                        tier: createForm.tier,
-                        requestedBillerId: createForm.requestedBillerId || undefined,
+                        companyName: createForm.companyName.trim(),
+                        contactPersonName: createForm.contactPersonName.trim(),
+                        contactPhone: createForm.contactPhone.trim(),
                       },
                     },
                   });
                   notify('Reseller application created', 'success');
                   setCreateOpen(false);
+                  setCreateForm({
+                    email: '',
+                    password: '',
+                    companyName: '',
+                    contactPersonName: '',
+                    contactPhone: '',
+                  });
                   await refetch({ take: 50, q: appliedQ });
                 } catch (e: any) {
                   notify(e?.message || 'Failed to create reseller', 'error');

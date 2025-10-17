@@ -50,6 +50,8 @@ model User {
   FulfillmentRiderInterests FulfillmentRiderInterest[] @relation("RiderInterests")
   RiderCoverageAreas RiderCoverageArea[] @relation("RiderCoverageAreas")
 
+  systemSettingsUpdated SystemSetting[] @relation("SystemSettingUpdatedBy")
+
   BillerQuotation Quotation[] @relation("BillerQuotation")
 
   ResellerQuotation Quotation[] @relation("ResellerQuotation")
@@ -88,8 +90,8 @@ model ResellerProfile {
   userId             String   @id
   billerId           String?
   requestedBillerId  String?
-  tier               UserTier
-  creditLimit        Float
+  tier               UserTier @default(BRONZE)
+  creditLimit        Float   @default(0)
   outstandingBalance Float   @default(0)
   isActive           Boolean  @default(true)
   profileStatus      ProfileStatus @default(PENDING)
@@ -97,6 +99,9 @@ model ResellerProfile {
   activatedAt        DateTime?
   rejectedAt         DateTime?
   rejectionReason    String?
+  companyName        String   @default("")
+  contactPersonName  String   @default("")
+  contactPhone       String   @default("")
 
   user               User     @relation(fields: [userId], references: [id])
   biller             User?    @relation("BillerResellers", fields: [billerId], references: [id])

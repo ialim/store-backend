@@ -98,6 +98,7 @@ type UserCount {
   Fulfillment: Int!
   FulfillmentRiderInterests: Int!
   RiderCoverageAreas: Int!
+  systemSettingsUpdated: Int!
   BillerQuotation: Int!
   ResellerQuotation: Int!
   PurchaseRequisition: Int!
@@ -164,6 +165,9 @@ type ResellerProfile {
   activatedAt: DateTime
   rejectedAt: DateTime
   rejectionReason: String
+  companyName: String!
+  contactPersonName: String!
+  contactPhone: String!
   user: User!
   biller: User
   requestedBiller: User
@@ -1274,6 +1278,17 @@ type Notification {
   user: User!
 }
 
+type SystemSetting {
+  id: ID!
+  key: String!
+  value: String!
+  description: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  updatedById: String
+  updatedBy: User
+}
+
 type User {
   id: ID!
   email: String!
@@ -1320,6 +1335,7 @@ type User {
   Fulfillment: [Fulfillment!]
   FulfillmentRiderInterests: [FulfillmentRiderInterest!]
   RiderCoverageAreas: [RiderCoverageArea!]
+  systemSettingsUpdated: [SystemSetting!]
   BillerQuotation: [Quotation!]
   ResellerQuotation: [Quotation!]
   PurchaseRequisition: [PurchaseRequisition!]
@@ -1821,6 +1837,55 @@ type StoreManagerDiagnostic {
   managerId: String!
   validManager: Boolean!
   managerEmail: String
+}
+
+type SystemSettingUserSummary {
+  id: String!
+  email: String
+  fullName: String
+}
+
+type SystemSettingDto {
+  key: SystemSettingKey!
+  valueType: SystemSettingValueType!
+  numberValue: Float
+  stringValue: String
+  booleanValue: Boolean
+  defaultNumberValue: Float
+  defaultStringValue: String
+  defaultBooleanValue: Boolean
+  envNumberValue: Float
+  envStringValue: String
+  envBooleanValue: Boolean
+  description: String!
+  source: SystemSettingValueSource!
+  metadata: JSON
+  updatedAt: DateTime
+  updatedBy: SystemSettingUserSummary
+}
+
+enum SystemSettingKey {
+  SALE_PENDING_EXPIRY_MINUTES
+  SALE_EXPIRY_BATCH_SIZE
+  RIDER_INTEREST_DEFAULT_EXPIRY_MINUTES
+  RIDER_INTEREST_FALLBACK_EXPIRY_MINUTES
+  RIDER_INTEREST_EXPIRY_BATCH_SIZE
+  CONSUMER_PRICE_MARKUP_PERCENT
+  ADDRESS_REFRESH_ENABLED
+  ADDRESS_REFRESH_BATCH_SIZE
+  ADDRESS_REFRESH_MAX_AGE_DAYS
+}
+
+enum SystemSettingValueType {
+  NUMBER
+  BOOLEAN
+  STRING
+}
+
+enum SystemSettingValueSource {
+  DATABASE
+  ENVIRONMENT
+  DEFAULT
 }
 
 type SupplierCountAggregate {
@@ -2925,6 +2990,7 @@ type Query {
   topSellingVariantsDetailed(month: String, limit: Int): [VariantSalesWithDetails!]!
   topSellingVariantsByStore(storeId: String!, month: String, limit: Int): [VariantSalesWithDetails!]!
   monthlySalesSummaryByStore(storeId: String!, month: String): MonthlySalesSummary!
+  systemSettingsList: [SystemSettingDto!]!
   ordersQuery: [SaleOrder!]!
   quotations: [Quotation!]!
   quotation(id: String!): Quotation!
@@ -3329,6 +3395,7 @@ input UserWhereInput {
   Fulfillment: FulfillmentListRelationFilter
   FulfillmentRiderInterests: FulfillmentRiderInterestListRelationFilter
   RiderCoverageAreas: RiderCoverageAreaListRelationFilter
+  systemSettingsUpdated: SystemSettingListRelationFilter
   BillerQuotation: QuotationListRelationFilter
   ResellerQuotation: QuotationListRelationFilter
   PurchaseRequisition: PurchaseRequisitionListRelationFilter
@@ -3439,6 +3506,9 @@ input ResellerProfileWhereInput {
   activatedAt: DateTimeNullableFilter
   rejectedAt: DateTimeNullableFilter
   rejectionReason: StringNullableFilter
+  companyName: StringFilter
+  contactPersonName: StringFilter
+  contactPhone: StringFilter
   user: UserScalarRelationFilter
   biller: UserNullableScalarRelationFilter
   requestedBiller: UserNullableScalarRelationFilter
@@ -4866,6 +4936,26 @@ input RiderCoverageAreaWhereInput {
   store: StoreScalarRelationFilter
 }
 
+input SystemSettingListRelationFilter {
+  every: SystemSettingWhereInput
+  some: SystemSettingWhereInput
+  none: SystemSettingWhereInput
+}
+
+input SystemSettingWhereInput {
+  AND: [SystemSettingWhereInput!]
+  OR: [SystemSettingWhereInput!]
+  NOT: [SystemSettingWhereInput!]
+  id: StringFilter
+  key: StringFilter
+  value: StringFilter
+  description: StringNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  updatedById: StringNullableFilter
+  updatedBy: UserNullableScalarRelationFilter
+}
+
 input PurchaseRequisitionListRelationFilter {
   every: PurchaseRequisitionWhereInput
   some: PurchaseRequisitionWhereInput
@@ -5728,6 +5818,7 @@ input UserOrderByWithRelationInput {
   Fulfillment: FulfillmentOrderByRelationAggregateInput
   FulfillmentRiderInterests: FulfillmentRiderInterestOrderByRelationAggregateInput
   RiderCoverageAreas: RiderCoverageAreaOrderByRelationAggregateInput
+  systemSettingsUpdated: SystemSettingOrderByRelationAggregateInput
   BillerQuotation: QuotationOrderByRelationAggregateInput
   ResellerQuotation: QuotationOrderByRelationAggregateInput
   PurchaseRequisition: PurchaseRequisitionOrderByRelationAggregateInput
@@ -5765,6 +5856,9 @@ input ResellerProfileOrderByWithRelationInput {
   activatedAt: SortOrderInput
   rejectedAt: SortOrderInput
   rejectionReason: SortOrderInput
+  companyName: SortOrder
+  contactPersonName: SortOrder
+  contactPhone: SortOrder
   user: UserOrderByWithRelationInput
   biller: UserOrderByWithRelationInput
   requestedBiller: UserOrderByWithRelationInput
@@ -5944,6 +6038,10 @@ input FulfillmentOrderByRelationAggregateInput {
 }
 
 input FulfillmentRiderInterestOrderByRelationAggregateInput {
+  _count: SortOrder
+}
+
+input SystemSettingOrderByRelationAggregateInput {
   _count: SortOrder
 }
 
@@ -6784,6 +6882,7 @@ input UserWhereUniqueInput {
   Fulfillment: FulfillmentListRelationFilter
   FulfillmentRiderInterests: FulfillmentRiderInterestListRelationFilter
   RiderCoverageAreas: RiderCoverageAreaListRelationFilter
+  systemSettingsUpdated: SystemSettingListRelationFilter
   BillerQuotation: QuotationListRelationFilter
   ResellerQuotation: QuotationListRelationFilter
   PurchaseRequisition: PurchaseRequisitionListRelationFilter
@@ -7390,6 +7489,7 @@ type Mutation {
   assignFulfillmentPersonnel(input: AssignFulfillmentPersonnelInput!): Fulfillment!
   updateFulfillmentStatus(input: UpdateFulfillmentStatusInput!): Fulfillment!
   adminRevertOrderToQuotation(saleOrderId: String!): SaleOrder!
+  updateSystemSetting(input: UpdateSystemSettingInput!): SystemSettingDto!
   updateQuotation(input: UpdateQuotationInput!): Quotation!
   adminRevertToQuotation(saleOrderId: String!): SaleOrder!
   grantAdminOverride(input: GrantAdminOverrideInput!): SaleOrder!
@@ -7620,6 +7720,7 @@ input UserCreateWithoutStoreInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -7695,8 +7796,8 @@ input ResellerProfileCreateNestedOneWithoutUserInput {
 }
 
 input ResellerProfileCreateWithoutUserInput {
-  tier: UserTier!
-  creditLimit: Float!
+  tier: UserTier
+  creditLimit: Float
   outstandingBalance: Float
   isActive: Boolean
   profileStatus: ProfileStatus
@@ -7704,6 +7805,9 @@ input ResellerProfileCreateWithoutUserInput {
   activatedAt: DateTime
   rejectedAt: DateTime
   rejectionReason: String
+  companyName: String
+  contactPersonName: String
+  contactPhone: String
   biller: UserCreateNestedOneWithoutResellerProfileInput
   requestedBiller: UserCreateNestedOneWithoutRequestedResellersInput
 }
@@ -7758,6 +7862,7 @@ input UserCreateWithoutResellerProfileInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -8146,6 +8251,7 @@ input UserCreateWithoutStockReceiptBatchReceivedBysInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -8401,6 +8507,7 @@ input UserCreateWithoutConsumerSaleInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -8479,6 +8586,7 @@ input UserCreateWithoutResellerPaymentsMadeInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -8737,6 +8845,7 @@ input UserCreateWithoutConsumerSaleAdjustedBysInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -8812,6 +8921,7 @@ input UserCreateWithoutStockReceiptBatchConfirmedBysInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -8973,6 +9083,7 @@ input UserCreateWithoutResellerSalesInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -9132,6 +9243,7 @@ input UserCreateWithoutBillerQuotationInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
   Supplier: SupplierCreateNestedManyWithoutUserInput
@@ -9204,6 +9316,7 @@ input UserCreateWithoutStockTransferApprovalsInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -9392,6 +9505,7 @@ input UserCreateWithoutBillerResellerSaleInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -9465,6 +9579,7 @@ input UserCreateWithoutStockTransferRequestsInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -9667,6 +9782,7 @@ input UserCreateWithoutResellerSaleInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -9974,6 +10090,7 @@ input UserCreateWithoutCustomerProfileInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10154,6 +10271,7 @@ input UserCreateWithoutConsumerReceiptInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10256,6 +10374,7 @@ input UserCreateWithoutResellerPaymentsReceivedInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10364,6 +10483,7 @@ input UserCreateWithoutFulfillmentInput {
   Notification: NotificationCreateNestedManyWithoutUserInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10443,6 +10563,7 @@ input UserCreateWithoutSalesReturnRequestersInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10522,6 +10643,7 @@ input UserCreateWithoutSalesReturnReceiversInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10601,6 +10723,7 @@ input UserCreateWithoutSalesReturnInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -10908,6 +11031,7 @@ input UserCreateWithoutResellerQuotationInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
   Supplier: SupplierCreateNestedManyWithoutUserInput
@@ -10981,6 +11105,7 @@ input UserCreateWithoutPurchaseReturnInitiatorsInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -11107,6 +11232,7 @@ input UserCreateWithoutResellerTierHistoryChangedBysInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -11121,8 +11247,8 @@ input ResellerProfileCreateNestedManyWithoutBillerInput {
 }
 
 input ResellerProfileCreateWithoutBillerInput {
-  tier: UserTier!
-  creditLimit: Float!
+  tier: UserTier
+  creditLimit: Float
   outstandingBalance: Float
   isActive: Boolean
   profileStatus: ProfileStatus
@@ -11130,6 +11256,9 @@ input ResellerProfileCreateWithoutBillerInput {
   activatedAt: DateTime
   rejectedAt: DateTime
   rejectionReason: String
+  companyName: String
+  contactPersonName: String
+  contactPhone: String
   user: UserCreateNestedOneWithoutResellerProfileInput!
   requestedBiller: UserCreateNestedOneWithoutRequestedResellersInput
 }
@@ -11184,6 +11313,7 @@ input UserCreateWithoutRequestedResellersInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -11255,6 +11385,7 @@ input UserCreateWithoutResellerTierHistoryInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -11269,8 +11400,8 @@ input ResellerProfileCreateNestedManyWithoutRequestedBillerInput {
 }
 
 input ResellerProfileCreateWithoutRequestedBillerInput {
-  tier: UserTier!
-  creditLimit: Float!
+  tier: UserTier
+  creditLimit: Float
   outstandingBalance: Float
   isActive: Boolean
   profileStatus: ProfileStatus
@@ -11278,6 +11409,9 @@ input ResellerProfileCreateWithoutRequestedBillerInput {
   activatedAt: DateTime
   rejectedAt: DateTime
   rejectionReason: String
+  companyName: String
+  contactPersonName: String
+  contactPhone: String
   user: UserCreateNestedOneWithoutResellerProfileInput!
   biller: UserCreateNestedOneWithoutResellerProfileInput
 }
@@ -11303,6 +11437,9 @@ input ResellerProfileWhereUniqueInput {
   activatedAt: DateTimeNullableFilter
   rejectedAt: DateTimeNullableFilter
   rejectionReason: StringNullableFilter
+  companyName: StringFilter
+  contactPersonName: StringFilter
+  contactPhone: StringFilter
   user: UserScalarRelationFilter
   biller: UserNullableScalarRelationFilter
   requestedBiller: UserNullableScalarRelationFilter
@@ -11316,8 +11453,8 @@ input ResellerProfileCreateManyRequestedBillerInputEnvelope {
 input ResellerProfileCreateManyRequestedBillerInput {
   userId: String!
   billerId: String
-  tier: UserTier!
-  creditLimit: Float!
+  tier: UserTier
+  creditLimit: Float
   outstandingBalance: Float
   isActive: Boolean
   profileStatus: ProfileStatus
@@ -11325,6 +11462,9 @@ input ResellerProfileCreateManyRequestedBillerInput {
   activatedAt: DateTime
   rejectedAt: DateTime
   rejectionReason: String
+  companyName: String
+  contactPersonName: String
+  contactPhone: String
 }
 
 input NotificationCreateNestedManyWithoutUserInput {
@@ -11576,6 +11716,7 @@ input UserCreateWithoutPurchaseReturnApproversInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -11858,9 +11999,59 @@ input UserCreateWithoutPurchaseRequisitionInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   Supplier: SupplierCreateNestedManyWithoutUserInput
+}
+
+input SystemSettingCreateNestedManyWithoutUpdatedByInput {
+  create: [SystemSettingCreateWithoutUpdatedByInput!]
+  connectOrCreate: [SystemSettingCreateOrConnectWithoutUpdatedByInput!]
+  createMany: SystemSettingCreateManyUpdatedByInputEnvelope
+  connect: [SystemSettingWhereUniqueInput!]
+}
+
+input SystemSettingCreateWithoutUpdatedByInput {
+  id: String
+  key: String!
+  value: String!
+  description: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input SystemSettingCreateOrConnectWithoutUpdatedByInput {
+  where: SystemSettingWhereUniqueInput!
+  create: SystemSettingCreateWithoutUpdatedByInput!
+}
+
+input SystemSettingWhereUniqueInput {
+  id: String
+  key: String
+  AND: [SystemSettingWhereInput!]
+  OR: [SystemSettingWhereInput!]
+  NOT: [SystemSettingWhereInput!]
+  value: StringFilter
+  description: StringNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  updatedById: StringNullableFilter
+  updatedBy: UserNullableScalarRelationFilter
+}
+
+input SystemSettingCreateManyUpdatedByInputEnvelope {
+  data: [SystemSettingCreateManyUpdatedByInput!]!
+  skipDuplicates: Boolean
+}
+
+input SystemSettingCreateManyUpdatedByInput {
+  id: String
+  key: String!
+  value: String!
+  description: String
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
 input QuotationCreateNestedManyWithoutBillerInput {
@@ -12599,6 +12790,7 @@ input UserCreateWithoutRiderCoverageAreasInput {
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -13038,6 +13230,7 @@ input UserCreateWithoutBillerSaleOrdersInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -13450,6 +13643,7 @@ input UserCreateWithoutSupplierInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -15155,6 +15349,7 @@ input UserCreateWithoutFulfillmentRiderInterestsInput {
   Notification: NotificationCreateNestedManyWithoutUserInput
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -15267,8 +15462,8 @@ input ResellerProfileCreateManyBillerInputEnvelope {
 input ResellerProfileCreateManyBillerInput {
   userId: String!
   requestedBillerId: String
-  tier: UserTier!
-  creditLimit: Float!
+  tier: UserTier
+  creditLimit: Float
   outstandingBalance: Float
   isActive: Boolean
   profileStatus: ProfileStatus
@@ -15276,6 +15471,9 @@ input ResellerProfileCreateManyBillerInput {
   activatedAt: DateTime
   rejectedAt: DateTime
   rejectionReason: String
+  companyName: String
+  contactPersonName: String
+  contactPhone: String
 }
 
 input UserCreateOrConnectWithoutResellerTierHistoryChangedBysInput {
@@ -17049,6 +17247,7 @@ input UserUpdateWithoutStoreInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -17170,6 +17369,9 @@ input ResellerProfileUpdateWithoutUserInput {
   activatedAt: NullableDateTimeFieldUpdateOperationsInput
   rejectedAt: NullableDateTimeFieldUpdateOperationsInput
   rejectionReason: NullableStringFieldUpdateOperationsInput
+  companyName: StringFieldUpdateOperationsInput
+  contactPersonName: StringFieldUpdateOperationsInput
+  contactPhone: StringFieldUpdateOperationsInput
   biller: UserUpdateOneWithoutResellerProfileNestedInput
   requestedBiller: UserUpdateOneWithoutRequestedResellersNestedInput
 }
@@ -17242,6 +17444,7 @@ input UserUpdateWithoutResellerProfileInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -17799,6 +18002,7 @@ input UserUpdateWithoutStockReceiptBatchReceivedBysInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -18179,6 +18383,7 @@ input UserUpdateWithoutConsumerSaleInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -18278,6 +18483,7 @@ input UserUpdateWithoutResellerPaymentsMadeInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -18622,6 +18828,7 @@ input UserUpdateWithoutConsumerSaleAdjustedBysInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -18718,6 +18925,7 @@ input UserUpdateWithoutStockReceiptBatchConfirmedBysInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -18935,6 +19143,7 @@ input UserUpdateWithoutResellerSalesInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -19159,6 +19368,7 @@ input UserUpdateWithoutBillerQuotationInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
   Supplier: SupplierUpdateManyWithoutUserNestedInput
@@ -19252,6 +19462,7 @@ input UserUpdateWithoutStockTransferApprovalsInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -19524,6 +19735,7 @@ input UserUpdateWithoutBillerResellerSaleInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -19618,6 +19830,7 @@ input UserUpdateWithoutStockTransferRequestsInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -19903,6 +20116,7 @@ input UserUpdateWithoutResellerSaleInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -20342,6 +20556,7 @@ input UserUpdateWithoutCustomerProfileInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -20595,6 +20810,7 @@ input UserUpdateWithoutConsumerReceiptInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -20731,6 +20947,7 @@ input UserUpdateWithoutResellerPaymentsReceivedInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -20888,6 +21105,7 @@ input UserUpdateWithoutFulfillmentInput {
   Notification: NotificationUpdateManyWithoutUserNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -20988,6 +21206,7 @@ input UserUpdateWithoutSalesReturnRequestersInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -21088,6 +21307,7 @@ input UserUpdateWithoutSalesReturnReceiversInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -21190,6 +21410,7 @@ input UserUpdateWithoutSalesReturnInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -21629,6 +21850,7 @@ input UserUpdateWithoutResellerQuotationInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
   Supplier: SupplierUpdateManyWithoutUserNestedInput
@@ -21723,6 +21945,7 @@ input UserUpdateWithoutPurchaseReturnInitiatorsInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -21886,6 +22109,7 @@ input UserUpdateWithoutResellerTierHistoryChangedBysInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -21922,6 +22146,9 @@ input ResellerProfileUpdateWithoutBillerInput {
   activatedAt: NullableDateTimeFieldUpdateOperationsInput
   rejectedAt: NullableDateTimeFieldUpdateOperationsInput
   rejectionReason: NullableStringFieldUpdateOperationsInput
+  companyName: StringFieldUpdateOperationsInput
+  contactPersonName: StringFieldUpdateOperationsInput
+  contactPhone: StringFieldUpdateOperationsInput
   user: UserUpdateOneRequiredWithoutResellerProfileNestedInput
   requestedBiller: UserUpdateOneWithoutRequestedResellersNestedInput
 }
@@ -21999,6 +22226,7 @@ input UserUpdateWithoutRequestedResellersInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -22091,6 +22319,7 @@ input UserUpdateWithoutResellerTierHistoryInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -22127,6 +22356,9 @@ input ResellerProfileUpdateWithoutRequestedBillerInput {
   activatedAt: NullableDateTimeFieldUpdateOperationsInput
   rejectedAt: NullableDateTimeFieldUpdateOperationsInput
   rejectionReason: NullableStringFieldUpdateOperationsInput
+  companyName: StringFieldUpdateOperationsInput
+  contactPersonName: StringFieldUpdateOperationsInput
+  contactPhone: StringFieldUpdateOperationsInput
   user: UserUpdateOneRequiredWithoutResellerProfileNestedInput
   biller: UserUpdateOneWithoutResellerProfileNestedInput
 }
@@ -22157,6 +22389,9 @@ input ResellerProfileScalarWhereInput {
   activatedAt: DateTimeNullableFilter
   rejectedAt: DateTimeNullableFilter
   rejectionReason: StringNullableFilter
+  companyName: StringFilter
+  contactPersonName: StringFilter
+  contactPhone: StringFilter
 }
 
 input ResellerProfileUpdateManyMutationInput {
@@ -22169,6 +22404,9 @@ input ResellerProfileUpdateManyMutationInput {
   activatedAt: NullableDateTimeFieldUpdateOperationsInput
   rejectedAt: NullableDateTimeFieldUpdateOperationsInput
   rejectionReason: NullableStringFieldUpdateOperationsInput
+  companyName: StringFieldUpdateOperationsInput
+  contactPersonName: StringFieldUpdateOperationsInput
+  contactPhone: StringFieldUpdateOperationsInput
 }
 
 input NotificationUpdateManyWithoutUserNestedInput {
@@ -22513,6 +22751,7 @@ input UserUpdateWithoutPurchaseReturnApproversInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -22847,9 +23086,71 @@ input UserUpdateWithoutPurchaseRequisitionInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   Supplier: SupplierUpdateManyWithoutUserNestedInput
+}
+
+input SystemSettingUpdateManyWithoutUpdatedByNestedInput {
+  create: [SystemSettingCreateWithoutUpdatedByInput!]
+  connectOrCreate: [SystemSettingCreateOrConnectWithoutUpdatedByInput!]
+  upsert: [SystemSettingUpsertWithWhereUniqueWithoutUpdatedByInput!]
+  createMany: SystemSettingCreateManyUpdatedByInputEnvelope
+  set: [SystemSettingWhereUniqueInput!]
+  disconnect: [SystemSettingWhereUniqueInput!]
+  delete: [SystemSettingWhereUniqueInput!]
+  connect: [SystemSettingWhereUniqueInput!]
+  update: [SystemSettingUpdateWithWhereUniqueWithoutUpdatedByInput!]
+  updateMany: [SystemSettingUpdateManyWithWhereWithoutUpdatedByInput!]
+  deleteMany: [SystemSettingScalarWhereInput!]
+}
+
+input SystemSettingUpsertWithWhereUniqueWithoutUpdatedByInput {
+  where: SystemSettingWhereUniqueInput!
+  update: SystemSettingUpdateWithoutUpdatedByInput!
+  create: SystemSettingCreateWithoutUpdatedByInput!
+}
+
+input SystemSettingUpdateWithoutUpdatedByInput {
+  id: StringFieldUpdateOperationsInput
+  key: StringFieldUpdateOperationsInput
+  value: StringFieldUpdateOperationsInput
+  description: NullableStringFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
+}
+
+input SystemSettingUpdateWithWhereUniqueWithoutUpdatedByInput {
+  where: SystemSettingWhereUniqueInput!
+  data: SystemSettingUpdateWithoutUpdatedByInput!
+}
+
+input SystemSettingUpdateManyWithWhereWithoutUpdatedByInput {
+  where: SystemSettingScalarWhereInput!
+  data: SystemSettingUpdateManyMutationInput!
+}
+
+input SystemSettingScalarWhereInput {
+  AND: [SystemSettingScalarWhereInput!]
+  OR: [SystemSettingScalarWhereInput!]
+  NOT: [SystemSettingScalarWhereInput!]
+  id: StringFilter
+  key: StringFilter
+  value: StringFilter
+  description: StringNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  updatedById: StringNullableFilter
+}
+
+input SystemSettingUpdateManyMutationInput {
+  id: StringFieldUpdateOperationsInput
+  key: StringFieldUpdateOperationsInput
+  value: StringFieldUpdateOperationsInput
+  description: NullableStringFieldUpdateOperationsInput
+  createdAt: DateTimeFieldUpdateOperationsInput
+  updatedAt: DateTimeFieldUpdateOperationsInput
 }
 
 input QuotationUpdateManyWithoutBillerNestedInput {
@@ -23869,6 +24170,7 @@ input UserUpdateWithoutRiderCoverageAreasInput {
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -24481,6 +24783,7 @@ input UserUpdateWithoutBillerSaleOrdersInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -25072,6 +25375,7 @@ input UserUpdateWithoutSupplierInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -26586,6 +26890,7 @@ input UserUpdateWithoutFulfillmentRiderInterestsInput {
   Notification: NotificationUpdateManyWithoutUserNestedInput
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput
@@ -28053,9 +28358,9 @@ input UpdateCustomerProfileInput {
 input ApplyResellerInput {
   email: String!
   password: String!
-  requestedBillerId: String
-  tier: UserTier!
-  creditLimit: Float!
+  companyName: String!
+  contactPersonName: String!
+  contactPhone: String!
 }
 
 input ApproveResellerInput {
@@ -28449,6 +28754,14 @@ input UpdateFulfillmentStatusInput {
   saleOrderId: String!
   status: FulfillmentStatus!
   confirmationPin: String
+}
+
+input UpdateSystemSettingInput {
+  key: SystemSettingKey!
+  numberValue: Float
+  stringValue: String
+  booleanValue: Boolean
+  reset: Boolean
 }
 
 input UpdateQuotationInput {
@@ -29023,6 +29336,7 @@ input UserCreateInput {
   Fulfillment: FulfillmentCreateNestedManyWithoutDeliveryPersonnelInput
   FulfillmentRiderInterests: FulfillmentRiderInterestCreateNestedManyWithoutRiderInput
   RiderCoverageAreas: RiderCoverageAreaCreateNestedManyWithoutRiderInput
+  systemSettingsUpdated: SystemSettingCreateNestedManyWithoutUpdatedByInput
   BillerQuotation: QuotationCreateNestedManyWithoutBillerInput
   ResellerQuotation: QuotationCreateNestedManyWithoutResellerInput
   PurchaseRequisition: PurchaseRequisitionCreateNestedManyWithoutRequestedByInput
@@ -29089,6 +29403,7 @@ input UserUpdateInput {
   Fulfillment: FulfillmentUpdateManyWithoutDeliveryPersonnelNestedInput
   FulfillmentRiderInterests: FulfillmentRiderInterestUpdateManyWithoutRiderNestedInput
   RiderCoverageAreas: RiderCoverageAreaUpdateManyWithoutRiderNestedInput
+  systemSettingsUpdated: SystemSettingUpdateManyWithoutUpdatedByNestedInput
   BillerQuotation: QuotationUpdateManyWithoutBillerNestedInput
   ResellerQuotation: QuotationUpdateManyWithoutResellerNestedInput
   PurchaseRequisition: PurchaseRequisitionUpdateManyWithoutRequestedByNestedInput

@@ -52,6 +52,7 @@ const DevDbTools = lazy(() => import('./pages/DevDbTools'));
 const Facets = lazy(() => import('./pages/Facets'));
 const Collections = lazy(() => import('./pages/Collections'));
 const Roles = lazy(() => import('./pages/Roles'));
+const SystemSettings = lazy(() => import('./pages/SystemSettings'));
 const Assets = lazy(() => import('./pages/Assets'));
 const RequisitionDetail = lazy(() => import('./pages/RequisitionDetail'));
 const Orders = lazy(() => import('./pages/Orders'));
@@ -664,6 +665,15 @@ export default function App() {
                   roles={['SUPERADMIN']}
                   perms={roleManageAccess}
                   element={<Roles />}
+                />
+              }
+            />
+            <Route
+              path="/system-settings"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN']}
+                  element={<SystemSettings />}
                 />
               }
             />

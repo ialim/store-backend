@@ -9,24 +9,9 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { WorkflowService } from '../../state/workflow.service';
 import { NotificationService } from '../notification/notification.service';
+import { SystemSettingsService } from '../system-settings/system-settings.service';
 
 const EXPIRY_CRON = process.env.SALE_EXPIRY_CRON ?? CronExpression.EVERY_HOUR;
-const FALLBACK_EXPIRY_MINUTES = 1440;
-const FALLBACK_BATCH_SIZE = 50;
-
-function resolveExpiryMinutes(): number {
-  const raw = process.env.SALE_PENDING_EXPIRY_MINUTES;
-  const parsed = raw != null ? Number.parseInt(raw, 10) : NaN;
-  return Number.isFinite(parsed) && parsed > 0
-    ? parsed
-    : FALLBACK_EXPIRY_MINUTES;
-}
-
-function resolveBatchSize(): number {
-  const raw = process.env.SALE_EXPIRY_BATCH_SIZE;
-  const parsed = raw != null ? Number.parseInt(raw, 10) : NaN;
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : FALLBACK_BATCH_SIZE;
-}
 
 @Injectable()
 export class SaleExpiryService {
@@ -36,6 +21,7 @@ export class SaleExpiryService {
     private readonly prisma: PrismaService,
     private readonly workflow: WorkflowService,
     private readonly notifications: NotificationService,
+    private readonly systemSettings: SystemSettingsService,
   ) {}
 
   @Cron(EXPIRY_CRON)
@@ -51,8 +37,14 @@ export class SaleExpiryService {
   }
 
   async expireStaleSales(limit?: number): Promise<number> {
-    const expiryMinutes = resolveExpiryMinutes();
-    const batchSize = limit && limit > 0 ? limit : resolveBatchSize();
+    const expiryMinutes = await this.systemSettings.getNumber(
+      'SALE_PENDING_EXPIRY_MINUTES',
+    );
+    const batchSizeSetting = await this.systemSettings.getNumber(
+      'SALE_EXPIRY_BATCH_SIZE',
+    );
+    const batchSize =
+      limit && limit > 0 ? Math.min(limit, batchSizeSetting) : batchSizeSetting;
 
     if (!Number.isFinite(expiryMinutes) || expiryMinutes <= 0) {
       this.logger.debug('Sale expiry disabled: invalid expiry window.');

@@ -44,6 +44,7 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import SettingsIcon from '@mui/icons-material/Settings';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -544,6 +545,12 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           to: '/roles',
           show: hasRole('SUPERADMIN') || hasPermission(...roleManage),
           icon: <AssignmentIcon fontSize="small" />,
+        },
+        {
+          label: 'System Settings',
+          to: '/system-settings',
+          show: hasRole('SUPERADMIN'),
+          icon: <SettingsIcon fontSize="small" />,
         },
         {
           label: 'Dev DB Tools',

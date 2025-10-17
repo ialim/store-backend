@@ -1263,11 +1263,11 @@ export type AggregateUser = {
 };
 
 export type ApplyResellerInput = {
-  creditLimit: Scalars['Float']['input'];
+  companyName: Scalars['String']['input'];
+  contactPersonName: Scalars['String']['input'];
+  contactPhone: Scalars['String']['input'];
   email: Scalars['String']['input'];
   password: Scalars['String']['input'];
-  requestedBillerId?: InputMaybe<Scalars['String']['input']>;
-  tier: UserTier;
 };
 
 export type ApproveInvoiceImportInput = {
@@ -5241,6 +5241,13 @@ export type EnumFulfillmentTypeFilter = {
   notIn?: InputMaybe<Array<FulfillmentType>>;
 };
 
+export type EnumFulfillmentTypeNullableFilter = {
+  equals?: InputMaybe<FulfillmentType>;
+  in?: InputMaybe<Array<FulfillmentType>>;
+  not?: InputMaybe<NestedEnumFulfillmentTypeNullableFilter>;
+  notIn?: InputMaybe<Array<FulfillmentType>>;
+};
+
 export type EnumInvoiceImportStatusFieldUpdateOperationsInput = {
   set?: InputMaybe<InvoiceImportStatus>;
 };
@@ -7249,7 +7256,7 @@ export type Mutation = {
   updateAddressAssignment?: Maybe<AddressAssignment>;
   updateCollection: CollectionGql;
   updateFacet: FacetGql;
-  /** Update fulfillment type or delivery address for a sale order. */
+  /** Update fulfillment preferences (type, delivery address) for a sale order. */
   updateFulfillmentPreferences: SaleOrder;
   updateFulfillmentStatus: Fulfillment;
   updateManyAddress?: Maybe<AffectedRows>;
@@ -7269,6 +7276,7 @@ export type Mutation = {
   updateSalesReturnStatus: Scalars['Boolean']['output'];
   updateStore?: Maybe<Store>;
   updateSupplier: Supplier;
+  updateSystemSetting: SystemSettingDto;
   updateUser?: Maybe<User>;
   upsertRiderCoverage: Array<RiderCoverageArea>;
   upsertSupplierCatalog: SupplierCatalogEntry;
@@ -8081,6 +8089,11 @@ export type MutationUpdateSupplierArgs = {
 };
 
 
+export type MutationUpdateSystemSettingArgs = {
+  input: UpdateSystemSettingInput;
+};
+
+
 export type MutationUpdateUserArgs = {
   data: UserUpdateInput;
   where: UserWhereUniqueInput;
@@ -8261,6 +8274,13 @@ export type NestedEnumFulfillmentTypeFilter = {
   equals?: InputMaybe<FulfillmentType>;
   in?: InputMaybe<Array<FulfillmentType>>;
   not?: InputMaybe<NestedEnumFulfillmentTypeFilter>;
+  notIn?: InputMaybe<Array<FulfillmentType>>;
+};
+
+export type NestedEnumFulfillmentTypeNullableFilter = {
+  equals?: InputMaybe<FulfillmentType>;
+  in?: InputMaybe<Array<FulfillmentType>>;
+  not?: InputMaybe<NestedEnumFulfillmentTypeNullableFilter>;
   notIn?: InputMaybe<Array<FulfillmentType>>;
 };
 
@@ -8736,6 +8756,10 @@ export type NullableDateTimeFieldUpdateOperationsInput = {
 
 export type NullableEnumAdjustmentTypeFieldUpdateOperationsInput = {
   set?: InputMaybe<AdjustmentType>;
+};
+
+export type NullableEnumFulfillmentTypeFieldUpdateOperationsInput = {
+  set?: InputMaybe<FulfillmentType>;
 };
 
 export type NullableEnumUserTierFieldUpdateOperationsInput = {
@@ -13840,6 +13864,7 @@ export type Query = {
   suppliers: Array<Supplier>;
   suppliersForVariant: Array<SupplierCatalogEntry>;
   supportConversation: Array<SupportMessage>;
+  systemSettingsList: Array<SystemSettingDto>;
   tierPricesForVariant: Array<VariantTierPrice>;
   topSellingVariants: Array<VariantMonthlySales>;
   topSellingVariantsByStore: Array<VariantSalesWithDetails>;
@@ -16392,6 +16417,9 @@ export type ResellerProfile = {
   activatedAt?: Maybe<Scalars['DateTime']['output']>;
   biller?: Maybe<User>;
   billerId?: Maybe<Scalars['String']['output']>;
+  companyName: Scalars['String']['output'];
+  contactPersonName: Scalars['String']['output'];
+  contactPhone: Scalars['String']['output'];
   creditLimit: Scalars['Float']['output'];
   isActive: Scalars['Boolean']['output'];
   outstandingBalance: Scalars['Float']['output'];
@@ -16408,7 +16436,10 @@ export type ResellerProfile = {
 
 export type ResellerProfileCreateManyBillerInput = {
   activatedAt?: InputMaybe<Scalars['DateTime']['input']>;
-  creditLimit: Scalars['Float']['input'];
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  contactPersonName?: InputMaybe<Scalars['String']['input']>;
+  contactPhone?: InputMaybe<Scalars['String']['input']>;
+  creditLimit?: InputMaybe<Scalars['Float']['input']>;
   isActive?: InputMaybe<Scalars['Boolean']['input']>;
   outstandingBalance?: InputMaybe<Scalars['Float']['input']>;
   profileStatus?: InputMaybe<ProfileStatus>;
@@ -16416,7 +16447,7 @@ export type ResellerProfileCreateManyBillerInput = {
   rejectionReason?: InputMaybe<Scalars['String']['input']>;
   requestedAt?: InputMaybe<Scalars['DateTime']['input']>;
   requestedBillerId?: InputMaybe<Scalars['String']['input']>;
-  tier: UserTier;
+  tier?: InputMaybe<UserTier>;
   userId: Scalars['String']['input'];
 };
 
@@ -16428,14 +16459,17 @@ export type ResellerProfileCreateManyBillerInputEnvelope = {
 export type ResellerProfileCreateManyRequestedBillerInput = {
   activatedAt?: InputMaybe<Scalars['DateTime']['input']>;
   billerId?: InputMaybe<Scalars['String']['input']>;
-  creditLimit: Scalars['Float']['input'];
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  contactPersonName?: InputMaybe<Scalars['String']['input']>;
+  contactPhone?: InputMaybe<Scalars['String']['input']>;
+  creditLimit?: InputMaybe<Scalars['Float']['input']>;
   isActive?: InputMaybe<Scalars['Boolean']['input']>;
   outstandingBalance?: InputMaybe<Scalars['Float']['input']>;
   profileStatus?: InputMaybe<ProfileStatus>;
   rejectedAt?: InputMaybe<Scalars['DateTime']['input']>;
   rejectionReason?: InputMaybe<Scalars['String']['input']>;
   requestedAt?: InputMaybe<Scalars['DateTime']['input']>;
-  tier: UserTier;
+  tier?: InputMaybe<UserTier>;
   userId: Scalars['String']['input'];
 };
 
@@ -16481,7 +16515,10 @@ export type ResellerProfileCreateOrConnectWithoutUserInput = {
 
 export type ResellerProfileCreateWithoutBillerInput = {
   activatedAt?: InputMaybe<Scalars['DateTime']['input']>;
-  creditLimit: Scalars['Float']['input'];
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  contactPersonName?: InputMaybe<Scalars['String']['input']>;
+  contactPhone?: InputMaybe<Scalars['String']['input']>;
+  creditLimit?: InputMaybe<Scalars['Float']['input']>;
   isActive?: InputMaybe<Scalars['Boolean']['input']>;
   outstandingBalance?: InputMaybe<Scalars['Float']['input']>;
   profileStatus?: InputMaybe<ProfileStatus>;
@@ -16489,28 +16526,34 @@ export type ResellerProfileCreateWithoutBillerInput = {
   rejectionReason?: InputMaybe<Scalars['String']['input']>;
   requestedAt?: InputMaybe<Scalars['DateTime']['input']>;
   requestedBiller?: InputMaybe<UserCreateNestedOneWithoutRequestedResellersInput>;
-  tier: UserTier;
+  tier?: InputMaybe<UserTier>;
   user: UserCreateNestedOneWithoutResellerProfileInput;
 };
 
 export type ResellerProfileCreateWithoutRequestedBillerInput = {
   activatedAt?: InputMaybe<Scalars['DateTime']['input']>;
   biller?: InputMaybe<UserCreateNestedOneWithoutResellerProfileInput>;
-  creditLimit: Scalars['Float']['input'];
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  contactPersonName?: InputMaybe<Scalars['String']['input']>;
+  contactPhone?: InputMaybe<Scalars['String']['input']>;
+  creditLimit?: InputMaybe<Scalars['Float']['input']>;
   isActive?: InputMaybe<Scalars['Boolean']['input']>;
   outstandingBalance?: InputMaybe<Scalars['Float']['input']>;
   profileStatus?: InputMaybe<ProfileStatus>;
   rejectedAt?: InputMaybe<Scalars['DateTime']['input']>;
   rejectionReason?: InputMaybe<Scalars['String']['input']>;
   requestedAt?: InputMaybe<Scalars['DateTime']['input']>;
-  tier: UserTier;
+  tier?: InputMaybe<UserTier>;
   user: UserCreateNestedOneWithoutResellerProfileInput;
 };
 
 export type ResellerProfileCreateWithoutUserInput = {
   activatedAt?: InputMaybe<Scalars['DateTime']['input']>;
   biller?: InputMaybe<UserCreateNestedOneWithoutResellerProfileInput>;
-  creditLimit: Scalars['Float']['input'];
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  contactPersonName?: InputMaybe<Scalars['String']['input']>;
+  contactPhone?: InputMaybe<Scalars['String']['input']>;
+  creditLimit?: InputMaybe<Scalars['Float']['input']>;
   isActive?: InputMaybe<Scalars['Boolean']['input']>;
   outstandingBalance?: InputMaybe<Scalars['Float']['input']>;
   profileStatus?: InputMaybe<ProfileStatus>;
@@ -16518,7 +16561,7 @@ export type ResellerProfileCreateWithoutUserInput = {
   rejectionReason?: InputMaybe<Scalars['String']['input']>;
   requestedAt?: InputMaybe<Scalars['DateTime']['input']>;
   requestedBiller?: InputMaybe<UserCreateNestedOneWithoutRequestedResellersInput>;
-  tier: UserTier;
+  tier?: InputMaybe<UserTier>;
 };
 
 export type ResellerProfileListRelationFilter = {
@@ -16540,6 +16583,9 @@ export type ResellerProfileOrderByWithRelationInput = {
   activatedAt?: InputMaybe<SortOrderInput>;
   biller?: InputMaybe<UserOrderByWithRelationInput>;
   billerId?: InputMaybe<SortOrderInput>;
+  companyName?: InputMaybe<SortOrder>;
+  contactPersonName?: InputMaybe<SortOrder>;
+  contactPhone?: InputMaybe<SortOrder>;
   creditLimit?: InputMaybe<SortOrder>;
   isActive?: InputMaybe<SortOrder>;
   outstandingBalance?: InputMaybe<SortOrder>;
@@ -16560,6 +16606,9 @@ export type ResellerProfileScalarWhereInput = {
   OR?: InputMaybe<Array<ResellerProfileScalarWhereInput>>;
   activatedAt?: InputMaybe<DateTimeNullableFilter>;
   billerId?: InputMaybe<StringNullableFilter>;
+  companyName?: InputMaybe<StringFilter>;
+  contactPersonName?: InputMaybe<StringFilter>;
+  contactPhone?: InputMaybe<StringFilter>;
   creditLimit?: InputMaybe<FloatFilter>;
   isActive?: InputMaybe<BoolFilter>;
   outstandingBalance?: InputMaybe<FloatFilter>;
@@ -16574,6 +16623,9 @@ export type ResellerProfileScalarWhereInput = {
 
 export type ResellerProfileUpdateManyMutationInput = {
   activatedAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+  companyName?: InputMaybe<StringFieldUpdateOperationsInput>;
+  contactPersonName?: InputMaybe<StringFieldUpdateOperationsInput>;
+  contactPhone?: InputMaybe<StringFieldUpdateOperationsInput>;
   creditLimit?: InputMaybe<FloatFieldUpdateOperationsInput>;
   isActive?: InputMaybe<BoolFieldUpdateOperationsInput>;
   outstandingBalance?: InputMaybe<FloatFieldUpdateOperationsInput>;
@@ -16649,6 +16701,9 @@ export type ResellerProfileUpdateWithWhereUniqueWithoutRequestedBillerInput = {
 
 export type ResellerProfileUpdateWithoutBillerInput = {
   activatedAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+  companyName?: InputMaybe<StringFieldUpdateOperationsInput>;
+  contactPersonName?: InputMaybe<StringFieldUpdateOperationsInput>;
+  contactPhone?: InputMaybe<StringFieldUpdateOperationsInput>;
   creditLimit?: InputMaybe<FloatFieldUpdateOperationsInput>;
   isActive?: InputMaybe<BoolFieldUpdateOperationsInput>;
   outstandingBalance?: InputMaybe<FloatFieldUpdateOperationsInput>;
@@ -16664,6 +16719,9 @@ export type ResellerProfileUpdateWithoutBillerInput = {
 export type ResellerProfileUpdateWithoutRequestedBillerInput = {
   activatedAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
   biller?: InputMaybe<UserUpdateOneWithoutResellerProfileNestedInput>;
+  companyName?: InputMaybe<StringFieldUpdateOperationsInput>;
+  contactPersonName?: InputMaybe<StringFieldUpdateOperationsInput>;
+  contactPhone?: InputMaybe<StringFieldUpdateOperationsInput>;
   creditLimit?: InputMaybe<FloatFieldUpdateOperationsInput>;
   isActive?: InputMaybe<BoolFieldUpdateOperationsInput>;
   outstandingBalance?: InputMaybe<FloatFieldUpdateOperationsInput>;
@@ -16678,6 +16736,9 @@ export type ResellerProfileUpdateWithoutRequestedBillerInput = {
 export type ResellerProfileUpdateWithoutUserInput = {
   activatedAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
   biller?: InputMaybe<UserUpdateOneWithoutResellerProfileNestedInput>;
+  companyName?: InputMaybe<StringFieldUpdateOperationsInput>;
+  contactPersonName?: InputMaybe<StringFieldUpdateOperationsInput>;
+  contactPhone?: InputMaybe<StringFieldUpdateOperationsInput>;
   creditLimit?: InputMaybe<FloatFieldUpdateOperationsInput>;
   isActive?: InputMaybe<BoolFieldUpdateOperationsInput>;
   outstandingBalance?: InputMaybe<FloatFieldUpdateOperationsInput>;
@@ -16714,6 +16775,9 @@ export type ResellerProfileWhereInput = {
   activatedAt?: InputMaybe<DateTimeNullableFilter>;
   biller?: InputMaybe<UserNullableScalarRelationFilter>;
   billerId?: InputMaybe<StringNullableFilter>;
+  companyName?: InputMaybe<StringFilter>;
+  contactPersonName?: InputMaybe<StringFilter>;
+  contactPhone?: InputMaybe<StringFilter>;
   creditLimit?: InputMaybe<FloatFilter>;
   isActive?: InputMaybe<BoolFilter>;
   outstandingBalance?: InputMaybe<FloatFilter>;
@@ -16735,6 +16799,9 @@ export type ResellerProfileWhereUniqueInput = {
   activatedAt?: InputMaybe<DateTimeNullableFilter>;
   biller?: InputMaybe<UserNullableScalarRelationFilter>;
   billerId?: InputMaybe<StringNullableFilter>;
+  companyName?: InputMaybe<StringFilter>;
+  contactPersonName?: InputMaybe<StringFilter>;
+  contactPhone?: InputMaybe<StringFilter>;
   creditLimit?: InputMaybe<FloatFilter>;
   isActive?: InputMaybe<BoolFilter>;
   outstandingBalance?: InputMaybe<FloatFilter>;
@@ -18487,6 +18554,8 @@ export type SaleOrderCount = {
 
 export type SaleOrderCreateManyBillerInput = {
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  deliveryAddress?: InputMaybe<Scalars['String']['input']>;
+  fulfillmentType?: InputMaybe<FulfillmentType>;
   id?: InputMaybe<Scalars['String']['input']>;
   phase?: InputMaybe<OrderPhase>;
   resellerSaleid?: InputMaybe<Scalars['String']['input']>;
@@ -18587,7 +18656,9 @@ export type SaleOrderCreateWithoutBillerInput = {
   ResellerPayment?: InputMaybe<ResellerPaymentCreateNestedManyWithoutSaleOrderInput>;
   consumerSale?: InputMaybe<ConsumerSaleCreateNestedOneWithoutSaleOrderInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  deliveryAddress?: InputMaybe<Scalars['String']['input']>;
   fulfillment?: InputMaybe<FulfillmentCreateNestedOneWithoutSaleOrderInput>;
+  fulfillmentType?: InputMaybe<FulfillmentType>;
   id?: InputMaybe<Scalars['String']['input']>;
   phase?: InputMaybe<OrderPhase>;
   quotation?: InputMaybe<QuotationCreateNestedOneWithoutSaleOrderInput>;
@@ -18608,7 +18679,9 @@ export type SaleOrderCreateWithoutConsumerPaymentInput = {
   biller: UserCreateNestedOneWithoutBillerSaleOrdersInput;
   consumerSale?: InputMaybe<ConsumerSaleCreateNestedOneWithoutSaleOrderInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  deliveryAddress?: InputMaybe<Scalars['String']['input']>;
   fulfillment?: InputMaybe<FulfillmentCreateNestedOneWithoutSaleOrderInput>;
+  fulfillmentType?: InputMaybe<FulfillmentType>;
   id?: InputMaybe<Scalars['String']['input']>;
   phase?: InputMaybe<OrderPhase>;
   quotation?: InputMaybe<QuotationCreateNestedOneWithoutSaleOrderInput>;
@@ -18629,7 +18702,9 @@ export type SaleOrderCreateWithoutConsumerSaleInput = {
   ResellerPayment?: InputMaybe<ResellerPaymentCreateNestedManyWithoutSaleOrderInput>;
   biller: UserCreateNestedOneWithoutBillerSaleOrdersInput;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  deliveryAddress?: InputMaybe<Scalars['String']['input']>;
   fulfillment?: InputMaybe<FulfillmentCreateNestedOneWithoutSaleOrderInput>;
+  fulfillmentType?: InputMaybe<FulfillmentType>;
   id?: InputMaybe<Scalars['String']['input']>;
   phase?: InputMaybe<OrderPhase>;
   quotation?: InputMaybe<QuotationCreateNestedOneWithoutSaleOrderInput>;
@@ -18651,6 +18726,8 @@ export type SaleOrderCreateWithoutFulfillmentInput = {
   biller: UserCreateNestedOneWithoutBillerSaleOrdersInput;
   consumerSale?: InputMaybe<ConsumerSaleCreateNestedOneWithoutSaleOrderInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  deliveryAddress?: InputMaybe<Scalars['String']['input']>;
+  fulfillmentType?: InputMaybe<FulfillmentType>;
   id?: InputMaybe<Scalars['String']['input']>;
   phase?: InputMaybe<OrderPhase>;
   quotation?: InputMaybe<QuotationCreateNestedOneWithoutSaleOrderInput>;
@@ -18672,7 +18749,9 @@ export type SaleOrderCreateWithoutQuotationInput = {
   biller: UserCreateNestedOneWithoutBillerSaleOrdersInput;
   consumerSale?: InputMaybe<ConsumerSaleCreateNestedOneWithoutSaleOrderInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  deliveryAddress?: InputMaybe<Scalars['String']['input']>;
   fulfillment?: InputMaybe<FulfillmentCreateNestedOneWithoutSaleOrderInput>;
+  fulfillmentType?: InputMaybe<FulfillmentType>;
   id?: InputMaybe<Scalars['String']['input']>;
   phase?: InputMaybe<OrderPhase>;
   resellerSale?: InputMaybe<ResellerSaleCreateNestedOneWithoutSaleOrderInput>;
@@ -18692,7 +18771,9 @@ export type SaleOrderCreateWithoutResellerPaymentInput = {
   biller: UserCreateNestedOneWithoutBillerSaleOrdersInput;
   consumerSale?: InputMaybe<ConsumerSaleCreateNestedOneWithoutSaleOrderInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  deliveryAddress?: InputMaybe<Scalars['String']['input']>;
   fulfillment?: InputMaybe<FulfillmentCreateNestedOneWithoutSaleOrderInput>;
+  fulfillmentType?: InputMaybe<FulfillmentType>;
   id?: InputMaybe<Scalars['String']['input']>;
   phase?: InputMaybe<OrderPhase>;
   quotation?: InputMaybe<QuotationCreateNestedOneWithoutSaleOrderInput>;
@@ -18714,7 +18795,9 @@ export type SaleOrderCreateWithoutResellerSaleInput = {
   biller: UserCreateNestedOneWithoutBillerSaleOrdersInput;
   consumerSale?: InputMaybe<ConsumerSaleCreateNestedOneWithoutSaleOrderInput>;
   createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  deliveryAddress?: InputMaybe<Scalars['String']['input']>;
   fulfillment?: InputMaybe<FulfillmentCreateNestedOneWithoutSaleOrderInput>;
+  fulfillmentType?: InputMaybe<FulfillmentType>;
   id?: InputMaybe<Scalars['String']['input']>;
   phase?: InputMaybe<OrderPhase>;
   quotation?: InputMaybe<QuotationCreateNestedOneWithoutSaleOrderInput>;
@@ -18755,6 +18838,8 @@ export type SaleOrderScalarWhereInput = {
   OR?: InputMaybe<Array<SaleOrderScalarWhereInput>>;
   billerId?: InputMaybe<StringFilter>;
   createdAt?: InputMaybe<DateTimeFilter>;
+  deliveryAddress?: InputMaybe<StringNullableFilter>;
+  fulfillmentType?: InputMaybe<EnumFulfillmentTypeNullableFilter>;
   id?: InputMaybe<StringFilter>;
   phase?: InputMaybe<EnumOrderPhaseFilter>;
   resellerSaleid?: InputMaybe<StringNullableFilter>;
@@ -18911,6 +18996,8 @@ export type SaleOrderTransitionLogWhereUniqueInput = {
 
 export type SaleOrderUpdateManyMutationInput = {
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  deliveryAddress?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  fulfillmentType?: InputMaybe<NullableEnumFulfillmentTypeFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   phase?: InputMaybe<EnumOrderPhaseFieldUpdateOperationsInput>;
   resellerSaleid?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
@@ -19032,7 +19119,9 @@ export type SaleOrderUpdateWithoutBillerInput = {
   ResellerPayment?: InputMaybe<ResellerPaymentUpdateManyWithoutSaleOrderNestedInput>;
   consumerSale?: InputMaybe<ConsumerSaleUpdateOneWithoutSaleOrderNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  deliveryAddress?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   fulfillment?: InputMaybe<FulfillmentUpdateOneWithoutSaleOrderNestedInput>;
+  fulfillmentType?: InputMaybe<NullableEnumFulfillmentTypeFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   phase?: InputMaybe<EnumOrderPhaseFieldUpdateOperationsInput>;
   quotation?: InputMaybe<QuotationUpdateOneWithoutSaleOrderNestedInput>;
@@ -19053,7 +19142,9 @@ export type SaleOrderUpdateWithoutConsumerPaymentInput = {
   biller?: InputMaybe<UserUpdateOneRequiredWithoutBillerSaleOrdersNestedInput>;
   consumerSale?: InputMaybe<ConsumerSaleUpdateOneWithoutSaleOrderNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  deliveryAddress?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   fulfillment?: InputMaybe<FulfillmentUpdateOneWithoutSaleOrderNestedInput>;
+  fulfillmentType?: InputMaybe<NullableEnumFulfillmentTypeFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   phase?: InputMaybe<EnumOrderPhaseFieldUpdateOperationsInput>;
   quotation?: InputMaybe<QuotationUpdateOneWithoutSaleOrderNestedInput>;
@@ -19074,7 +19165,9 @@ export type SaleOrderUpdateWithoutConsumerSaleInput = {
   ResellerPayment?: InputMaybe<ResellerPaymentUpdateManyWithoutSaleOrderNestedInput>;
   biller?: InputMaybe<UserUpdateOneRequiredWithoutBillerSaleOrdersNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  deliveryAddress?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   fulfillment?: InputMaybe<FulfillmentUpdateOneWithoutSaleOrderNestedInput>;
+  fulfillmentType?: InputMaybe<NullableEnumFulfillmentTypeFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   phase?: InputMaybe<EnumOrderPhaseFieldUpdateOperationsInput>;
   quotation?: InputMaybe<QuotationUpdateOneWithoutSaleOrderNestedInput>;
@@ -19096,6 +19189,8 @@ export type SaleOrderUpdateWithoutFulfillmentInput = {
   biller?: InputMaybe<UserUpdateOneRequiredWithoutBillerSaleOrdersNestedInput>;
   consumerSale?: InputMaybe<ConsumerSaleUpdateOneWithoutSaleOrderNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  deliveryAddress?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  fulfillmentType?: InputMaybe<NullableEnumFulfillmentTypeFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   phase?: InputMaybe<EnumOrderPhaseFieldUpdateOperationsInput>;
   quotation?: InputMaybe<QuotationUpdateOneWithoutSaleOrderNestedInput>;
@@ -19117,7 +19212,9 @@ export type SaleOrderUpdateWithoutQuotationInput = {
   biller?: InputMaybe<UserUpdateOneRequiredWithoutBillerSaleOrdersNestedInput>;
   consumerSale?: InputMaybe<ConsumerSaleUpdateOneWithoutSaleOrderNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  deliveryAddress?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   fulfillment?: InputMaybe<FulfillmentUpdateOneWithoutSaleOrderNestedInput>;
+  fulfillmentType?: InputMaybe<NullableEnumFulfillmentTypeFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   phase?: InputMaybe<EnumOrderPhaseFieldUpdateOperationsInput>;
   resellerSale?: InputMaybe<ResellerSaleUpdateOneWithoutSaleOrderNestedInput>;
@@ -19137,7 +19234,9 @@ export type SaleOrderUpdateWithoutResellerPaymentInput = {
   biller?: InputMaybe<UserUpdateOneRequiredWithoutBillerSaleOrdersNestedInput>;
   consumerSale?: InputMaybe<ConsumerSaleUpdateOneWithoutSaleOrderNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  deliveryAddress?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   fulfillment?: InputMaybe<FulfillmentUpdateOneWithoutSaleOrderNestedInput>;
+  fulfillmentType?: InputMaybe<NullableEnumFulfillmentTypeFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   phase?: InputMaybe<EnumOrderPhaseFieldUpdateOperationsInput>;
   quotation?: InputMaybe<QuotationUpdateOneWithoutSaleOrderNestedInput>;
@@ -19159,7 +19258,9 @@ export type SaleOrderUpdateWithoutResellerSaleInput = {
   biller?: InputMaybe<UserUpdateOneRequiredWithoutBillerSaleOrdersNestedInput>;
   consumerSale?: InputMaybe<ConsumerSaleUpdateOneWithoutSaleOrderNestedInput>;
   createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  deliveryAddress?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   fulfillment?: InputMaybe<FulfillmentUpdateOneWithoutSaleOrderNestedInput>;
+  fulfillmentType?: InputMaybe<NullableEnumFulfillmentTypeFieldUpdateOperationsInput>;
   id?: InputMaybe<StringFieldUpdateOperationsInput>;
   phase?: InputMaybe<EnumOrderPhaseFieldUpdateOperationsInput>;
   quotation?: InputMaybe<QuotationUpdateOneWithoutSaleOrderNestedInput>;
@@ -19226,7 +19327,9 @@ export type SaleOrderWhereInput = {
   billerId?: InputMaybe<StringFilter>;
   consumerSale?: InputMaybe<ConsumerSaleNullableScalarRelationFilter>;
   createdAt?: InputMaybe<DateTimeFilter>;
+  deliveryAddress?: InputMaybe<StringNullableFilter>;
   fulfillment?: InputMaybe<FulfillmentNullableScalarRelationFilter>;
+  fulfillmentType?: InputMaybe<EnumFulfillmentTypeNullableFilter>;
   id?: InputMaybe<StringFilter>;
   phase?: InputMaybe<EnumOrderPhaseFilter>;
   quotation?: InputMaybe<QuotationNullableScalarRelationFilter>;
@@ -19252,7 +19355,9 @@ export type SaleOrderWhereUniqueInput = {
   billerId?: InputMaybe<StringFilter>;
   consumerSale?: InputMaybe<ConsumerSaleNullableScalarRelationFilter>;
   createdAt?: InputMaybe<DateTimeFilter>;
+  deliveryAddress?: InputMaybe<StringNullableFilter>;
   fulfillment?: InputMaybe<FulfillmentNullableScalarRelationFilter>;
+  fulfillmentType?: InputMaybe<EnumFulfillmentTypeNullableFilter>;
   id?: InputMaybe<Scalars['String']['input']>;
   phase?: InputMaybe<EnumOrderPhaseFilter>;
   quotation?: InputMaybe<QuotationNullableScalarRelationFilter>;
@@ -25987,6 +26092,203 @@ export type SupportMessageWhereUniqueInput = {
   userId?: InputMaybe<StringFilter>;
 };
 
+export type SystemSetting = {
+  __typename?: 'SystemSetting';
+  createdAt: Scalars['DateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  key: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  updatedBy?: Maybe<User>;
+  updatedById?: Maybe<Scalars['String']['output']>;
+  value: Scalars['String']['output'];
+};
+
+export type SystemSettingCreateManyUpdatedByInput = {
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  key: Scalars['String']['input'];
+  updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  value: Scalars['String']['input'];
+};
+
+export type SystemSettingCreateManyUpdatedByInputEnvelope = {
+  data: Array<SystemSettingCreateManyUpdatedByInput>;
+  skipDuplicates?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type SystemSettingCreateNestedManyWithoutUpdatedByInput = {
+  connect?: InputMaybe<Array<SystemSettingWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<SystemSettingCreateOrConnectWithoutUpdatedByInput>>;
+  create?: InputMaybe<Array<SystemSettingCreateWithoutUpdatedByInput>>;
+  createMany?: InputMaybe<SystemSettingCreateManyUpdatedByInputEnvelope>;
+};
+
+export type SystemSettingCreateOrConnectWithoutUpdatedByInput = {
+  create: SystemSettingCreateWithoutUpdatedByInput;
+  where: SystemSettingWhereUniqueInput;
+};
+
+export type SystemSettingCreateWithoutUpdatedByInput = {
+  createdAt?: InputMaybe<Scalars['DateTime']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  key: Scalars['String']['input'];
+  updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  value: Scalars['String']['input'];
+};
+
+export type SystemSettingDto = {
+  __typename?: 'SystemSettingDto';
+  booleanValue?: Maybe<Scalars['Boolean']['output']>;
+  defaultBooleanValue?: Maybe<Scalars['Boolean']['output']>;
+  defaultNumberValue?: Maybe<Scalars['Float']['output']>;
+  defaultStringValue?: Maybe<Scalars['String']['output']>;
+  description: Scalars['String']['output'];
+  envBooleanValue?: Maybe<Scalars['Boolean']['output']>;
+  envNumberValue?: Maybe<Scalars['Float']['output']>;
+  envStringValue?: Maybe<Scalars['String']['output']>;
+  key: SystemSettingKey;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  numberValue?: Maybe<Scalars['Float']['output']>;
+  source: SystemSettingValueSource;
+  stringValue?: Maybe<Scalars['String']['output']>;
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+  updatedBy?: Maybe<SystemSettingUserSummary>;
+  valueType: SystemSettingValueType;
+};
+
+export enum SystemSettingKey {
+  AddressRefreshBatchSize = 'ADDRESS_REFRESH_BATCH_SIZE',
+  AddressRefreshEnabled = 'ADDRESS_REFRESH_ENABLED',
+  AddressRefreshMaxAgeDays = 'ADDRESS_REFRESH_MAX_AGE_DAYS',
+  ConsumerPriceMarkupPercent = 'CONSUMER_PRICE_MARKUP_PERCENT',
+  RiderInterestDefaultExpiryMinutes = 'RIDER_INTEREST_DEFAULT_EXPIRY_MINUTES',
+  RiderInterestExpiryBatchSize = 'RIDER_INTEREST_EXPIRY_BATCH_SIZE',
+  RiderInterestFallbackExpiryMinutes = 'RIDER_INTEREST_FALLBACK_EXPIRY_MINUTES',
+  SaleExpiryBatchSize = 'SALE_EXPIRY_BATCH_SIZE',
+  SalePendingExpiryMinutes = 'SALE_PENDING_EXPIRY_MINUTES'
+}
+
+export type SystemSettingListRelationFilter = {
+  every?: InputMaybe<SystemSettingWhereInput>;
+  none?: InputMaybe<SystemSettingWhereInput>;
+  some?: InputMaybe<SystemSettingWhereInput>;
+};
+
+export type SystemSettingOrderByRelationAggregateInput = {
+  _count?: InputMaybe<SortOrder>;
+};
+
+export type SystemSettingScalarWhereInput = {
+  AND?: InputMaybe<Array<SystemSettingScalarWhereInput>>;
+  NOT?: InputMaybe<Array<SystemSettingScalarWhereInput>>;
+  OR?: InputMaybe<Array<SystemSettingScalarWhereInput>>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  description?: InputMaybe<StringNullableFilter>;
+  id?: InputMaybe<StringFilter>;
+  key?: InputMaybe<StringFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  updatedById?: InputMaybe<StringNullableFilter>;
+  value?: InputMaybe<StringFilter>;
+};
+
+export type SystemSettingUpdateManyMutationInput = {
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  description?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  key?: InputMaybe<StringFieldUpdateOperationsInput>;
+  updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  value?: InputMaybe<StringFieldUpdateOperationsInput>;
+};
+
+export type SystemSettingUpdateManyWithWhereWithoutUpdatedByInput = {
+  data: SystemSettingUpdateManyMutationInput;
+  where: SystemSettingScalarWhereInput;
+};
+
+export type SystemSettingUpdateManyWithoutUpdatedByNestedInput = {
+  connect?: InputMaybe<Array<SystemSettingWhereUniqueInput>>;
+  connectOrCreate?: InputMaybe<Array<SystemSettingCreateOrConnectWithoutUpdatedByInput>>;
+  create?: InputMaybe<Array<SystemSettingCreateWithoutUpdatedByInput>>;
+  createMany?: InputMaybe<SystemSettingCreateManyUpdatedByInputEnvelope>;
+  delete?: InputMaybe<Array<SystemSettingWhereUniqueInput>>;
+  deleteMany?: InputMaybe<Array<SystemSettingScalarWhereInput>>;
+  disconnect?: InputMaybe<Array<SystemSettingWhereUniqueInput>>;
+  set?: InputMaybe<Array<SystemSettingWhereUniqueInput>>;
+  update?: InputMaybe<Array<SystemSettingUpdateWithWhereUniqueWithoutUpdatedByInput>>;
+  updateMany?: InputMaybe<Array<SystemSettingUpdateManyWithWhereWithoutUpdatedByInput>>;
+  upsert?: InputMaybe<Array<SystemSettingUpsertWithWhereUniqueWithoutUpdatedByInput>>;
+};
+
+export type SystemSettingUpdateWithWhereUniqueWithoutUpdatedByInput = {
+  data: SystemSettingUpdateWithoutUpdatedByInput;
+  where: SystemSettingWhereUniqueInput;
+};
+
+export type SystemSettingUpdateWithoutUpdatedByInput = {
+  createdAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  description?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
+  id?: InputMaybe<StringFieldUpdateOperationsInput>;
+  key?: InputMaybe<StringFieldUpdateOperationsInput>;
+  updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
+  value?: InputMaybe<StringFieldUpdateOperationsInput>;
+};
+
+export type SystemSettingUpsertWithWhereUniqueWithoutUpdatedByInput = {
+  create: SystemSettingCreateWithoutUpdatedByInput;
+  update: SystemSettingUpdateWithoutUpdatedByInput;
+  where: SystemSettingWhereUniqueInput;
+};
+
+export type SystemSettingUserSummary = {
+  __typename?: 'SystemSettingUserSummary';
+  email?: Maybe<Scalars['String']['output']>;
+  fullName?: Maybe<Scalars['String']['output']>;
+  id: Scalars['String']['output'];
+};
+
+export enum SystemSettingValueSource {
+  Database = 'DATABASE',
+  Default = 'DEFAULT',
+  Environment = 'ENVIRONMENT'
+}
+
+export enum SystemSettingValueType {
+  Boolean = 'BOOLEAN',
+  Number = 'NUMBER',
+  String = 'STRING'
+}
+
+export type SystemSettingWhereInput = {
+  AND?: InputMaybe<Array<SystemSettingWhereInput>>;
+  NOT?: InputMaybe<Array<SystemSettingWhereInput>>;
+  OR?: InputMaybe<Array<SystemSettingWhereInput>>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  description?: InputMaybe<StringNullableFilter>;
+  id?: InputMaybe<StringFilter>;
+  key?: InputMaybe<StringFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  updatedBy?: InputMaybe<UserNullableScalarRelationFilter>;
+  updatedById?: InputMaybe<StringNullableFilter>;
+  value?: InputMaybe<StringFilter>;
+};
+
+export type SystemSettingWhereUniqueInput = {
+  AND?: InputMaybe<Array<SystemSettingWhereInput>>;
+  NOT?: InputMaybe<Array<SystemSettingWhereInput>>;
+  OR?: InputMaybe<Array<SystemSettingWhereInput>>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  description?: InputMaybe<StringNullableFilter>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  key?: InputMaybe<Scalars['String']['input']>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  updatedBy?: InputMaybe<UserNullableScalarRelationFilter>;
+  updatedById?: InputMaybe<StringNullableFilter>;
+  value?: InputMaybe<StringFilter>;
+};
+
 export enum TransferStatus {
   Approved = 'APPROVED',
   Completed = 'COMPLETED',
@@ -26109,6 +26411,14 @@ export type UpdateSupplierInput = {
   paymentTerms?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type UpdateSystemSettingInput = {
+  booleanValue?: InputMaybe<Scalars['Boolean']['input']>;
+  key: SystemSettingKey;
+  numberValue?: InputMaybe<Scalars['Float']['input']>;
+  reset?: InputMaybe<Scalars['Boolean']['input']>;
+  stringValue?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type UpsertRiderCoverageInput = {
   /** Coverage entries to upsert; omitting clears existing entries. */
   coverage: Array<RiderCoverageAreaInput>;
@@ -26191,6 +26501,7 @@ export type User = {
   role: Role;
   roleId: Scalars['String']['output'];
   supportMessages?: Maybe<Array<SupportMessage>>;
+  systemSettingsUpdated?: Maybe<Array<SystemSetting>>;
   tier?: Maybe<UserTier>;
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -26231,6 +26542,7 @@ export type UserCount = {
   resellerPaymentsMade: Scalars['Int']['output'];
   resellerPaymentsReceived: Scalars['Int']['output'];
   supportMessages: Scalars['Int']['output'];
+  systemSettingsUpdated: Scalars['Int']['output'];
 };
 
 export type UserCountAggregate = {
@@ -26328,6 +26640,7 @@ export type UserCreateInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -26734,6 +27047,7 @@ export type UserCreateWithoutBillerQuotationInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -26784,6 +27098,7 @@ export type UserCreateWithoutBillerResellerSaleInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -26834,6 +27149,7 @@ export type UserCreateWithoutBillerSaleOrdersInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -26884,6 +27200,7 @@ export type UserCreateWithoutConsumerReceiptInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -26934,6 +27251,7 @@ export type UserCreateWithoutConsumerSaleAdjustedBysInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -26984,6 +27302,7 @@ export type UserCreateWithoutConsumerSaleInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27034,6 +27353,7 @@ export type UserCreateWithoutCustomerProfileInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27084,6 +27404,7 @@ export type UserCreateWithoutFulfillmentInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27134,6 +27455,7 @@ export type UserCreateWithoutFulfillmentRiderInterestsInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27184,6 +27506,7 @@ export type UserCreateWithoutPurchaseRequisitionInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27234,6 +27557,7 @@ export type UserCreateWithoutPurchaseReturnApproversInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27284,6 +27608,7 @@ export type UserCreateWithoutPurchaseReturnInitiatorsInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27334,6 +27659,7 @@ export type UserCreateWithoutRequestedResellersInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27384,6 +27710,7 @@ export type UserCreateWithoutResellerPaymentsMadeInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27434,6 +27761,7 @@ export type UserCreateWithoutResellerPaymentsReceivedInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27484,6 +27812,7 @@ export type UserCreateWithoutResellerProfileInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27534,6 +27863,7 @@ export type UserCreateWithoutResellerQuotationInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27584,6 +27914,7 @@ export type UserCreateWithoutResellerSaleInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27634,6 +27965,7 @@ export type UserCreateWithoutResellerSalesInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27684,6 +28016,7 @@ export type UserCreateWithoutResellerTierHistoryChangedBysInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27734,6 +28067,7 @@ export type UserCreateWithoutResellerTierHistoryInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27784,6 +28118,7 @@ export type UserCreateWithoutRiderCoverageAreasInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27834,6 +28169,7 @@ export type UserCreateWithoutSalesReturnInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27884,6 +28220,7 @@ export type UserCreateWithoutSalesReturnReceiversInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27934,6 +28271,7 @@ export type UserCreateWithoutSalesReturnRequestersInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -27984,6 +28322,7 @@ export type UserCreateWithoutStockReceiptBatchConfirmedBysInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -28034,6 +28373,7 @@ export type UserCreateWithoutStockReceiptBatchReceivedBysInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -28084,6 +28424,7 @@ export type UserCreateWithoutStockTransferApprovalsInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -28134,6 +28475,7 @@ export type UserCreateWithoutStockTransferRequestsInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -28184,6 +28526,7 @@ export type UserCreateWithoutStoreInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -28234,6 +28577,7 @@ export type UserCreateWithoutSupplierInput = {
   resellerProfile?: InputMaybe<ResellerProfileCreateNestedOneWithoutUserInput>;
   role: RoleCreateNestedOneWithoutUsersInput;
   supportMessages?: InputMaybe<SupportMessageCreateNestedManyWithoutUserInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingCreateNestedManyWithoutUpdatedByInput>;
   tier?: InputMaybe<UserTier>;
   updatedAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
@@ -28430,6 +28774,7 @@ export type UserOrderByWithRelationInput = {
   role?: InputMaybe<RoleOrderByWithRelationInput>;
   roleId?: InputMaybe<SortOrder>;
   supportMessages?: InputMaybe<SupportMessageOrderByRelationAggregateInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingOrderByRelationAggregateInput>;
   tier?: InputMaybe<SortOrderInput>;
   updatedAt?: InputMaybe<SortOrder>;
 };
@@ -28527,6 +28872,7 @@ export type UserUpdateInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29020,6 +29366,7 @@ export type UserUpdateWithoutBillerQuotationInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29070,6 +29417,7 @@ export type UserUpdateWithoutBillerResellerSaleInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29120,6 +29468,7 @@ export type UserUpdateWithoutBillerSaleOrdersInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29170,6 +29519,7 @@ export type UserUpdateWithoutConsumerReceiptInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29220,6 +29570,7 @@ export type UserUpdateWithoutConsumerSaleAdjustedBysInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29270,6 +29621,7 @@ export type UserUpdateWithoutConsumerSaleInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29320,6 +29672,7 @@ export type UserUpdateWithoutCustomerProfileInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29370,6 +29723,7 @@ export type UserUpdateWithoutFulfillmentInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29420,6 +29774,7 @@ export type UserUpdateWithoutFulfillmentRiderInterestsInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29470,6 +29825,7 @@ export type UserUpdateWithoutPurchaseRequisitionInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29520,6 +29876,7 @@ export type UserUpdateWithoutPurchaseReturnApproversInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29570,6 +29927,7 @@ export type UserUpdateWithoutPurchaseReturnInitiatorsInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29620,6 +29978,7 @@ export type UserUpdateWithoutRequestedResellersInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29670,6 +30029,7 @@ export type UserUpdateWithoutResellerPaymentsMadeInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29720,6 +30080,7 @@ export type UserUpdateWithoutResellerPaymentsReceivedInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29770,6 +30131,7 @@ export type UserUpdateWithoutResellerProfileInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29820,6 +30182,7 @@ export type UserUpdateWithoutResellerQuotationInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29870,6 +30233,7 @@ export type UserUpdateWithoutResellerSaleInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29920,6 +30284,7 @@ export type UserUpdateWithoutResellerSalesInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -29970,6 +30335,7 @@ export type UserUpdateWithoutResellerTierHistoryChangedBysInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -30020,6 +30386,7 @@ export type UserUpdateWithoutResellerTierHistoryInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -30070,6 +30437,7 @@ export type UserUpdateWithoutRiderCoverageAreasInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -30120,6 +30488,7 @@ export type UserUpdateWithoutSalesReturnInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -30170,6 +30539,7 @@ export type UserUpdateWithoutSalesReturnReceiversInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -30220,6 +30590,7 @@ export type UserUpdateWithoutSalesReturnRequestersInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -30270,6 +30641,7 @@ export type UserUpdateWithoutStockReceiptBatchConfirmedBysInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -30320,6 +30692,7 @@ export type UserUpdateWithoutStockReceiptBatchReceivedBysInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -30370,6 +30743,7 @@ export type UserUpdateWithoutStockTransferApprovalsInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -30420,6 +30794,7 @@ export type UserUpdateWithoutStockTransferRequestsInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -30470,6 +30845,7 @@ export type UserUpdateWithoutStoreInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -30520,6 +30896,7 @@ export type UserUpdateWithoutSupplierInput = {
   resellerProfile?: InputMaybe<ResellerProfileUpdateOneWithoutUserNestedInput>;
   role?: InputMaybe<RoleUpdateOneRequiredWithoutUsersNestedInput>;
   supportMessages?: InputMaybe<SupportMessageUpdateManyWithoutUserNestedInput>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingUpdateManyWithoutUpdatedByNestedInput>;
   tier?: InputMaybe<NullableEnumUserTierFieldUpdateOperationsInput>;
   updatedAt?: InputMaybe<DateTimeFieldUpdateOperationsInput>;
 };
@@ -30761,6 +31138,7 @@ export type UserWhereInput = {
   role?: InputMaybe<RoleScalarRelationFilter>;
   roleId?: InputMaybe<StringFilter>;
   supportMessages?: InputMaybe<SupportMessageListRelationFilter>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingListRelationFilter>;
   tier?: InputMaybe<EnumUserTierNullableFilter>;
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
@@ -30816,6 +31194,7 @@ export type UserWhereUniqueInput = {
   role?: InputMaybe<RoleScalarRelationFilter>;
   roleId?: InputMaybe<StringFilter>;
   supportMessages?: InputMaybe<SupportMessageListRelationFilter>;
+  systemSettingsUpdated?: InputMaybe<SystemSettingListRelationFilter>;
   tier?: InputMaybe<EnumUserTierNullableFilter>;
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
@@ -32018,7 +32397,7 @@ export type PendingResellerApplicationsQueryVariables = Exact<{
 }>;
 
 
-export type PendingResellerApplicationsQuery = { __typename?: 'Query', pendingResellerApplications: Array<{ __typename?: 'ResellerProfile', userId: string, tier: UserTier, creditLimit: number, requestedAt: any, requestedBillerId?: string | null, biller?: { __typename?: 'User', id: string, email: string } | null, requestedBiller?: { __typename?: 'User', id: string, email: string } | null, user: { __typename?: 'User', id: string, email: string } }> };
+export type PendingResellerApplicationsQuery = { __typename?: 'Query', pendingResellerApplications: Array<{ __typename?: 'ResellerProfile', userId: string, tier: UserTier, creditLimit: number, requestedAt: any, requestedBillerId?: string | null, companyName: string, contactPersonName: string, contactPhone: string, biller?: { __typename?: 'User', id: string, email: string } | null, requestedBiller?: { __typename?: 'User', id: string, email: string } | null, user: { __typename?: 'User', id: string, email: string } }> };
 
 export type ListBillersQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -32056,19 +32435,19 @@ export type ResellersQueryVariables = Exact<{
 }>;
 
 
-export type ResellersQuery = { __typename?: 'Query', resellers: Array<{ __typename?: 'ResellerProfile', userId: string, profileStatus: ProfileStatus, tier: UserTier, creditLimit: number, requestedAt: any, user: { __typename?: 'User', id: string, email: string }, biller?: { __typename?: 'User', id: string, email: string } | null, requestedBiller?: { __typename?: 'User', id: string, email: string } | null }> };
+export type ResellersQuery = { __typename?: 'Query', resellers: Array<{ __typename?: 'ResellerProfile', userId: string, profileStatus: ProfileStatus, tier: UserTier, creditLimit: number, requestedAt: any, companyName: string, contactPersonName: string, contactPhone: string, user: { __typename?: 'User', id: string, email: string }, biller?: { __typename?: 'User', id: string, email: string } | null, requestedBiller?: { __typename?: 'User', id: string, email: string } | null }> };
 
 export type ResellerProfileQueryVariables = Exact<{
   userId: Scalars['String']['input'];
 }>;
 
 
-export type ResellerProfileQuery = { __typename?: 'Query', resellerProfile?: { __typename?: 'ResellerProfile', userId: string, profileStatus: ProfileStatus, tier: UserTier, creditLimit: number, outstandingBalance: number, requestedAt: any, activatedAt?: any | null, rejectedAt?: any | null, rejectionReason?: string | null, biller?: { __typename?: 'User', id: string, email: string } | null, requestedBiller?: { __typename?: 'User', id: string, email: string } | null, user: { __typename?: 'User', id: string, email: string } } | null };
+export type ResellerProfileQuery = { __typename?: 'Query', resellerProfile?: { __typename?: 'ResellerProfile', userId: string, profileStatus: ProfileStatus, tier: UserTier, creditLimit: number, outstandingBalance: number, requestedAt: any, activatedAt?: any | null, rejectedAt?: any | null, rejectionReason?: string | null, companyName: string, contactPersonName: string, contactPhone: string, biller?: { __typename?: 'User', id: string, email: string } | null, requestedBiller?: { __typename?: 'User', id: string, email: string } | null, user: { __typename?: 'User', id: string, email: string } } | null };
 
 export type MyResellerProfileQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MyResellerProfileQuery = { __typename?: 'Query', myResellerProfile?: { __typename?: 'ResellerProfile', userId: string, billerId?: string | null, profileStatus: ProfileStatus, biller?: { __typename?: 'User', id: string, email: string } | null, user: { __typename?: 'User', id: string, email: string } } | null };
+export type MyResellerProfileQuery = { __typename?: 'Query', myResellerProfile?: { __typename?: 'ResellerProfile', userId: string, billerId?: string | null, profileStatus: ProfileStatus, companyName: string, contactPersonName: string, contactPhone: string, biller?: { __typename?: 'User', id: string, email: string } | null, user: { __typename?: 'User', id: string, email: string } } | null };
 
 export type ApplyResellerMutationVariables = Exact<{
   input: ApplyResellerInput;
@@ -32311,6 +32690,18 @@ export type AdminSendSupportMessageMutationVariables = Exact<{
 
 
 export type AdminSendSupportMessageMutation = { __typename?: 'Mutation', adminSendSupportMessage: { __typename?: 'SupportMessage', id: string, message: string, createdAt: any, isAdmin: boolean } };
+
+export type SystemSettingsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type SystemSettingsQuery = { __typename?: 'Query', systemSettingsList: Array<{ __typename?: 'SystemSettingDto', key: SystemSettingKey, valueType: SystemSettingValueType, numberValue?: number | null, booleanValue?: boolean | null, stringValue?: string | null, defaultNumberValue?: number | null, defaultBooleanValue?: boolean | null, defaultStringValue?: string | null, envNumberValue?: number | null, envBooleanValue?: boolean | null, envStringValue?: string | null, description: string, metadata?: any | null, source: SystemSettingValueSource, updatedAt?: any | null, updatedBy?: { __typename?: 'SystemSettingUserSummary', id: string, email?: string | null, fullName?: string | null } | null }> };
+
+export type UpdateSystemSettingMutationVariables = Exact<{
+  input: UpdateSystemSettingInput;
+}>;
+
+
+export type UpdateSystemSettingMutation = { __typename?: 'Mutation', updateSystemSetting: { __typename?: 'SystemSettingDto', key: SystemSettingKey, valueType: SystemSettingValueType, numberValue?: number | null, booleanValue?: boolean | null, stringValue?: string | null, defaultNumberValue?: number | null, defaultBooleanValue?: boolean | null, defaultStringValue?: string | null, envNumberValue?: number | null, envBooleanValue?: boolean | null, envStringValue?: string | null, description: string, metadata?: any | null, source: SystemSettingValueSource, updatedAt?: any | null, updatedBy?: { __typename?: 'SystemSettingUserSummary', id: string, email?: string | null, fullName?: string | null } | null } };
 
 export type UsersQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -38268,6 +38659,9 @@ export const PendingResellerApplicationsDocument = gql`
     creditLimit
     requestedAt
     requestedBillerId
+    companyName
+    contactPersonName
+    contactPhone
     biller {
       id
       email
@@ -38483,6 +38877,9 @@ export const ResellersDocument = gql`
     tier
     creditLimit
     requestedAt
+    companyName
+    contactPersonName
+    contactPhone
     user {
       id
       email
@@ -38545,6 +38942,9 @@ export const ResellerProfileDocument = gql`
     activatedAt
     rejectedAt
     rejectionReason
+    companyName
+    contactPersonName
+    contactPhone
     biller {
       id
       email
@@ -38599,6 +38999,9 @@ export const MyResellerProfileDocument = gql`
     userId
     billerId
     profileStatus
+    companyName
+    contactPersonName
+    contactPhone
     biller {
       id
       email
@@ -40090,6 +40493,116 @@ export function useAdminSendSupportMessageMutation(baseOptions?: Apollo.Mutation
 export type AdminSendSupportMessageMutationHookResult = ReturnType<typeof useAdminSendSupportMessageMutation>;
 export type AdminSendSupportMessageMutationResult = Apollo.MutationResult<AdminSendSupportMessageMutation>;
 export type AdminSendSupportMessageMutationOptions = Apollo.BaseMutationOptions<AdminSendSupportMessageMutation, AdminSendSupportMessageMutationVariables>;
+export const SystemSettingsDocument = gql`
+    query SystemSettings {
+  systemSettingsList {
+    key
+    valueType
+    numberValue
+    booleanValue
+    stringValue
+    defaultNumberValue
+    defaultBooleanValue
+    defaultStringValue
+    envNumberValue
+    envBooleanValue
+    envStringValue
+    description
+    metadata
+    source
+    updatedAt
+    updatedBy {
+      id
+      email
+      fullName
+    }
+  }
+}
+    `;
+
+/**
+ * __useSystemSettingsQuery__
+ *
+ * To run a query within a React component, call `useSystemSettingsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useSystemSettingsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useSystemSettingsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useSystemSettingsQuery(baseOptions?: Apollo.QueryHookOptions<SystemSettingsQuery, SystemSettingsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<SystemSettingsQuery, SystemSettingsQueryVariables>(SystemSettingsDocument, options);
+      }
+export function useSystemSettingsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<SystemSettingsQuery, SystemSettingsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<SystemSettingsQuery, SystemSettingsQueryVariables>(SystemSettingsDocument, options);
+        }
+export function useSystemSettingsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<SystemSettingsQuery, SystemSettingsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<SystemSettingsQuery, SystemSettingsQueryVariables>(SystemSettingsDocument, options);
+        }
+export type SystemSettingsQueryHookResult = ReturnType<typeof useSystemSettingsQuery>;
+export type SystemSettingsLazyQueryHookResult = ReturnType<typeof useSystemSettingsLazyQuery>;
+export type SystemSettingsSuspenseQueryHookResult = ReturnType<typeof useSystemSettingsSuspenseQuery>;
+export type SystemSettingsQueryResult = Apollo.QueryResult<SystemSettingsQuery, SystemSettingsQueryVariables>;
+export const UpdateSystemSettingDocument = gql`
+    mutation UpdateSystemSetting($input: UpdateSystemSettingInput!) {
+  updateSystemSetting(input: $input) {
+    key
+    valueType
+    numberValue
+    booleanValue
+    stringValue
+    defaultNumberValue
+    defaultBooleanValue
+    defaultStringValue
+    envNumberValue
+    envBooleanValue
+    envStringValue
+    description
+    metadata
+    source
+    updatedAt
+    updatedBy {
+      id
+      email
+      fullName
+    }
+  }
+}
+    `;
+export type UpdateSystemSettingMutationFn = Apollo.MutationFunction<UpdateSystemSettingMutation, UpdateSystemSettingMutationVariables>;
+
+/**
+ * __useUpdateSystemSettingMutation__
+ *
+ * To run a mutation, you first call `useUpdateSystemSettingMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateSystemSettingMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateSystemSettingMutation, { data, loading, error }] = useUpdateSystemSettingMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateSystemSettingMutation(baseOptions?: Apollo.MutationHookOptions<UpdateSystemSettingMutation, UpdateSystemSettingMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateSystemSettingMutation, UpdateSystemSettingMutationVariables>(UpdateSystemSettingDocument, options);
+      }
+export type UpdateSystemSettingMutationHookResult = ReturnType<typeof useUpdateSystemSettingMutation>;
+export type UpdateSystemSettingMutationResult = Apollo.MutationResult<UpdateSystemSettingMutation>;
+export type UpdateSystemSettingMutationOptions = Apollo.BaseMutationOptions<UpdateSystemSettingMutation, UpdateSystemSettingMutationVariables>;
 export const UsersDocument = gql`
     query Users($take: Int) {
   listUsers(take: $take) {

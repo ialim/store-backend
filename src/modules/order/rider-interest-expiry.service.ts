@@ -3,30 +3,10 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { FulfillmentRiderInterestStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
+import { SystemSettingsService } from '../system-settings/system-settings.service';
 
 const EXPIRY_CRON =
   process.env.RIDER_INTEREST_EXPIRY_CRON ?? CronExpression.EVERY_10_MINUTES;
-const FALLBACK_EXPIRY_MINUTES = 60;
-const FALLBACK_BATCH_SIZE = 50;
-
-function resolveFallbackExpiryMinutes(): number | null {
-  const raw = process.env.RIDER_INTEREST_FALLBACK_EXPIRY_MINUTES;
-  if (raw === '0') return null;
-  const parsed = raw != null ? Number.parseInt(raw, 10) : NaN;
-  if (Number.isFinite(parsed) && parsed > 0) {
-    return parsed;
-  }
-  return FALLBACK_EXPIRY_MINUTES;
-}
-
-function resolveBatchSize(): number {
-  const raw = process.env.RIDER_INTEREST_EXPIRY_BATCH_SIZE;
-  const parsed = raw != null ? Number.parseInt(raw, 10) : NaN;
-  if (Number.isFinite(parsed) && parsed > 0) {
-    return parsed;
-  }
-  return FALLBACK_BATCH_SIZE;
-}
 
 @Injectable()
 export class RiderInterestExpiryService {
@@ -35,6 +15,7 @@ export class RiderInterestExpiryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationService,
+    private readonly systemSettings: SystemSettingsService,
   ) {}
 
   @Cron(EXPIRY_CRON)
@@ -50,8 +31,22 @@ export class RiderInterestExpiryService {
   }
 
   async expireStaleInterests(limit?: number): Promise<number> {
-    const fallbackMinutes = resolveFallbackExpiryMinutes();
-    const batchSize = limit && limit > 0 ? limit : resolveBatchSize();
+    const fallbackMinutesSetting = await this.systemSettings.getNumber(
+      'RIDER_INTEREST_FALLBACK_EXPIRY_MINUTES',
+    );
+    const batchSizeSetting = await this.systemSettings.getNumber(
+      'RIDER_INTEREST_EXPIRY_BATCH_SIZE',
+    );
+    const fallbackMinutes =
+      fallbackMinutesSetting != null && fallbackMinutesSetting > 0
+        ? fallbackMinutesSetting
+        : null;
+    const batchSize =
+      limit && limit > 0 ? Math.min(limit, batchSizeSetting) : batchSizeSetting;
+    if (!batchSize || batchSize <= 0) {
+      this.logger.debug('Rider interest expiry disabled: invalid batch size.');
+      return 0;
+    }
     const now = new Date();
     const fallbackCutoff =
       fallbackMinutes != null && fallbackMinutes > 0

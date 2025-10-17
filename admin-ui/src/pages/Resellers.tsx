@@ -50,6 +50,27 @@ export default function Resellers() {
         accessor: (r: any) => r?.user?.email || '',
       },
       {
+        key: 'companyName',
+        label: 'Company',
+        render: (r: any) => r.companyName || '—',
+        sort: true,
+        accessor: (r: any) => r.companyName || '',
+      },
+      {
+        key: 'contactPersonName',
+        label: 'Contact Person',
+        render: (r: any) => r.contactPersonName || '—',
+        sort: true,
+        accessor: (r: any) => r.contactPersonName || '',
+      },
+      {
+        key: 'contactPhone',
+        label: 'Contact Phone',
+        render: (r: any) => r.contactPhone || '—',
+        sort: true,
+        accessor: (r: any) => r.contactPhone || '',
+      },
+      {
         key: 'status',
         label: 'Status',
         render: (r: any) => (
@@ -142,8 +163,15 @@ export default function Resellers() {
         rowsPerPageOptions={[10, 25, 50, 100]}
         showFilters
         globalSearch
-        globalSearchPlaceholder="Search email/biller"
-        globalSearchKeys={['email', 'biller', 'requestedBiller']}
+        globalSearchPlaceholder="Search email/company/contact"
+        globalSearchKeys={[
+          'email',
+          'companyName',
+          'contactPersonName',
+          'contactPhone',
+          'biller',
+          'requestedBiller',
+        ]}
         enableUrlState
         urlKey="resellers"
       />

@@ -1,34 +1,46 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AddressService } from './address.service';
+import { SystemSettingsService } from '../system-settings/system-settings.service';
 
-const REFRESH_ENABLED = process.env.ADDRESS_REFRESH_ENABLED !== 'false';
 const REFRESH_CRON =
   process.env.ADDRESS_REFRESH_CRON ?? CronExpression.EVERY_DAY_AT_3AM;
-const REFRESH_BATCH_SIZE = Number.parseInt(
-  process.env.ADDRESS_REFRESH_BATCH_SIZE ?? '20',
-  10,
-);
-const REFRESH_MAX_AGE_DAYS = Number.parseInt(
-  process.env.ADDRESS_REFRESH_MAX_AGE_DAYS ?? '30',
-  10,
-);
 
 @Injectable()
 export class AddressRefreshService {
   private readonly logger = new Logger(AddressRefreshService.name);
 
-  constructor(private readonly addressService: AddressService) {}
+  constructor(
+    private readonly addressService: AddressService,
+    private readonly systemSettings: SystemSettingsService,
+  ) {}
 
   @Cron(REFRESH_CRON)
   async refreshAddresses(): Promise<void> {
-    if (!REFRESH_ENABLED) {
+    const enabled = await this.systemSettings.getBoolean(
+      'ADDRESS_REFRESH_ENABLED',
+    );
+    if (!enabled) {
       return;
     }
     try {
+      const batchSize = await this.systemSettings.getNumber(
+        'ADDRESS_REFRESH_BATCH_SIZE',
+      );
+      const maxAgeDays = await this.systemSettings.getNumber(
+        'ADDRESS_REFRESH_MAX_AGE_DAYS',
+      );
+      if (!batchSize || batchSize <= 0) {
+        this.logger.debug('Address refresh skipped: invalid batch size.');
+        return;
+      }
+      if (!maxAgeDays || maxAgeDays <= 0) {
+        this.logger.debug('Address refresh skipped: invalid max age setting.');
+        return;
+      }
       const processed = await this.addressService.refreshStaleAddresses({
-        limit: REFRESH_BATCH_SIZE,
-        maxAgeDays: REFRESH_MAX_AGE_DAYS,
+        limit: batchSize,
+        maxAgeDays,
       });
       if (processed > 0) {
         this.logger.log(

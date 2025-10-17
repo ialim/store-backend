@@ -1,5 +1,14 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Prisma, ProfileStatus as PrismaProfileStatus } from '@prisma/client';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import {
+  Prisma,
+  ProfileStatus as PrismaProfileStatus,
+  UserTier as PrismaUserTier,
+} from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { hashSync } from 'bcrypt';
@@ -114,6 +123,16 @@ export class OnboardingService {
     });
     if (!resellerRole) throw new NotFoundException('Reseller role not found');
 
+    const companyName = input.companyName.trim();
+    const contactPersonName = input.contactPersonName.trim();
+    const contactPhone = input.contactPhone.trim();
+
+    if (!companyName || !contactPersonName || !contactPhone) {
+      throw new BadRequestException(
+        'Company name, contact person name, and contact phone are required',
+      );
+    }
+
     const user = await this.prisma.user.create({
       data: {
         email: input.email,
@@ -121,11 +140,13 @@ export class OnboardingService {
         roleId: resellerRole.id,
         resellerProfile: {
           create: {
-            // biller assigned later on approval; capture requestedBillerId if provided
-            requestedBillerId: input.requestedBillerId ?? null,
-            tier: input.tier,
-            creditLimit: input.creditLimit,
+            // biller, tier, and credit will be assigned during approval
+            tier: PrismaUserTier.BRONZE,
+            creditLimit: 0,
             profileStatus: PrismaProfileStatus.PENDING,
+            companyName,
+            contactPersonName,
+            contactPhone,
           },
         },
       },

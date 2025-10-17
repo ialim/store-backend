@@ -59,6 +59,7 @@ import { AnalyticsService } from '../analytics/analytics.service';
 import { UpdateQuotationInput } from './dto/update-quotation.input';
 import { WorkflowService } from '../../state/workflow.service';
 import { SaleOrder } from '@prisma/client';
+import { SystemSettingsService } from '../system-settings/system-settings.service';
 
 type PrismaCustomerClient = PrismaService | Prisma.TransactionClient;
 
@@ -94,17 +95,8 @@ export class SalesService {
     private analytics: AnalyticsService,
     private phaseCoordinator: PhaseCoordinator,
     private workflow: WorkflowService,
+    private readonly systemSettings: SystemSettingsService,
   ) {}
-  private readonly consumerPriceMarkup: number = (() => {
-    const raw = process.env.CONSUMER_PRICE_MARKUP_PERCENT ?? '0.05';
-    const parsed = Number.parseFloat(raw);
-    if (!Number.isFinite(parsed)) return 0.05;
-    const normalized = Math.max(
-      0,
-      Math.min(parsed / (parsed > 1 ? 100 : 1), 0.5),
-    );
-    return normalized;
-  })();
 
   private async ensureCustomerRecord(
     prisma: PrismaCustomerClient,
@@ -2186,7 +2178,10 @@ export class SalesService {
     if (!variant) throw new BadRequestException('Product variant not found');
     if (saleType === SaleType.CONSUMER) {
       const base = variant.price ?? 0;
-      return Number((base * (1 + this.consumerPriceMarkup)).toFixed(2));
+      const markup = await this.systemSettings.getNumber(
+        'CONSUMER_PRICE_MARKUP_PERCENT',
+      );
+      return Number((base * (1 + markup)).toFixed(2));
     }
     // reseller pricing
     if (!resellerId) return variant.resellerPrice;

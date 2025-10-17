@@ -1,23 +1,16 @@
 import { useState } from 'react';
-import { useApplyResellerMutation, UserTier } from '../generated/graphql';
-import { Alert, Box, Button, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
+import { useApplyResellerMutation } from '../generated/graphql';
+import { Alert, Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { notify } from '../shared/notify';
 
 
-const TIERS: UserTier[] = [
-  UserTier.Bronze,
-  UserTier.Silver,
-  UserTier.Gold,
-  UserTier.Platinum,
-];
-
 export default function ApplyReseller() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [requestedBillerId, setRequestedBillerId] = useState('');
-  const [tier, setTier] = useState<UserTier>(UserTier.Bronze);
-  const [creditLimit, setCreditLimit] = useState<number>(100000);
+  const [companyName, setCompanyName] = useState('');
+  const [contactPersonName, setContactPersonName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [apply, { loading }] = useApplyResellerMutation();
   const navigate = useNavigate();
@@ -25,12 +18,22 @@ export default function ApplyReseller() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!email || !password) {
-      setError('Email and password are required');
+    if (!email || !password || !companyName || !contactPersonName || !contactPhone) {
+      setError('All fields are required');
       return;
     }
     try {
-      await apply({ variables: { input: { email, password, requestedBillerId: requestedBillerId || null, tier, creditLimit } } });
+      await apply({
+        variables: {
+          input: {
+            email: email.trim(),
+            password,
+            companyName: companyName.trim(),
+            contactPersonName: contactPersonName.trim(),
+            contactPhone: contactPhone.trim(),
+          },
+        },
+      });
       notify('Application submitted. Await approval.', 'success');
       navigate('/login');
     } catch (err: any) {
@@ -46,18 +49,9 @@ export default function ApplyReseller() {
           {error && <Alert severity="error">{error}</Alert>}
           <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
           <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth />
-          <TextField label="Requested Biller ID (optional)" value={requestedBillerId} onChange={(e) => setRequestedBillerId(e.target.value)} helperText="Optionally request a specific biller by user ID" fullWidth />
-          <TextField
-            label="Tier"
-            select
-            value={tier}
-            onChange={(e) => setTier(e.target.value as UserTier)}
-          >
-            {TIERS.map((t) => (
-              <MenuItem key={t} value={t}>{t}</MenuItem>
-            ))}
-          </TextField>
-          <TextField label="Credit Limit" type="number" value={creditLimit} onChange={(e) => setCreditLimit(Number(e.target.value) || 0)} />
+          <TextField label="Company Name" value={companyName} onChange={(e) => setCompanyName(e.target.value)} fullWidth required />
+          <TextField label="Contact Person Name" value={contactPersonName} onChange={(e) => setContactPersonName(e.target.value)} fullWidth required />
+          <TextField label="Contact Phone" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} fullWidth required />
           <Button type="submit" variant="contained" disabled={loading}>
             {loading ? 'Submitting…' : 'Submit Application'}
           </Button>
