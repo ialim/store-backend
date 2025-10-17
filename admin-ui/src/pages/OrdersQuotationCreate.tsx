@@ -20,7 +20,14 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { CreateQuotationDraft } from '../operations/orders';
 import { notify } from '../shared/notify';
-import { StoreSelect, UserSelect, VariantSelect } from '../shared/IdSelects';
+import {
+  StoreSelect,
+  UserSelect,
+  VariantSelect,
+  ResellerSelect,
+} from '../shared/IdSelects';
+import { useAuth } from '../shared/AuthProvider';
+import { useMyResellerProfileQuery } from '../generated/graphql';
 
 type CreateQuotationDraftVariables = {
   input: {
@@ -52,16 +59,53 @@ type ItemFormRow = {
 
 export default function OrdersQuotationCreate() {
   const navigate = useNavigate();
-  const [type, setType] = React.useState<'CONSUMER' | 'RESELLER'>('CONSUMER');
+  const { hasRole, user } = useAuth();
+  const isReseller = hasRole('RESELLER');
+  const isCustomer = hasRole('CUSTOMER');
+  const isBiller = hasRole('BILLER');
+  const isPriceReadOnly = isReseller || isCustomer;
+  const [type, setType] = React.useState<'CONSUMER' | 'RESELLER'>(
+    isReseller ? 'RESELLER' : 'CONSUMER',
+  );
   const [channel, setChannel] = React.useState<'WEB' | 'APP' | 'IN_STORE'>('IN_STORE');
   const [storeId, setStoreId] = React.useState('');
   const [consumerId, setConsumerId] = React.useState('');
-  const [resellerId, setResellerId] = React.useState('');
-  const [billerId, setBillerId] = React.useState('');
+  const [resellerId, setResellerId] = React.useState(() =>
+    isReseller && user?.id ? user.id : '',
+  );
+  const [billerId, setBillerId] = React.useState(() =>
+    isBiller && user?.id ? user.id : '',
+  );
   const [items, setItems] = React.useState<ItemFormRow[]>([
     { productVariantId: '', quantity: '1', unitPrice: '0' },
   ]);
   const [formError, setFormError] = React.useState<string | null>(null);
+
+  const { data: myResellerData } = useMyResellerProfileQuery({
+    skip: !isReseller,
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const assignedResellerProfile = myResellerData?.myResellerProfile ?? null;
+  const assignedBillerId = assignedResellerProfile?.biller?.id ?? null;
+  const assignedBillerEmail = assignedResellerProfile?.biller?.email ?? '';
+  const resellerEmail = assignedResellerProfile?.user?.email ?? user?.email ?? '';
+
+  React.useEffect(() => {
+    if (isBiller && user?.id && billerId !== user.id) {
+      setBillerId(user.id);
+    }
+  }, [isBiller, user?.id, billerId]);
+
+  React.useEffect(() => {
+    if (!isReseller) return;
+    if (user?.id && resellerId !== user.id) {
+      setResellerId(user.id);
+    }
+    if (assignedBillerId && billerId !== assignedBillerId) {
+      setBillerId(assignedBillerId);
+    }
+  }, [isReseller, user?.id, resellerId, assignedBillerId, billerId]);
 
   const [createQuotation, { loading, error }] = useMutation<
     CreateQuotationDraftResponse,
@@ -106,6 +150,10 @@ export default function OrdersQuotationCreate() {
     }
     if (type === 'RESELLER' && !resellerId.trim()) {
       setFormError('Reseller ID is required for reseller quotations.');
+      return;
+    }
+    if (type === 'RESELLER' && !billerId.trim()) {
+      setFormError('Biller is required for reseller quotations.');
       return;
     }
 
@@ -189,6 +237,7 @@ export default function OrdersQuotationCreate() {
                   setType(next);
                   resetPartyFields(next);
                 }}
+                disabled={isReseller}
               >
                 {SALE_TYPES.map((option) => (
                   <MenuItem key={option} value={option}>
@@ -233,21 +282,49 @@ export default function OrdersQuotationCreate() {
               </Grid>
             ) : (
               <Grid item xs={12} md={4}>
-                <UserSelect
-                  value={resellerId}
-                  onChange={setResellerId}
-                  label="Reseller"
-                  placeholder="Search reseller email"
-                />
+                {isReseller ? (
+                  <TextField
+                    fullWidth
+                    label="Reseller"
+                    value={resellerEmail}
+                    InputProps={{ readOnly: true }}
+                  />
+                ) : (
+                  <ResellerSelect
+                    value={resellerId}
+                    onChange={setResellerId}
+                    label="Reseller"
+                    placeholder="Search reseller email"
+                  />
+                )}
               </Grid>
             )}
             <Grid item xs={12} md={4}>
-              <UserSelect
-                value={billerId}
-                onChange={setBillerId}
-                label="Biller"
-                placeholder="Search biller email"
-              />
+              {isBiller ? (
+                <TextField
+                  fullWidth
+                  label="Biller"
+                  value={user?.email ?? ''}
+                  InputProps={{ readOnly: true }}
+                />
+              ) : isReseller ? (
+                <TextField
+                  fullWidth
+                  label="Biller"
+                  value={assignedBillerEmail || '—'}
+                  InputProps={{ readOnly: true }}
+                  helperText={
+                    assignedBillerEmail ? undefined : 'No biller assigned yet'
+                  }
+                />
+              ) : (
+                <UserSelect
+                  value={billerId}
+                  onChange={setBillerId}
+                  label="Biller"
+                  placeholder="Search biller email"
+                />
+              )}
             </Grid>
           </Grid>
 
@@ -312,8 +389,16 @@ export default function OrdersQuotationCreate() {
                       type="number"
                       inputProps={{ min: 0, step: '0.01' }}
                       value={item.unitPrice}
-                      onChange={(event) =>
-                        handleItemChange(index, 'unitPrice', event.target.value)
+                      InputProps={{ readOnly: isPriceReadOnly }}
+                      onChange={
+                        isPriceReadOnly
+                          ? undefined
+                          : (event) =>
+                              handleItemChange(
+                                index,
+                                'unitPrice',
+                                event.target.value,
+                              )
                       }
                       required
                     />

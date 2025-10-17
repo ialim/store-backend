@@ -124,7 +124,13 @@ export class InvoiceImportQueue {
     if (typeof value === 'symbol') {
       return this.sanitizeString(value.toString());
     }
-    return this.sanitizeString(String(value));
+    if (typeof value === 'bigint') {
+      return this.sanitizeString(value.toString());
+    }
+    if (typeof value === 'function') {
+      return this.sanitizeString(value.name || '[function]');
+    }
+    return this.sanitizeString('');
   }
 
   private async processImport(

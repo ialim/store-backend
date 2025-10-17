@@ -12,7 +12,10 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import TableList from '../shared/TableList';
 import { ListingHero } from '../shared/ListingLayout';
 import { formatMoney } from '../shared/format';
-import { Orders } from '../operations/orders';
+import { Orders, OrderBillers } from '../operations/orders';
+import { Stores } from '../operations/stores';
+import { useAuth } from '../shared/AuthProvider';
+import { PERMISSIONS } from '../shared/permissions';
 
 type FulfillmentSummary = {
   id: string;
@@ -29,15 +32,57 @@ type OrderRow = {
   type: string;
   status: string;
   phase: string;
+  saleWorkflowState?: string | null;
+  saleWorkflowSummary?: {
+    saleOrderId: string;
+    outstanding: number;
+    canAdvanceByPayment: boolean;
+    canAdvanceByCredit: boolean;
+  } | null;
+  fulfillmentWorkflowState?: string | null;
   totalAmount: number;
   createdAt: string;
   updatedAt: string;
   resellerSaleid?: string | null;
+  quotation?: {
+    id: string;
+    status: string;
+    type: string;
+    billerId?: string | null;
+    resellerId?: string | null;
+    totalAmount: number;
+    updatedAt: string;
+  } | null;
   fulfillment?: FulfillmentSummary | null;
+  biller?: {
+    id: string;
+    email: string;
+    customerProfile?: { fullName?: string | null } | null;
+  } | null;
 };
 
 type OrdersQueryData = {
   ordersQuery: OrderRow[];
+};
+
+type StoreInfo = {
+  id: string;
+  name: string;
+  location?: string | null;
+};
+
+type StoreListData = {
+  listStores: StoreInfo[];
+};
+
+type BillerInfo = {
+  id: string;
+  email: string;
+  customerProfile?: { fullName?: string | null } | null;
+};
+
+type ListBillersData = {
+  orderBillers: BillerInfo[];
 };
 
 function formatDate(value?: string | null) {
@@ -65,12 +110,60 @@ function statusColor(status?: string) {
   }
 }
 
+function formatStoreLabel(
+  store?: StoreInfo | null,
+  fallback?: string | null,
+): string {
+  if (!store) return fallback ?? '—';
+  const location = store.location?.trim();
+  return location?.length ? `${store.name} • ${location}` : store.name;
+}
+
+function formatBillerLabel(
+  biller?: BillerInfo | null,
+  fallback?: string | null,
+): string {
+  const fullName = biller?.customerProfile?.fullName?.trim();
+  if (fullName) return fullName;
+  const email = biller?.email?.trim();
+  if (email) return email;
+  return fallback ?? '—';
+}
+
 export default function OrdersPage() {
   const navigate = useNavigate();
   const [search, setSearch] = React.useState('');
   const { data, loading, error, refetch } = useQuery<OrdersQueryData>(Orders, {
     fetchPolicy: 'cache-and-network',
   });
+  const { hasPermission } = useAuth();
+  const canLoadStores = hasPermission(PERMISSIONS.store.READ as string);
+  const canLoadBillers = hasPermission(PERMISSIONS.order.READ as string);
+  const { data: storesData } = useQuery<StoreListData>(Stores, {
+    variables: { take: 500 },
+    fetchPolicy: 'cache-first',
+    skip: !canLoadStores,
+  });
+  const { data: billersData } = useQuery<ListBillersData>(OrderBillers, {
+    fetchPolicy: 'cache-first',
+    skip: !canLoadBillers,
+  });
+
+  const storeMap = React.useMemo(() => {
+    const entries = storesData?.listStores?.map((store) => [
+      store.id,
+      formatStoreLabel(store, store.id),
+    ]) as Array<[string, string]> | undefined;
+    return new Map(entries ?? []);
+  }, [storesData]);
+
+  const billerMap = React.useMemo(() => {
+    const entries = billersData?.orderBillers?.map((biller) => [
+      biller.id,
+      formatBillerLabel(biller, biller.id),
+    ]) as Array<[string, string]> | undefined;
+    return new Map(entries ?? []);
+  }, [billersData]);
 
   const orders = data?.ordersQuery ?? [];
   const normalizedSearch = search.trim().toLowerCase();
@@ -81,18 +174,24 @@ export default function OrdersPage() {
         order.id,
         order.storeId,
         order.billerId,
+        storeMap.get(order.storeId),
+        billerMap.get(order.billerId) ?? formatBillerLabel(order.biller, order.billerId),
         order.status,
         order.phase,
         order.type,
         order.resellerSaleid,
+        order.saleWorkflowState,
+        order.saleWorkflowSummary?.outstanding?.toString(),
+        order.fulfillmentWorkflowState,
         order.fulfillment?.status,
+        order.quotation?.status,
       ]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
       return text.includes(normalizedSearch);
     });
-  }, [orders, normalizedSearch]);
+  }, [orders, normalizedSearch, storeMap, billerMap]);
 
   const columns = React.useMemo(
     () => [
@@ -124,6 +223,50 @@ export default function OrdersPage() {
         sort: true,
       },
       {
+        key: 'saleWorkflowState',
+        label: 'Sale State',
+        render: (row: OrderRow) =>
+          row.saleWorkflowState ? (
+            <Chip
+              size="small"
+              label={row.saleWorkflowState}
+              color={statusColor(row.saleWorkflowState) as any}
+            />
+          ) : (
+            '—'
+          ),
+        accessor: (row: OrderRow) => row.saleWorkflowState ?? '',
+        sort: true,
+      },
+      {
+        key: 'outstanding',
+        label: 'Outstanding (₦)',
+        align: 'right' as const,
+        render: (row: OrderRow) =>
+          row.saleWorkflowSummary
+            ? formatMoney(row.saleWorkflowSummary.outstanding)
+            : '—',
+        accessor: (row: OrderRow) =>
+          row.saleWorkflowSummary?.outstanding ?? 0,
+        sort: true,
+      },
+      {
+        key: 'quotationStatus',
+        label: 'Quotation',
+        render: (row: OrderRow) =>
+          row.quotation?.status ? (
+            <Chip
+              size="small"
+              label={row.quotation.status}
+              color={statusColor(row.quotation.status) as any}
+            />
+          ) : (
+            '—'
+          ),
+        accessor: (row: OrderRow) => row.quotation?.status || '',
+        sort: true,
+      },
+      {
         key: 'phase',
         label: 'Phase',
         render: (row: OrderRow) => row.phase,
@@ -141,20 +284,30 @@ export default function OrdersPage() {
       {
         key: 'store',
         label: 'Store',
-        render: (row: OrderRow) => row.storeId,
-        accessor: (row: OrderRow) => row.storeId,
+        render: (row: OrderRow) =>
+          storeMap.get(row.storeId) ?? formatStoreLabel(null, row.storeId),
+        accessor: (row: OrderRow) =>
+          storeMap.get(row.storeId) ?? formatStoreLabel(null, row.storeId),
         sort: true,
       },
       {
         key: 'biller',
         label: 'Biller',
-        render: (row: OrderRow) => row.billerId || '—',
+        render: (row: OrderRow) =>
+          billerMap.get(row.billerId) ?? formatBillerLabel(row.biller, row.billerId),
       },
       {
         key: 'fulfillment',
         label: 'Fulfillment',
         render: (row: OrderRow) =>
-          row.fulfillment ? (
+          row.fulfillmentWorkflowState ? (
+            <Chip
+              size="small"
+              label={row.fulfillmentWorkflowState}
+              color={statusColor(row.fulfillmentWorkflowState) as any}
+              icon={<ReceiptLongIcon fontSize="small" />}
+            />
+          ) : row.fulfillment ? (
             <Chip
               size="small"
               label={row.fulfillment.status}
@@ -173,7 +326,7 @@ export default function OrdersPage() {
         sort: true,
       },
     ],
-    []
+    [storeMap, billerMap]
   );
 
   const summary = React.useMemo(() => {

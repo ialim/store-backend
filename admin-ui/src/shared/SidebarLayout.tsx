@@ -6,6 +6,7 @@ import {
   Box,
   Button,
   ButtonBase,
+  CircularProgress,
   Collapse,
   CssBaseline,
   Divider,
@@ -16,6 +17,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Popover,
   Paper,
   Stack,
   Typography,
@@ -30,6 +32,7 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import LocalMallIcon from '@mui/icons-material/LocalMall';
 import StoreIcon from '@mui/icons-material/Store';
 import PlaceIcon from '@mui/icons-material/Place';
+import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import PeopleIcon from '@mui/icons-material/People';
 import ListAltIcon from '@mui/icons-material/ListAlt';
@@ -47,7 +50,11 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { useAuth } from './AuthProvider';
 import { notify } from './notify';
-import { useHeaderNotificationsQuery, useMeQuery } from '../generated/graphql';
+import {
+  useHeaderNotificationsQuery,
+  useMarkNotificationAsReadMutation,
+  useMeQuery,
+} from '../generated/graphql';
 import { PERMISSIONS, permissionList } from './permissions';
 
 const drawerWidth = 272;
@@ -62,6 +69,9 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
   const [searchTerm, setSearchTerm] = React.useState('');
   const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
   const { data: meData } = useMeQuery({ skip: !token, fetchPolicy: 'cache-and-network' as any });
+  const [notificationsAnchorEl, setNotificationsAnchorEl] = React.useState<HTMLElement | null>(null);
+  const notificationsOpen = Boolean(notificationsAnchorEl);
+  const [markNotificationAsReadMutation] = useMarkNotificationAsReadMutation();
 
   const analyticsRead = permissionList(PERMISSIONS.analytics.READ);
   const assignmentAccess = permissionList(
@@ -75,6 +85,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     PERMISSIONS.product.DELETE,
   );
   const orderRead = permissionList(PERMISSIONS.order.READ);
+  const saleRead = permissionList(PERMISSIONS.sale.READ);
   const userManage = permissionList(
     PERMISSIONS.user.CREATE,
     PERMISSIONS.user.READ,
@@ -89,12 +100,82 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     PERMISSIONS.role.DELETE,
   );
   const addressRead = permissionList(PERMISSIONS.address.READ);
+  const fulfillmentAccess = permissionList(PERMISSIONS.sale.UPDATE);
+  const isRider = hasRole('RIDER');
+  const isBiller = hasRole('BILLER');
 
   const toggleMobileDrawer = () => setMobileOpen((prev) => !prev);
   const [collapsedSections, setCollapsedSections] = React.useState<Record<string, boolean>>({});
 
   const toggleSectionCollapse = React.useCallback((key: string) => {
     setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const handleNotificationsButtonClick = React.useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      const target = event.currentTarget;
+      setNotificationsAnchorEl((current) => (current ? null : target));
+    },
+    [],
+  );
+
+  const handleCloseNotifications = React.useCallback(() => {
+    setNotificationsAnchorEl(null);
+  }, []);
+
+  const handleNotificationItemClick = React.useCallback(
+    async (notificationId: string, isRead: boolean) => {
+      if (isRead) return;
+      try {
+        await markNotificationAsReadMutation({
+          variables: { id: notificationId },
+          optimisticResponse: {
+            markAsRead: {
+              __typename: 'Notification',
+              id: notificationId,
+              isRead: true,
+            },
+          },
+          update: (cache, { data }) => {
+            const updated = data?.markAsRead;
+            if (!updated) return;
+            const cacheId = cache.identify({
+              __typename: 'Notification',
+              id: updated.id,
+            });
+            if (cacheId) {
+              cache.modify({
+                id: cacheId,
+                fields: {
+                  isRead: () => true,
+                },
+              });
+            }
+          },
+        });
+      } catch (error) {
+        console.error('Failed to mark notification as read', error);
+      }
+    },
+    [markNotificationAsReadMutation],
+  );
+
+  const formatNotificationTimestamp = React.useCallback((value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+    const diffMs = Date.now() - date.getTime();
+    if (diffMs < 60_000) return 'Just now';
+    if (diffMs < 3_600_000) {
+      const mins = Math.floor(diffMs / 60_000);
+      return `${mins} min${mins === 1 ? '' : 's'} ago`;
+    }
+    if (diffMs < 86_400_000) {
+      const hours = Math.floor(diffMs / 3_600_000);
+      return `${hours} hr${hours === 1 ? '' : 's'} ago`;
+    }
+    return date.toLocaleString();
   }, []);
 
   const sections: Array<{
@@ -112,52 +193,64 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           label: 'Products',
           to: '/products',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-            hasPermission(...productRead, ...productWrite),
+            !isRider &&
+            (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+              hasPermission(...productRead, ...productWrite)),
           icon: <Inventory2Icon fontSize="small" />,
         },
-        { label: 'Variants', to: '/variants', show: true, icon: <Inventory2Icon fontSize="small" /> },
+        {
+          label: 'Variants',
+          to: '/variants',
+          show: !isRider,
+          icon: <Inventory2Icon fontSize="small" />,
+        },
         {
           label: 'Import Variants',
           to: '/variants/import',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-            hasPermission(...productWrite),
+            !isRider &&
+            (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+              hasPermission(...productWrite)),
           icon: <CloudUploadIcon fontSize="small" />,
         },
         {
           label: 'Assets',
           to: '/assets',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-            hasPermission(...productWrite),
+            !isRider &&
+            (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+              hasPermission(...productWrite)),
           icon: <PhotoLibraryIcon fontSize="small" />,
         },
         {
           label: 'Collections',
           to: '/collections',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-            hasPermission(...productWrite),
+            !isRider &&
+            (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+              hasPermission(...productWrite)),
           icon: <AssignmentIcon fontSize="small" />,
         },
         {
           label: 'Facets',
           to: '/facets',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-            hasPermission(...productWrite),
+            !isRider &&
+            (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+              hasPermission(...productWrite)),
           icon: <AssignmentIcon fontSize="small" />,
         },
-        { label: 'Stock', to: '/stock', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <Inventory2Icon fontSize="small" /> },
-        { label: 'Stores', to: '/stores', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <StoreIcon fontSize="small" /> },
         {
-          label: 'Addresses',
-          to: '/addresses',
-          show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-            hasPermission(...addressRead),
-          icon: <PlaceIcon fontSize="small" />,
+          label: 'Stock',
+          to: '/stock',
+          show: !isRider && hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <Inventory2Icon fontSize="small" />,
+        },
+        {
+          label: 'Stores',
+          to: '/stores',
+          show: !isRider && hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <StoreIcon fontSize="small" />,
         },
       ],
     },
@@ -170,24 +263,28 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           label: 'Orders',
           to: '/orders',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
-            hasPermission(...orderRead),
+            !isBiller &&
+            (hasRole(
+              'SUPERADMIN',
+              'ADMIN',
+              'MANAGER',
+              'ACCOUNTANT',
+              'RESELLER',
+            ) || hasPermission(...orderRead, ...saleRead)),
           icon: <ReceiptLongIcon fontSize="small" />,
-        },
-        {
-          label: 'Quotations',
-          to: '/orders/quotations',
-          show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
-            hasPermission(...orderRead),
-          icon: <AssignmentIcon fontSize="small" />,
         },
         {
           label: 'Sales',
           to: '/orders/sales',
           show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
-            hasPermission(...orderRead),
+            !isBiller &&
+            (hasRole(
+              'SUPERADMIN',
+              'ADMIN',
+              'MANAGER',
+              'ACCOUNTANT',
+              'RESELLER',
+            ) || hasPermission(...orderRead, ...saleRead)),
           icon: <LocalMallIcon fontSize="small" />,
         },
       ],
@@ -230,6 +327,35 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       ],
     },
     {
+      key: 'fulfillment',
+      label: 'Fulfillment',
+      collapsible: true,
+      items: [
+        {
+          label: 'Fulfillments',
+          to: '/fulfillments',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT', 'RIDER') ||
+            hasPermission(...fulfillmentAccess),
+          icon: <LocalShippingIcon fontSize="small" />,
+        },
+        {
+          label: 'Addresses',
+          to: '/addresses',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
+            hasPermission(...addressRead),
+          icon: <PlaceIcon fontSize="small" />,
+        },
+        {
+          label: 'Riders',
+          to: '/riders',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <DeliveryDiningIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
       key: 'customers',
       label: 'Customer Management',
       collapsible: true,
@@ -245,8 +371,16 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           to: '/customers/sales',
           show:
             hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
-            hasPermission(...orderRead),
+            hasPermission(...orderRead, ...saleRead),
           icon: <LocalMallIcon fontSize="small" />,
+        },
+        {
+          label: 'Customer Quotations',
+          to: '/orders/quotations/customer',
+          show:
+            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
+            hasPermission(...orderRead),
+          icon: <AssignmentIcon fontSize="small" />,
         },
       ],
     },
@@ -266,8 +400,22 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           to: '/resellers/sales',
           show:
             hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT') ||
-            hasPermission(...orderRead),
+            hasPermission(...orderRead, ...saleRead),
           icon: <ReceiptLongIcon fontSize="small" />,
+        },
+        {
+          label: 'Reseller Quotations',
+          to: '/orders/quotations/reseller',
+          show:
+            hasRole(
+              'SUPERADMIN',
+              'ADMIN',
+              'MANAGER',
+              'BILLER',
+              'ACCOUNTANT',
+              'RESELLER',
+            ) || hasPermission(...orderRead, ...saleRead),
+          icon: <AssignmentIcon fontSize="small" />,
         },
         {
           label: 'Reseller Approvals',
@@ -351,14 +499,6 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
             hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT') ||
             hasPermission(...analyticsRead),
           icon: <DashboardIcon fontSize="small" />,
-        },
-        {
-          label: 'Fulfillment',
-          to: '/fulfillment',
-          show:
-            hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER') ||
-            hasPermission(...assignmentAccess),
-          icon: <LocalShippingIcon fontSize="small" />,
         },
         {
           label: 'Low Stock',
@@ -748,6 +888,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
   const {
     data: headerNotificationsData,
+    loading: notificationsLoading,
     startPolling,
     stopPolling,
     refetch: refetchNotifications,
@@ -791,10 +932,16 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     };
   }, [token, startPolling, stopPolling, refetchNotifications]);
 
-  const unreadCount = React.useMemo(() => {
-    const notifications = headerNotificationsData?.notifications ?? [];
-    return notifications.reduce((count, notification) => (notification.isRead ? count : count + 1), 0);
-  }, [headerNotificationsData?.notifications]);
+  const notifications = headerNotificationsData?.notifications ?? [];
+
+  const unreadCount = React.useMemo(
+    () =>
+      notifications.reduce(
+        (count, notification) => (notification.isRead ? count : count + 1),
+        0,
+      ),
+    [notifications],
+  );
 
   const hasUnread = unreadCount > 0;
   const cappedUnread = unreadCount > 9 ? '9+' : unreadCount;
@@ -924,7 +1071,13 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
                 <ChatBubbleOutlineIcon />
               </Badge>
             </IconButton>
-            <IconButton sx={headerActionButtonSx}>
+            <IconButton
+              sx={headerActionButtonSx}
+              onClick={handleNotificationsButtonClick}
+              aria-haspopup="true"
+              aria-expanded={notificationsOpen ? 'true' : undefined}
+              aria-controls={notificationsOpen ? 'header-notifications-popover' : undefined}
+            >
               <Badge
                 color="error"
                 overlap="circular"
@@ -962,9 +1115,6 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           Store Admin
         </Typography>
         <Stack direction="row" spacing={1.5}>
-          <Button component={Link} to="/variants" variant="outlined" color="success">
-            Variants
-          </Button>
           <Button component={Link} to="/login" variant="contained" color="success">
             Login
           </Button>
@@ -1020,6 +1170,99 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         }}
       >
         {headerContent}
+        <Popover
+          id="header-notifications-popover"
+          open={notificationsOpen}
+          anchorEl={notificationsAnchorEl}
+          onClose={handleCloseNotifications}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          PaperProps={{
+            sx: {
+              width: 320,
+              maxWidth: '90vw',
+              p: 1.5,
+              mt: 1,
+              boxShadow: '0 18px 36px rgba(16, 94, 62, 0.16)',
+              borderRadius: 2,
+            },
+          }}
+        >
+          <Stack spacing={1.5}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between">
+              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                Notifications
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+              </Typography>
+            </Stack>
+            <Divider />
+            {notificationsLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                <CircularProgress size={20} />
+              </Box>
+            ) : notifications.length ? (
+              <List
+                dense
+                disablePadding
+                sx={{ maxHeight: 360, overflowY: 'auto', pr: 0.5, mr: -0.5 }}
+              >
+                {notifications.map((notification) => (
+                  <ListItemButton
+                    key={notification.id}
+                    onClick={() =>
+                      void handleNotificationItemClick(notification.id, notification.isRead)
+                    }
+                    sx={{
+                      alignItems: 'flex-start',
+                      borderRadius: 1.5,
+                      mb: 0.5,
+                      transition: 'background-color 140ms ease',
+                      ...(notification.isRead
+                        ? {}
+                        : {
+                            bgcolor: alpha(theme.palette.success.main, 0.08),
+                          }),
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 32, mt: 0.25 }}>
+                      <Badge
+                        color="error"
+                        variant="dot"
+                        overlap="circular"
+                        invisible={notification.isRead}
+                      >
+                        <NotificationsNoneIcon fontSize="small" />
+                      </Badge>
+                    </ListItemIcon>
+                    <ListItemText
+                      primaryTypographyProps={{
+                        variant: 'body2',
+                        sx: { fontWeight: notification.isRead ? 400 : 600 },
+                      }}
+                      secondaryTypographyProps={{
+                        variant: 'caption',
+                        sx: { color: 'text.secondary' },
+                      }}
+                      primary={notification.message}
+                      secondary={formatNotificationTimestamp(notification.createdAt)}
+                    />
+                  </ListItemButton>
+                ))}
+              </List>
+            ) : (
+              <Box sx={{ py: 4, textAlign: 'center', px: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  You&apos;re all caught up
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  No notifications to display right now.
+                </Typography>
+              </Box>
+            )}
+          </Stack>
+        </Popover>
         <Box sx={{ flexGrow: 1, px: { xs: 2, md: 4 }, pb: { xs: 4, md: 6 } }}>
           <Box sx={{ maxWidth: 1180, mx: 'auto', width: '100%' }}>{children}</Box>
         </Box>

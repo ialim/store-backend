@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client';
 import {
   Alert,
   Chip,
@@ -22,10 +22,12 @@ import TableList from '../shared/TableList';
 import { formatMoney } from '../shared/format';
 import {
   QuotationDetail,
-  StoreSummary,
-  UsersByIds,
+  QuotationContext,
   ProductVariantsByIds,
+  UpdateQuotationStatus,
 } from '../operations/orders';
+import { useAuth } from '../shared/AuthProvider';
+import { PERMISSIONS } from '../shared/permissions';
 
 type QuotationDetailData = {
   quotation: {
@@ -55,23 +57,29 @@ type QuotationDetailData = {
   };
 };
 
-type StoreSummaryData = {
-  listStores: Array<{
-    id: string;
-    name: string;
-    location?: string | null;
-  }>;
-};
-
-type UsersByIdsData = {
-  listUsers: Array<{
-    id: string;
-    email: string;
-    customerProfile?: {
-      fullName: string;
-      email?: string | null;
+type QuotationContextData = {
+  quotationContext?: {
+    store?: {
+      id: string;
+      name?: string | null;
+      location?: string | null;
     } | null;
-  }>;
+    biller?: {
+      id: string;
+      email?: string | null;
+      fullName?: string | null;
+    } | null;
+    reseller?: {
+      id: string;
+      email?: string | null;
+      fullName?: string | null;
+    } | null;
+    consumer?: {
+      id: string;
+      email?: string | null;
+      fullName?: string | null;
+    } | null;
+  };
 };
 
 type ProductVariantsByIdsData = {
@@ -107,6 +115,7 @@ function statusChip(status?: string) {
 export default function OrdersQuotationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { hasRole, hasPermission, user } = useAuth();
   const { data, loading, error, refetch } = useQuery<QuotationDetailData>(
     QuotationDetail,
     {
@@ -115,36 +124,85 @@ export default function OrdersQuotationDetail() {
       fetchPolicy: 'cache-and-network',
     },
   );
+  const [actionError, setActionError] = React.useState<string | null>(null);
+  const [updateStatus, { loading: updatingStatus }] = useMutation(
+    UpdateQuotationStatus,
+  );
 
   const quotation = data?.quotation;
+  const isReseller = hasRole('RESELLER');
+  const normalizedStatus = (quotation?.status || '').toUpperCase();
+  const privilegedRoles = React.useMemo(
+    () => ['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER'],
+    [],
+  );
+  const orderUpdatePermission =
+    PERMISSIONS.order.UPDATE ?? 'ORDER_UPDATE';
+  const hasOrderUpdatePermission = hasPermission(orderUpdatePermission);
+  const canManageQuotation =
+    hasOrderUpdatePermission ||
+    privilegedRoles.some((role) => hasRole(role));
+  const ownsQuotation =
+    isReseller && quotation?.resellerId && quotation.resellerId === user?.id;
+  const isCustomer = hasRole('CUSTOMER');
+  const ownsConsumerQuotation =
+    isCustomer && quotation?.consumerId && quotation.consumerId === user?.id;
+  const isDraft = normalizedStatus === 'DRAFT';
+  const isSent = normalizedStatus === 'SENT';
+  const isConfirmed = normalizedStatus === 'CONFIRMED';
+  const isApproved = normalizedStatus === 'APPROVED';
+  const editableStatus = isDraft || isSent;
+  const privilegedEditor = hasRole('SUPERADMIN', 'ADMIN', 'MANAGER');
+  const canEdit =
+    quotation &&
+    editableStatus &&
+    (ownsQuotation || canManageQuotation || privilegedEditor);
+  const canApprove =
+    quotation && !isReseller && canManageQuotation && !isApproved;
+  const approvalReady = isConfirmed;
+  const approveDisabled = !approvalReady;
+  const approvalTooltip = approveDisabled
+    ? 'Quotation must be confirmed before approval'
+    : 'Approve quotation and convert to a sale';
+  const canRejectStaff =
+    quotation && !isReseller && canManageQuotation && (isDraft || isSent);
+  const resellerCanConfirm = ownsQuotation && (isDraft || isSent);
+  const resellerCanReject = ownsQuotation && (isDraft || isSent);
+  const customerCanConfirm = ownsConsumerQuotation && (isDraft || isSent);
+  const customerCanReject = ownsConsumerQuotation && (isDraft || isSent);
+  const stakeholderCanConfirmBase = resellerCanConfirm || customerCanConfirm;
+  const stakeholderCanReject = resellerCanReject || customerCanReject;
 
-  const storeId = quotation?.storeId ?? '';
-  const { data: storeData } = useQuery<StoreSummaryData>(StoreSummary, {
-    variables: { id: storeId },
-    skip: !storeId,
+  const handleStatusChange = React.useCallback(
+    async (status: string) => {
+      if (!quotation) return;
+      setActionError(null);
+      try {
+        await updateStatus({
+          variables: {
+            input: {
+              id: quotation.id,
+              status,
+            },
+          },
+        });
+        await refetch();
+      } catch (mutationErr: any) {
+        setActionError(
+          mutationErr?.message ||
+            'Failed to update quotation status. Please try again.',
+        );
+      }
+    },
+    [quotation, updateStatus, refetch],
+  );
+
+  const { data: contextData } = useQuery<QuotationContextData>(QuotationContext, {
+    variables: { id: id ?? '' },
+    skip: !id,
+    fetchPolicy: 'cache-and-network',
   });
-  const storeInfo = storeData?.listStores?.[0] ?? null;
-
-  const userIds = React.useMemo(() => {
-    const ids = new Set<string>();
-    if (quotation?.consumerId) ids.add(quotation.consumerId);
-    if (quotation?.resellerId) ids.add(quotation.resellerId);
-    if (quotation?.billerId) ids.add(quotation.billerId);
-    return Array.from(ids);
-  }, [quotation?.consumerId, quotation?.resellerId, quotation?.billerId]);
-
-  const { data: usersData } = useQuery<UsersByIdsData>(UsersByIds, {
-    variables: { ids: userIds, take: userIds.length },
-    skip: userIds.length === 0,
-  });
-
-  const userMap = React.useMemo(() => {
-    const map: Record<string, UsersByIdsData['listUsers'][number]> = {};
-    (usersData?.listUsers ?? []).forEach((user) => {
-      map[user.id] = user;
-    });
-    return map;
-  }, [usersData?.listUsers]);
+  const context = contextData?.quotationContext;
 
   const variantIds = React.useMemo(() => {
     if (!quotation) return [] as string[];
@@ -168,37 +226,47 @@ export default function OrdersQuotationDetail() {
     return map;
   }, [variantsData?.listProductVariants]);
 
+  const storeInfo = context?.store || null;
   const storeLabel = storeInfo
-    ? `${storeInfo.name}${storeInfo.location ? ` • ${storeInfo.location}` : ''}`
-    : '—';
+    ? [storeInfo.name, storeInfo.location]
+        .filter((part): part is string => Boolean(part?.trim()))
+        .join(' • ') || storeInfo.id
+    : quotation?.storeId ?? '—';
   const storeIdLabel = storeInfo?.id ?? quotation?.storeId ?? '—';
 
-  const consumerUser = quotation?.consumerId
-    ? userMap[quotation.consumerId]
-    : undefined;
-  const resellerUser = quotation?.resellerId
-    ? userMap[quotation.resellerId]
-    : undefined;
-  const billerUser = quotation?.billerId ? userMap[quotation.billerId] : undefined;
+  const billerInfo = context?.biller || null;
+  const resellerInfo = context?.reseller || null;
+  const consumerInfo = context?.consumer || null;
 
-  const consumerLabel = consumerUser
-    ? consumerUser.customerProfile?.fullName
-      ? `${consumerUser.customerProfile.fullName}${
-          consumerUser.email ? ` (${consumerUser.email})` : ''
-        }`
-      : consumerUser.email
-    : '—';
-
-  const resellerLabel = resellerUser?.email ?? '—';
-  const billerLabel = billerUser?.email ?? '—';
-  const billerId = quotation?.billerId ?? null;
+  const billerLabel =
+    billerInfo?.fullName ||
+    billerInfo?.email ||
+    quotation?.billerId ||
+    '—';
+  const billerId = billerInfo?.id ?? quotation?.billerId ?? null;
+  const resellerLabel =
+    resellerInfo?.fullName ||
+    resellerInfo?.email ||
+    quotation?.resellerId ||
+    '—';
+  const consumerLabel =
+    consumerInfo?.fullName ||
+    consumerInfo?.email ||
+    quotation?.consumerId ||
+    '—';
 
   const partyLabel =
     quotation?.type === 'RESELLER' ? resellerLabel : consumerLabel;
   const partyId =
     quotation?.type === 'RESELLER'
-      ? quotation?.resellerId || '—'
-      : quotation?.consumerId || '—';
+      ? resellerInfo?.id || quotation?.resellerId || '—'
+      : consumerInfo?.id || quotation?.consumerId || '—';
+
+  const isQuotationBiller = Boolean(
+    user?.id && (billerId === user.id || quotation?.billerId === user.id),
+  );
+  const billerCanConfirm = isQuotationBiller && (isDraft || isSent);
+  const stakeholderCanConfirm = stakeholderCanConfirmBase || billerCanConfirm;
 
   type QuotationItemRow = NonNullable<QuotationDetailData['quotation']>['items'][number];
 
@@ -251,7 +319,12 @@ export default function OrdersQuotationDetail() {
 
   return (
     <Stack spacing={3}>
-      <Stack direction="row" spacing={1.5} alignItems="center">
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        spacing={1.5}
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+        justifyContent="space-between"
+      >
         <Stack direction="row" spacing={1} alignItems="center">
           <Tooltip title="Back to Quotations">
             <IconButton onClick={() => navigate('/orders/quotations')}>
@@ -267,16 +340,67 @@ export default function OrdersQuotationDetail() {
             </Typography>
           </Box>
         </Stack>
-        {id && (
-          <Button
-            variant="outlined"
-            startIcon={<EditOutlinedIcon />}
-            onClick={() => navigate(`/orders/quotations/${id}/edit`)}
+        {quotation &&
+          (canEdit ||
+            canApprove ||
+            canRejectStaff ||
+            stakeholderCanConfirm ||
+            stakeholderCanReject) && (
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1}
+            alignItems={{ xs: 'stretch', sm: 'center' }}
           >
-            Edit Quotation
-          </Button>
+            {canEdit && (
+              <Button
+                variant="outlined"
+                startIcon={<EditOutlinedIcon />}
+                onClick={() => navigate(`/orders/quotations/${quotation.id}/edit`)}
+              >
+                Edit Quotation
+              </Button>
+            )}
+            {(canRejectStaff || stakeholderCanReject) && (
+              <Button
+                variant="outlined"
+                color="error"
+                disabled={updatingStatus}
+                onClick={() => handleStatusChange('REJECTED')}
+              >
+                Reject
+              </Button>
+            )}
+            {stakeholderCanConfirm && (
+              <Button
+                variant="contained"
+                disabled={updatingStatus}
+                onClick={() => handleStatusChange('CONFIRMED')}
+              >
+                Confirm
+              </Button>
+            )}
+            {canApprove && (
+              <Tooltip title={approvalTooltip} disableHoverListener={!approveDisabled}>
+                <span>
+                  <Button
+                    variant="contained"
+                    disabled={updatingStatus || approveDisabled}
+                    onClick={() => handleStatusChange('APPROVED')}
+                  >
+                    Approve &amp; Convert
+                  </Button>
+                </span>
+              </Tooltip>
+            )}
+          </Stack>
         )}
       </Stack>
+
+      {actionError && (
+        <Alert severity="error" onClose={() => setActionError(null)}>
+          {actionError}
+        </Alert>
+      )}
 
       {loading && !quotation && (
         <Stack

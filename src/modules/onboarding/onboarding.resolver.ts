@@ -90,6 +90,14 @@ export class OnboardingResolver {
     return this.onboardingService.listBillers();
   }
 
+  @Query(() => [User])
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.order.READ as string)
+  orderBillers() {
+    return this.onboardingService.listBillers();
+  }
+
   @Query(() => [ResellerProfile])
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
@@ -104,12 +112,39 @@ export class OnboardingResolver {
     return this.onboardingService.listResellers({ status, take, skip, q });
   }
 
+  @Query(() => [ResellerProfile])
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT')
+  @Permissions(PERMISSIONS.order.READ as string)
+  orderResellers(
+    @Args('q', { nullable: true }) q?: string,
+    @Args('take', { type: () => Int, nullable: true }) take?: number,
+    @CurrentUser() user?: AuthenticatedUser,
+  ) {
+    return this.onboardingService.listResellers({
+      status: 'ACTIVE',
+      q,
+      take: take ?? 25,
+      billerId: user?.role?.name === 'BILLER' && user.id ? user.id : undefined,
+    });
+  }
+
   @Query(() => ResellerProfile, { nullable: true })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'MANAGER')
   @Permissions(PERMISSIONS.resellerProfile.READ as string)
   resellerProfile(@Args('userId') userId: string) {
     return this.onboardingService.getResellerProfile(userId);
+  }
+
+  @Query(() => ResellerProfile, { nullable: true })
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('RESELLER')
+  myResellerProfile(@CurrentUser() user: AuthenticatedUser | undefined) {
+    if (!user?.id) {
+      throw new UnauthorizedException('Missing authenticated user');
+    }
+    return this.onboardingService.getResellerProfile(user.id);
   }
 
   @Mutation(() => ResellerProfile)

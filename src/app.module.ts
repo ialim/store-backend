@@ -28,6 +28,7 @@ import { HealthController } from './modules/health/health.controller';
 import { AssetModule } from './modules/asset/asset.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { AddressModule } from './modules/address/address.module';
+import { RoutingModule } from './modules/routing/routing.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { AddressModule } from './modules/address/address.module';
     AssetModule,
     RolesModule,
     AddressModule,
+    RoutingModule,
   ],
   controllers: [HealthController],
 })

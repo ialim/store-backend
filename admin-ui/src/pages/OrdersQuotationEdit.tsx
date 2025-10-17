@@ -20,7 +20,14 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { QuotationDetail, UpdateQuotation } from '../operations/orders';
 import { notify } from '../shared/notify';
-import { StoreSelect, UserSelect, VariantSelect } from '../shared/IdSelects';
+import {
+  StoreSelect,
+  UserSelect,
+  VariantSelect,
+  ResellerSelect,
+} from '../shared/IdSelects';
+import { useAuth } from '../shared/AuthProvider';
+import { useMyResellerProfileQuery } from '../generated/graphql';
 
 type QuotationDetailData = {
   quotation: {
@@ -73,6 +80,7 @@ export default function OrdersQuotationEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [formError, setFormError] = React.useState<string | null>(null);
+  const { hasRole, user } = useAuth();
 
   const { data, loading: loadingDetail, error: detailError } =
     useQuery<QuotationDetailData>(QuotationDetail, {
@@ -82,27 +90,58 @@ export default function OrdersQuotationEdit() {
     });
 
   const quotation = data?.quotation;
+  const isReseller = hasRole('RESELLER');
+  const isCustomer = hasRole('CUSTOMER');
+  const isBiller = hasRole('BILLER');
+  const ownsQuotation =
+    isReseller && quotation?.resellerId && quotation.resellerId === user?.id;
+  const ownsConsumerQuotation =
+    isCustomer && quotation?.consumerId && quotation.consumerId === user?.id;
+  const isStatusConfirmed = (quotation?.status || '').toUpperCase() === 'CONFIRMED';
+  const isEditableByStakeholder =
+    (ownsQuotation || ownsConsumerQuotation) && !isStatusConfirmed;
+  const isPriceReadOnly = isReseller || isCustomer;
 
-  const [type, setType] = React.useState<'CONSUMER' | 'RESELLER'>('CONSUMER');
+  const [type, setType] = React.useState<'CONSUMER' | 'RESELLER'>(
+    isReseller ? 'RESELLER' : 'CONSUMER',
+  );
   const [channel, setChannel] = React.useState<'WEB' | 'APP' | 'IN_STORE'>('IN_STORE');
   const [storeId, setStoreId] = React.useState('');
   const [consumerId, setConsumerId] = React.useState('');
-  const [resellerId, setResellerId] = React.useState('');
+  const [resellerId, setResellerId] = React.useState(() =>
+    isReseller && user?.id ? user.id : '',
+  );
   const [billerId, setBillerId] = React.useState('');
   const [items, setItems] = React.useState<ItemFormRow[]>([
     { productVariantId: '', quantity: '1', unitPrice: '0' },
   ]);
 
+  const { data: myResellerData } = useMyResellerProfileQuery({
+    skip: !isReseller,
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const assignedResellerProfile = myResellerData?.myResellerProfile ?? null;
+  const assignedBillerId = assignedResellerProfile?.biller?.id ?? null;
+  const assignedBillerEmail = assignedResellerProfile?.biller?.email ?? '';
+  const resellerEmail = assignedResellerProfile?.user?.email ?? user?.email ?? '';
+
   const initialized = React.useRef(false);
   React.useEffect(() => {
     if (quotation && !initialized.current) {
       initialized.current = true;
-      setType(quotation.type);
+      setType(isReseller ? 'RESELLER' : quotation.type);
       setChannel(quotation.channel);
       setStoreId(quotation.storeId);
       setConsumerId(quotation.consumerId ?? '');
-      setResellerId(quotation.resellerId ?? '');
-      setBillerId(quotation.billerId ?? '');
+      setResellerId(
+        isReseller && user?.id ? user.id : quotation.resellerId ?? '',
+      );
+      setBillerId(
+        isReseller && assignedBillerId != null
+          ? assignedBillerId
+          : quotation.billerId ?? '',
+      );
       setItems(
         quotation.items.length
           ? quotation.items.map((item) => ({
@@ -114,6 +153,22 @@ export default function OrdersQuotationEdit() {
       );
     }
   }, [quotation]);
+
+  React.useEffect(() => {
+    if (!isReseller) return;
+    if (user?.id && resellerId !== user.id) {
+      setResellerId(user.id);
+    }
+    if (assignedBillerId && billerId !== assignedBillerId) {
+      setBillerId(assignedBillerId);
+    }
+  }, [isReseller, user?.id, resellerId, assignedBillerId, billerId]);
+
+  React.useEffect(() => {
+    if (isBiller && user?.id && billerId !== user.id) {
+      setBillerId(user.id);
+    }
+  }, [isBiller, user?.id, billerId]);
 
   const [updateQuotation, { loading: updating, error: updateError }] = useMutation<
     UpdateQuotationResponse,
@@ -159,6 +214,10 @@ export default function OrdersQuotationEdit() {
     }
     if (type === 'RESELLER' && !resellerId.trim()) {
       setFormError('Reseller ID is required for reseller quotations.');
+      return;
+    }
+    if (type === 'RESELLER' && !billerId.trim()) {
+      setFormError('Biller is required for reseller quotations.');
       return;
     }
 
@@ -208,6 +267,19 @@ export default function OrdersQuotationEdit() {
     }
   };
 
+  if (!isEditableByStakeholder && (isReseller || isCustomer)) {
+    return (
+      <Stack spacing={3}>
+        <Alert severity="warning">
+          Quotation editing is only available while the quotation remains in Draft or Sent status.
+        </Alert>
+        <Button variant="contained" onClick={() => navigate(`/orders/quotations/${id}`)}>
+          Back to Quotation
+        </Button>
+      </Stack>
+    );
+  }
+
   return (
     <Stack spacing={3} component="form" onSubmit={handleSubmit}>
       <Stack direction="row" spacing={1.5} alignItems="center">
@@ -249,6 +321,7 @@ export default function OrdersQuotationEdit() {
                   setType(next);
                   resetPartyFields(next);
                 }}
+                disabled={isReseller}
               >
                 {SALE_TYPES.map((option) => (
                   <MenuItem key={option} value={option}>
@@ -293,21 +366,49 @@ export default function OrdersQuotationEdit() {
               </Grid>
             ) : (
               <Grid item xs={12} md={4}>
-                <UserSelect
-                  value={resellerId}
-                  onChange={setResellerId}
-                  label="Reseller"
-                  placeholder="Search reseller email"
-                />
+                {isReseller ? (
+                  <TextField
+                    fullWidth
+                    label="Reseller"
+                    value={resellerEmail}
+                    InputProps={{ readOnly: true }}
+                  />
+                ) : (
+                  <ResellerSelect
+                    value={resellerId}
+                    onChange={setResellerId}
+                    label="Reseller"
+                    placeholder="Search reseller email"
+                  />
+                )}
               </Grid>
             )}
             <Grid item xs={12} md={4}>
-              <UserSelect
-                value={billerId}
-                onChange={setBillerId}
-                label="Biller"
-                placeholder="Search biller email"
-              />
+              {isReseller ? (
+                <TextField
+                  fullWidth
+                  label="Biller"
+                  value={assignedBillerEmail || '—'}
+                  InputProps={{ readOnly: true }}
+                  helperText={
+                    assignedBillerEmail ? undefined : 'No biller assigned yet'
+                  }
+                />
+              ) : isBiller ? (
+                <TextField
+                  fullWidth
+                  label="Biller"
+                  value={user?.email ?? ''}
+                  InputProps={{ readOnly: true }}
+                />
+              ) : (
+                <UserSelect
+                  value={billerId}
+                  onChange={setBillerId}
+                  label="Biller"
+                  placeholder="Search biller email"
+                />
+              )}
             </Grid>
           </Grid>
 
@@ -323,6 +424,7 @@ export default function OrdersQuotationEdit() {
                 startIcon={<AddIcon />}
                 variant="outlined"
                 size="small"
+                disabled={isReseller || isCustomer}
               >
                 Add Item
               </Button>
@@ -373,10 +475,13 @@ export default function OrdersQuotationEdit() {
                       label="Unit Price"
                       type="number"
                       inputProps={{ min: 0, step: '0.01' }}
+                      InputProps={{ readOnly: isPriceReadOnly }}
                       value={item.unitPrice}
-                      onChange={(event) =>
-                        handleItemChange(index, 'unitPrice', event.target.value)
-                      }
+                      onChange={(event) => {
+                        if (!isPriceReadOnly) {
+                          handleItemChange(index, 'unitPrice', event.target.value);
+                        }
+                      }}
                       required
                     />
                   </Grid>
@@ -387,7 +492,7 @@ export default function OrdersQuotationEdit() {
                         color="error"
                         startIcon={<DeleteIcon />}
                         variant="text"
-                        disabled={items.length === 1}
+                        disabled={items.length === 1 || isReseller || isCustomer}
                         onClick={() => removeItem(index)}
                       >
                         Remove

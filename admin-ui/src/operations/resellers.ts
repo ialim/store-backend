@@ -29,6 +29,9 @@ export const ListBillers = gql`
     listBillers {
       id
       email
+      customerProfile {
+        fullName
+      }
     }
   }
 `;
@@ -113,6 +116,24 @@ export const ResellerProfile = gql`
         email
       }
       requestedBiller {
+        id
+        email
+      }
+      user {
+        id
+        email
+      }
+    }
+  }
+`;
+
+export const MyResellerProfile = gql`
+  query MyResellerProfile {
+    myResellerProfile {
+      userId
+      billerId
+      profileStatus
+      biller {
         id
         email
       }

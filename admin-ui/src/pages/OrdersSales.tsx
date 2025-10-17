@@ -10,22 +10,47 @@ import {
 } from '@mui/material';
 import LocalMallIcon from '@mui/icons-material/LocalMall';
 import { ConsumerSales, ResellerSales } from '../operations/orders';
+import { Stores } from '../operations/stores';
 import TableList from '../shared/TableList';
 import { ListingHero } from '../shared/ListingLayout';
 import { formatMoney } from '../shared/format';
 
+type StoreInfo = {
+  id: string;
+  name: string;
+  location?: string | null;
+} | null;
+
 type ConsumerSaleRow = {
   id: string;
   saleOrderId: string;
-  customerId: string;
-  storeId: string;
-  billerId: string;
+  customerId?: string | null;
+  storeId?: string | null;
+  billerId?: string | null;
   status: string;
   channel: string;
   totalAmount: number;
   createdAt: string;
   updatedAt: string;
+  store?: StoreInfo;
+  customer?: {
+    id: string;
+    fullName?: string | null;
+    email?: string | null;
+    customerProfile?: { fullName?: string | null } | null;
+  } | null;
+  biller?: {
+    id: string;
+    email?: string | null;
+    customerProfile?: { fullName?: string | null } | null;
+  } | null;
 };
+
+type ResellerInfo = {
+  id: string;
+  email?: string | null;
+  customerProfile?: { fullName?: string | null } | null;
+} | null;
 
 type ResellerSaleRow = {
   id: string;
@@ -37,18 +62,24 @@ type ResellerSaleRow = {
   totalAmount: number;
   createdAt: string;
   updatedAt: string;
+  store?: StoreInfo;
+  reseller?: ResellerInfo;
+  biller?: ResellerInfo;
 };
 
 type SalesRow = {
   id: string;
   saleOrderId: string;
-  storeId: string;
-  billerId: string;
+  storeId?: string | null;
+  storeLabel: string;
+  billerId?: string | null;
+  billerLabel?: string;
   status: string;
   totalAmount: number;
   createdAt: string;
   updatedAt: string;
   partyId?: string | null;
+  partyLabel?: string;
   channel?: string | null;
   kind: 'CONSUMER' | 'RESELLER';
 };
@@ -59,6 +90,14 @@ type ConsumerSalesData = {
 
 type ResellerSalesData = {
   resellerSales: ResellerSaleRow[];
+};
+
+type StoreListData = {
+  listStores: Array<{
+    id: string;
+    name: string;
+    location?: string | null;
+  }>;
 };
 
 function formatDate(value?: string | null) {
@@ -87,6 +126,31 @@ function statusColor(status?: string) {
   }
 }
 
+function formatStoreLabel(store: StoreInfo, fallback?: string | null) {
+  if (!store) return fallback ?? '—';
+  const location = store.location?.trim();
+  return location?.length ? `${store.name} • ${location}` : store.name;
+}
+
+function formatUserLabel(
+  user?:
+    | {
+        fullName?: string | null;
+        email?: string | null;
+        customerProfile?: { fullName?: string | null } | null;
+      }
+    | null,
+  fallback?: string | null,
+) {
+  const profileName = user?.customerProfile?.fullName?.trim();
+  if (profileName) return profileName;
+  const directName = user?.fullName?.trim();
+  if (directName) return directName;
+  const email = user?.email?.trim();
+  if (email) return email;
+  return fallback ?? '—';
+}
+
 export default function OrdersSales() {
   const navigate = useNavigate();
   const [search, setSearch] = React.useState('');
@@ -97,45 +161,89 @@ export default function OrdersSales() {
   const resellerResult = useQuery<ResellerSalesData>(ResellerSales, {
     fetchPolicy: 'cache-and-network',
   });
+  const { data: storesData } = useQuery<StoreListData>(Stores, {
+    variables: { take: 500 },
+    fetchPolicy: 'cache-first',
+  });
+
+  const storeMap = React.useMemo(() => {
+    const entries = storesData?.listStores?.map((store) => [
+      store.id,
+      formatStoreLabel(store as StoreInfo, store.name),
+    ]) as Array<[string, string]> | undefined;
+    return new Map(entries ?? []);
+  }, [storesData]);
 
   const loading = consumerResult.loading || resellerResult.loading;
   const error = consumerResult.error || resellerResult.error;
   const sales: SalesRow[] = React.useMemo(() => {
     const consumerRows =
-      consumerResult.data?.consumerSales.map((sale) => ({
-        id: sale.id,
-        saleOrderId: sale.saleOrderId,
-        storeId: sale.storeId,
-        billerId: sale.billerId,
-        status: sale.status,
-        totalAmount: sale.totalAmount,
-        createdAt: sale.createdAt,
-        updatedAt: sale.updatedAt,
-        partyId: sale.customerId,
-        channel: sale.channel,
-        kind: 'CONSUMER' as const,
-      })) ?? [];
+      consumerResult.data?.consumerSales.map((sale) => {
+        const storeLabel =
+          (sale.storeId && storeMap.get(sale.storeId)) ??
+          formatStoreLabel(sale.store ?? null, sale.storeId ?? undefined);
+        const partyLabel = formatUserLabel(
+          sale.customer,
+          sale.customerId ?? undefined,
+        );
+        const billerLabel = formatUserLabel(
+          sale.biller,
+          sale.billerId ?? undefined,
+        );
+        return {
+          id: sale.id,
+          saleOrderId: sale.saleOrderId,
+          storeId: sale.storeId ?? null,
+          storeLabel,
+          billerId: sale.billerId,
+          status: sale.status,
+          totalAmount: sale.totalAmount,
+          createdAt: sale.createdAt,
+          updatedAt: sale.updatedAt,
+          partyId: sale.customerId ?? null,
+          partyLabel,
+          channel: sale.channel,
+          billerLabel,
+          kind: 'CONSUMER' as const,
+        };
+      }) ?? [];
 
     const resellerRows =
-      resellerResult.data?.resellerSales.map((sale) => ({
-        id: sale.id,
-        saleOrderId: sale.SaleOrderid,
-        storeId: sale.storeId,
-        billerId: sale.billerId,
-        status: sale.status,
-        totalAmount: sale.totalAmount,
-        createdAt: sale.createdAt,
-        updatedAt: sale.updatedAt,
-        partyId: sale.resellerId,
-        channel: 'RESELLER',
-        kind: 'RESELLER' as const,
-      })) ?? [];
+      resellerResult.data?.resellerSales.map((sale) => {
+        const storeLabel =
+          storeMap.get(sale.storeId) ??
+          formatStoreLabel(sale.store ?? null, sale.storeId);
+        const partyLabel = formatUserLabel(
+          sale.reseller,
+          sale.resellerId ?? undefined,
+        );
+        const billerLabel = formatUserLabel(
+          sale.biller,
+          sale.billerId ?? undefined,
+        );
+        return {
+          id: sale.id,
+          saleOrderId: sale.SaleOrderid,
+          storeId: sale.storeId,
+          storeLabel,
+          billerId: sale.billerId,
+          status: sale.status,
+          totalAmount: sale.totalAmount,
+          createdAt: sale.createdAt,
+          updatedAt: sale.updatedAt,
+          partyId: sale.resellerId,
+          partyLabel,
+          channel: 'RESELLER',
+          billerLabel,
+          kind: 'RESELLER' as const,
+        };
+      }) ?? [];
 
     return [...consumerRows, ...resellerRows].sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  }, [consumerResult.data?.consumerSales, resellerResult.data?.resellerSales]);
+  }, [consumerResult.data?.consumerSales, resellerResult.data?.resellerSales, storeMap]);
 
   const term = search.trim().toLowerCase();
   const filtered = React.useMemo(() => {
@@ -145,11 +253,14 @@ export default function OrdersSales() {
         sale.id,
         sale.saleOrderId,
         sale.storeId,
+        sale.storeLabel,
         sale.billerId,
         sale.status,
         sale.kind,
         sale.partyId,
+        sale.partyLabel,
         sale.channel,
+        sale.billerLabel,
       ]
         .filter(Boolean)
         .join(' ')
@@ -198,14 +309,14 @@ export default function OrdersSales() {
       {
         key: 'store',
         label: 'Store',
-        render: (sale: SalesRow) => sale.storeId,
-        accessor: (sale: SalesRow) => sale.storeId,
+        render: (sale: SalesRow) => sale.storeLabel,
+        accessor: (sale: SalesRow) => sale.storeLabel,
         sort: true,
       },
       {
         key: 'party',
         label: 'Customer / Reseller',
-        render: (sale: SalesRow) => sale.partyId || '—',
+        render: (sale: SalesRow) => sale.partyLabel || sale.partyId || '—',
       },
       {
         key: 'total',
@@ -247,7 +358,7 @@ export default function OrdersSales() {
         search={{
           value: search,
           onChange: setSearch,
-          placeholder: 'Search sales by ID, store, status, or biller',
+          placeholder: 'Search sales by ID, store, customer, status, or biller',
         }}
       >
         <Typography variant="body2" color="text.secondary">

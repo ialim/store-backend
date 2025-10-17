@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@apollo/client';
+import { useMutation, useQuery } from '@apollo/client';
 import {
   Alert,
   Chip,
@@ -13,12 +13,28 @@ import {
   Typography,
   Divider,
   Box,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LaunchIcon from '@mui/icons-material/Launch';
 import TableList from '../shared/TableList';
 import { formatMoney } from '../shared/format';
-import { ConsumerSaleDetail, ResellerSaleDetail } from '../operations/orders';
+import {
+  ConsumerSaleDetail,
+  RegisterConsumerPayment,
+  RegisterResellerPayment,
+  ResellerSaleDetail,
+} from '../operations/orders';
+import { Stores } from '../operations/stores';
+import { useAuth } from '../shared/AuthProvider';
+import { PaymentMethod } from '../generated/graphql';
+import { getApiBase, getAuthToken } from '../shared/api';
 
 type ConsumerSaleData = {
   consumerSale: {
@@ -32,6 +48,22 @@ type ConsumerSaleData = {
     totalAmount: number;
     createdAt: string;
     updatedAt: string;
+    store?: {
+      id: string;
+      name: string;
+      location?: string | null;
+    } | null;
+    customer?: {
+      id: string;
+      fullName?: string | null;
+      email?: string | null;
+      customerProfile?: { fullName?: string | null } | null;
+    } | null;
+    biller?: {
+      id: string;
+      email?: string | null;
+      customerProfile?: { fullName?: string | null } | null;
+    } | null;
     items: Array<{
       productVariantId: string;
       quantity: number;
@@ -51,12 +83,35 @@ type ResellerSaleData = {
     totalAmount: number;
     createdAt: string;
     updatedAt: string;
+    store?: {
+      id: string;
+      name: string;
+      location?: string | null;
+    } | null;
+    reseller?: {
+      id: string;
+      email?: string | null;
+      customerProfile?: { fullName?: string | null } | null;
+    } | null;
+    biller?: {
+      id: string;
+      email?: string | null;
+      customerProfile?: { fullName?: string | null } | null;
+    } | null;
     items: Array<{
       productVariantId: string;
       quantity: number;
       unitPrice: number;
     }>;
   };
+};
+
+type StoreListData = {
+  listStores: Array<{
+    id: string;
+    name: string;
+    location?: string | null;
+  }>;
 };
 
 function formatDate(value?: string | null) {
@@ -77,9 +132,42 @@ function statusChip(status?: string) {
   return <Chip label={status ?? 'Unknown'} color={color} size="small" />;
 }
 
+function formatStoreLabel(
+  storeId?: string | null,
+  saleStore?: { id: string; name: string; location?: string | null } | null,
+  storeMap?: Map<string, string>,
+): string {
+  if (saleStore) {
+    const location = saleStore.location?.trim();
+    return location?.length ? `${saleStore.name} • ${location}` : saleStore.name;
+  }
+  if (!storeId) return '—';
+  return storeMap?.get(storeId) ?? storeId;
+}
+
+function formatUserLabel(
+  user?:
+    | {
+        fullName?: string | null;
+        email?: string | null;
+        customerProfile?: { fullName?: string | null } | null;
+      }
+    | null,
+  fallback?: string | null,
+) {
+  const profileName = user?.customerProfile?.fullName?.trim();
+  if (profileName) return profileName;
+  const directName = user?.fullName?.trim();
+  if (directName) return directName;
+  const email = user?.email?.trim();
+  if (email) return email;
+  return fallback ?? '—';
+}
+
 export default function OrdersSaleDetail() {
   const params = useParams<{ kind: string; id: string }>();
   const navigate = useNavigate();
+  const { hasRole, user, token } = useAuth();
   const kind = (params.kind || '').toUpperCase();
   const id = params.id ?? '';
 
@@ -94,6 +182,23 @@ export default function OrdersSaleDetail() {
     skip: isConsumer || !id,
     fetchPolicy: 'cache-and-network',
   });
+  const { data: storesData } = useQuery<StoreListData>(Stores, {
+    variables: { take: 500 },
+    fetchPolicy: 'cache-first',
+  });
+
+  const storeMap = React.useMemo(() => {
+    const entries = storesData?.listStores?.map((store) => [
+      store.id,
+      `${store.name}${store.location ? ` • ${store.location}` : ''}`,
+    ]) as Array<[string, string]> | undefined;
+    return new Map(entries ?? []);
+  }, [storesData]);
+
+  const [registerConsumerPayment, { loading: registeringConsumer }] =
+    useMutation(RegisterConsumerPayment);
+  const [registerResellerPayment, { loading: registeringReseller }] =
+    useMutation(RegisterResellerPayment);
 
   const loading = consumerResult.loading || resellerResult.loading;
   const error = consumerResult.error || resellerResult.error;
@@ -102,6 +207,18 @@ export default function OrdersSaleDetail() {
   const resellerSale = resellerResult.data?.resellerSale;
   const sale = isConsumer ? consumerSale : resellerSale;
 
+  const [showPaymentDialog, setShowPaymentDialog] = React.useState(false);
+  const [paymentAmount, setPaymentAmount] = React.useState('');
+  const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>(
+    PaymentMethod.Transfer,
+  );
+  const [paymentReference, setPaymentReference] = React.useState('');
+  const [actionError, setActionError] = React.useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = React.useState<string | null>(null);
+  const [receiptFile, setReceiptFile] = React.useState<File | null>(null);
+  const [receiptUploadError, setReceiptUploadError] = React.useState<string | null>(null);
+  const [receiptUploading, setReceiptUploading] = React.useState(false);
+
   const saleOrderId = isConsumer
     ? consumerSale?.saleOrderId
     : resellerSale?.SaleOrderid;
@@ -109,6 +226,25 @@ export default function OrdersSaleDetail() {
     ? consumerSale?.customerId
     : resellerSale?.resellerId;
   const channel = isConsumer ? consumerSale?.channel : 'RESELLER';
+
+  const storeLabel = formatStoreLabel(
+    sale?.storeId,
+    sale?.store ?? null,
+    storeMap,
+  );
+  const billerLabel = formatUserLabel(
+    sale?.biller,
+    sale?.billerId ?? undefined,
+  );
+  const partyLabel = isConsumer
+    ? formatUserLabel(
+        consumerSale?.customer,
+        consumerSale?.customerId ?? undefined,
+      )
+    : formatUserLabel(
+        resellerSale?.reseller,
+        resellerSale?.resellerId ?? undefined,
+      );
 
   const itemRows = sale?.items ?? [];
   const itemColumns = React.useMemo(
@@ -141,10 +277,178 @@ export default function OrdersSaleDetail() {
   );
 
   const heading = isConsumer ? 'Consumer Sale Details' : 'Reseller Sale Details';
+  const paymentMethods = React.useMemo(
+    () => Object.values(PaymentMethod),
+    [],
+  );
+  const isAssignedBiller = Boolean(
+    sale?.billerId && user?.id && sale.billerId === user.id,
+  );
+  const paymentMutationLoading = registeringConsumer || registeringReseller;
+  const canRegisterPayment = Boolean(
+    sale && hasRole('BILLER') && isAssignedBiller,
+  );
+
+  const handleOpenPaymentDialog = React.useCallback(() => {
+    setPaymentAmount('');
+    setPaymentReference('');
+    setPaymentMethod(PaymentMethod.Transfer);
+    setActionError(null);
+    setActionSuccess(null);
+    setReceiptFile(null);
+    setReceiptUploadError(null);
+    setReceiptUploading(false);
+    setShowPaymentDialog(true);
+  }, []);
+
+  const handleClosePaymentDialog = React.useCallback(() => {
+    setShowPaymentDialog(false);
+    setPaymentAmount('');
+    setPaymentReference('');
+    setReceiptFile(null);
+    setReceiptUploadError(null);
+    setReceiptUploading(false);
+  }, []);
+
+  const handleReceiptSelection = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.currentTarget.files?.[0] ?? null;
+      setReceiptFile(file);
+      setReceiptUploadError(null);
+      event.currentTarget.value = '';
+    },
+    [],
+  );
+
+  const handleSubmitPayment = React.useCallback(async () => {
+    if (!sale || !saleOrderId) return;
+    const amount = Number.parseFloat(paymentAmount || '0');
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setActionError('Payment amount must be greater than zero.');
+      return;
+    }
+    const reference = paymentReference.trim();
+    setActionError(null);
+    setActionSuccess(null);
+    try {
+      let receiptPayload: {
+        receiptBucket?: string;
+        receiptKey?: string;
+        receiptUrl?: string;
+      } = {};
+      if (receiptFile) {
+        try {
+          setReceiptUploadError(null);
+          setReceiptUploading(true);
+          const fd = new FormData();
+          fd.append('file', receiptFile);
+          const headers: Record<string, string> = {};
+          const authToken = token ?? getAuthToken();
+          if (authToken) {
+            headers.Authorization = `Bearer ${authToken}`;
+          }
+          const response = await fetch(`${getApiBase()}/payments/receipts`, {
+            method: 'POST',
+            body: fd,
+            headers,
+          });
+          if (!response.ok) {
+            let message = `Failed to upload receipt (status ${response.status})`;
+            try {
+              const body = await response.json();
+              if (body?.message) message = body.message;
+            } catch {
+              try {
+                const text = await response.text();
+                if (text) message = text;
+              } catch {}
+            }
+            throw new Error(message);
+          }
+          const uploaded = await response.json();
+          receiptPayload = {
+            receiptBucket:
+              uploaded?.bucket ?? uploaded?.receiptBucket ?? undefined,
+            receiptKey: uploaded?.key ?? uploaded?.receiptKey ?? undefined,
+            receiptUrl: uploaded?.url ?? uploaded?.receiptUrl ?? undefined,
+          };
+        } catch (uploadErr: any) {
+          const message =
+            uploadErr?.message || 'Failed to upload receipt. Please try again.';
+          setReceiptUploadError(message);
+          setActionError(message);
+          return;
+        } finally {
+          setReceiptUploading(false);
+        }
+      }
+      if (isConsumer) {
+        if (!consumerSale?.id) {
+          setActionError('Missing consumer sale details.');
+          return;
+        }
+        await registerConsumerPayment({
+          variables: {
+            input: {
+              saleOrderId,
+              consumerSaleId: consumerSale.id,
+              amount,
+              method: paymentMethod,
+              ...(reference ? { reference } : {}),
+              ...receiptPayload,
+            },
+          },
+        });
+        await consumerResult.refetch();
+      } else {
+        if (!resellerSale?.resellerId || !user?.id) {
+          setActionError('Missing reseller payment metadata.');
+          return;
+        }
+        await registerResellerPayment({
+          variables: {
+            input: {
+              saleOrderId,
+              resellerId: resellerSale.resellerId,
+              receivedById: user.id,
+              amount,
+              method: paymentMethod,
+              ...(reference ? { reference } : {}),
+              ...(resellerSale.id ? { resellerSaleId: resellerSale.id } : {}),
+              ...receiptPayload,
+            },
+          },
+        });
+        await resellerResult.refetch();
+      }
+      setActionSuccess('Payment logged successfully.');
+      handleClosePaymentDialog();
+    } catch (mutationErr: any) {
+      setActionError(mutationErr?.message || 'Failed to log payment.');
+    }
+  }, [
+    sale,
+    saleOrderId,
+    paymentAmount,
+    paymentReference,
+    paymentMethod,
+    receiptFile,
+    token,
+    isConsumer,
+    consumerSale?.id,
+    consumerResult,
+    registerConsumerPayment,
+    resellerSale?.resellerId,
+    resellerSale?.id,
+    registerResellerPayment,
+    resellerResult,
+    user?.id,
+    handleClosePaymentDialog,
+  ]);
 
   return (
     <Stack spacing={3}>
-      <Stack direction="row" spacing={1.5} alignItems="center">
+      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1.5 }}>
         <Tooltip title="Back to Sales">
           <IconButton onClick={() => navigate('/orders/sales')}>
             <ArrowBackIcon />
@@ -158,7 +462,29 @@ export default function OrdersSaleDetail() {
             Inspect sale information and associated order details.
           </Typography>
         </Box>
+        {canRegisterPayment && (
+          <Box sx={{ ml: 'auto' }}>
+            <Button
+              variant="contained"
+              color="success"
+              onClick={handleOpenPaymentDialog}
+            >
+              Log Payment
+            </Button>
+          </Box>
+        )}
       </Stack>
+
+      {actionError && (
+        <Alert severity="error" onClose={() => setActionError(null)}>
+          {actionError}
+        </Alert>
+      )}
+      {actionSuccess && (
+        <Alert severity="success" onClose={() => setActionSuccess(null)}>
+          {actionSuccess}
+        </Alert>
+      )}
 
       {loading && !sale && (
         <Stack
@@ -220,19 +546,19 @@ export default function OrdersSaleDetail() {
                 <Typography variant="body2" color="text.secondary">
                   Store
                 </Typography>
-                <Typography variant="subtitle2">{sale.storeId}</Typography>
+                <Typography variant="subtitle2">{storeLabel}</Typography>
               </Grid>
               <Grid item xs={12} md={4}>
                 <Typography variant="body2" color="text.secondary">
                   Biller
                 </Typography>
-                <Typography variant="subtitle2">{sale.billerId}</Typography>
+                <Typography variant="subtitle2">{billerLabel}</Typography>
               </Grid>
               <Grid item xs={12} md={4}>
                 <Typography variant="body2" color="text.secondary">
                   Customer / Reseller
                 </Typography>
-                <Typography variant="subtitle2">{partyId || '—'}</Typography>
+                <Typography variant="subtitle2">{partyLabel || partyId || '—'}</Typography>
               </Grid>
               <Grid item xs={12} md={4}>
                 <Typography variant="body2" color="text.secondary">
@@ -280,6 +606,87 @@ export default function OrdersSaleDetail() {
           </Stack>
         </Paper>
       )}
+
+      <Dialog
+        open={showPaymentDialog}
+        onClose={handleClosePaymentDialog}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Log Payment</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <TextField
+              label="Amount"
+              type="number"
+              value={paymentAmount}
+              onChange={(event) => setPaymentAmount(event.target.value)}
+              inputProps={{ min: 0, step: '0.01' }}
+              autoFocus
+              required
+            />
+            <TextField
+              select
+              label="Payment Method"
+              value={paymentMethod}
+              onChange={(event) =>
+                setPaymentMethod(event.target.value as PaymentMethod)
+              }
+            >
+              {paymentMethods.map((method) => (
+                <MenuItem key={method} value={method}>
+                  {method.replace(/_/g, ' ')}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Reference"
+              value={paymentReference}
+              onChange={(event) => setPaymentReference(event.target.value)}
+              placeholder="Optional reference"
+            />
+            <Stack spacing={0.5}>
+              <Button
+                component="label"
+                variant="outlined"
+                disabled={receiptUploading}
+              >
+                {receiptUploading
+                  ? 'Uploading receipt…'
+                  : receiptFile
+                  ? 'Change receipt'
+                  : 'Attach receipt'}
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*,.pdf,.png,.jpg,.jpeg,.heic"
+                  onChange={handleReceiptSelection}
+                />
+              </Button>
+              {receiptFile && !receiptUploading && (
+                <Typography variant="caption" color="text.secondary">
+                  {receiptFile.name}
+                </Typography>
+              )}
+              {receiptUploadError && (
+                <Typography variant="caption" color="error">
+                  {receiptUploadError}
+                </Typography>
+              )}
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClosePaymentDialog}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleSubmitPayment}
+            disabled={paymentMutationLoading || receiptUploading}
+          >
+            {paymentMutationLoading ? 'Logging…' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }

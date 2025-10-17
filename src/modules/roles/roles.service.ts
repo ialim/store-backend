@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateRoleInput } from './dto/create-role.input';
 import { UpdateRoleInput } from './dto/update-role.input';
@@ -78,8 +79,11 @@ export class RolesService {
         },
         include: { permissions: true },
       });
-    } catch (error: any) {
-      if (error?.code === 'P2002') {
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
         throw new BadRequestException(
           `Role with name ${normalizedName} already exists`,
         );
@@ -146,6 +150,9 @@ export class RolesService {
     });
     if (!role) {
       throw new NotFoundException('Role not found');
+    }
+    if (LOCKED_ROLE_NAMES.has(role.name)) {
+      throw new BadRequestException('This role cannot be assigned');
     }
     await this.prisma.user.update({
       where: { id: input.userId },

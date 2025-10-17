@@ -17,4 +17,13 @@ export class CreateConsumerPaymentInput {
 
   @Field({ nullable: true })
   reference?: string;
+
+  @Field({ nullable: true })
+  receiptBucket?: string;
+
+  @Field({ nullable: true })
+  receiptKey?: string;
+
+  @Field({ nullable: true })
+  receiptUrl?: string;
 }

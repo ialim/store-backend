@@ -67,7 +67,7 @@ export class StoresResolver {
 
   @Query(() => Store, { nullable: false })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER', 'BILLER')
   @Permissions(PERMISSIONS.store.READ as string)
   findFirstStore(@Args() args: FindFirstStoreArgs) {
     return this.StoreService.findFirst(args);
@@ -75,7 +75,7 @@ export class StoresResolver {
 
   @Query(() => Store, { nullable: false })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER', 'BILLER')
   @Permissions(PERMISSIONS.store.READ as string)
   findUniqueStore(@Args() args: FindUniqueStoreArgs) {
     return this.StoreService.findUnique(args);
@@ -83,7 +83,7 @@ export class StoresResolver {
 
   @Query(() => [Store], { nullable: false })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER', 'BILLER')
   @Permissions(PERMISSIONS.store.READ as string)
   listStores(@Args() args: FindManyStoreArgs) {
     return this.StoreService.findMany(args);
@@ -91,7 +91,7 @@ export class StoresResolver {
 
   @Query(() => [StoreGroupBy], { nullable: false })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER', 'BILLER')
   @Permissions(PERMISSIONS.store.READ as string)
   groupByStore(@Args() args: StoreGroupByArgs) {
     return this.StoreService.groupBy(args);
@@ -99,7 +99,7 @@ export class StoresResolver {
 
   @Query(() => AggregateStore, { nullable: false })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
+  @Roles('ADMIN', 'SUPERADMIN', 'MANAGER', 'BILLER')
   @Permissions(PERMISSIONS.store.READ as string)
   aggregateStore(@Args() args: StoreAggregateArgs) {
     return this.StoreService.aggregate(args);

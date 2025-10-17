@@ -36,6 +36,74 @@ export function UserSelect({ value, onChange, label = 'User', placeholder = 'Sea
   );
 }
 
+const SEARCH_ORDER_RESELLERS = gql`
+  query OrderResellers($q: String, $take: Int) {
+    orderResellers(q: $q, take: $take) {
+      user {
+        id
+        email
+      }
+    }
+  }
+`;
+
+export function ResellerSelect({
+  value,
+  onChange,
+  label = 'Reseller',
+  placeholder = 'Search reseller email',
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  label?: string;
+  placeholder?: string;
+}) {
+  const [q, setQ] = React.useState('');
+  const [load, { data }] = useLazyQuery(SEARCH_ORDER_RESELLERS);
+
+  React.useEffect(() => {
+    const handle = setTimeout(() => {
+      const term = q.trim();
+      if (term.length >= 2) {
+        load({ variables: { q: term, take: 10 } });
+      }
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [q, load]);
+
+  const options: Array<{ id: string; label: string }> =
+    (data?.orderResellers ?? [])
+      .map((entry: any) =>
+        entry?.user ? { id: entry.user.id, label: entry.user.email ?? entry.user.id } : null,
+      )
+      .filter((option: any): option is { id: string; label: string } => Boolean(option)) ?? [];
+
+  const current =
+    options.find((option) => option.id === value) ||
+    (value ? { id: value, label: value } : null);
+
+  return (
+    <Autocomplete
+      options={options}
+      value={current}
+      inputValue={q}
+      onInputChange={(_, next) => setQ(next)}
+      onChange={(_, selection: any) => onChange(selection?.id || '')}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label={label}
+          size="small"
+          placeholder={placeholder}
+        />
+      )}
+      isOptionEqualToValue={(a, b) => a.id === b.id}
+      clearOnBlur={false}
+      freeSolo
+    />
+  );
+}
+
 const SEARCH_STORES = gql`
   query SearchStores($where: StoreWhereInput, $take: Int) {
     listStores(where: $where, take: $take) { id name location }

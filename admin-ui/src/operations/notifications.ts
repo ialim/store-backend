@@ -11,3 +11,12 @@ export const HeaderNotifications = gql`
     }
   }
 `;
+
+export const MarkNotificationAsRead = gql`
+  mutation MarkNotificationAsRead($id: String!) {
+    markAsRead(id: $id) {
+      id
+      isRead
+    }
+  }
+`;

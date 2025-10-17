@@ -303,6 +303,7 @@ async function main() {
       PERMISSIONS.order.CREATE,
       PERMISSIONS.order.READ,
       PERMISSIONS.order.UPDATE,
+      PERMISSIONS.order.APPROVE,
       PERMISSIONS.product.READ,
     ].filter(Boolean) as PermissionName[],
     MANAGER: [

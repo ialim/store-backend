@@ -20,10 +20,7 @@ describe('AppController (e2e)', () => {
     await app.close();
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+  it('/ (GET) returns 404 for unmapped routes', () => {
+    return request(app.getHttpServer()).get('/').expect(404);
   });
 });

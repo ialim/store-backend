@@ -10,9 +10,16 @@ import {
 } from '@mui/material';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { ResellerSales } from '../operations/orders';
+import { Stores } from '../operations/stores';
 import TableList from '../shared/TableList';
 import { ListingHero } from '../shared/ListingLayout';
 import { formatMoney } from '../shared/format';
+
+type StoreInfo = {
+  id: string;
+  name: string;
+  location?: string | null;
+} | null;
 
 type ResellerSaleRow = {
   id: string;
@@ -28,6 +35,14 @@ type ResellerSaleRow = {
 
 type ResellerSalesData = {
   resellerSales: ResellerSaleRow[];
+};
+
+type StoreListData = {
+  listStores: Array<{
+    id: string;
+    name: string;
+    location?: string | null;
+  }>;
 };
 
 function formatDate(value?: string | null) {
@@ -63,18 +78,36 @@ export default function ResellerSalesPage() {
     ResellerSales,
     { fetchPolicy: 'cache-and-network' },
   );
+  const { data: storesData } = useQuery<StoreListData>(Stores, {
+    variables: { take: 500 },
+    fetchPolicy: 'cache-first',
+  });
+
+  const storeMap = React.useMemo(() => {
+    const entries = storesData?.listStores?.map((store) => [
+      store.id,
+      `${store.name}${store.location ? ` • ${store.location}` : ''}`,
+    ]) as Array<[string, string]> | undefined;
+    return new Map(entries ?? []);
+  }, [storesData]);
 
   const sales = data?.resellerSales ?? [];
   const term = search.trim().toLowerCase();
   const filtered = React.useMemo(() => {
     if (!term) return sales;
     return sales.filter((sale) => {
+      const storeLabel = storeMap.get(sale.storeId) ?? sale.storeId;
+      const resellerLabel = sale.resellerId;
+      const billerLabel = sale.billerId;
       const haystack = [
         sale.id,
         sale.SaleOrderid,
         sale.resellerId,
         sale.storeId,
         sale.billerId,
+        storeLabel,
+        resellerLabel,
+        billerLabel,
         sale.status,
       ]
         .filter(Boolean)
@@ -82,7 +115,7 @@ export default function ResellerSalesPage() {
         .toLowerCase();
       return haystack.includes(term);
     });
-  }, [sales, term]);
+  }, [sales, term, storeMap]);
 
   const summary = React.useMemo(() => {
     if (!sales.length) return 'No reseller sales yet';
@@ -117,8 +150,10 @@ export default function ResellerSalesPage() {
       {
         key: 'store',
         label: 'Store',
-        render: (sale: ResellerSaleRow) => sale.storeId,
-        accessor: (sale: ResellerSaleRow) => sale.storeId,
+        render: (sale: ResellerSaleRow) =>
+          storeMap.get(sale.storeId) ?? sale.storeId,
+        accessor: (sale: ResellerSaleRow) =>
+          storeMap.get(sale.storeId) ?? sale.storeId,
         sort: true,
       },
       {
@@ -147,7 +182,7 @@ export default function ResellerSalesPage() {
         render: (sale: ResellerSaleRow) => sale.SaleOrderid || '—',
       },
     ],
-    [],
+    [storeMap],
   );
 
   return (

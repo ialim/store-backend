@@ -31,6 +31,7 @@ model User {
   ResellerSales ResellerSale[] @relation("ResellerSales")
   BillerResellerSale ResellerSale[] @relation("BillerSales")
   ResellerSale ResellerSale[] @relation("ResellerSaleApprovals")
+  BillerSaleOrders SaleOrder[] @relation("SaleOrderBiller")
   
   SalesReturnReceivers SalesReturn[] @relation("SalesReturnReceivers")
   SalesReturnRequesters SalesReturn[] @relation("SalesReturnRequesters")
@@ -46,6 +47,8 @@ model User {
   Notification Notification[]
 
   Fulfillment Fulfillment[]
+  FulfillmentRiderInterests FulfillmentRiderInterest[] @relation("RiderInterests")
+  RiderCoverageAreas RiderCoverageArea[] @relation("RiderCoverageAreas")
 
   BillerQuotation Quotation[] @relation("BillerQuotation")
 

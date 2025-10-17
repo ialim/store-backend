@@ -25,8 +25,10 @@
     "prisma:studio": "npx prisma studio",
     "prisma:seed": "node scripts/run-prisma-seed.js",
     "prisma:backfillPoStoreId": "npx ts-node prisma/scripts/backfill-po-store-id.ts",
+    "backfill:workflows": "ts-node scripts/backfill-workflows.ts",
     "legacy:extractor": "ts-node scripts/legacy-extractor.ts",
-    "db:wipe": "node scripts/reset-db.js"
+    "db:wipe": "node scripts/reset-db.js",
+    "seed:rider-coverage": "npx ts-node --transpile-only scripts/seed-rider-coverage.ts"
   },
   "prisma": {
     "schema": "./prisma"
@@ -58,7 +60,8 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "tesseract.js": "^6.0.1",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "xstate": "^5.12.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

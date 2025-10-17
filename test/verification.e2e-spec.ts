@@ -9,6 +9,9 @@ import { SmsService } from '../src/modules/verification/services/sms.service';
 describe('Verification (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  const unique = Date.now().toString(36);
+  const email = `test+${unique}@example.com`;
+  const password = 'secret';
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -25,9 +28,11 @@ describe('Verification (e2e)', () => {
     await app.init();
 
     prisma = app.get(PrismaService);
-    // ensure a clean slate
-    await prisma.customerProfile.deleteMany();
-    await prisma.user.deleteMany();
+    await prisma.role.upsert({
+      where: { name: 'CUSTOMER' },
+      update: {},
+      create: { name: 'CUSTOMER' },
+    });
   });
 
   afterAll(async () => {
@@ -41,8 +46,8 @@ describe('Verification (e2e)', () => {
         query: `
         mutation {
           signupCustomer(input: {
-            email: "test@example.com",
-            password: "secret"
+            email: "${email}",
+            password: "${password}"
           }) {
             accessToken
             user { id email }
@@ -50,10 +55,11 @@ describe('Verification (e2e)', () => {
         }
       `,
       });
-    expect(res.body.data.signupCustomer.user.email).toBe('test@example.com');
+    expect(res.body.errors).toBeUndefined();
+    expect(res.body.data.signupCustomer.user.email).toBe(email);
 
     const user = await prisma.user.findUnique({
-      where: { email: 'test@example.com' },
+      where: { email },
     });
     expect(user?.isEmailVerified).toBe(false);
     expect(user?.emailVerificationToken).toBeDefined();
@@ -62,7 +68,7 @@ describe('Verification (e2e)', () => {
 
   it('2️⃣ verifies the email token', async () => {
     const user = await prisma.user.findUnique({
-      where: { email: 'test@example.com' },
+      where: { email },
     });
     const res = await request(app.getHttpServer())
       .post('/graphql')
@@ -73,10 +79,11 @@ describe('Verification (e2e)', () => {
         }
       `,
       });
+    expect(res.body.errors).toBeUndefined();
     expect(res.body.data.verifyEmail).toBe(true);
 
     const updated = await prisma.user.findUnique({
-      where: { email: 'test@example.com' },
+      where: { email },
     });
     expect(updated?.isEmailVerified).toBe(true);
     expect(updated?.emailVerificationToken).toBeNull();
@@ -84,11 +91,11 @@ describe('Verification (e2e)', () => {
 
   it('3️⃣ logs in and sends a phone verification code', async () => {
     // first complete CustomerProfile so phone exists
+    const user = await prisma.user.findUnique({ where: { email } });
+    expect(user).toBeDefined();
     await prisma.customerProfile.update({
       where: {
-        userId: (
-          await prisma.user.findUnique({ where: { email: 'test@example.com' } })
-        )?.id,
+        userId: user!.id,
       },
       data: { phone: '08012345678' },
     });
@@ -98,12 +105,13 @@ describe('Verification (e2e)', () => {
       .send({
         query: `
         mutation {
-          login(input:{ email:"test@example.com", password:"secret" }) {
+          login(input:{ email:"${email}", password:"${password}" }) {
             accessToken
           }
         }
       `,
       });
+    expect(login.body.errors).toBeUndefined();
     const token = login.body.data.login.accessToken;
     expect(token).toBeDefined();
 
@@ -117,42 +125,45 @@ describe('Verification (e2e)', () => {
         }
       `,
       });
+    expect(phoneRes.body.errors).toBeUndefined();
     expect(phoneRes.body.data.sendPhoneVerification).toBe(true);
 
     const profile = await prisma.customerProfile.findUnique({
       where: {
-        userId: (
-          await prisma.user.findUnique({ where: { email: 'test@example.com' } })
-        )?.id,
+        userId: user!.id,
       },
     });
+    expect(profile).toBeDefined();
     expect(profile?.phoneVerificationCode).toHaveLength(6);
     expect(profile?.phoneVerificationCodeExpiry).toBeInstanceOf(Date);
   });
 
   it('4️⃣ verifies the phone code', async () => {
+    const user = await prisma.user.findUnique({ where: { email } });
+    expect(user).toBeDefined();
     // reuse token from login
     const login = await request(app.getHttpServer())
       .post('/graphql')
       .send({
         query: `
         mutation {
-          login(input:{ email:"test@example.com", password:"secret" }) {
+          login(input:{ email:"${email}", password:"${password}" }) {
             accessToken
           }
         }
       `,
       });
+    expect(login.body.errors).toBeUndefined();
     const token = login.body.data.login.accessToken;
 
     const profile = await prisma.customerProfile.findUnique({
       where: {
-        userId: (
-          await prisma.user.findUnique({ where: { email: 'test@example.com' } })
-        )?.id,
+        userId: user!.id,
       },
     });
+    expect(profile).toBeDefined();
     const code = profile?.phoneVerificationCode;
+    expect(code).toBeDefined();
 
     const verifyRes = await request(app.getHttpServer())
       .post('/graphql')
@@ -164,6 +175,7 @@ describe('Verification (e2e)', () => {
         }
       `,
       });
+    expect(verifyRes.body.errors).toBeUndefined();
     expect(verifyRes.body.data.verifyPhone).toBe(true);
 
     const updated = await prisma.customerProfile.findUnique({

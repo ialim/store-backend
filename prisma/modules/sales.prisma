@@ -31,6 +31,10 @@ model SaleOrder {
   type         SaleType
   status       SaleStatus  @default(PENDING)
   phase        OrderPhase  @default(QUOTATION)
+  fulfillmentType FulfillmentType?
+  deliveryAddress  String?
+  workflowState   String?
+  workflowContext Json?
   totalAmount  Float
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -45,6 +49,8 @@ model SaleOrder {
   ConsumerPayment ConsumerPayment[]
 
   ResellerPayment ResellerPayment[]
+  transitionLogs  SaleOrderTransitionLog[]
+  biller         User       @relation("SaleOrderBiller", fields: [billerId], references: [id])
 }
 
 model Quotation {
@@ -140,6 +146,9 @@ model ResellerPayment {
   status         PaymentStatus   @default(PENDING)
   receivedAt     DateTime @default(now())
   receivedById   String
+  receiptBucket  String?
+  receiptKey     String?
+  receiptUrl     String?
 
   saleOrder      SaleOrder       @relation(fields: [saleOrderId], references: [id])
   reseller       User     @relation("ResellerPayments", fields: [resellerId], references: [id])
@@ -211,6 +220,9 @@ model ConsumerPayment {
   status           PaymentStatus   @default(PENDING)
   receivedAt      DateTime @default(now())
   reference       String?
+  receiptBucket   String?
+  receiptKey      String?
+  receiptUrl      String?
 
   saleOrder        SaleOrder       @relation(fields: [saleOrderId], references: [id])
   sale            ConsumerSale @relation(fields: [consumerSaleId], references: [id])
@@ -234,6 +246,8 @@ model Fulfillment {
   deliveryPersonnelId String?
   deliveryAddress     String?
   status              FulfillmentStatus @default(PENDING)
+  workflowState       String?
+  workflowContext     Json?
   cost                Float?
   confirmationPin     String?
   createdAt           DateTime           @default(now())
@@ -241,6 +255,8 @@ model Fulfillment {
 
   saleOrder           SaleOrder          @relation(fields: [saleOrderId], references: [id])
   deliveryPersonnel   User?              @relation(fields: [deliveryPersonnelId], references: [id])
+  transitionLogs      FulfillmentTransitionLog[]
+  riderInterests      FulfillmentRiderInterest[]
 }
 
 enum AdjustmentType {
@@ -261,4 +277,69 @@ enum OrderPhase {
   QUOTATION
   SALE
   FULFILLMENT
+}
+
+enum FulfillmentRiderInterestStatus {
+  ACTIVE
+  WITHDRAWN
+  ASSIGNED
+  REJECTED
+  EXPIRED
+}
+
+model FulfillmentRiderInterest {
+  id             String                          @id @default(uuid())
+  fulfillmentId  String
+  riderId        String
+  status         FulfillmentRiderInterestStatus  @default(ACTIVE)
+  message        String?
+  etaMinutes     Int?
+  proposedCost   Float?
+  expiresAt      DateTime?
+  createdAt      DateTime                        @default(now())
+  updatedAt      DateTime                        @updatedAt
+
+  fulfillment    Fulfillment                     @relation(fields: [fulfillmentId], references: [id], onDelete: Cascade)
+  rider          User                            @relation("RiderInterests", fields: [riderId], references: [id], onDelete: Cascade)
+
+  @@unique([fulfillmentId, riderId])
+  @@index([riderId, status])
+}
+
+model RiderCoverageArea {
+  id             String   @id @default(uuid())
+  riderId        String
+  storeId        String
+  serviceRadiusKm Float?
+  createdAt      DateTime @default(now())
+
+  rider          User     @relation("RiderCoverageAreas", fields: [riderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  store          Store    @relation(fields: [storeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([riderId, storeId])
+  @@index([storeId])
+}
+
+model SaleOrderTransitionLog {
+  id          String   @id @default(uuid())
+  saleOrderId String
+  fromState   String?
+  toState     String
+  event       String?
+  metadata    Json?
+  occurredAt  DateTime @default(now())
+
+  saleOrder   SaleOrder @relation(fields: [saleOrderId], references: [id])
+}
+
+model FulfillmentTransitionLog {
+  id             String   @id @default(uuid())
+  fulfillmentId  String
+  fromState      String?
+  toState        String
+  event          String?
+  metadata       Json?
+  occurredAt     DateTime @default(now())
+
+  fulfillment    Fulfillment @relation(fields: [fulfillmentId], references: [id])
 }

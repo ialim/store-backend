@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import {
   PaymentStatus as PrismaPaymentStatus,
   PaymentMethod as PrismaPaymentMethod,
   PaymentType as PrismaPaymentType,
   PurchaseOrderStatus as PrismaPurchaseOrderStatus,
   PurchasePhase as PrismaPurchasePhase,
+  Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
@@ -13,6 +14,11 @@ import { CreateConsumerPaymentInput } from '../sale/dto/create-consumer-payment.
 import { ConfirmConsumerPaymentInput } from '../sale/dto/confirm-consumer-payment.input';
 import { CreateResellerPaymentInput } from '../sale/dto/create-reseller-payment.input';
 import { CreateSupplierPaymentInput } from '../purchase/dto/create-supplier-payment.input';
+import {
+  ProviderConsumerPaymentPayload,
+  ProviderResellerPaymentPayload,
+} from './dto/provider-webhook.dto';
+import { PaymentsOutboxHandler } from '../events/handlers/payments-outbox.handler';
 
 @Injectable()
 export class PaymentService {
@@ -21,6 +27,7 @@ export class PaymentService {
     private prisma: PrismaService,
     private notifications: NotificationService,
     private domainEvents: DomainEventsService,
+    private paymentsOutboxHandler: PaymentsOutboxHandler,
   ) {}
 
   // Consumer payments
@@ -33,6 +40,9 @@ export class PaymentService {
         method: data.method as PrismaPaymentMethod,
         status: PrismaPaymentStatus.PENDING,
         reference: data.reference || undefined,
+        receiptBucket: data.receiptBucket || undefined,
+        receiptKey: data.receiptKey || undefined,
+        receiptUrl: data.receiptUrl || undefined,
       },
     });
     await this.notifications.createNotification(
@@ -57,6 +67,21 @@ export class PaymentService {
       },
       { aggregateType: 'Payment', aggregateId: payment.id },
     );
+    try {
+      await this.paymentsOutboxHandler.tryHandle({
+        id: `inline-consumer-${payment.id}`,
+        type: 'PAYMENT_CONFIRMED',
+        payload: {
+          paymentId: payment.id,
+          saleOrderId: payment.saleOrderId,
+          channel: 'CONSUMER',
+        } as Prisma.JsonValue,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Inline payment confirmation handler failed for payment ${payment.id}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
     return payment;
   }
 
@@ -72,6 +97,9 @@ export class PaymentService {
         status: PrismaPaymentStatus.PENDING,
         reference: data.reference || undefined,
         receivedById: data.receivedById,
+        receiptBucket: data.receiptBucket || undefined,
+        receiptKey: data.receiptKey || undefined,
+        receiptUrl: data.receiptUrl || undefined,
       },
     });
     await this.notifications.createNotification(
@@ -80,6 +108,132 @@ export class PaymentService {
       `Payment ${payment.id} registered.`,
     );
     return payment;
+  }
+
+  async handleConsumerPaymentWebhook(
+    payload: ProviderConsumerPaymentPayload & { provider: string },
+  ) {
+    const reference = payload.reference ?? undefined;
+    const method = this.normalizeMethod(payload.method);
+    const status = this.normalizeStatus(payload.status);
+    let payment = reference
+      ? await this.prisma.consumerPayment.findFirst({
+          where: { reference },
+        })
+      : null;
+
+    if (!payment) {
+      payment = await this.prisma.consumerPayment.create({
+        data: {
+          saleOrderId: payload.saleOrderId,
+          consumerSaleId: payload.consumerSaleId,
+          amount: payload.amount,
+          method,
+          status: PrismaPaymentStatus.PENDING,
+          reference,
+        },
+      });
+      await this.notifications.createNotification(
+        payment.saleOrderId,
+        'CONSUMER_PAYMENT_REGISTERED',
+        `Payment ${payment.id} registered via ${payload.provider}.`,
+      );
+    } else {
+      payment = await this.prisma.consumerPayment.update({
+        where: { id: payment.id },
+        data: {
+          amount: payload.amount,
+          method,
+          reference,
+        },
+      });
+    }
+
+    if (status === PrismaPaymentStatus.CONFIRMED) {
+      if (payment.status !== PrismaPaymentStatus.CONFIRMED) {
+        await this.confirmConsumerPayment({ paymentId: payment.id });
+      }
+    } else if (status === PrismaPaymentStatus.FAILED) {
+      if (payment.status !== PrismaPaymentStatus.FAILED) {
+        await this.prisma.consumerPayment.update({
+          where: { id: payment.id },
+          data: { status: PrismaPaymentStatus.FAILED },
+        });
+      }
+    }
+  }
+
+  async handleResellerPaymentWebhook(
+    payload: ProviderResellerPaymentPayload & { provider: string },
+  ) {
+    const reference = payload.reference ?? undefined;
+    const method = this.normalizeMethod(payload.method);
+    const status = this.normalizeStatus(payload.status);
+    let payment = reference
+      ? await this.prisma.resellerPayment.findFirst({ where: { reference } })
+      : null;
+    const receivedById = payload.receivedById ?? payload.resellerId;
+
+    if (!payment) {
+      payment = await this.prisma.resellerPayment.create({
+        data: {
+          saleOrderId: payload.saleOrderId,
+          resellerId: payload.resellerId,
+          resellerSaleId: payload.resellerSaleId,
+          amount: payload.amount,
+          method,
+          status: PrismaPaymentStatus.PENDING,
+          reference,
+          receivedById,
+        },
+      });
+      await this.notifications.createNotification(
+        receivedById,
+        'RESELLER_PAYMENT_REGISTERED',
+        `Payment ${payment.id} registered via ${payload.provider}.`,
+      );
+    } else {
+      payment = await this.prisma.resellerPayment.update({
+        where: { id: payment.id },
+        data: {
+          amount: payload.amount,
+          method,
+          reference,
+          receivedById,
+        },
+      });
+    }
+
+    if (status === PrismaPaymentStatus.CONFIRMED) {
+      if (payment.status !== PrismaPaymentStatus.CONFIRMED) {
+        await this.confirmResellerPayment(payment.id);
+      }
+    } else if (status === PrismaPaymentStatus.FAILED) {
+      if (payment.status !== PrismaPaymentStatus.FAILED) {
+        await this.prisma.resellerPayment.update({
+          where: { id: payment.id },
+          data: { status: PrismaPaymentStatus.FAILED },
+        });
+      }
+    }
+  }
+
+  private normalizeMethod(value: string): PrismaPaymentMethod {
+    const upper = value.trim().toUpperCase();
+    const match = Object.values(PrismaPaymentMethod).find((m) => m === upper);
+    if (!match) {
+      throw new BadRequestException(`Unsupported payment method: ${value}`);
+    }
+    return match;
+  }
+
+  private normalizeStatus(value: string): PrismaPaymentStatus {
+    const upper = value.trim().toUpperCase();
+    const match = Object.values(PrismaPaymentStatus).find((s) => s === upper);
+    if (!match) {
+      throw new BadRequestException(`Unsupported payment status: ${value}`);
+    }
+    return match;
   }
 
   async confirmResellerPayment(paymentId: string) {
@@ -96,6 +250,21 @@ export class PaymentService {
       },
       { aggregateType: 'Payment', aggregateId: payment.id },
     );
+    try {
+      await this.paymentsOutboxHandler.tryHandle({
+        id: `inline-reseller-${payment.id}`,
+        type: 'PAYMENT_CONFIRMED',
+        payload: {
+          paymentId: payment.id,
+          saleOrderId: payment.saleOrderId,
+          channel: 'RESELLER',
+        } as Prisma.JsonValue,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Inline payment confirmation handler failed for payment ${payment.id}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
     return payment;
   }
 

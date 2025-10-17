@@ -23,4 +23,13 @@ export class CreateResellerPaymentInput {
 
   @Field(() => ID)
   receivedById: string;
+
+  @Field({ nullable: true })
+  receiptBucket?: string;
+
+  @Field({ nullable: true })
+  receiptKey?: string;
+
+  @Field({ nullable: true })
+  receiptUrl?: string;
 }
