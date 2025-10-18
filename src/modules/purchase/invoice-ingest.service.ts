@@ -3,9 +3,27 @@ import { ParsedInvoice as VendorParsedInvoice } from './vendor-rules';
 
 type ParsedInvoice = VendorParsedInvoice;
 
-type PdfJsModule = typeof import('pdfjs-dist');
+type PdfDocumentLoadingTask = {
+  promise: Promise<{
+    numPages: number;
+    getPage(pageNumber: number): Promise<{
+      getTextContent(): Promise<{
+        items: Array<{ str?: string | undefined }>;
+      }>;
+    }>;
+  }>;
+};
+
+type PdfJsModule = {
+  getDocument(options: unknown): PdfDocumentLoadingTask;
+  GlobalWorkerOptions?: { workerSrc?: string };
+};
 type TesseractModule = typeof import('tesseract.js');
 type TextractModule = typeof import('@aws-sdk/client-textract');
+type PdfParseFn = (
+  data: Buffer,
+  options?: unknown,
+) => Promise<{ text?: string } & Record<string, unknown>>;
 
 const isParsedInvoice = (value: unknown): value is ParsedInvoice => {
   if (!value || typeof value !== 'object') return false;
@@ -35,6 +53,8 @@ export class InvoiceIngestService {
     '[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]',
     'g',
   );
+  private pdfParseFn?: PdfParseFn | null;
+  private pdfJsModule?: PdfJsModule | null;
 
   async fetchBuffer(
     url: string,
@@ -74,14 +94,15 @@ export class InvoiceIngestService {
   }
 
   private async tryPdfExtraction(buffer: Buffer): Promise<string | null> {
-    try {
-      const pdfModule = await import('pdf-parse');
-      const pdfParse = pdfModule.default;
-      const result = await pdfParse(buffer);
-      const text = result?.text?.trim();
-      if (text && text.length > 10) return text;
-    } catch (error) {
-      this.logger.debug(`pdf-parse failed: ${toErrorMessage(error)}`);
+    const pdfParse = await this.loadPdfParse();
+    if (pdfParse) {
+      try {
+        const result = await pdfParse(buffer);
+        const cleaned = this.sanitizeString(result?.text ?? '').trim();
+        if (cleaned.length > 10) return cleaned;
+      } catch (error) {
+        this.logger.debug(`pdf-parse failed: ${toErrorMessage(error)}`);
+      }
     }
 
     try {
@@ -101,7 +122,7 @@ export class InvoiceIngestService {
         const pageText = content.items.map((item) => item.str ?? '').join(' ');
         text += `${pageText}\n\n`;
       }
-      const trimmed = text.trim();
+      const trimmed = this.sanitizeString(text).trim();
       return trimmed.length > 10 ? trimmed : null;
     } catch (error) {
       this.logger.debug(`pdfjs-dist failed: ${toErrorMessage(error)}`);
@@ -127,15 +148,25 @@ export class InvoiceIngestService {
   }
 
   private async loadPdfJs(): Promise<PdfJsModule | null> {
+    if (this.pdfJsModule !== undefined) return this.pdfJsModule;
     try {
-      return (await import('pdfjs-dist')) as PdfJsModule;
-    } catch {
+      const pdfjs = (await import(
+        'pdfjs-dist/legacy/build/pdf.mjs'
+      )) as PdfJsModule;
       try {
         const req = eval('require') as NodeRequire;
-        return req('pdfjs-dist') as PdfJsModule;
+        const workerSrc = req.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
+        const workerOptions = pdfjs.GlobalWorkerOptions;
+        if (workerOptions) workerOptions.workerSrc = workerSrc;
       } catch {
-        return null;
+        // ignore; workerSrc is optional in Node environments
       }
+      this.pdfJsModule = pdfjs;
+      return pdfjs;
+    } catch (error) {
+      this.logger.debug(`pdfjs-dist failed to load: ${toErrorMessage(error)}`);
+      this.pdfJsModule = null;
+      return null;
     }
   }
 
@@ -150,6 +181,49 @@ export class InvoiceIngestService {
         return null;
       }
     }
+  }
+
+  private async loadPdfParse(): Promise<PdfParseFn | null> {
+    if (this.pdfParseFn !== undefined) return this.pdfParseFn;
+    const pickFn = (mod: unknown): PdfParseFn | null => {
+      if (!mod) return null;
+      if (typeof mod === 'function') return mod as PdfParseFn;
+      const maybeDefault = (mod as { default?: unknown })?.default;
+      if (typeof maybeDefault === 'function') {
+        return maybeDefault as PdfParseFn;
+      }
+      return null;
+    };
+
+    let lastError: unknown = null;
+
+    try {
+      const req = eval('require') as NodeRequire;
+      const mod = req('pdf-parse') as unknown;
+      const fn = pickFn(mod);
+      if (fn) {
+        this.pdfParseFn = fn;
+        return fn;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+
+    try {
+      const mod = (await import('pdf-parse')) as unknown;
+      const fn = pickFn(mod);
+      if (fn) {
+        this.pdfParseFn = fn;
+        return fn;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+
+    if (lastError)
+      this.logger.debug(`pdf-parse unavailable: ${toErrorMessage(lastError)}`);
+    this.pdfParseFn = null;
+    return null;
   }
 
   /**
