@@ -30,9 +30,12 @@ services:
       - /bin/sh
       - -c
       - >-
+        ASSET_BUCKET=${ASSET_S3_BUCKET:-store-assets};
+        INVOICE_BUCKET=${INVOICE_S3_BUCKET:-store-invoices};
         mc alias set local http://minio:9000 ${ASSET_S3_ACCESS_KEY:-minioadmin} ${ASSET_S3_SECRET_KEY:-minioadmin}
-        && mc mb --ignore-existing local/${ASSET_S3_BUCKET:-store-assets}
-        && mc anonymous set download local/${ASSET_S3_BUCKET:-store-assets}
+        && mc mb --ignore-existing local/${ASSET_BUCKET}
+        && mc anonymous set download local/${ASSET_BUCKET}
+        && if [ "${INVOICE_BUCKET}" != "${ASSET_BUCKET}" ]; then mc mb --ignore-existing local/${INVOICE_BUCKET}; fi
     restart: 'no'
     networks:
       - internal
@@ -98,6 +101,13 @@ services:
       ASSET_S3_BUCKET: ${ASSET_S3_BUCKET:-store-assets}
       ASSET_S3_FORCE_PATH_STYLE: ${ASSET_S3_FORCE_PATH_STYLE:-true}
       ASSET_PUBLIC_URL: ${ASSET_PUBLIC_URL:-http://localhost:9000/store-assets}
+      INVOICE_S3_ENDPOINT: ${INVOICE_S3_ENDPOINT:-http://minio:9000}
+      INVOICE_S3_REGION: ${INVOICE_S3_REGION:-us-east-1}
+      INVOICE_S3_ACCESS_KEY: ${INVOICE_S3_ACCESS_KEY:-minioadmin}
+      INVOICE_S3_SECRET_KEY: ${INVOICE_S3_SECRET_KEY:-minioadmin}
+      INVOICE_S3_BUCKET: ${INVOICE_S3_BUCKET:-store-invoices}
+      INVOICE_S3_FORCE_PATH_STYLE: ${INVOICE_S3_FORCE_PATH_STYLE:-true}
+      INVOICE_S3_PREFIX: ${INVOICE_S3_PREFIX:-invoices}
       # Add other secrets like JWT, SMTP, etc.
       # JWT_SECRET: ${JWT_SECRET}
     labels:

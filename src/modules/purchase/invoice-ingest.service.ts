@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { promises as fsPromises } from 'fs';
+import { join } from 'path';
 import { ParsedInvoice as VendorParsedInvoice } from './vendor-rules';
+import { InvoiceStorageService } from '../uploads/invoice-storage.service';
 
 type ParsedInvoice = VendorParsedInvoice;
 
@@ -53,12 +56,33 @@ export class InvoiceIngestService {
     '[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]',
     'g',
   );
+  constructor(private readonly invoiceStorage: InvoiceStorageService) {}
   private pdfParseFn?: PdfParseFn | null;
   private pdfJsModule?: PdfJsModule | null;
 
   async fetchBuffer(
     url: string,
   ): Promise<{ buffer: Buffer; contentType: string | null }> {
+    const storageTarget = this.invoiceStorage.parseUri(url);
+    if (storageTarget) {
+      try {
+        const { buffer, contentType } =
+          await this.invoiceStorage.getObjectBuffer(storageTarget);
+        return { buffer, contentType };
+      } catch (error) {
+        this.logger.debug(
+          `Invoice storage fetch failed: ${toErrorMessage(error)}`,
+        );
+      }
+    }
+
+    const local = await this.tryReadLocalUpload(url);
+    if (local) return local;
+
+    return this.fetchFromHttp(url);
+  }
+
+  private async fetchFromHttp(url: string) {
     const g = globalThis as unknown as { fetch?: typeof fetch };
     const f = g.fetch;
     if (!f) throw new Error('fetch not available in runtime');
@@ -67,6 +91,43 @@ export class InvoiceIngestService {
     const ct = res.headers?.get?.('content-type') || null;
     const ab = await res.arrayBuffer();
     return { buffer: Buffer.from(ab), contentType: ct };
+  }
+
+  private async tryReadLocalUpload(
+    url: string,
+  ): Promise<{ buffer: Buffer; contentType: string | null } | null> {
+    const match = /\/uploads\/invoices\/([^/?#]+)/i.exec(url);
+    if (!match) return null;
+    let file: string;
+    try {
+      file = decodeURIComponent(match[1]);
+    } catch {
+      return null;
+    }
+    if (
+      !file ||
+      file.includes('..') ||
+      file.includes('/') ||
+      file.includes('\\')
+    )
+      return null;
+    const absolute = join(process.cwd(), 'uploads', 'invoices', file);
+    try {
+      const buffer = await fsPromises.readFile(absolute);
+      return { buffer, contentType: this.guessContentType(file) };
+    } catch {
+      return null;
+    }
+  }
+
+  private guessContentType(filename: string): string | null {
+    const lower = filename.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'application/pdf';
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+    if (lower.endsWith('.gif')) return 'image/gif';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    return null;
   }
 
   async parseTextFromUrl(url: string): Promise<string> {

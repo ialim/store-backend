@@ -73,6 +73,9 @@ export default function InvoiceImportDetail() {
   const [confirmedById, setConfirmedById] = React.useState('');
   const [showRaw, setShowRaw] = React.useState(false);
   const [showPreview, setShowPreview] = React.useState(false);
+  const [previewState, setPreviewState] = React.useState<{ url: string; type: string } | null>(null);
+  const [previewLoading, setPreviewLoading] = React.useState(false);
+  const [previewError, setPreviewError] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState(false);
   const [edit, setEdit] = React.useState(false);
   const [draftLines, setDraftLines] = React.useState<any[]>([]);
@@ -92,6 +95,21 @@ export default function InvoiceImportDetail() {
         return window.location.origin;
       }
     })();
+  const downloadEndpoint = item ? `${API_BASE}/invoice-imports/${item.id}/file` : '';
+
+  const fetchInvoiceBlob = React.useCallback(async (): Promise<Blob> => {
+    if (!item) throw new Error('Invoice import not loaded');
+    if (!auth.token) throw new Error('Missing authentication token');
+    if (!downloadEndpoint) throw new Error('Download path unavailable');
+    const headers: HeadersInit = { Authorization: `Bearer ${auth.token}` };
+    const res = await fetch(downloadEndpoint, {
+      headers,
+    });
+    if (!res.ok) {
+      throw new Error(`Download failed (${res.status})`);
+    }
+    return await res.blob();
+  }, [item?.id, auth.token, downloadEndpoint]);
 
   React.useEffect(() => {
     if (item) {
@@ -112,6 +130,41 @@ export default function InvoiceImportDetail() {
       : [];
     setDraftLines(ls.map((l: any) => ({ ...l })));
   }, [item?.id]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    if (!showPreview || !item) {
+      setPreviewState(null);
+      setPreviewError(null);
+      return () => {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      };
+    }
+    setPreviewLoading(true);
+    setPreviewError(null);
+    (async () => {
+      try {
+        const blob = await fetchInvoiceBlob();
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setPreviewState({
+          url: objectUrl,
+          type: blob.type || 'application/octet-stream',
+        });
+      } catch (err) {
+        if (cancelled) return;
+        setPreviewState(null);
+        setPreviewError((err as Error).message || 'Failed to load preview');
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [showPreview, item?.id, fetchInvoiceBlob]);
 
   // Auto-refresh while processing, but keep hook order stable regardless of item
   React.useEffect(() => {
@@ -522,22 +575,27 @@ export default function InvoiceImportDetail() {
           >
             <Typography variant="subtitle1">Invoice Preview</Typography>
             <Stack direction="row" spacing={1} alignItems="center">
-              {localUrl &&
-                (() => {
-                  const u = localUrl.startsWith('/')
-                    ? `${API_BASE}${localUrl}`
-                    : localUrl;
-                  return (
-                    <Button
-                      size="small"
-                      href={u}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Open
-                    </Button>
-                  );
-                })()}
+              {item && (
+                <Button
+                  size="small"
+                  disabled={previewLoading}
+                  onClick={async () => {
+                    try {
+                      const blob = await fetchInvoiceBlob();
+                      const blobUrl = URL.createObjectURL(blob);
+                      const w = window.open(blobUrl, '_blank');
+                      if (!w) {
+                        notify('Pop-up blocked. Please allow pop-ups to view the invoice.', 'warning');
+                      }
+                      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+                    } catch (err) {
+                      notify((err as Error).message || 'Failed to open invoice', 'error');
+                    }
+                  }}
+                >
+                  Open
+                </Button>
+              )}
               <FormControlLabel
                 control={
                   <Switch
@@ -549,7 +607,7 @@ export default function InvoiceImportDetail() {
               />
             </Stack>
           </Stack>
-          {showPreview && localUrl && (
+          {showPreview && (
             <Box
               sx={{
                 border: '1px solid',
@@ -557,54 +615,44 @@ export default function InvoiceImportDetail() {
                 borderRadius: 1,
                 overflow: 'hidden',
                 height: 480,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'grey.50',
               }}
             >
-              {(() => {
-                const resolved = localUrl.startsWith('/')
-                  ? `${API_BASE}${localUrl}`
-                  : localUrl;
-                const isImage = /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(
-                  resolved,
-                );
-                if (isImage) {
-                  return (
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        height: '100%',
-                        bgcolor: 'grey.50',
-                      }}
-                    >
-                      <img
-                        src={resolved}
-                        alt="Invoice"
-                        style={{ maxWidth: '100%', maxHeight: '100%' }}
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display =
-                            'none';
-                        }}
-                      />
-                    </Box>
-                  );
-                }
-                // Fallback to iframe for PDFs and all other URLs (may be cross-origin)
-                return (
-                  <iframe
-                    src={resolved}
-                    width="100%"
-                    height="100%"
-                    title="Invoice Preview"
-                    style={{ border: 0 }}
-                  />
-                );
-              })()}
+              {previewLoading && <CircularProgress size={24} />}
+              {!previewLoading && previewState && previewState.type.startsWith('image/') && (
+                <img
+                  src={previewState.url}
+                  alt="Invoice"
+                  style={{ maxWidth: '100%', maxHeight: '100%' }}
+                />
+              )}
+              {!previewLoading && previewState && !previewState.type.startsWith('image/') && (
+                <iframe
+                  src={previewState.url}
+                  width="100%"
+                  height="100%"
+                  title="Invoice Preview"
+                  style={{ border: 0, flex: 1 }}
+                />
+              )}
+              {!previewLoading && !previewState && previewError && (
+                <Typography color="text.secondary" sx={{ px: 2 }}>
+                  {previewError}
+                </Typography>
+              )}
+              {!previewLoading && !previewState && !previewError && (
+                <Typography color="text.secondary" sx={{ px: 2 }}>
+                  Preview unavailable.
+                </Typography>
+              )}
             </Box>
           )}
-          {showPreview && localUrl && (
+          {showPreview && previewError && (
             <Typography variant="caption" color="text.secondary">
-              If the preview is blank, click Open — some sites block embedding.
+              {previewError}
             </Typography>
           )}
         </CardContent>
