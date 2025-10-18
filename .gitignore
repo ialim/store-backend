@@ -61,6 +61,7 @@ src/shared/prismagraphql/
 # Uploads (local artifacts)
 uploads/
 !src/modules/uploads/
+!src/modules/uploads/**
 
 # Extractor runtime data
 extractor/state/
