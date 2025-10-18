@@ -78,11 +78,12 @@ export default function InvoiceIngest() {
                   headers,
                 });
                 const json = await res.json();
-                if (json?.url) {
-                  setUrl(json.url);
+                const invoiceUri = json?.url || json?.uri;
+                if (invoiceUri) {
+                  setUrl(invoiceUri);
                   // Persist as an Invoice Import and navigate to detail for review/approval
                   try {
-                    const result = await createImport({ variables: { input: { url: json.url, storeId: storeId || null } } });
+                    const result = await createImport({ variables: { input: { url: invoiceUri, storeId: storeId || null } } });
                     const id = result.data?.adminCreateInvoiceImport?.id;
                     if (id) navigate(`/invoice-imports/${id}`);
                   } catch {}

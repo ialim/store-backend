@@ -12,6 +12,8 @@ import { InvoiceImportResolver } from './invoice-import.resolver';
 import { InvoiceImportQueue } from './invoice-import.queue';
 import { StockModule } from '../stock/stock.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
+import { InvoiceImportController } from './invoice-import.controller';
+import { UploadsModule } from '../uploads/uploads.module';
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { CatalogueModule } from '../catalogue/catalogue.module';
     PaymentModule,
     StockModule,
     CatalogueModule,
+    UploadsModule,
   ],
   providers: [
     PurchaseService,
@@ -31,5 +34,6 @@ import { CatalogueModule } from '../catalogue/catalogue.module';
     InvoiceImportResolver,
     InvoiceImportQueue,
   ],
+  controllers: [InvoiceImportController],
 })
 export class PurchaseModule {}
