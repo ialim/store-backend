@@ -705,8 +705,8 @@ export default function Variants() {
             width: 96,
             align: 'center',
             render: (variant: any) => {
-              const variantPrimary = variant.primaryAssetAssignment?.asset?.url;
-              const productPrimary = variant.product?.primaryAssetAssignment?.asset?.url;
+              const variantPrimary = variant.primaryAssetUrl;
+              const productPrimary = variant.product?.primaryAssetUrl;
               const candidates: Array<any> = [
                 variantPrimary,
                 productPrimary,

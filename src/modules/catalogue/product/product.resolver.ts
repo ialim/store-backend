@@ -77,6 +77,15 @@ export class ProductsResolver {
     );
   }
 
+  @ResolveField(() => String, { nullable: true })
+  async primaryAssetUrl(@Parent() product: Product): Promise<string | null> {
+    const assignment = await this.assetService.primaryAssignment(
+      AssetEntityType.PRODUCT,
+      product.id,
+    );
+    return assignment?.asset?.url ?? null;
+  }
+
   @Query(() => Product, { nullable: true })
   @UseGuards(GqlAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.product.READ as string)

@@ -88,6 +88,15 @@ export class ProductVariantsResolver {
     );
   }
 
+  @ResolveField(() => String, { nullable: true })
+  async primaryAssetUrl(@Parent() variant: ProductVariant): Promise<string | null> {
+    const assignment = await this.assetService.primaryAssignment(
+      AssetEntityType.PRODUCT_VARIANT,
+      variant.id,
+    );
+    return assignment?.asset?.url ?? null;
+  }
+
   @Query(() => ProductVariant, { nullable: true })
   @UseGuards(GqlAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.product.READ as string)

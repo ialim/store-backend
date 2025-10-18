@@ -92,17 +92,9 @@ export const Variants = gql`
       product {
         id
         name
-        primaryAssetAssignment {
-          id
-          isPrimary
-          asset { id url filename mimetype }
-        }
+        primaryAssetUrl
       }
-      primaryAssetAssignment {
-        id
-        isPrimary
-        asset { id url filename mimetype }
-      }
+      primaryAssetUrl
       stockItems { quantity reserved }
     }
   }

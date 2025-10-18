@@ -232,6 +232,7 @@ type Product {
   _count: ProductCount!
   assetAssignments: [AssetAssignment!]!
   primaryAssetAssignment: AssetAssignment
+  primaryAssetUrl: String
 }
 
 type PurchaseOrderItem {
@@ -1081,6 +1082,7 @@ type ProductVariant {
   _count: ProductVariantCount!
   assetAssignments: [AssetAssignment!]!
   primaryAssetAssignment: AssetAssignment
+  primaryAssetUrl: String
 }
 
 type Stock {
