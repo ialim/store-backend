@@ -198,10 +198,7 @@ export class ProductVariantService extends BaseCrudService<
         price: input.price,
         resellerPrice: input.resellerPrice,
       },
-      include: {
-        product: true,
-        stockItems: true,
-      },
+      include: { product: true, stockItems: true },
     });
   }
 
@@ -212,10 +209,7 @@ export class ProductVariantService extends BaseCrudService<
     return this.prisma.productVariant.update({
       where: { id: variantId },
       data: { productId },
-      include: {
-        product: true,
-        stockItems: true,
-      },
+      include: { product: true, stockItems: true },
     });
   }
 
@@ -223,10 +217,7 @@ export class ProductVariantService extends BaseCrudService<
     return this.prisma.productVariant.update({
       where: { id: variantId },
       data: { productId: null },
-      include: {
-        product: true,
-        stockItems: true,
-      },
+      include: { product: true, stockItems: true },
     });
   }
 

@@ -15,7 +15,14 @@ import {
   DeleteManyProductArgs,
 } from '../../../shared/prismagraphql/product';
 import { AffectedRows } from '../../../shared/prismagraphql/prisma';
-import { Resolver, Query, Args, Mutation } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Args,
+  Mutation,
+  ResolveField,
+  Parent,
+} from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { GqlAuthGuard } from '../../auth/guards/gql-auth.guard';
@@ -24,6 +31,9 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { PERMISSIONS } from '../../../../shared/permissions';
+import { AssetService } from '../../asset/asset.service';
+import { AssetAssignment } from '../../../shared/prismagraphql/asset-assignment/asset-assignment.model';
+import { AssetEntityType } from '@prisma/client';
 
 const toAffectedRows = (payload: unknown): AffectedRows => {
   if (typeof payload === 'object' && payload && 'count' in payload) {
@@ -37,7 +47,10 @@ const toAffectedRows = (payload: unknown): AffectedRows => {
 };
 @Resolver(() => Product)
 export class ProductsResolver {
-  constructor(private readonly ProductService: ProductService) {}
+  constructor(
+    private readonly ProductService: ProductService,
+    private readonly assetService: AssetService,
+  ) {}
 
   @Query(() => Product, { nullable: true })
   @UseGuards(GqlAuthGuard, PermissionsGuard)
@@ -46,6 +59,22 @@ export class ProductsResolver {
     @Args() args: FindFirstProductArgs,
   ): Promise<Product | null> {
     return this.ProductService.findFirst(args);
+  }
+
+  @ResolveField(() => [AssetAssignment])
+  assetAssignments(@Parent() product: Product) {
+    return this.assetService.assignmentsForEntity(
+      AssetEntityType.PRODUCT,
+      product.id,
+    );
+  }
+
+  @ResolveField(() => AssetAssignment, { nullable: true })
+  primaryAssetAssignment(@Parent() product: Product) {
+    return this.assetService.primaryAssignment(
+      AssetEntityType.PRODUCT,
+      product.id,
+    );
   }
 
   @Query(() => Product, { nullable: true })

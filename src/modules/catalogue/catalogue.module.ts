@@ -11,8 +11,10 @@ import { CollectionResolver } from './collection/collection.resolver';
 import { CollectionService } from './collection/collection.service';
 import { VariantImportService } from './variant/variant-import.service';
 import { VariantImportController } from './variant/variant-import.controller';
+import { AssetModule } from '../asset/asset.module';
 
 @Module({
+  imports: [AssetModule],
   providers: [
     ProductService,
     ProductsResolver,
