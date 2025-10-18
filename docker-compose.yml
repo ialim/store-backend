@@ -32,9 +32,9 @@ services:
         ASSET_BUCKET=${ASSET_S3_BUCKET:-store-assets};
         INVOICE_BUCKET=${INVOICE_S3_BUCKET:-store-invoices};
         mc alias set local http://minio:9000 ${ASSET_S3_ACCESS_KEY:-minioadmin} ${ASSET_S3_SECRET_KEY:-minioadmin}
-        && mc mb --ignore-existing local/${ASSET_S3_BUCKET:-store-assets}
-        && mc anonymous set download local/${ASSET_S3_BUCKET:-store-assets}
-        && if [ "${INVOICE_BUCKET}" != "${ASSET_BUCKET}" ]; then mc mb --ignore-existing local/${INVOICE_BUCKET}; fi
+        && mc mb --ignore-existing local/$${ASSET_BUCKET}
+        && mc anonymous set download local/$${ASSET_BUCKET}
+        && if [ "$${INVOICE_BUCKET}" != "$${ASSET_BUCKET}" ]; then mc mb --ignore-existing local/$${INVOICE_BUCKET}; fi
     restart: 'no'
 
   invoice-ocr:
