@@ -32809,7 +32809,7 @@ export type VariantsQueryVariables = Exact<{
 }>;
 
 
-export type VariantsQuery = { __typename?: 'Query', listProductVariants: Array<{ __typename?: 'ProductVariant', id: string, name?: string | null, barcode?: string | null, price: number, resellerPrice: number, createdAt: any, product?: { __typename?: 'Product', id: string, name: string } | null, stockItems?: Array<{ __typename?: 'Stock', quantity: number, reserved: number }> | null }> };
+export type VariantsQuery = { __typename?: 'Query', listProductVariants: Array<{ __typename?: 'ProductVariant', id: string, name?: string | null, barcode?: string | null, price: number, resellerPrice: number, createdAt: any, primaryAssetUrl?: string | null, product?: { __typename?: 'Product', id: string, name: string, primaryAssetUrl?: string | null } | null, stockItems?: Array<{ __typename?: 'Stock', quantity: number, reserved: number }> | null }> };
 
 export type ProductVariantsCountQueryVariables = Exact<{
   where?: InputMaybe<ProductVariantWhereInput>;
@@ -41124,9 +41124,11 @@ export const VariantsDocument = gql`
     price
     resellerPrice
     createdAt
+    primaryAssetUrl
     product {
       id
       name
+      primaryAssetUrl
     }
     stockItems {
       quantity

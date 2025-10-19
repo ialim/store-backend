@@ -89,12 +89,20 @@ export class ProductVariantsResolver {
   }
 
   @ResolveField(() => String, { nullable: true })
-  async primaryAssetUrl(@Parent() variant: ProductVariant): Promise<string | null> {
-    const assignment = await this.assetService.primaryAssignment(
+  async primaryAssetUrl(
+    @Parent() variant: ProductVariant,
+  ): Promise<string | null> {
+    const primary = await this.assetService.primaryAssignment(
       AssetEntityType.PRODUCT_VARIANT,
       variant.id,
     );
-    return assignment?.asset?.url ?? null;
+    if (primary?.asset?.url) return primary.asset.url;
+    const assignments = await this.assetService.assignmentsForEntity(
+      AssetEntityType.PRODUCT_VARIANT,
+      variant.id,
+    );
+    const fallback = assignments.find((a) => a.asset?.url);
+    return fallback?.asset?.url ?? null;
   }
 
   @Query(() => ProductVariant, { nullable: true })

@@ -79,11 +79,17 @@ export class ProductsResolver {
 
   @ResolveField(() => String, { nullable: true })
   async primaryAssetUrl(@Parent() product: Product): Promise<string | null> {
-    const assignment = await this.assetService.primaryAssignment(
+    const primary = await this.assetService.primaryAssignment(
       AssetEntityType.PRODUCT,
       product.id,
     );
-    return assignment?.asset?.url ?? null;
+    if (primary?.asset?.url) return primary.asset.url;
+    const assignments = await this.assetService.assignmentsForEntity(
+      AssetEntityType.PRODUCT,
+      product.id,
+    );
+    const fallback = assignments.find((a) => a.asset?.url);
+    return fallback?.asset?.url ?? null;
   }
 
   @Query(() => Product, { nullable: true })
