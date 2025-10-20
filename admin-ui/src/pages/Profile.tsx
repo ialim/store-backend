@@ -22,6 +22,8 @@ import { decodeJwt } from '../shared/jwt';
 import { notify } from '../shared/notify';
 import {
   AssetKind,
+  UpdateResellerBrandingInput,
+  UpdateMyResellerBrandingMutationVariables,
   useChangePasswordMutation,
   useMeQuery,
   useMyResellerProfileQuery,
@@ -244,15 +246,16 @@ export default function Profile() {
     }
     try {
       if (isReseller) {
-        await updateResellerBrandingMutation({
-          variables: {
-            input: {
-              companyName: companyNameDraft.trim(),
-              contactPersonName: profileName.trim(),
-              contactPhone: profilePhone.trim() || null,
-            },
-          },
-        });
+        const brandingInput = {
+          companyName: companyNameDraft.trim(),
+          contactPersonName: profileName.trim(),
+          contactPhone: profilePhone.trim() || null,
+        } satisfies UpdateResellerBrandingInput;
+
+        const variables: UpdateMyResellerBrandingMutationVariables = {
+          input: brandingInput,
+        };
+        await updateResellerBrandingMutation({ variables });
         notify('Profile updated', 'success');
         await Promise.all([refetch(), refetchReseller()]);
         setEditingProfile(false);
@@ -600,7 +603,8 @@ export default function Profile() {
 
         <Grid item xs={12} xl={5}>
           <Stack spacing={3} sx={{ height: '100%' }}>
-            <Card sx={{ borderRadius: 4, boxShadow: '0 26px 48px rgba(16, 94, 62, 0.08)' }}>
+            {!isReseller && (
+              <Card sx={{ borderRadius: 4, boxShadow: '0 26px 48px rgba(16, 94, 62, 0.08)' }}>
               <CardContent sx={{ p: { xs: 3, md: 4 } }}>
                 <Stack spacing={2.5}>
                   <Stack direction="row" alignItems="center" justifyContent="space-between">
@@ -673,7 +677,8 @@ export default function Profile() {
                   </Stack>
                 </Stack>
               </CardContent>
-            </Card>
+              </Card>
+            )}
 
             <Card
               component="form"

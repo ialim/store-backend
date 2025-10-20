@@ -38,6 +38,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import PaidIcon from '@mui/icons-material/Paid';
 import UndoIcon from '@mui/icons-material/Undo';
+import AssignmentReturnedIcon from '@mui/icons-material/AssignmentReturned';
 import InsightsIcon from '@mui/icons-material/Insights';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -493,7 +494,18 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       label: 'Returns',
       collapsible: true,
       items: [
-        { label: 'Returns', to: '/returns', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <UndoIcon fontSize="small" /> },
+        {
+          label: 'Sales Returns',
+          to: '/returns',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT', 'BILLER', 'RESELLER'),
+          icon: <UndoIcon fontSize="small" />,
+        },
+        {
+          label: 'Purchase Returns',
+          to: '/returns/purchase',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <AssignmentReturnedIcon fontSize="small" />,
+        },
       ],
     },
     {
@@ -588,12 +600,6 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       label: 'Catalog',
       collapsible: true,
       items: [
-        {
-          label: 'Products',
-          to: '/products',
-          show: isReseller,
-          icon: <Inventory2Icon fontSize="small" />,
-        },
         {
           label: 'Variants',
           to: '/variants',

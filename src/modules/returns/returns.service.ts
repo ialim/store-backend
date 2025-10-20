@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -22,6 +23,8 @@ import { PaymentService } from '../payment/payment.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { SaleType as GqlSaleType } from '../../shared/prismagraphql/prisma/sale-type.enum';
 import { ReturnStatus as GqlReturnStatus } from '../../shared/prismagraphql/prisma/return-status.enum';
+import type { AuthenticatedUser } from '../auth/auth.service';
+import { PERMISSIONS } from '../../../shared/permissions';
 
 @Injectable()
 export class ReturnsService {
@@ -47,7 +50,31 @@ export class ReturnsService {
   }
 
   // SALES RETURN
-  async createSalesReturnForOrder(input: CreateOrderReturnInput) {
+  private userHasPermission(
+    user: AuthenticatedUser | null | undefined,
+    permission: string,
+  ): boolean {
+    return Boolean(
+      user?.role?.permissions?.some((perm) => perm.name === permission),
+    );
+  }
+
+  private isPrivilegedReturnActor(
+    user: AuthenticatedUser | null | undefined,
+  ): boolean {
+    const role = (user?.role?.name || '').toUpperCase();
+    return ['SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT', 'BILLER'].includes(
+      role,
+    );
+  }
+
+  async createSalesReturnForOrder({
+    input,
+    user,
+  }: {
+    input: CreateOrderReturnInput;
+    user?: AuthenticatedUser | null;
+  }) {
     const order = await this.prisma.saleOrder.findUnique({
       where: { id: input.orderId },
     });
@@ -66,18 +93,68 @@ export class ReturnsService {
       throw new NotFoundException('No sale found for order');
     }
 
+    const role = (user?.role?.name || '').toUpperCase();
+    const isReseller = role === 'RESELLER';
+
+    if (isReseller) {
+      if (!resellerSale || resellerSale.resellerId !== user?.id) {
+        throw new ForbiddenException(
+          'You can only request returns for your own sales.',
+        );
+      }
+    }
+
+    const resolvedReturnedById = isReseller
+      ? user?.id
+      : (input.returnedById ?? null);
+    const resolvedReceivedById = isReseller
+      ? (resellerSale?.billerId ?? order.billerId ?? null)
+      : (input.receivedById ?? null);
+
+    if (!resolvedReturnedById) {
+      throw new BadRequestException(
+        'returnedById is required for this return.',
+      );
+    }
+    if (!resolvedReceivedById) {
+      throw new BadRequestException(
+        'receivedById is required for this return.',
+      );
+    }
+
     return this.createSalesReturn({
-      type: consumerSale ? GqlSaleType.CONSUMER : GqlSaleType.RESELLER,
-      consumerSaleId: consumerSale?.id,
-      resellerSaleId: resellerSale?.id ?? undefined,
-      returnedById: input.returnedById,
-      receivedById: input.receivedById,
-      returnLocation: input.returnLocation,
-      items: input.items,
+      input: {
+        type: consumerSale ? GqlSaleType.CONSUMER : GqlSaleType.RESELLER,
+        consumerSaleId: consumerSale?.id,
+        resellerSaleId: resellerSale?.id ?? undefined,
+        returnedById: resolvedReturnedById,
+        receivedById: resolvedReceivedById,
+        returnLocation: input.returnLocation,
+        items: input.items,
+      },
+      user,
     });
   }
 
-  async createSalesReturn(input: CreateSalesReturnInput) {
+  async createSalesReturn({
+    input,
+    user,
+  }: {
+    input: CreateSalesReturnInput;
+    user?: AuthenticatedUser | null;
+  }) {
+    const role = (user?.role?.name || '').toUpperCase();
+    const isReseller = role === 'RESELLER';
+    const hasPermission =
+      this.userHasPermission(user, PERMISSIONS.return.CREATE as string) ||
+      this.isPrivilegedReturnActor(user);
+
+    if (!isReseller && !hasPermission) {
+      throw new ForbiddenException(
+        'You are not allowed to create sales returns.',
+      );
+    }
+
     if (input.type === GqlSaleType.CONSUMER && !input.consumerSaleId) {
       throw new BadRequestException(
         'consumerSaleId is required for CONSUMER returns',
@@ -101,6 +178,37 @@ export class ReturnsService {
             include: { items: true },
           });
     if (!sale) throw new NotFoundException('Sale not found');
+
+    let returnedById = input.returnedById;
+    let receivedById = input.receivedById;
+
+    if (isReseller) {
+      if (input.type !== GqlSaleType.RESELLER) {
+        throw new ForbiddenException(
+          'Resellers can only return reseller sales.',
+        );
+      }
+      const resellerSale = sale as { resellerId?: string; billerId?: string };
+      if (!resellerSale?.resellerId || resellerSale.resellerId !== user?.id) {
+        throw new ForbiddenException(
+          'You can only request returns for your own sales.',
+        );
+      }
+      returnedById = user?.id ?? null;
+      receivedById = resellerSale.billerId ?? receivedById ?? null;
+      if (!receivedById) {
+        throw new BadRequestException(
+          'Unable to determine a receiver for this return.',
+        );
+      }
+    }
+
+    if (!returnedById) {
+      throw new BadRequestException('returnedById is required.');
+    }
+    if (!receivedById) {
+      throw new BadRequestException('receivedById is required.');
+    }
 
     // Validate quantities: cannot exceed sold minus already returned
     const saleItems = sale.items as Array<{
@@ -140,8 +248,8 @@ export class ReturnsService {
             : PrismaSaleType.RESELLER,
         consumerSaleId: input.consumerSaleId ?? null,
         resellerSaleId: input.resellerSaleId ?? null,
-        returnedById: input.returnedById,
-        receivedById: input.receivedById,
+        returnedById,
+        receivedById,
         storeId: (sale as { storeId: string }).storeId,
         status: PrismaReturnStatus.PENDING,
         returnLocation: input.returnLocation as unknown as PrismaReturnLocation,

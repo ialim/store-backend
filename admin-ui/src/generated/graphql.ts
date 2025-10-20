@@ -3711,9 +3711,9 @@ export type CreateInvoiceImportInput = {
 export type CreateOrderReturnInput = {
   items: Array<CreateSalesReturnItemInput>;
   orderId: Scalars['String']['input'];
-  receivedById: Scalars['String']['input'];
+  receivedById?: InputMaybe<Scalars['String']['input']>;
   returnLocation: ReturnLocation;
-  returnedById: Scalars['String']['input'];
+  returnedById?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type CreatePOsFromSelectionInput = {

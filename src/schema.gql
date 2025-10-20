@@ -28897,8 +28897,8 @@ input UpdateSalesReturnStatusInput {
 
 input CreateOrderReturnInput {
   orderId: String!
-  returnedById: String!
-  receivedById: String!
+  returnedById: String
+  receivedById: String
   returnLocation: ReturnLocation!
   items: [CreateSalesReturnItemInput!]!
 }

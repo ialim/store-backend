@@ -14,6 +14,8 @@ import { FulfillPurchaseReturnInput } from './dto/fulfill-purchase-return.input'
 import { SalesReturn } from '../../shared/prismagraphql/sales-return/sales-return.model';
 import { PurchaseReturn } from '../../shared/prismagraphql/purchase-return/purchase-return.model';
 import { CreateOrderReturnInput } from './dto/create-order-return.input';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../auth/auth.service';
 
 @Resolver()
 export class ReturnsResolver {
@@ -21,9 +23,13 @@ export class ReturnsResolver {
 
   // Create a sales return request (partial or full)
   @Mutation(() => String)
-  @UseGuards(GqlAuthGuard)
-  createSalesReturn(@Args('input') input: CreateSalesReturnInput) {
-    return this.returns.createSalesReturn(input);
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('RESELLER', 'BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  createSalesReturn(
+    @Args('input') input: CreateSalesReturnInput,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.returns.createSalesReturn({ input, user });
   }
 
   // Update sales return status (accept/reject/fulfill)
@@ -37,10 +43,13 @@ export class ReturnsResolver {
 
   // Create a sales return using orderId (helper)
   @Mutation(() => String)
-  @UseGuards(GqlAuthGuard, PermissionsGuard)
-  @Permissions(PERMISSIONS.return.CREATE as string)
-  createSalesReturnForOrder(@Args('input') input: CreateOrderReturnInput) {
-    return this.returns.createSalesReturnForOrder(input);
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('RESELLER', 'BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  createSalesReturnForOrder(
+    @Args('input') input: CreateOrderReturnInput,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.returns.createSalesReturnForOrder({ input, user });
   }
 
   // Create a purchase return (partial or full)

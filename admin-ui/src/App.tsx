@@ -22,6 +22,7 @@ const Stock = lazy(() => import('./pages/Stock'));
 const Users = lazy(() => import('./pages/Users'));
 const Payments = lazy(() => import('./pages/Payments'));
 const Returns = lazy(() => import('./pages/Returns'));
+const PurchaseReturns = lazy(() => import('./pages/PurchaseReturns'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Stores = lazy(() => import('./pages/Stores'));
 const Support = lazy(() => import('./pages/Support'));
@@ -610,8 +611,24 @@ export default function App() {
               path="/returns"
               element={
                 <ProtectedRoute
-                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  roles={[
+                    'SUPERADMIN',
+                    'ADMIN',
+                    'MANAGER',
+                    'ACCOUNTANT',
+                    'BILLER',
+                    'RESELLER',
+                  ]}
                   element={<Returns />}
+                />
+              }
+            />
+            <Route
+              path="/returns/purchase"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<PurchaseReturns />}
                 />
               }
             />
