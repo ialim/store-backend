@@ -5748,6 +5748,8 @@ export type Fulfillment = {
   _count: FulfillmentCount;
   confirmationPin?: Maybe<Scalars['String']['output']>;
   cost?: Maybe<Scalars['Float']['output']>;
+  costAcceptedAt?: Maybe<Scalars['DateTime']['output']>;
+  costStatus: FulfillmentCostStatus;
   createdAt: Scalars['DateTime']['output'];
   deliveryAddress?: Maybe<Scalars['String']['output']>;
   deliveryPersonnel?: Maybe<User>;
@@ -5757,6 +5759,8 @@ export type Fulfillment = {
   /** Normalized fulfillment workflow context including scheduling metadata. */
   fulfillmentWorkflowContext?: Maybe<Scalars['JSON']['output']>;
   id: Scalars['ID']['output'];
+  paymentStatus: FulfillmentPaymentStatus;
+  payments?: Maybe<Array<FulfillmentPayment>>;
   riderInterests?: Maybe<Array<FulfillmentRiderInterest>>;
   saleOrder: SaleOrder;
   saleOrderId: Scalars['String']['output'];
@@ -5772,6 +5776,12 @@ export type FulfillmentAvgAggregate = {
   __typename?: 'FulfillmentAvgAggregate';
   cost?: Maybe<Scalars['Float']['output']>;
 };
+
+export enum FulfillmentCostStatus {
+  Accepted = 'ACCEPTED',
+  Pending = 'PENDING',
+  Rejected = 'REJECTED'
+}
 
 export type FulfillmentCount = {
   __typename?: 'FulfillmentCount';
@@ -5941,6 +5951,28 @@ export type FulfillmentNullableScalarRelationFilter = {
 export type FulfillmentOrderByRelationAggregateInput = {
   _count?: InputMaybe<SortOrder>;
 };
+
+export type FulfillmentPayment = {
+  __typename?: 'FulfillmentPayment';
+  amount: Scalars['Float']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  fulfillment: Fulfillment;
+  fulfillmentId: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  method?: Maybe<Scalars['String']['output']>;
+  notes?: Maybe<Scalars['String']['output']>;
+  receivedAt?: Maybe<Scalars['DateTime']['output']>;
+  receivedBy?: Maybe<User>;
+  receivedById?: Maybe<Scalars['String']['output']>;
+  reference?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export enum FulfillmentPaymentStatus {
+  Paid = 'PAID',
+  Partial = 'PARTIAL',
+  Unpaid = 'UNPAID'
+}
 
 export type FulfillmentRiderInterest = {
   __typename?: 'FulfillmentRiderInterest';
@@ -7229,6 +7261,7 @@ export type Mutation = {
   markPurchaseOrderReceived: PurchaseOrder;
   processOutbox: Scalars['Int']['output'];
   receiveStockBatch: StockReceiptBatch;
+  recordFulfillmentPayment: Fulfillment;
   registerConsumerPayment: ConsumerPayment;
   registerFulfillmentInterest: FulfillmentRiderInterest;
   registerResellerPayment: ResellerPayment;
@@ -7849,6 +7882,11 @@ export type MutationProcessOutboxArgs = {
 
 export type MutationReceiveStockBatchArgs = {
   input: ReceiveStockBatchInput;
+};
+
+
+export type MutationRecordFulfillmentPaymentArgs = {
+  input: RecordFulfillmentPaymentInput;
 };
 
 
@@ -15863,6 +15901,15 @@ export type ReceiveStockBatchInput = {
 export type ReceiveStockBatchItemInput = {
   productVariantId: Scalars['ID']['input'];
   quantity: Scalars['Int']['input'];
+};
+
+export type RecordFulfillmentPaymentInput = {
+  amount: Scalars['Float']['input'];
+  fulfillmentId: Scalars['ID']['input'];
+  method?: InputMaybe<Scalars['String']['input']>;
+  notes?: InputMaybe<Scalars['String']['input']>;
+  receivedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  reference?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type RegisterFulfillmentInterestInput = {
@@ -31810,14 +31857,14 @@ export type AssignFulfillmentPersonnelMutationVariables = Exact<{
 }>;
 
 
-export type AssignFulfillmentPersonnelMutation = { __typename?: 'Mutation', assignFulfillmentPersonnel: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, deliveryPersonnelId?: string | null, updatedAt: any } };
+export type AssignFulfillmentPersonnelMutation = { __typename?: 'Mutation', assignFulfillmentPersonnel: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, deliveryPersonnelId?: string | null, costStatus: FulfillmentCostStatus, paymentStatus: FulfillmentPaymentStatus, updatedAt: any, payments?: Array<{ __typename?: 'FulfillmentPayment', id: string, amount: number, method?: string | null, reference?: string | null, receivedAt?: any | null, receivedById?: string | null, notes?: string | null }> | null } };
 
 export type UpdateFulfillmentStatusMutationVariables = Exact<{
   input: UpdateFulfillmentStatusInput;
 }>;
 
 
-export type UpdateFulfillmentStatusMutation = { __typename?: 'Mutation', updateFulfillmentStatus: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, updatedAt: any } };
+export type UpdateFulfillmentStatusMutation = { __typename?: 'Mutation', updateFulfillmentStatus: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, updatedAt: any, paymentStatus: FulfillmentPaymentStatus } };
 
 export type DeliverableFulfillmentsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -31856,6 +31903,13 @@ export type AssignFulfillmentRiderMutationVariables = Exact<{
 
 
 export type AssignFulfillmentRiderMutation = { __typename?: 'Mutation', assignFulfillmentRider: { __typename?: 'FulfillmentRiderInterest', id: string, status: FulfillmentRiderInterestStatus, riderId: string, proposedCost?: number | null, fulfillmentId: string, updatedAt: any } };
+
+export type RecordFulfillmentPaymentMutationVariables = Exact<{
+  input: RecordFulfillmentPaymentInput;
+}>;
+
+
+export type RecordFulfillmentPaymentMutation = { __typename?: 'Mutation', recordFulfillmentPayment: { __typename?: 'Fulfillment', id: string, paymentStatus: FulfillmentPaymentStatus, costStatus: FulfillmentCostStatus, updatedAt: any, payments?: Array<{ __typename?: 'FulfillmentPayment', id: string, amount: number, method?: string | null, reference?: string | null, receivedAt?: any | null, receivedById?: string | null, notes?: string | null, receivedBy?: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } | null }> | null } };
 
 export type FulfillmentsInProgressQueryVariables = Exact<{
   statuses?: InputMaybe<Array<FulfillmentStatus> | FulfillmentStatus>;
@@ -31968,7 +32022,7 @@ export type OrderQueryVariables = Exact<{
 }>;
 
 
-export type OrderQuery = { __typename?: 'Query', order: { __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, fulfillmentType?: FulfillmentType | null, deliveryAddress?: string | null, saleWorkflowState?: string | null, saleWorkflowContext?: any | null, fulfillmentWorkflowState?: string | null, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, saleWorkflowSummary?: { __typename?: 'SaleWorkflowSummary', saleOrderId: string, state: string, grandTotal: number, paid: number, outstanding: number, creditLimit: number, creditExposure: number, canAdvanceByPayment: boolean, canAdvanceByCredit: boolean, context?: any | null } | null, consumerSale?: { __typename?: 'ConsumerSale', id: string, status: SaleStatus, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, customer?: { __typename?: 'Customer', id: string, fullName: string, email?: string | null } | null } | null, resellerSale?: { __typename?: 'ResellerSale', id: string, status: SaleStatus, resellerId: string, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, reseller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, store: { __typename?: 'Store', id: string, name: string, location?: string | null } } | null, quotation?: { __typename?: 'Quotation', id: string, status: QuotationStatus, type: SaleType, totalAmount: number, billerId?: string | null, resellerId?: string | null, updatedAt: any, saleOrderId?: string | null, items?: Array<{ __typename?: 'QuotationItem', productVariantId: string, quantity: number, unitPrice: number }> | null } | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, deliveryPersonnelId?: string | null, deliveryAddress?: string | null, cost?: number | null, createdAt: any, updatedAt: any, fulfillmentWorkflowContext?: any | null, deliveryPersonnel?: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } | null, fulfillmentWorkflow?: { __typename?: 'FulfilmentWorkflowSnapshot', state: string, context?: any | null } | null } | null, ConsumerPayment?: Array<{ __typename?: 'ConsumerPayment', id: string, amount: number, method: PaymentMethod, status: PaymentStatus, reference?: string | null, receivedAt: any, receiptBucket?: string | null, receiptKey?: string | null, receiptUrl?: string | null }> | null, ResellerPayment?: Array<{ __typename?: 'ResellerPayment', id: string, amount: number, method: PaymentMethod, status: PaymentStatus, reference?: string | null, receivedAt: any, resellerId: string, receivedById: string, receiptBucket?: string | null, receiptKey?: string | null, receiptUrl?: string | null }> | null, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } } };
+export type OrderQuery = { __typename?: 'Query', order: { __typename?: 'SaleOrder', id: string, storeId: string, billerId: string, type: SaleType, status: SaleStatus, phase: OrderPhase, fulfillmentType?: FulfillmentType | null, deliveryAddress?: string | null, saleWorkflowState?: string | null, saleWorkflowContext?: any | null, fulfillmentWorkflowState?: string | null, totalAmount: number, createdAt: any, updatedAt: any, resellerSaleid?: string | null, saleWorkflowSummary?: { __typename?: 'SaleWorkflowSummary', saleOrderId: string, state: string, grandTotal: number, paid: number, outstanding: number, creditLimit: number, creditExposure: number, canAdvanceByPayment: boolean, canAdvanceByCredit: boolean, context?: any | null } | null, consumerSale?: { __typename?: 'ConsumerSale', id: string, status: SaleStatus, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, customer?: { __typename?: 'Customer', id: string, fullName: string, email?: string | null } | null } | null, resellerSale?: { __typename?: 'ResellerSale', id: string, status: SaleStatus, resellerId: string, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, reseller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, store: { __typename?: 'Store', id: string, name: string, location?: string | null } } | null, quotation?: { __typename?: 'Quotation', id: string, status: QuotationStatus, type: SaleType, totalAmount: number, billerId?: string | null, resellerId?: string | null, updatedAt: any, saleOrderId?: string | null, items?: Array<{ __typename?: 'QuotationItem', productVariantId: string, quantity: number, unitPrice: number }> | null } | null, fulfillment?: { __typename?: 'Fulfillment', id: string, status: FulfillmentStatus, type: FulfillmentType, deliveryPersonnelId?: string | null, deliveryAddress?: string | null, cost?: number | null, costStatus: FulfillmentCostStatus, costAcceptedAt?: any | null, paymentStatus: FulfillmentPaymentStatus, createdAt: any, updatedAt: any, fulfillmentWorkflowContext?: any | null, deliveryPersonnel?: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } | null, payments?: Array<{ __typename?: 'FulfillmentPayment', id: string, amount: number, method?: string | null, reference?: string | null, receivedAt?: any | null, receivedById?: string | null, notes?: string | null, receivedBy?: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } | null }> | null, fulfillmentWorkflow?: { __typename?: 'FulfilmentWorkflowSnapshot', state: string, context?: any | null } | null } | null, ConsumerPayment?: Array<{ __typename?: 'ConsumerPayment', id: string, amount: number, method: PaymentMethod, status: PaymentStatus, reference?: string | null, receivedAt: any, receiptBucket?: string | null, receiptKey?: string | null, receiptUrl?: string | null }> | null, ResellerPayment?: Array<{ __typename?: 'ResellerPayment', id: string, amount: number, method: PaymentMethod, status: PaymentStatus, reference?: string | null, receivedAt: any, resellerId: string, receivedById: string, receiptBucket?: string | null, receiptKey?: string | null, receiptUrl?: string | null }> | null, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } } };
 
 export type UpdateQuotationStatusMutationVariables = Exact<{
   input: UpdateQuotationStatusInput;
@@ -32020,7 +32074,7 @@ export type QuotationsQuery = { __typename?: 'Query', quotations: Array<{ __type
 export type ConsumerSalesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type ConsumerSalesQuery = { __typename?: 'Query', consumerSales: Array<{ __typename?: 'ConsumerSale', id: string, saleOrderId: string, customerId?: string | null, storeId: string, billerId: string, status: SaleStatus, channel: SaleChannel, totalAmount: number, createdAt: any, updatedAt: any, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, customer?: { __typename?: 'Customer', id: string, fullName: string, email?: string | null } | null, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } }> };
+export type ConsumerSalesQuery = { __typename?: 'Query', consumerSales: Array<{ __typename?: 'ConsumerSale', id: string, saleOrderId: string, customerId?: string | null, storeId: string, billerId: string, status: SaleStatus, channel: SaleChannel, totalAmount: number, createdAt: any, updatedAt: any, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, customer?: { __typename?: 'Customer', id: string, fullName: string, email?: string | null } | null, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, saleOrder: { __typename?: 'SaleOrder', id: string, status: SaleStatus, fulfillment?: { __typename?: 'Fulfillment', cost?: number | null } | null } }> };
 
 export type ResellerSalesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -34692,7 +34746,18 @@ export const AssignFulfillmentPersonnelDocument = gql`
     id
     status
     deliveryPersonnelId
+    costStatus
+    paymentStatus
     updatedAt
+    payments {
+      id
+      amount
+      method
+      reference
+      receivedAt
+      receivedById
+      notes
+    }
   }
 }
     `;
@@ -34728,6 +34793,7 @@ export const UpdateFulfillmentStatusDocument = gql`
     id
     status
     updatedAt
+    paymentStatus
   }
 }
     `;
@@ -35019,6 +35085,58 @@ export function useAssignFulfillmentRiderMutation(baseOptions?: Apollo.MutationH
 export type AssignFulfillmentRiderMutationHookResult = ReturnType<typeof useAssignFulfillmentRiderMutation>;
 export type AssignFulfillmentRiderMutationResult = Apollo.MutationResult<AssignFulfillmentRiderMutation>;
 export type AssignFulfillmentRiderMutationOptions = Apollo.BaseMutationOptions<AssignFulfillmentRiderMutation, AssignFulfillmentRiderMutationVariables>;
+export const RecordFulfillmentPaymentDocument = gql`
+    mutation RecordFulfillmentPayment($input: RecordFulfillmentPaymentInput!) {
+  recordFulfillmentPayment(input: $input) {
+    id
+    paymentStatus
+    costStatus
+    payments {
+      id
+      amount
+      method
+      reference
+      receivedAt
+      receivedById
+      notes
+      receivedBy {
+        id
+        email
+        customerProfile {
+          fullName
+        }
+      }
+    }
+    updatedAt
+  }
+}
+    `;
+export type RecordFulfillmentPaymentMutationFn = Apollo.MutationFunction<RecordFulfillmentPaymentMutation, RecordFulfillmentPaymentMutationVariables>;
+
+/**
+ * __useRecordFulfillmentPaymentMutation__
+ *
+ * To run a mutation, you first call `useRecordFulfillmentPaymentMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useRecordFulfillmentPaymentMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [recordFulfillmentPaymentMutation, { data, loading, error }] = useRecordFulfillmentPaymentMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useRecordFulfillmentPaymentMutation(baseOptions?: Apollo.MutationHookOptions<RecordFulfillmentPaymentMutation, RecordFulfillmentPaymentMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<RecordFulfillmentPaymentMutation, RecordFulfillmentPaymentMutationVariables>(RecordFulfillmentPaymentDocument, options);
+      }
+export type RecordFulfillmentPaymentMutationHookResult = ReturnType<typeof useRecordFulfillmentPaymentMutation>;
+export type RecordFulfillmentPaymentMutationResult = Apollo.MutationResult<RecordFulfillmentPaymentMutation>;
+export type RecordFulfillmentPaymentMutationOptions = Apollo.BaseMutationOptions<RecordFulfillmentPaymentMutation, RecordFulfillmentPaymentMutationVariables>;
 export const FulfillmentsInProgressDocument = gql`
     query FulfillmentsInProgress($statuses: [FulfillmentStatus!], $storeId: String, $search: String, $take: Int) {
   fulfillmentsInProgress(
@@ -35866,6 +35984,25 @@ export const OrderDocument = gql`
       }
       deliveryAddress
       cost
+      costStatus
+      costAcceptedAt
+      paymentStatus
+      payments {
+        id
+        amount
+        method
+        reference
+        receivedAt
+        receivedById
+        notes
+        receivedBy {
+          id
+          email
+          customerProfile {
+            fullName
+          }
+        }
+      }
       createdAt
       updatedAt
       fulfillmentWorkflowContext
@@ -36250,6 +36387,13 @@ export const ConsumerSalesDocument = gql`
       email
       customerProfile {
         fullName
+      }
+    }
+    saleOrder: SaleOrder {
+      id
+      status
+      fulfillment {
+        cost
       }
     }
   }

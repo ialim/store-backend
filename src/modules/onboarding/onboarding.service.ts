@@ -50,7 +50,10 @@ export class OnboardingService {
       parts.length > 1
         ? parts.map((part) => part[0] ?? '').join('')
         : trimmed.slice(0, 3);
-    return letters.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+    return letters
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, 3);
   }
 
   private static prepareBrandingUpdate(
@@ -213,9 +216,8 @@ export class OnboardingService {
             companyName,
             contactPersonName,
             contactPhone,
-            companyInitials: OnboardingService.deriveCompanyInitials(
-              companyName,
-            ),
+            companyInitials:
+              OnboardingService.deriveCompanyInitials(companyName),
             companyLogoUrl: null,
           },
         },

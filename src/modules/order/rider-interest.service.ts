@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,6 +8,7 @@ import {
   FulfillmentStatus,
   FulfillmentType,
   FulfillmentRiderInterestStatus,
+  FulfillmentCostStatus,
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -14,6 +16,7 @@ import {
   fulfilmentStatusToState,
   FulfilState,
   FulfilmentContext,
+  FulfilEvent,
   runFulfilmentMachine,
   toFulfilmentContextPayload,
 } from '../../state/fulfilment.machine';
@@ -21,6 +24,7 @@ import { WorkflowService } from '../../state/workflow.service';
 import { NotificationService } from '../notification/notification.service';
 import { PhaseCoordinator } from '../../state/phase-coordinator';
 import { SystemSettingsService } from '../system-settings/system-settings.service';
+import type { AuthenticatedUser } from '../auth/auth.service';
 
 interface RegisterInterestParams {
   fulfillmentId: string;
@@ -82,6 +86,10 @@ export class RiderInterestService {
     if (user.email) return user.email;
     if (user.resellerProfile?.userId) return user.resellerProfile.userId;
     return riderId;
+  }
+
+  private isBillerUser(user?: AuthenticatedUser | null): boolean {
+    return (user?.role?.name || '').toUpperCase() === 'BILLER';
   }
 
   private async notify(
@@ -357,7 +365,11 @@ export class RiderInterestService {
     return result.updated;
   }
 
-  async assignRider(fulfillmentId: string, riderId: string) {
+  async assignRider(
+    fulfillmentId: string,
+    riderId: string,
+    user?: AuthenticatedUser | null,
+  ) {
     const result = await this.prisma.$transaction(async (trx) => {
       const fulfillment = await trx.fulfillment.findUnique({
         where: { id: fulfillmentId },
@@ -368,6 +380,7 @@ export class RiderInterestService {
           status: true,
           workflowState: true,
           workflowContext: true,
+          cost: true,
           saleOrder: {
             select: { id: true, billerId: true },
           },
@@ -375,6 +388,12 @@ export class RiderInterestService {
       });
       if (!fulfillment) {
         throw new NotFoundException('Fulfillment not found');
+      }
+      const billerId = fulfillment.saleOrder?.billerId ?? null;
+      if (this.isBillerUser(user) && billerId && billerId !== user?.id) {
+        throw new ForbiddenException(
+          'You can only assign riders for fulfillments linked to your sales.',
+        );
       }
       if (fulfillment.type !== FulfillmentType.DELIVERY) {
         throw new BadRequestException('Fulfillment does not accept riders');
@@ -430,6 +449,9 @@ export class RiderInterestService {
         data: {
           status: FulfillmentStatus.ASSIGNED,
           deliveryPersonnelId: riderId,
+          cost: interest.proposedCost ?? fulfillment.cost,
+          costStatus: FulfillmentCostStatus.ACCEPTED,
+          costAcceptedAt: new Date(),
         },
       });
       const previousState: FulfilState =
@@ -441,30 +463,31 @@ export class RiderInterestService {
         !Array.isArray(fulfillment.workflowContext)
           ? (fulfillment.workflowContext as unknown as FulfilmentContext)
           : undefined;
+      const events: FulfilEvent[] = [];
+      if (
+        previousState === 'ALLOCATING_STOCK' ||
+        previousState === 'AWAITING_COST_CONFIRMATION'
+      ) {
+        events.push({ type: 'COST_CONFIRMED' });
+      }
+      events.push({ type: 'RIDER_SELECTED' });
+
       let nextState = previousState;
       let nextContext: FulfilmentContext | undefined = previousContext;
-
-      if (previousState === 'AWAITING_RIDER_SELECTION') {
-        const machineResult = runFulfilmentMachine({
-          status: fulfillment.status as FulfillmentStatus,
-          workflowState: previousState,
-          workflowContext: previousContext ?? undefined,
-          events: [{ type: 'RIDER_SELECTED' }],
-          contextOverrides: {
-            saleOrderId: fulfillment.saleOrderId,
-          },
-        });
-        if (!machineResult.changed) {
-          throw new BadRequestException('Fulfillment cannot accept rider');
-        }
-        nextState = machineResult.state;
-        nextContext = machineResult.context;
-      } else {
-        nextContext = {
-          ...(previousContext ?? {}),
+      const machineResult = runFulfilmentMachine({
+        status: FulfillmentStatus.ASSIGNED,
+        workflowState: previousState,
+        workflowContext: previousContext ?? undefined,
+        events,
+        contextOverrides: {
           saleOrderId: fulfillment.saleOrderId,
-        };
+        },
+      });
+      if (!machineResult.changed) {
+        throw new BadRequestException('Fulfillment cannot accept rider');
       }
+      nextState = machineResult.state;
+      nextContext = machineResult.context;
 
       await this.workflow.recordFulfilmentTransition({
         fulfillmentId: fulfillment.id,

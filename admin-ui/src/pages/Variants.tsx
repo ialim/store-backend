@@ -207,6 +207,37 @@ export default function Variants() {
     );
   }, []);
 
+  const getAvailabilityStatus = React.useCallback(
+    (available: number) => {
+      if (available <= 0) {
+        return {
+          label: 'Out of stock',
+          tone: (theme: any) => ({
+            bgcolor: alpha(theme.palette.error.main, 0.16),
+            color: theme.palette.error.dark,
+          }),
+        };
+      }
+      if (available <= 10) {
+        return {
+          label: 'Low stock',
+          tone: (theme: any) => ({
+            bgcolor: alpha(theme.palette.warning.main, 0.18),
+            color: theme.palette.warning.dark,
+          }),
+        };
+      }
+      return {
+        label: 'In stock',
+        tone: (theme: any) => ({
+          bgcolor: alpha(theme.palette.success.main, 0.16),
+          color: theme.palette.success.dark,
+        }),
+      };
+    },
+    [],
+  );
+
   const filtersRow = (
     <Stack
       direction={{ xs: 'column', sm: 'row' }}
@@ -857,43 +888,23 @@ export default function Variants() {
             ),
           },
           {
-            key: 'stock',
-            label: 'Stock',
-            align: 'center',
-            sort: true,
-            filter: true,
-            filterPlaceholder: 'Filter stock',
-            accessor: (variant: any) => getAvailableStock(variant),
-            render: (variant: any) => {
-              const available = getAvailableStock(variant);
-              return (
-                <Typography variant="body2" sx={{ fontWeight: 600, color: available > 0 ? 'success.main' : 'error.main' }}>
-                  {available}
-                </Typography>
-              );
-            },
-          },
-          {
-            key: 'status',
-            label: 'Status',
+            key: 'availability',
+            label: 'Availability',
             align: 'center',
             sort: true,
             accessor: (variant: any) => getAvailableStock(variant),
             render: (variant: any) => {
               const available = getAvailableStock(variant);
-              const active = available > 0;
+              const status = getAvailabilityStatus(available);
               return (
                 <Chip
                   size="small"
-                  label={active ? 'Active' : 'Inactive'}
+                  label={`${status.label} (${available})`}
                   sx={(theme) => ({
                     fontWeight: 600,
                     borderRadius: 1.5,
                     px: 1.5,
-                    bgcolor: active
-                      ? alpha(theme.palette.success.main, 0.16)
-                      : alpha(theme.palette.error.main, 0.16),
-                    color: active ? theme.palette.success.dark : theme.palette.error.dark,
+                    ...status.tone(theme),
                   })}
                 />
               );

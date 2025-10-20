@@ -33,6 +33,11 @@ type ConsumerSaleRow = {
   totalAmount: number;
   createdAt: string;
   updatedAt: string;
+  saleOrder?: {
+    id: string;
+    status: string;
+    fulfillment?: { cost?: number | null } | null;
+  } | null;
   store?: StoreInfo;
   customer?: {
     id: string;
@@ -63,6 +68,11 @@ type ResellerSaleRow = {
   totalAmount: number;
   createdAt: string;
   updatedAt: string;
+  saleOrder?: {
+    id: string;
+    status: string;
+    fulfillment?: { cost?: number | null } | null;
+  } | null;
   store?: StoreInfo;
   reseller?: ResellerInfo;
   biller?: ResellerInfo;
@@ -157,6 +167,7 @@ export default function OrdersSales() {
   const [search, setSearch] = React.useState('');
   const auth = useAuth();
   const isReseller = auth.hasRole('RESELLER');
+  const isBiller = auth.hasRole('BILLER');
 
   const consumerResult = useQuery<ConsumerSalesData>(ConsumerSales, {
     fetchPolicy: 'cache-and-network',
@@ -168,7 +179,7 @@ export default function OrdersSales() {
   const { data: storesData } = useQuery<StoreListData>(Stores, {
     variables: { take: 500 },
     fetchPolicy: 'cache-first',
-    skip: isReseller,
+    skip: isReseller || isBiller,
   });
 
   const storeMap = React.useMemo(() => {

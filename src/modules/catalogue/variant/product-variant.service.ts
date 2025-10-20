@@ -221,6 +221,21 @@ export class ProductVariantService extends BaseCrudService<
     });
   }
 
+  async findManyWithRelations(
+    args: FindManyProductVariantArgs,
+  ): Promise<VariantWithDetails[]> {
+    const { where, orderBy, cursor, take, skip, distinct } = args;
+    return this.prisma.productVariant.findMany({
+      where: where ?? undefined,
+      orderBy: orderBy ?? undefined,
+      cursor: cursor ?? undefined,
+      take: typeof take === 'number' ? take : undefined,
+      skip: typeof skip === 'number' ? skip : undefined,
+      distinct: distinct ?? undefined,
+      include: { product: true, stockItems: true },
+    });
+  }
+
   async count(where?: Prisma.ProductVariantWhereInput): Promise<number> {
     return this.prisma.productVariant.count({ where });
   }

@@ -41,14 +41,14 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const roleName = (user.role.name || '').toUpperCase();
-    const resellerReadBypass = new Set(
+    const readBypass = new Set(
       [PERMISSIONS.order?.READ, PERMISSIONS.sale?.READ].filter(
         (perm): perm is string => typeof perm === 'string' && perm.length > 0,
       ),
     );
     if (
-      roleName === 'RESELLER' &&
-      missing.every((perm) => resellerReadBypass.has(perm))
+      ['RESELLER', 'BILLER', 'RIDER'].includes(roleName) &&
+      missing.every((perm) => readBypass.has(perm))
     ) {
       return true;
     }

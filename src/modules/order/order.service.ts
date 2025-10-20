@@ -34,6 +34,10 @@ export class OrderService {
     return (user?.role?.name || '').toUpperCase() === 'RESELLER';
   }
 
+  private isBiller(user?: AuthenticatedUser | null): boolean {
+    return (user?.role?.name || '').toUpperCase() === 'BILLER';
+  }
+
   private orderScopeForUser(
     user?: AuthenticatedUser | null,
   ): Prisma.SaleOrderWhereInput | undefined {
@@ -83,7 +87,21 @@ export class OrderService {
     return this.prisma.saleOrder.findMany({
       where: this.orderScopeForUser(user),
       include: {
-        fulfillment: true,
+        fulfillment: {
+          include: {
+            payments: {
+              orderBy: { createdAt: 'desc' },
+              include: {
+                receivedBy: {
+                  select: { id: true, email: true, customerProfile: true },
+                },
+              },
+            },
+            deliveryPersonnel: {
+              select: { id: true, email: true, customerProfile: true },
+            },
+          },
+        },
         transitionLogs: { orderBy: { occurredAt: 'desc' } },
         quotation: { include: { items: true } },
         consumerSale: {
@@ -112,7 +130,21 @@ export class OrderService {
     const o = await this.prisma.saleOrder.findUnique({
       where: { id },
       include: {
-        fulfillment: true,
+        fulfillment: {
+          include: {
+            payments: {
+              orderBy: { createdAt: 'desc' },
+              include: {
+                receivedBy: {
+                  select: { id: true, email: true, customerProfile: true },
+                },
+              },
+            },
+            deliveryPersonnel: {
+              select: { id: true, email: true, customerProfile: true },
+            },
+          },
+        },
         transitionLogs: { orderBy: { occurredAt: 'desc' } },
         quotation: { include: { items: true } },
         consumerSale: {
@@ -175,11 +207,93 @@ export class OrderService {
     return this.sales.quotation(id);
   }
 
-  async consumerSales() {
+  async consumerSales(user?: AuthenticatedUser | null) {
+    if (this.isBiller(user)) {
+      if (!user?.id) return [];
+      return this.prisma.consumerSale.findMany({
+        where: { billerId: user.id },
+        include: {
+          store: true,
+          customer: true,
+          biller: { include: { customerProfile: true } },
+          SaleOrder: {
+            include: {
+              fulfillment: {
+                include: {
+                  payments: {
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                      receivedBy: {
+                        select: {
+                          id: true,
+                          email: true,
+                          customerProfile: true,
+                        },
+                      },
+                    },
+                  },
+                  deliveryPersonnel: {
+                    select: { id: true, email: true, customerProfile: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
     return this.sales.consumerSales();
   }
 
-  async consumerSale(id: string) {
+  async consumerSale(id: string, user?: AuthenticatedUser | null) {
+    if (this.isBiller(user)) {
+      if (!user?.id) {
+        throw new NotFoundException('Sale not found');
+      }
+      const sale = await this.prisma.consumerSale.findFirst({
+        where: { id, billerId: user.id },
+        include: {
+          items: {
+            include: {
+              productVariant: {
+                include: { product: true },
+              },
+            },
+          },
+          store: true,
+          customer: true,
+          biller: { include: { customerProfile: true } },
+          SaleOrder: {
+            include: {
+              fulfillment: {
+                include: {
+                  payments: {
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                      receivedBy: {
+                        select: {
+                          id: true,
+                          email: true,
+                          customerProfile: true,
+                        },
+                      },
+                    },
+                  },
+                  deliveryPersonnel: {
+                    select: { id: true, email: true, customerProfile: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      if (!sale) {
+        throw new NotFoundException('Sale not found');
+      }
+      return sale;
+    }
     return this.sales.consumerSale(id);
   }
 
@@ -203,6 +317,48 @@ export class OrderService {
         orderBy: { createdAt: 'desc' },
       });
     }
+    if (this.isBiller(user)) {
+      if (!user?.id) return [];
+      return this.prisma.resellerSale.findMany({
+        where: { billerId: user.id },
+        include: {
+          items: {
+            include: {
+              productVariant: {
+                include: { product: true },
+              },
+            },
+          },
+          SaleOrder: {
+            include: {
+              fulfillment: {
+                include: {
+                  payments: {
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                      receivedBy: {
+                        select: {
+                          id: true,
+                          email: true,
+                          customerProfile: true,
+                        },
+                      },
+                    },
+                  },
+                  deliveryPersonnel: {
+                    select: { id: true, email: true, customerProfile: true },
+                  },
+                },
+              },
+            },
+          },
+          biller: { include: { customerProfile: true } },
+          reseller: { include: { customerProfile: true } },
+          store: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
     return this.sales.resellerSales();
   }
 
@@ -219,6 +375,53 @@ export class OrderService {
             },
           },
           SaleOrder: true,
+          biller: { include: { customerProfile: true } },
+          reseller: { include: { customerProfile: true } },
+          store: true,
+        },
+      });
+      if (!sale) {
+        throw new NotFoundException('Reseller sale not found');
+      }
+      return sale;
+    }
+    if (this.isBiller(user)) {
+      if (!user?.id) {
+        throw new NotFoundException('Reseller sale not found');
+      }
+      const sale = await this.prisma.resellerSale.findFirst({
+        where: { id, billerId: user.id },
+        include: {
+          items: {
+            include: {
+              productVariant: {
+                include: { product: true },
+              },
+            },
+          },
+          SaleOrder: {
+            include: {
+              fulfillment: {
+                include: {
+                  payments: {
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                      receivedBy: {
+                        select: {
+                          id: true,
+                          email: true,
+                          customerProfile: true,
+                        },
+                      },
+                    },
+                  },
+                  deliveryPersonnel: {
+                    select: { id: true, email: true, customerProfile: true },
+                  },
+                },
+              },
+            },
+          },
           biller: { include: { customerProfile: true } },
           reseller: { include: { customerProfile: true } },
           store: true,
@@ -418,9 +621,7 @@ export class OrderService {
     }
 
     const where =
-      whereClauses.length === 1
-        ? whereClauses[0]
-        : { AND: whereClauses };
+      whereClauses.length === 1 ? whereClauses[0] : { AND: whereClauses };
 
     const take = options.take && options.take > 0 ? options.take : 100;
 

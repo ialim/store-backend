@@ -305,6 +305,9 @@ async function main() {
       PERMISSIONS.order.UPDATE,
       PERMISSIONS.order.APPROVE,
       PERMISSIONS.product.READ,
+      PERMISSIONS.stock.READ,
+      PERMISSIONS.store.READ,
+      PERMISSIONS.asset.READ,
     ].filter(Boolean) as PermissionName[],
     MANAGER: [
       PERMISSIONS.store.READ,

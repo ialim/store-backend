@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
@@ -11,6 +12,7 @@ import { CreateResellerSaleInput } from './dto/create-reseller-sale.input';
 import {
   SaleStatus,
   FulfillmentStatus,
+  FulfillmentPaymentStatus,
   FulfillmentType as PrismaFulfillmentType,
   PaymentStatus as PrismaPaymentStatus,
   OrderPhase as PrismaOrderPhase,
@@ -29,6 +31,7 @@ import { MovementType } from 'src/shared/prismagraphql/prisma/movement-type.enum
 import { CreateFulfillmentInput } from './dto/create-fulfillment.input';
 import { UpdateFulfillmentPreferencesInput } from './dto/update-fulfillment-preferences.input';
 import { CreateResellerPaymentInput } from './dto/create-reseller-payment.input';
+import { RecordFulfillmentPaymentInput } from './dto/record-fulfillment-payment.input';
 import { PaymentService } from '../payment/payment.service';
 import { SaleChannel } from 'src/shared/prismagraphql/prisma/sale-channel.enum';
 import { QuotationStatus } from 'src/shared/prismagraphql/prisma/quotation-status.enum';
@@ -101,6 +104,10 @@ export class SalesService {
 
   private isResellerUser(user?: AuthenticatedUser | null): boolean {
     return (user?.role?.name || '').toUpperCase() === 'RESELLER';
+  }
+
+  private isBillerUser(user?: AuthenticatedUser | null): boolean {
+    return (user?.role?.name || '').toUpperCase() === 'BILLER';
   }
 
   private async ensureCustomerRecord(
@@ -2091,6 +2098,12 @@ export class SalesService {
               'Cannot mark a cancelled order as fulfilled',
             );
           }
+          if (cSale.status !== SaleStatus.FULFILLED) {
+            await this.prisma.consumerSale.update({
+              where: { id: cSale.id },
+              data: { status: SaleStatus.FULFILLED },
+            });
+          }
           if (orderStatus !== SaleStatus.FULFILLED) {
             await this.prisma.saleOrder.update({
               where: { id: order.id },
@@ -2144,6 +2157,12 @@ export class SalesService {
                 'Cannot mark a cancelled order as fulfilled',
               );
             }
+            if (rSale.status !== SaleStatus.FULFILLED) {
+              await this.prisma.resellerSale.update({
+                where: { id: rSale.id },
+                data: { status: SaleStatus.FULFILLED },
+              });
+            }
             if (orderStatus !== SaleStatus.FULFILLED) {
               await this.prisma.saleOrder.update({
                 where: { id: order.id },
@@ -2163,6 +2182,23 @@ export class SalesService {
         `Order ${params.saleOrderId} delivered.`,
       );
     }
+    if (toStatus === FulfillmentStatus.CANCELLED) {
+      await this.prisma.saleOrder.update({
+        where: { id: params.saleOrderId },
+        data: {
+          status: SaleStatus.CANCELLED,
+          phase: OrderPhase.FULFILLMENT,
+        },
+      });
+      await this.prisma.consumerSale.updateMany({
+        where: { saleOrderId: params.saleOrderId },
+        data: { status: SaleStatus.CANCELLED },
+      });
+      await this.prisma.resellerSale.updateMany({
+        where: { SaleOrderid: params.saleOrderId },
+        data: { status: SaleStatus.CANCELLED },
+      });
+    }
 
     await this.phaseCoordinator.onFulfilmentStatusChanged(
       params.saleOrderId,
@@ -2170,6 +2206,81 @@ export class SalesService {
     );
 
     return updated;
+  }
+
+  async recordFulfillmentPayment(
+    input: RecordFulfillmentPaymentInput,
+    user?: AuthenticatedUser | null,
+  ) {
+    const fulfillment = await this.prisma.fulfillment.findUnique({
+      where: { id: input.fulfillmentId },
+      include: {
+        saleOrder: { select: { id: true, billerId: true } },
+      },
+    });
+    if (!fulfillment) {
+      throw new NotFoundException('Fulfillment not found');
+    }
+    if (
+      this.isBillerUser(user) &&
+      fulfillment.saleOrder?.billerId &&
+      fulfillment.saleOrder.billerId !== user?.id
+    ) {
+      throw new ForbiddenException(
+        'You can only record payments for fulfillments linked to your sales.',
+      );
+    }
+
+    await this.prisma.fulfillmentPayment.create({
+      data: {
+        fulfillmentId: input.fulfillmentId,
+        amount: input.amount,
+        method: input.method ?? null,
+        reference: input.reference ?? null,
+        receivedAt: input.receivedAt ?? new Date(),
+        notes: input.notes ?? null,
+        receivedById: user?.id ?? null,
+      },
+    });
+
+    const aggregate = await this.prisma.fulfillmentPayment.aggregate({
+      where: { fulfillmentId: input.fulfillmentId },
+      _sum: { amount: true },
+    });
+    const totalPaid = aggregate._sum.amount ?? 0;
+    const cost = fulfillment.cost ?? null;
+    let paymentStatus: FulfillmentPaymentStatus =
+      FulfillmentPaymentStatus.UNPAID;
+    if (totalPaid > 0) {
+      if (cost != null && totalPaid >= cost) {
+        paymentStatus = FulfillmentPaymentStatus.PAID;
+      } else {
+        paymentStatus = FulfillmentPaymentStatus.PARTIAL;
+      }
+    }
+
+    await this.prisma.fulfillment.update({
+      where: { id: fulfillment.id },
+      data: { paymentStatus },
+    });
+
+    return this.prisma.fulfillment.findUnique({
+      where: { id: fulfillment.id },
+      include: {
+        payments: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            receivedBy: {
+              select: { id: true, email: true, customerProfile: true },
+            },
+          },
+        },
+        deliveryPersonnel: {
+          select: { id: true, email: true, customerProfile: true },
+        },
+        saleOrder: true,
+      },
+    });
   }
 
   private async reserveStockForOrder(orderId: string) {

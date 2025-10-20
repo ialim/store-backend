@@ -166,6 +166,25 @@ export const Order = gql`
         }
         deliveryAddress
         cost
+        costStatus
+        costAcceptedAt
+        paymentStatus
+        payments {
+          id
+          amount
+          method
+          reference
+          receivedAt
+          receivedById
+          notes
+          receivedBy {
+            id
+            email
+            customerProfile {
+              fullName
+            }
+          }
+        }
         createdAt
         updatedAt
         fulfillmentWorkflowContext
@@ -337,6 +356,13 @@ export const ConsumerSales = gql`
         email
         customerProfile {
           fullName
+        }
+      }
+      saleOrder: SaleOrder {
+        id
+        status
+        fulfillment {
+          cost
         }
       }
     }

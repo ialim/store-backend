@@ -49,6 +49,7 @@ model User {
   Fulfillment Fulfillment[]
   FulfillmentRiderInterests FulfillmentRiderInterest[] @relation("RiderInterests")
   RiderCoverageAreas RiderCoverageArea[] @relation("RiderCoverageAreas")
+  FulfillmentPaymentsReceived FulfillmentPayment[] @relation("FulfillmentPaymentReceivedBy")
 
   systemSettingsUpdated SystemSetting[] @relation("SystemSettingUpdatedBy")
 

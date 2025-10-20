@@ -59,6 +59,7 @@ const ASSET_READ_ROLES = [
   'ADMIN',
   'MANAGER',
   'RESELLER',
+  'BILLER',
 ] as const;
 const ASSET_MANAGE_ROLES = ['SUPERADMIN', 'ADMIN', 'MANAGER'] as const;
 

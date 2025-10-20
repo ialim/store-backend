@@ -76,16 +76,16 @@ export class OrderResolver {
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   @Permissions(PERMISSIONS.order.READ as string)
-  consumerSales() {
-    return this.orders.consumerSales();
+  consumerSales(@CurrentUser() user: AuthenticatedUser) {
+    return this.orders.consumerSales(user);
   }
 
   @Query(() => ConsumerSale)
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   @Permissions(PERMISSIONS.order.READ as string)
-  consumerSale(@Args('id') id: string) {
-    return this.orders.consumerSale(id);
+  consumerSale(@Args('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.orders.consumerSale(id, user);
   }
 
   @Query(() => [ResellerSale])
@@ -106,7 +106,15 @@ export class OrderResolver {
 
   @Query(() => SaleOrder)
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('RESELLER', 'BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Roles(
+    'RESELLER',
+    'BILLER',
+    'ACCOUNTANT',
+    'MANAGER',
+    'ADMIN',
+    'SUPERADMIN',
+    'RIDER',
+  )
   @Permissions(PERMISSIONS.order.READ as string)
   order(@Args('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.orders.order(id, user);
@@ -265,7 +273,15 @@ export class OrderResolver {
 
   @Query(() => FulfilmentWorkflowSnapshot, { nullable: true })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('RESELLER', 'BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Roles(
+    'RESELLER',
+    'BILLER',
+    'ACCOUNTANT',
+    'MANAGER',
+    'ADMIN',
+    'SUPERADMIN',
+    'RIDER',
+  )
   @Permissions(PERMISSIONS.order.READ as string)
   fulfilmentWorkflow(
     @Args('saleOrderId') saleOrderId: string,

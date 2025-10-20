@@ -86,6 +86,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     PERMISSIONS.product.UPDATE,
     PERMISSIONS.product.DELETE,
   );
+  const assetRead = permissionList(PERMISSIONS.asset.READ);
   const orderRead = permissionList(PERMISSIONS.order.READ);
   const saleRead = permissionList(PERMISSIONS.sale.READ);
   const userManage = permissionList(
@@ -228,8 +229,9 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           to: '/assets',
           show:
             !isRider &&
+            !isBiller &&
             (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-              hasPermission(...productWrite)),
+              hasPermission(...assetRead)),
           icon: <PhotoLibraryIcon fontSize="small" />,
         },
         {
@@ -253,7 +255,10 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         {
           label: 'Stock',
           to: '/stock',
-          show: !isRider && hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          show:
+            !isRider &&
+            (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER') ||
+              hasPermission(...productRead)),
           icon: <Inventory2Icon fontSize="small" />,
         },
         {
@@ -273,28 +278,42 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           label: 'Orders',
           to: '/orders',
           show:
-            !isBiller &&
-            (hasRole(
+            hasRole(
               'SUPERADMIN',
               'ADMIN',
               'MANAGER',
               'ACCOUNTANT',
               'RESELLER',
-            ) || hasPermission(...orderRead, ...saleRead)),
+              'BILLER',
+            ) || hasPermission(...orderRead, ...saleRead),
           icon: <ReceiptLongIcon fontSize="small" />,
+        },
+        {
+          label: 'Quotations',
+          to: '/orders/quotations',
+          show:
+            hasRole(
+              'SUPERADMIN',
+              'ADMIN',
+              'MANAGER',
+              'ACCOUNTANT',
+              'RESELLER',
+              'BILLER',
+            ) || hasPermission(...orderRead, ...saleRead),
+          icon: <AssignmentIcon fontSize="small" />,
         },
         {
           label: 'Sales',
           to: '/orders/sales',
           show:
-            !isBiller &&
-            (hasRole(
+            hasRole(
               'SUPERADMIN',
               'ADMIN',
               'MANAGER',
               'ACCOUNTANT',
               'RESELLER',
-            ) || hasPermission(...orderRead, ...saleRead)),
+              'BILLER',
+            ) || hasPermission(...orderRead, ...saleRead),
           icon: <LocalMallIcon fontSize="small" />,
         },
       ],
@@ -681,7 +700,26 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     },
   ];
 
-  const sections = isReseller ? resellerSections : defaultSections;
+  const billerSections: NavSection[] = [
+    {
+      key: 'biller-dashboard',
+      label: 'Dashboard',
+      items: [
+        {
+          label: 'Dashboard',
+          to: '/biller-dashboard',
+          show: isBiller,
+          icon: <DashboardIcon fontSize="small" />,
+        },
+      ],
+    },
+  ];
+
+  const sections = isReseller
+    ? resellerSections
+    : isBiller
+    ? [...billerSections, ...defaultSections.filter((section) => !['customers', 'resellers'].includes(section.key))]
+    : defaultSections;
 
   const headerDate = React.useMemo(() => {
     const now = new Date();

@@ -72,7 +72,12 @@ export class RiderInterestResolver {
   @Permissions(PERMISSIONS.sale.UPDATE as string)
   async assignFulfillmentRider(
     @Args('input') input: AssignFulfillmentRiderInput,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.riderInterests.assignRider(input.fulfillmentId, input.riderId);
+    return this.riderInterests.assignRider(
+      input.fulfillmentId,
+      input.riderId,
+      user,
+    );
   }
 }

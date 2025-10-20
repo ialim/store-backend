@@ -36,6 +36,7 @@ import React from 'react';
 import { notify } from '../shared/notify';
 import { useParams } from 'react-router-dom';
 import { uploadAsset } from '../shared/assets';
+import { PERMISSIONS, permissionList } from '../shared/permissions';
 
 export default function VariantDetail() {
   const params = useParams<{ id?: string }>();
@@ -43,8 +44,16 @@ export default function VariantDetail() {
   const hasId = Boolean(params.id);
   const navigate = useNavigate();
   const auth = useAuth();
-  const isReseller = auth.hasRole('RESELLER');
-  const canManageCatalog = !isReseller;
+  const canManageFacets = auth.hasPermission(
+    ...permissionList(PERMISSIONS.product.CREATE, PERMISSIONS.product.UPDATE),
+  );
+  const canManageAssets = auth.hasPermission(
+    ...permissionList(
+      PERMISSIONS.asset.CREATE,
+      PERMISSIONS.asset.UPDATE,
+      PERMISSIONS.asset.DELETE,
+    ),
+  );
   const [openCart, setOpenCart] = React.useState(false);
   const [qty, setQty] = React.useState<number>(1);
   const { data, loading, error } = useVariantQuery({ variables: { id }, skip: !hasId, fetchPolicy: 'cache-and-network' as any });
@@ -135,7 +144,7 @@ export default function VariantDetail() {
                 <Chip
                   key={`${f.facet.id}_${i}`}
                   label={`${f.facet.name || f.facet.code}: ${f.value}`}
-                  onDelete={canManageCatalog ? handleDelete : undefined}
+                  onDelete={canManageFacets ? handleDelete : undefined}
                 />
               );
             })
@@ -143,7 +152,7 @@ export default function VariantDetail() {
             <Typography color="text.secondary">No facets</Typography>
           )}
         </Stack>
-        {canManageCatalog && (
+        {canManageFacets && (
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={1}
@@ -222,7 +231,7 @@ export default function VariantDetail() {
           </Stack>
         )}
       </Box>
-      <VariantAssetsSection variantId={id} readOnly={!canManageCatalog} />
+      <VariantAssetsSection variantId={id} readOnly={!canManageAssets} />
       <RelatedVariants currentId={id} brand={brand} gender={gender} />
 
       <Drawer anchor="right" open={openCart} onClose={() => setOpenCart(false)}>
@@ -267,6 +276,7 @@ export default function VariantDetail() {
 
 function VariantAssetsSection({ variantId, readOnly = false }: { variantId: string; readOnly?: boolean }) {
   const [uploading, setUploading] = React.useState(false);
+  const { hasPermission } = useAuth();
   const { data, loading, error, refetch } = useAssetAssignmentsQuery({
     variables: {
       entityType: AssetEntityType.ProductVariant,
@@ -278,6 +288,12 @@ function VariantAssetsSection({ variantId, readOnly = false }: { variantId: stri
   const [assignAsset] = useAssignAssetMutation();
   const [unassignAsset] = useUnassignAssetMutation();
   const [removeAsset] = useRemoveAssetMutation();
+  const allowUpload =
+    !readOnly && hasPermission(...permissionList(PERMISSIONS.asset.CREATE));
+  const allowUpdate =
+    !readOnly && hasPermission(...permissionList(PERMISSIONS.asset.UPDATE));
+  const allowDelete =
+    !readOnly && hasPermission(...permissionList(PERMISSIONS.asset.DELETE));
 
   const assignments = data?.assetAssignments ?? [];
 
@@ -291,7 +307,7 @@ function VariantAssetsSection({ variantId, readOnly = false }: { variantId: stri
           justifyContent="space-between"
         >
           <Typography variant="subtitle1">Assets</Typography>
-          {!readOnly && (
+          {allowUpload && (
             <Button
               component="label"
               variant="outlined"
@@ -307,6 +323,7 @@ function VariantAssetsSection({ variantId, readOnly = false }: { variantId: stri
                   const file = event.target.files?.[0];
                   event.target.value = '';
                   if (!file) return;
+                  if (!allowUpload) return;
                   setUploading(true);
                   try {
                     await uploadAsset({
@@ -392,7 +409,7 @@ function VariantAssetsSection({ variantId, readOnly = false }: { variantId: stri
                       )}
                       {!readOnly && (
                         <>
-                          {!isPrimary && (
+                          {allowUpdate && !isPrimary && (
                             <Button
                               size="small"
                               onClick={async () => {
@@ -415,44 +432,48 @@ function VariantAssetsSection({ variantId, readOnly = false }: { variantId: stri
                               Set as primary
                             </Button>
                           )}
-                          <Button
-                            size="small"
-                            color="warning"
-                            onClick={async () => {
-                              if (!window.confirm('Unassign this asset from the variant?')) return;
-                              try {
-                                await unassignAsset({
-                                  variables: {
-                                    assetId: assignment.assetId,
-                                    entityType: AssetEntityType.ProductVariant,
-                                    entityId: variantId,
-                                  },
-                                });
-                                notify('Asset unassigned', 'info');
-                                await refetch();
-                              } catch (err: any) {
-                                notify(err?.message || 'Failed to unassign asset', 'error');
-                              }
-                            }}
-                          >
-                            Unassign
-                          </Button>
-                          <Button
-                            size="small"
-                            color="error"
-                            onClick={async () => {
-                              if (!window.confirm('Delete this asset from storage? This affects all assignments.')) return;
-                              try {
-                                await removeAsset({ variables: { assetId: assignment.assetId } });
-                                notify('Asset deleted', 'success');
-                                await refetch();
-                              } catch (err: any) {
-                                notify(err?.message || 'Failed to delete asset', 'error');
-                              }
-                            }}
-                          >
-                            Delete asset
-                          </Button>
+                          {allowUpdate && (
+                            <Button
+                              size="small"
+                              color="warning"
+                              onClick={async () => {
+                                if (!window.confirm('Unassign this asset from the variant?')) return;
+                                try {
+                                  await unassignAsset({
+                                    variables: {
+                                      assetId: assignment.assetId,
+                                      entityType: AssetEntityType.ProductVariant,
+                                      entityId: variantId,
+                                    },
+                                  });
+                                  notify('Asset unassigned', 'info');
+                                  await refetch();
+                                } catch (err: any) {
+                                  notify(err?.message || 'Failed to unassign asset', 'error');
+                                }
+                              }}
+                            >
+                              Unassign
+                            </Button>
+                          )}
+                          {allowDelete && (
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={async () => {
+                                if (!window.confirm('Delete this asset from storage? This affects all assignments.')) return;
+                                try {
+                                  await removeAsset({ variables: { assetId: assignment.assetId } });
+                                  notify('Asset deleted', 'success');
+                                  await refetch();
+                                } catch (err: any) {
+                                  notify(err?.message || 'Failed to delete asset', 'error');
+                                }
+                              }}
+                            >
+                              Delete asset
+                            </Button>
+                          )}
                         </>
                       )}
                     </Stack>

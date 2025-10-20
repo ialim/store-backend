@@ -24,6 +24,18 @@ enum FulfillmentStatus {
   CANCELLED
 }
 
+enum FulfillmentCostStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum FulfillmentPaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
 model SaleOrder {
   id           String      @id @default(uuid())
   storeId      String
@@ -249,6 +261,9 @@ model Fulfillment {
   workflowState       String?
   workflowContext     Json?
   cost                Float?
+  costStatus          FulfillmentCostStatus @default(PENDING)
+  costAcceptedAt      DateTime?
+  paymentStatus       FulfillmentPaymentStatus @default(UNPAID)
   confirmationPin     String?
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
@@ -257,6 +272,23 @@ model Fulfillment {
   deliveryPersonnel   User?              @relation(fields: [deliveryPersonnelId], references: [id])
   transitionLogs      FulfillmentTransitionLog[]
   riderInterests      FulfillmentRiderInterest[]
+  payments            FulfillmentPayment[] @relation("FulfillmentPayments")
+}
+
+model FulfillmentPayment {
+  id             String      @id @default(uuid())
+  fulfillmentId  String
+  amount         Float
+  method         String?
+  reference      String?
+  receivedAt     DateTime?
+  receivedById   String?
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  fulfillment    Fulfillment @relation("FulfillmentPayments", fields: [fulfillmentId], references: [id], onDelete: Cascade)
+  receivedBy     User?       @relation("FulfillmentPaymentReceivedBy", fields: [receivedById], references: [id])
 }
 
 enum AdjustmentType {

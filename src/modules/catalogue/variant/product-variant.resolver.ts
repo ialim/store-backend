@@ -120,7 +120,7 @@ export class ProductVariantsResolver {
   listProductVariants(
     @Args() args: FindManyProductVariantArgs,
   ): Promise<ProductVariant[]> {
-    return this.ProductVariantService.findMany(args);
+    return this.ProductVariantService.findManyWithRelations(args);
   }
 
   @Query(() => [ProductVariantGroupBy], { nullable: false })

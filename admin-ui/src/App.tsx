@@ -24,6 +24,7 @@ const Payments = lazy(() => import('./pages/Payments'));
 const Returns = lazy(() => import('./pages/Returns'));
 const PurchaseReturns = lazy(() => import('./pages/PurchaseReturns'));
 const Analytics = lazy(() => import('./pages/Analytics'));
+const BillerDashboard = lazy(() => import('./pages/BillerDashboard'));
 const Stores = lazy(() => import('./pages/Stores'));
 const Support = lazy(() => import('./pages/Support'));
 const Staff = lazy(() => import('./pages/Staff'));
@@ -80,6 +81,7 @@ export default function App() {
     PERMISSIONS.product.UPDATE,
     PERMISSIONS.product.DELETE,
   );
+  const assetReadAccess = permissionList(PERMISSIONS.asset.READ);
   const userManageAccess = permissionList(
     PERMISSIONS.user.CREATE,
     PERMISSIONS.user.READ,
@@ -128,6 +130,12 @@ export default function App() {
                   roles={['RESELLER']}
                   element={<ResellerDashboard />}
                 />
+              }
+            />
+            <Route
+              path="/biller-dashboard"
+              element={
+                <ProtectedRoute roles={['BILLER']} element={<BillerDashboard />} />
               }
             />
             <Route
@@ -420,7 +428,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
-                  perms={productWriteAccess}
+                  perms={assetReadAccess}
                   element={<Assets />}
                 />
               }
@@ -509,17 +517,17 @@ export default function App() {
                   perms={[...productReadAccess, ...productWriteAccess]}
                   element={<ProductDetail />}
                 />
-              }
-            />
-            <Route
-              path="/stock"
-              element={
-                <ProtectedRoute
-                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
-                  element={<Stock />}
-                />
-              }
-            />
+        }
+      />
+      <Route
+        path="/stock"
+        element={
+          <ProtectedRoute
+            roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER']}
+            element={<Stock />}
+          />
+        }
+      />
             <Route
               path="/users"
               element={

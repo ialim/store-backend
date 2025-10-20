@@ -5,6 +5,7 @@ export type FulfilState =
   | 'ALLOCATING_STOCK'
   | 'BACKORDERED'
   | 'PICK_PACK'
+  | 'AWAITING_COST_CONFIRMATION'
   | 'AWAITING_RIDER_SELECTION'
   | 'RIDER_ASSIGNED'
   | 'READY_FOR_SHIPMENT'
@@ -23,6 +24,7 @@ export type FulfilEvent =
   | { type: 'RESERVE_OK' }
   | { type: 'RESERVE_MISS' }
   | { type: 'FULFILMENT_STARTED' }
+  | { type: 'COST_CONFIRMED' }
   | { type: 'RIDER_SELECTED' }
   | { type: 'PACKAGE_SHIPPED' }
   | { type: 'PACKAGE_DELIVERED' }
@@ -55,6 +57,7 @@ const fulfilmentMachine = setup({
       on: {
         RESERVE_OK: 'PICK_PACK',
         RESERVE_MISS: 'BACKORDERED',
+        COST_CONFIRMED: 'AWAITING_RIDER_SELECTION',
         CANCEL: 'CANCELLED',
         FAIL: 'FAILED',
       },
@@ -70,6 +73,16 @@ const fulfilmentMachine = setup({
         FULFILMENT_STARTED: 'READY_FOR_SHIPMENT',
         SERVICE_SCHEDULED: 'SCHEDULING',
         CANCEL: 'CANCELLED',
+      },
+    },
+    AWAITING_COST_CONFIRMATION: {
+      on: {
+        COST_CONFIRMED: 'AWAITING_RIDER_SELECTION',
+        RESERVE_OK: 'PICK_PACK',
+        RESERVE_MISS: 'BACKORDERED',
+        FULFILMENT_STARTED: 'READY_FOR_SHIPMENT',
+        CANCEL: 'CANCELLED',
+        FAIL: 'FAILED',
       },
     },
     AWAITING_RIDER_SELECTION: {
@@ -143,7 +156,7 @@ const fulfilmentMachine = setup({
 });
 
 const FULFILMENT_STATUS_STATE_MAP: Record<FulfillmentStatus, FulfilState> = {
-  [FulfillmentStatus.PENDING]: 'ALLOCATING_STOCK',
+  [FulfillmentStatus.PENDING]: 'AWAITING_COST_CONFIRMATION',
   [FulfillmentStatus.ASSIGNED]: 'READY_FOR_SHIPMENT',
   [FulfillmentStatus.IN_TRANSIT]: 'SHIPPED',
   [FulfillmentStatus.DELIVERED]: 'DELIVERED',
