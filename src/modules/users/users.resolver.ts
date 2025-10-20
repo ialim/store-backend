@@ -32,12 +32,19 @@ import { Role } from '../../shared/prismagraphql/role/role.model';
 import { CustomerProfile } from '../../shared/prismagraphql/customer-profile/customer-profile.model';
 import { ResellerProfile } from '../../shared/prismagraphql/reseller-profile/reseller-profile.model';
 import { User as UserModel } from '../../shared/prismagraphql/user/user.model';
+import { UserWhereInput } from '../../shared/prismagraphql/user/user-where.input';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PERMISSIONS } from '../../../shared/permissions';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../auth/auth.service';
 @Resolver(() => User)
 export class UsersResolver {
   constructor(private readonly userService: UserService) {}
+
+  private isBiller(user?: AuthenticatedUser | null): boolean {
+    return (user?.role?.name || '').toUpperCase() === 'BILLER';
+  }
 
   @Query(() => User, { nullable: false })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
@@ -57,10 +64,21 @@ export class UsersResolver {
 
   @Query(() => [User], { nullable: false })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('ADMIN', 'SUPERADMIN')
+  @Roles('ADMIN', 'SUPERADMIN', 'BILLER')
   @Permissions(PERMISSIONS.user.READ as string)
-  listUsers(@Args() args: FindManyUserArgs) {
-    return this.userService.findMany(args);
+  listUsers(@Args() args: FindManyUserArgs, @CurrentUser() user: AuthenticatedUser) {
+    let nextArgs = args;
+    if (this.isBiller(user)) {
+      const customerOnlyFilter = {
+        role: { is: { name: { equals: 'CUSTOMER' } } },
+      } as UserWhereInput;
+      const existingWhere = args?.where;
+      const where = existingWhere
+        ? ({ AND: [existingWhere, customerOnlyFilter] } as UserWhereInput)
+        : customerOnlyFilter;
+      nextArgs = { ...args, where };
+    }
+    return this.userService.findMany(nextArgs);
   }
 
   @Query(() => [UserGroupBy], { nullable: false })

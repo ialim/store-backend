@@ -308,6 +308,7 @@ async function main() {
       PERMISSIONS.stock.READ,
       PERMISSIONS.store.READ,
       PERMISSIONS.asset.READ,
+      PERMISSIONS.user.READ,
     ].filter(Boolean) as PermissionName[],
     MANAGER: [
       PERMISSIONS.store.READ,
