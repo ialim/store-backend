@@ -5,6 +5,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Outbox = lazy(() => import('./pages/Outbox'));
 const LowStock = lazy(() => import('./pages/LowStock'));
 const Fulfillments = lazy(() => import('./pages/Fulfillments'));
+const MyFulfillments = lazy(() => import('./pages/MyFulfillments'));
 const FulfillmentDetail = lazy(() => import('./pages/FulfillmentDetail'));
 import ProtectedRoute from './shared/ProtectedRoute';
 import IndexRedirect from './pages/IndexRedirect';
@@ -183,6 +184,12 @@ export default function App() {
                   perms={[...fulfillmentAccess, ...orderReadAccess]}
                   element={<Fulfillments />}
                 />
+              }
+            />
+            <Route
+              path="/fulfillments/my"
+              element={
+                <ProtectedRoute roles={['RIDER']} element={<MyFulfillments />} />
               }
             />
             <Route

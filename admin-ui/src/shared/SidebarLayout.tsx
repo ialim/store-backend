@@ -369,6 +369,12 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           icon: <LocalShippingIcon fontSize="small" />,
         },
         {
+          label: 'My Fulfillments',
+          to: '/fulfillments/my',
+          show: isRider,
+          icon: <DeliveryDiningIcon fontSize="small" />,
+        },
+        {
           label: 'Addresses',
           to: '/addresses',
           show:

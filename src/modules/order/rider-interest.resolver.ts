@@ -80,4 +80,11 @@ export class RiderInterestResolver {
       user,
     );
   }
+
+  @Query(() => [Fulfillment])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('RIDER')
+  myAssignedFulfillments(@CurrentUser() user: AuthenticatedUser) {
+    return this.riderInterests.myAssignedFulfillments(user.id);
+  }
 }

@@ -3065,6 +3065,7 @@ type Query {
   deliverableFulfillments: [Fulfillment!]!
   myFulfillmentInterests: [FulfillmentRiderInterest!]!
   fulfillmentRiderInterests(saleOrderId: String!): [FulfillmentRiderInterest!]!
+  myAssignedFulfillments: [Fulfillment!]!
   myCoverageAreas: [RiderCoverageArea!]!
   riderCoverageAreas(riderId: String!): [RiderCoverageArea!]!
   salesReturnsByStore(storeId: String!): [SalesReturn!]!

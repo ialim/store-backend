@@ -64,6 +64,71 @@ export const MyFulfillmentInterests = gql`
   }
 `;
 
+export const MyAssignedFulfillments = gql`
+  query MyAssignedFulfillments {
+    myAssignedFulfillments {
+      id
+      saleOrderId
+      type
+      status
+      deliveryAddress
+      cost
+      costStatus
+      costAcceptedAt
+      paymentStatus
+      createdAt
+      updatedAt
+      saleOrder {
+        id
+        storeId
+        consumerSale {
+          id
+          store {
+            id
+            name
+            location
+          }
+          customer {
+            id
+            fullName
+            email
+          }
+        }
+        resellerSale {
+          id
+          store {
+            id
+            name
+            location
+          }
+          reseller {
+            id
+            email
+            customerProfile {
+              fullName
+            }
+          }
+        }
+      }
+      payments {
+        id
+        amount
+        method
+        reference
+        receivedAt
+        notes
+        receivedBy {
+          id
+          email
+          customerProfile {
+            fullName
+          }
+        }
+      }
+    }
+  }
+`;
+
 export const RegisterFulfillmentInterest = gql`
   mutation RegisterFulfillmentInterest($input: RegisterFulfillmentInterestInput!) {
     registerFulfillmentInterest(input: $input) {

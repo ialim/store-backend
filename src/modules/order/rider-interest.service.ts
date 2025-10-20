@@ -569,4 +569,37 @@ export class RiderInterestService {
 
     return result.assigned;
   }
+
+  async myAssignedFulfillments(riderId: string) {
+    return this.prisma.fulfillment.findMany({
+      where: { deliveryPersonnelId: riderId },
+      include: {
+        saleOrder: {
+          include: {
+            consumerSale: {
+              include: {
+                customer: true,
+                store: true,
+              },
+            },
+            resellerSale: {
+              include: {
+                reseller: { include: { customerProfile: true } },
+                store: true,
+              },
+            },
+          },
+        },
+        payments: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            receivedBy: {
+              select: { id: true, email: true, customerProfile: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }
