@@ -69,7 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => setAuth({ token: null, user: null });
-  const hasRole = (...roles: string[]) => !!(token && user && user.roleName && roles.includes(user.roleName));
+  const hasRole = (...roles: string[]) => {
+    if (!token || !user?.roleName) return false;
+    const roleName = user.roleName.toUpperCase();
+    return roles.some((role) => role.toUpperCase() === roleName);
+  };
   const [permissions, setPermissions] = useState<string[]>(() => {
     try {
       const raw = localStorage.getItem('permissions');

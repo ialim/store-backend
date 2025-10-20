@@ -12,7 +12,7 @@ export function getDefaultRoute(roleName?: string | null): string {
     case 'BILLER':
       return '/fulfillments';
     case 'RESELLER':
-      return '/profile';
+      return '/dashboard';
     case 'CUSTOMER':
       return '/profile';
     default:

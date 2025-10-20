@@ -102,6 +102,8 @@ model ResellerProfile {
   companyName        String   @default("")
   contactPersonName  String   @default("")
   contactPhone       String   @default("")
+  companyInitials    String   @default("")
+  companyLogoUrl     String?
 
   user               User     @relation(fields: [userId], references: [id])
   biller             User?    @relation("BillerResellers", fields: [billerId], references: [id])

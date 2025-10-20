@@ -30,6 +30,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserService } from './users.service';
 import { Role } from '../../shared/prismagraphql/role/role.model';
 import { CustomerProfile } from '../../shared/prismagraphql/customer-profile/customer-profile.model';
+import { ResellerProfile } from '../../shared/prismagraphql/reseller-profile/reseller-profile.model';
 import { User as UserModel } from '../../shared/prismagraphql/user/user.model';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
@@ -142,6 +143,17 @@ export class UsersResolver {
   @UseGuards(GqlAuthGuard)
   customerProfile(@Parent() user: { id: string }) {
     return this.userService.prisma.customerProfile.findUnique({
+      where: { userId: user.id },
+    });
+  }
+
+  @ResolveField(() => ResellerProfile, {
+    name: 'resellerProfile',
+    nullable: true,
+  })
+  @UseGuards(GqlAuthGuard)
+  resellerProfile(@Parent() user: { id: string }) {
+    return this.userService.prisma.resellerProfile.findUnique({
       where: { userId: user.id },
     });
   }

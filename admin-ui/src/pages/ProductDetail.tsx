@@ -19,16 +19,20 @@ import {
 import { Alert, Avatar, Box, Button, Card, CardContent, Grid, Skeleton, Stack, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, CircularProgress, Chip, Autocomplete } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link as RouterLink } from 'react-router-dom';
 import TableList from '../shared/TableList';
 import { formatMoney } from '../shared/format';
 import { notify } from '../shared/notify';
+import { useAuth } from '../shared/AuthProvider';
 
 export default function ProductDetail() {
   const theme = useTheme();
+  const auth = useAuth();
   const params = useParams<{ id?: string }>();
   const id = params.id ?? '';
   const hasId = Boolean(params.id);
+  const isReseller = auth.hasRole('RESELLER');
+  const canManageProduct = !isReseller;
   const { data, loading, error, refetch } = useProductQuery({ variables: { id }, skip: !hasId, fetchPolicy: 'cache-and-network' as any });
   const p = data?.findUniqueProduct;
   // Categories removed; facets will be used for classification going forward.
@@ -138,160 +142,188 @@ export default function ProductDetail() {
                 </Stack>
               </Stack>
               <Stack spacing={1} sx={{ mt: 2 }}>
-                <TextField
-                  label="Name"
-                  size="small"
-                  defaultValue={p.name}
-                  onBlur={async (e) => {
-                    if (!hasId) return;
-                    const v = e.target.value.trim();
-                    if (v && v !== p.name) {
-                      await updateProduct({ variables: { id, data: { name: { set: v } } } });
-                      refetch();
-                    }
-                  }}
-                />
-                <TextField
-                  label="Barcode"
-                  size="small"
-                  defaultValue={p.barcode || ''}
-                  onBlur={async (e) => {
-                    if (!hasId) return;
-                    const v = e.target.value.trim();
-                    await updateProduct({ variables: { id, data: { barcode: { set: v || null } } } });
-                    refetch();
-                  }}
-                />
-                <TextField
-                  label="Description"
-                  size="small"
-                  defaultValue={p.description || ''}
-                  onBlur={async (e) => {
-                    if (!hasId) return;
-                    const v = e.target.value;
-                    await updateProduct({ variables: { id, data: { description: { set: v || null } } } });
-                    refetch();
-                  }}
-                  multiline
-                  minRows={2}
-                />
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="subtitle1">Assign Existing Variant</Typography>
-              <Stack spacing={1.5} sx={{ mt: 1 }}>
-                <Autocomplete
-                  value={assignSelection}
-                  onChange={(_e, value) => setAssignSelection(value)}
-                  inputValue={assignQuery}
-                  onInputChange={(_e, value) => setAssignQuery(value)}
-                  options={assignOptions}
-                  loading={assignLoading}
-                  getOptionLabel={(option) => option?.name || option?.barcode || option?.id || ''}
-                  renderInput={(params) => (
+                {canManageProduct ? (
+                  <>
                     <TextField
-                      {...params}
-                      label="Search variants"
-                      placeholder="Type at least 2 characters"
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {assignLoading ? <CircularProgress size={18} color="inherit" /> : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
+                      label="Name"
+                      size="small"
+                      defaultValue={p.name}
+                      onBlur={async (e) => {
+                        if (!hasId || !canManageProduct) return;
+                        const v = e.target.value.trim();
+                        if (v && v !== p.name) {
+                          await updateProduct({ variables: { id, data: { name: { set: v } } } });
+                          refetch();
+                        }
                       }}
                     />
-                  )}
-                />
-                <Button
-                  variant="contained"
-                  disabled={!assignSelection}
-                  onClick={async () => {
-                    if (!assignSelection || !hasId) return;
-                    try {
-                      await updateVariant({
-                        variables: {
-                          id: assignSelection.id,
-                          data: { product: { connect: { id } } },
-                        },
-                      });
-                      notify('Variant assigned to product', 'success');
-                      setAssignSelection(null);
-                      setAssignQuery('');
-                      refetchVariants();
-                    } catch (err: any) {
-                      notify(err?.message || 'Failed to assign variant', 'error');
-                    }
-                  }}
-                >
-                  Assign Variant
-                </Button>
-                <Typography variant="caption" color="text.secondary">
-                  Only variants not currently linked to a product are listed.
-                </Typography>
+                    <TextField
+                      label="Barcode"
+                      size="small"
+                      defaultValue={p.barcode || ''}
+                      onBlur={async (e) => {
+                        if (!hasId || !canManageProduct) return;
+                        const v = e.target.value.trim();
+                        await updateProduct({ variables: { id, data: { barcode: { set: v || null } } } });
+                        refetch();
+                      }}
+                    />
+                    <TextField
+                      label="Description"
+                      size="small"
+                      defaultValue={p.description || ''}
+                      onBlur={async (e) => {
+                        if (!hasId || !canManageProduct) return;
+                        const v = e.target.value;
+                        await updateProduct({ variables: { id, data: { description: { set: v || null } } } });
+                        refetch();
+                      }}
+                      multiline
+                      minRows={2}
+                    />
+                  </>
+                ) : (
+                  <Stack spacing={1}>
+                    <Typography>
+                      <strong>Name:</strong> {p.name || '—'}
+                    </Typography>
+                    <Typography>
+                      <strong>Barcode:</strong> {p.barcode || '—'}
+                    </Typography>
+                    <Typography>
+                      <strong>Description:</strong> {p.description || '—'}
+                    </Typography>
+                  </Stack>
+                )}
               </Stack>
             </CardContent>
           </Card>
         </Grid>
+        {canManageProduct && (
+          <Grid item xs={12} md={6}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle1">Assign Existing Variant</Typography>
+                <Stack spacing={1.5} sx={{ mt: 1 }}>
+                  <Autocomplete
+                    value={assignSelection}
+                    onChange={(_e, value) => setAssignSelection(value)}
+                    inputValue={assignQuery}
+                    onInputChange={(_e, value) => setAssignQuery(value)}
+                    options={assignOptions}
+                    loading={assignLoading}
+                    getOptionLabel={(option) => option?.name || option?.barcode || option?.id || ''}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Search variants"
+                        placeholder="Type at least 2 characters"
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {assignLoading ? <CircularProgress size={18} color="inherit" /> : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                  <Button
+                    variant="contained"
+                    disabled={!assignSelection}
+                    onClick={async () => {
+                      if (!assignSelection || !hasId) return;
+                      try {
+                        await updateVariant({
+                          variables: {
+                            id: assignSelection.id,
+                            data: { product: { connect: { id } } },
+                          },
+                        });
+                        notify('Variant assigned to product', 'success');
+                        setAssignSelection(null);
+                        setAssignQuery('');
+                        refetchVariants();
+                      } catch (err: any) {
+                        notify(err?.message || 'Failed to assign variant', 'error');
+                      }
+                    }}
+                  >
+                    Assign Variant
+                  </Button>
+                  <Typography variant="caption" color="text.secondary">
+                    Only variants not currently linked to a product are listed.
+                  </Typography>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
     </Grid>
 
       <Card sx={{ mt: 2 }}><CardContent>
         <Typography variant="subtitle1">Facets</Typography>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1 }} alignItems={{ sm: 'center' }}>
-          <Select size="small" value={selFacetId} onChange={(e) => { setSelFacetId(e.target.value); setSelFacetValue(''); }} displayEmpty sx={{ minWidth: 260 }}>
-            <MenuItem value=""><em>Select facet…</em></MenuItem>
-            {allFacets.map((f) => (<MenuItem key={f.id} value={f.id}>{f.name} ({f.code})</MenuItem>))}
-          </Select>
-          {(() => {
-            const f = allFacets.find((x) => x.id === selFacetId);
-            if (f && Array.isArray(f.values) && f.values.length) {
-              return (
-                <Autocomplete
-                  size="small"
-                  options={f.values}
-                  value={selFacetValue || ''}
-                  inputValue={selFacetValue}
-                  onInputChange={(_, v) => setSelFacetValue(v)}
-                  onChange={(_, v) => setSelFacetValue((v as string) || '')}
-                  renderInput={(params) => <TextField {...params} label="Value" />}
-                  sx={{ minWidth: 220 }}
-                  freeSolo
-                />
-              );
-            }
-            return (<TextField size="small" label="Value" value={selFacetValue} onChange={(e) => setSelFacetValue(e.target.value)} />);
-          })()}
-          <Button size="small" variant="contained" disabled={!selFacetId || !selFacetValue} onClick={async () => {
-            try {
-              if (!hasId) return;
-              await assignProductFacet({ variables: { productId: id, facetId: selFacetId, value: selFacetValue } });
-              notify('Facet assigned', 'success');
-              setSelFacetValue('');
-              await refetchProdFacets();
-            } catch (e: any) {
-              notify(e?.message || 'Failed to assign facet', 'error');
-            }
-          }}>Assign</Button>
-        </Stack>
-        <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
-          {productAssignments.map((a, i) => (
-            <Chip key={`${a.facet?.id}_${a.value}_${i}`} label={`${a.facet?.name || a.facet?.code}: ${a.value}`} onDelete={async () => {
-              if (!window.confirm(`Remove facet \"${a.facet?.name || a.facet?.code}\": ${a.value}?`)) return;
+        {canManageProduct && (
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1 }} alignItems={{ sm: 'center' }}>
+            <Select size="small" value={selFacetId} onChange={(e) => { setSelFacetId(e.target.value); setSelFacetValue(''); }} displayEmpty sx={{ minWidth: 260 }}>
+              <MenuItem value=""><em>Select facet…</em></MenuItem>
+              {allFacets.map((f) => (<MenuItem key={f.id} value={f.id}>{f.name} ({f.code})</MenuItem>))}
+            </Select>
+            {(() => {
+              const f = allFacets.find((x) => x.id === selFacetId);
+              if (f && Array.isArray(f.values) && f.values.length) {
+                return (
+                  <Autocomplete
+                    size="small"
+                    options={f.values}
+                    value={selFacetValue || ''}
+                    inputValue={selFacetValue}
+                    onInputChange={(_, v) => setSelFacetValue(v)}
+                    onChange={(_, v) => setSelFacetValue((v as string) || '')}
+                    renderInput={(params) => <TextField {...params} label="Value" />}
+                    sx={{ minWidth: 220 }}
+                    freeSolo
+                  />
+                );
+              }
+              return (<TextField size="small" label="Value" value={selFacetValue} onChange={(e) => setSelFacetValue(e.target.value)} />);
+            })()}
+            <Button size="small" variant="contained" disabled={!selFacetId || !selFacetValue} onClick={async () => {
               try {
-                if (!hasId || !a.facet?.id) return;
-                await removeProductFacet({ variables: { productId: id, facetId: a.facet?.id, value: a.value } });
-                notify('Facet removed', 'info');
+                if (!hasId) return;
+                await assignProductFacet({ variables: { productId: id, facetId: selFacetId, value: selFacetValue } });
+                notify('Facet assigned', 'success');
+                setSelFacetValue('');
                 await refetchProdFacets();
               } catch (e: any) {
-                notify(e?.message || 'Failed to remove facet', 'error');
+                notify(e?.message || 'Failed to assign facet', 'error');
               }
-            }} />
+            }}>Assign</Button>
+          </Stack>
+        )}
+        <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
+          {productAssignments.map((a, i) => (
+            <Chip
+              key={`${a.facet?.id}_${a.value}_${i}`}
+              label={`${a.facet?.name || a.facet?.code}: ${a.value}`}
+              onDelete={
+                canManageProduct
+                  ? async () => {
+                      if (!window.confirm(`Remove facet "${a.facet?.name || a.facet?.code}": ${a.value}?`)) return;
+                      try {
+                        if (!hasId || !a.facet?.id) return;
+                        await removeProductFacet({ variables: { productId: id, facetId: a.facet?.id, value: a.value } });
+                        notify('Facet removed', 'info');
+                        await refetchProdFacets();
+                      } catch (e: any) {
+                        notify(e?.message || 'Failed to remove facet', 'error');
+                      }
+                    }
+                  : undefined
+              }
+            />
           ))}
         </Stack>
       </CardContent></Card>
@@ -322,14 +354,42 @@ export default function ProductDetail() {
             { key: 'reserved', label: 'Reserved', render: (v: any) => totalsMap.get(v.id)?.reserved ?? '—', sort: true, accessor: (v: any) => totalsMap.get(v.id)?.reserved ?? 0 },
             { key: 'available', label: 'Available', render: (v: any) => totalsMap.get(v.id)?.available ?? '—', sort: true, accessor: (v: any) => totalsMap.get(v.id)?.available ?? 0 },
             { key: 'createdAt', label: 'Created', render: (v: any) => new Date(v.createdAt).toLocaleString(), sort: true, accessor: (v: any) => new Date(v.createdAt || 0) },
-            { key: 'actions', label: 'Actions', render: (v: any) => (
-              <Stack direction="row" spacing={1}>
-                <Button size="small" onClick={() => setEditVariant(v)}>Edit</Button>
-                <Button size="small" color="error" onClick={async () => { if (!window.confirm('Delete this variant?')) return; await deleteVariant({ variables: { id: v.id } }); await refetch(); }}>Delete</Button>
-                <Button size="small" variant="outlined" onClick={() => setInvVariant(v)}>Inventory</Button>
-                <VariantFacetsButton variantId={v.id} />
-              </Stack>
-            ) },
+            {
+              key: 'actions',
+              label: 'Actions',
+              render: (v: any) =>
+                canManageProduct ? (
+                  <Stack direction="row" spacing={1}>
+                    <Button size="small" onClick={() => setEditVariant(v)}>Edit</Button>
+                    <Button
+                      size="small"
+                      color="error"
+                      onClick={async () => {
+                        if (!window.confirm('Delete this variant?')) return;
+                        await deleteVariant({ variables: { id: v.id } });
+                        await refetch();
+                      }}
+                    >
+                      Delete
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => setInvVariant(v)}>
+                      Inventory
+                    </Button>
+                    <VariantFacetsButton variantId={v.id} />
+                  </Stack>
+                ) : (
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      component={RouterLink}
+                      to={`/variants/${v.id}`}
+                    >
+                      View Variant
+                    </Button>
+                  </Stack>
+                ),
+            },
           ] as any}
           rows={variants}
           loading={loading}
@@ -345,12 +405,21 @@ export default function ProductDetail() {
         />
       </CardContent></Card>
 
-      <VariantDialog
-        variant={editVariant}
-        onClose={() => setEditVariant(null)}
-        onSave={async (vars) => { await updateVariant({ variables: { id: editVariant!.id, data: vars } }); setEditVariant(null); await Promise.all([refetch(), refetchVariants()]); }}
-      />
-      <InventoryDialog variant={invVariant} onClose={() => setInvVariant(null)} />
+      {canManageProduct && (
+        <>
+          <VariantDialog
+            variant={editVariant}
+            onClose={() => setEditVariant(null)}
+            onSave={async (vars) => {
+              if (!editVariant) return;
+              await updateVariant({ variables: { id: editVariant.id, data: vars } });
+              setEditVariant(null);
+              await Promise.all([refetch(), refetchVariants()]);
+            }}
+          />
+          <InventoryDialog variant={invVariant} onClose={() => setInvVariant(null)} />
+        </>
+      )}
     </Stack>
   );
 }

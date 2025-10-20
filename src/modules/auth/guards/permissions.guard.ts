@@ -9,6 +9,7 @@ import { GqlExecutionContext } from '@nestjs/graphql';
 import { GraphQLAuthContext } from '../types/auth-context.type';
 import { AuthenticatedUser } from '../auth.service';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../../shared/permissions';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -32,10 +33,27 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
     const userPermissions = (user.role.permissions ?? []).map((p) => p.name);
-    const hasPermission = requiredPermissions.every((permission) =>
-      userPermissions.includes(permission),
+    const missing = requiredPermissions.filter(
+      (permission) => !userPermissions.includes(permission),
     );
-    if (!hasPermission) {
+    if (missing.length === 0) {
+      return true;
+    }
+
+    const roleName = (user.role.name || '').toUpperCase();
+    const resellerReadBypass = new Set(
+      [PERMISSIONS.order?.READ, PERMISSIONS.sale?.READ].filter(
+        (perm): perm is string => typeof perm === 'string' && perm.length > 0,
+      ),
+    );
+    if (
+      roleName === 'RESELLER' &&
+      missing.every((perm) => resellerReadBypass.has(perm))
+    ) {
+      return true;
+    }
+
+    if (missing.length) {
       throw new ForbiddenException('Insufficient permissions');
     }
     return true;

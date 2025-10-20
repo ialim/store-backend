@@ -39,6 +39,72 @@ export class OnboardingService {
     return bcryptHash(password, 10);
   }
 
+  private static deriveCompanyInitials(source: string): string {
+    const trimmed = (source || '').trim();
+    if (!trimmed) return '';
+    const parts = trimmed
+      .split(/[\s&,-]+/)
+      .filter(Boolean)
+      .slice(0, 3);
+    const letters =
+      parts.length > 1
+        ? parts.map((part) => part[0] ?? '').join('')
+        : trimmed.slice(0, 3);
+    return letters.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+  }
+
+  private static prepareBrandingUpdate(
+    input: {
+      companyInitials?: string | null;
+      companyLogoUrl?: string | null;
+      companyName?: string | null;
+      contactPersonName?: string | null;
+      contactPhone?: string | null;
+    },
+    existing: {
+      companyName: string;
+      companyInitials?: string | null;
+      companyLogoUrl?: string | null;
+      contactPersonName?: string | null;
+      contactPhone?: string | null;
+    },
+  ): Prisma.ResellerProfileUncheckedUpdateInput {
+    const data: Prisma.ResellerProfileUncheckedUpdateInput = {};
+    let targetName = existing.companyName;
+    if (input.companyName !== undefined) {
+      const name = (input.companyName ?? '').trim();
+      data.companyName = name;
+      targetName = name || existing.companyName;
+    }
+
+    if (input.companyInitials !== undefined) {
+      const draft = OnboardingService.deriveCompanyInitials(
+        input.companyInitials ?? targetName,
+      );
+      const fallback =
+        existing.companyInitials ||
+        OnboardingService.deriveCompanyInitials(targetName);
+      data.companyInitials = draft || fallback;
+    } else if (input.companyName !== undefined) {
+      const derived = OnboardingService.deriveCompanyInitials(targetName);
+      const fallback =
+        existing.companyInitials ||
+        OnboardingService.deriveCompanyInitials(existing.companyName);
+      data.companyInitials = derived || fallback;
+    }
+    if (input.companyLogoUrl !== undefined) {
+      const logo = (input.companyLogoUrl || '').trim();
+      data.companyLogoUrl = logo.length ? logo : null;
+    }
+    if (input.contactPersonName !== undefined) {
+      data.contactPersonName = (input.contactPersonName ?? '').trim();
+    }
+    if (input.contactPhone !== undefined) {
+      data.contactPhone = (input.contactPhone ?? '').trim();
+    }
+    return data;
+  }
+
   private static resolveProfileStatus(
     status?: 'PENDING' | 'ACTIVE' | 'REJECTED' | null,
   ): PrismaProfileStatus | undefined {
@@ -147,6 +213,10 @@ export class OnboardingService {
             companyName,
             contactPersonName,
             contactPhone,
+            companyInitials: OnboardingService.deriveCompanyInitials(
+              companyName,
+            ),
+            companyLogoUrl: null,
           },
         },
       },
@@ -166,8 +236,12 @@ export class OnboardingService {
         `Failed to queue verification email for reseller ${user.id}: ${error}`,
       );
     }
-
-    return user.resellerProfile;
+    if (user.resellerProfile) {
+      return user.resellerProfile;
+    }
+    return this.prisma.resellerProfile.findUnique({
+      where: { userId: user.id },
+    });
   }
 
   async approveReseller(resellerId: string, input: ApproveResellerInput) {
@@ -194,6 +268,41 @@ export class OnboardingService {
     );
 
     return profile;
+  }
+
+  private async applyResellerBrandingUpdate(
+    userId: string,
+    input: { companyInitials?: string | null; companyLogoUrl?: string | null },
+  ) {
+    const existing = await this.prisma.resellerProfile.findUnique({
+      where: { userId },
+    });
+    if (!existing) {
+      throw new NotFoundException('Reseller profile not found');
+    }
+    const data = OnboardingService.prepareBrandingUpdate(input, existing);
+    if (Object.keys(data).length === 0) {
+      return this.getResellerProfile(userId);
+    }
+    return this.prisma.resellerProfile.update({
+      where: { userId },
+      data,
+      include: { user: true, biller: true, requestedBiller: true },
+    });
+  }
+
+  async updateMyResellerBranding(
+    userId: string,
+    input: { companyInitials?: string | null; companyLogoUrl?: string | null },
+  ) {
+    return this.applyResellerBrandingUpdate(userId, input);
+  }
+
+  async adminUpdateResellerBranding(
+    resellerId: string,
+    input: { companyInitials?: string | null; companyLogoUrl?: string | null },
+  ) {
+    return this.applyResellerBrandingUpdate(resellerId, input);
   }
 
   async listPendingResellerApplications(

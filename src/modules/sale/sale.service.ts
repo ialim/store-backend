@@ -60,6 +60,7 @@ import { UpdateQuotationInput } from './dto/update-quotation.input';
 import { WorkflowService } from '../../state/workflow.service';
 import { SaleOrder } from '@prisma/client';
 import { SystemSettingsService } from '../system-settings/system-settings.service';
+import { AuthenticatedUser } from '../auth/auth.service';
 
 type PrismaCustomerClient = PrismaService | Prisma.TransactionClient;
 
@@ -97,6 +98,10 @@ export class SalesService {
     private workflow: WorkflowService,
     private readonly systemSettings: SystemSettingsService,
   ) {}
+
+  private isResellerUser(user?: AuthenticatedUser | null): boolean {
+    return (user?.role?.name || '').toUpperCase() === 'RESELLER';
+  }
 
   private async ensureCustomerRecord(
     prisma: PrismaCustomerClient,
@@ -810,7 +815,13 @@ export class SalesService {
     const sale = await this.prisma.consumerSale.findUnique({
       where: { id },
       include: {
-        items: true,
+        items: {
+          include: {
+            productVariant: {
+              include: { product: true },
+            },
+          },
+        },
         store: true,
         customer: true,
         biller: { include: { customerProfile: true } },
@@ -990,7 +1001,13 @@ export class SalesService {
   async resellerSales() {
     return this.prisma.resellerSale.findMany({
       include: {
-        items: true,
+        items: {
+          include: {
+            productVariant: {
+              include: { product: true },
+            },
+          },
+        },
         store: true,
         reseller: { include: { customerProfile: true } },
         biller: { include: { customerProfile: true } },
@@ -1002,7 +1019,13 @@ export class SalesService {
     const sale = await this.prisma.resellerSale.findUnique({
       where: { id },
       include: {
-        items: true,
+        items: {
+          include: {
+            productVariant: {
+              include: { product: true },
+            },
+          },
+        },
         store: true,
         reseller: { include: { customerProfile: true } },
         biller: { include: { customerProfile: true } },
@@ -1074,7 +1097,38 @@ export class SalesService {
     return sale;
   }
 
-  async registerResellerPayment(data: CreateResellerPaymentInput) {
+  async registerResellerPayment(
+    data: CreateResellerPaymentInput,
+    user?: AuthenticatedUser | null,
+  ) {
+    if (this.isResellerUser(user)) {
+      if (!user?.id) {
+        throw new BadRequestException('Cannot determine reseller identity.');
+      }
+      if (data.resellerId && data.resellerId !== user.id) {
+        throw new BadRequestException('Reseller mismatch.');
+      }
+      const sale = await this.prisma.resellerSale.findFirst({
+        where: {
+          SaleOrderid: data.saleOrderId,
+          resellerId: user.id,
+        },
+        select: {
+          id: true,
+          billerId: true,
+        },
+      });
+      if (!sale) {
+        throw new NotFoundException('Reseller sale not found.');
+      }
+      const receivedById = sale.billerId ?? user.id;
+      return this.payments.registerResellerPayment({
+        ...data,
+        resellerId: user.id,
+        resellerSaleId: sale.id,
+        receivedById,
+      });
+    }
     return this.payments.registerResellerPayment(data);
   }
 

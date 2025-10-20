@@ -168,6 +168,8 @@ type ResellerProfile {
   companyName: String!
   contactPersonName: String!
   contactPhone: String!
+  companyInitials: String!
+  companyLogoUrl: String
   user: User!
   biller: User
   requestedBiller: User
@@ -3515,6 +3517,8 @@ input ResellerProfileWhereInput {
   companyName: StringFilter
   contactPersonName: StringFilter
   contactPhone: StringFilter
+  companyInitials: StringFilter
+  companyLogoUrl: StringNullableFilter
   user: UserScalarRelationFilter
   biller: UserNullableScalarRelationFilter
   requestedBiller: UserNullableScalarRelationFilter
@@ -6214,6 +6218,8 @@ input ResellerProfileOrderByWithRelationInput {
   companyName: SortOrder
   contactPersonName: SortOrder
   contactPhone: SortOrder
+  companyInitials: SortOrder
+  companyLogoUrl: SortOrderInput
   user: UserOrderByWithRelationInput
   biller: UserOrderByWithRelationInput
   requestedBiller: UserOrderByWithRelationInput
@@ -7424,6 +7430,8 @@ type Mutation {
   signupCustomer(input: CreateUserInput!): AuthResponse!
   completeCustomerProfile(input: UpdateCustomerProfileInput!): CustomerProfile!
   updateMyProfile(input: UpdateCustomerProfileInput!): CustomerProfile!
+  updateMyResellerBranding(input: UpdateResellerBrandingInput!): ResellerProfile!
+  updateResellerBranding(resellerId: String!, input: UpdateResellerBrandingInput!): ResellerProfile!
   applyReseller(input: ApplyResellerInput!): ResellerProfile!
   approveReseller(resellerId: String!, input: ApproveResellerInput!): ResellerProfile!
   activateReseller(resellerId: String!, billerId: String): ResellerProfile!
@@ -7814,6 +7822,8 @@ input ResellerProfileCreateWithoutUserInput {
   companyName: String
   contactPersonName: String
   contactPhone: String
+  companyInitials: String
+  companyLogoUrl: String
   biller: UserCreateNestedOneWithoutResellerProfileInput
   requestedBiller: UserCreateNestedOneWithoutRequestedResellersInput
 }
@@ -11265,6 +11275,8 @@ input ResellerProfileCreateWithoutBillerInput {
   companyName: String
   contactPersonName: String
   contactPhone: String
+  companyInitials: String
+  companyLogoUrl: String
   user: UserCreateNestedOneWithoutResellerProfileInput!
   requestedBiller: UserCreateNestedOneWithoutRequestedResellersInput
 }
@@ -11418,6 +11430,8 @@ input ResellerProfileCreateWithoutRequestedBillerInput {
   companyName: String
   contactPersonName: String
   contactPhone: String
+  companyInitials: String
+  companyLogoUrl: String
   user: UserCreateNestedOneWithoutResellerProfileInput!
   biller: UserCreateNestedOneWithoutResellerProfileInput
 }
@@ -11446,6 +11460,8 @@ input ResellerProfileWhereUniqueInput {
   companyName: StringFilter
   contactPersonName: StringFilter
   contactPhone: StringFilter
+  companyInitials: StringFilter
+  companyLogoUrl: StringNullableFilter
   user: UserScalarRelationFilter
   biller: UserNullableScalarRelationFilter
   requestedBiller: UserNullableScalarRelationFilter
@@ -11471,6 +11487,8 @@ input ResellerProfileCreateManyRequestedBillerInput {
   companyName: String
   contactPersonName: String
   contactPhone: String
+  companyInitials: String
+  companyLogoUrl: String
 }
 
 input NotificationCreateNestedManyWithoutUserInput {
@@ -15480,6 +15498,8 @@ input ResellerProfileCreateManyBillerInput {
   companyName: String
   contactPersonName: String
   contactPhone: String
+  companyInitials: String
+  companyLogoUrl: String
 }
 
 input UserCreateOrConnectWithoutResellerTierHistoryChangedBysInput {
@@ -17378,6 +17398,8 @@ input ResellerProfileUpdateWithoutUserInput {
   companyName: StringFieldUpdateOperationsInput
   contactPersonName: StringFieldUpdateOperationsInput
   contactPhone: StringFieldUpdateOperationsInput
+  companyInitials: StringFieldUpdateOperationsInput
+  companyLogoUrl: NullableStringFieldUpdateOperationsInput
   biller: UserUpdateOneWithoutResellerProfileNestedInput
   requestedBiller: UserUpdateOneWithoutRequestedResellersNestedInput
 }
@@ -22155,6 +22177,8 @@ input ResellerProfileUpdateWithoutBillerInput {
   companyName: StringFieldUpdateOperationsInput
   contactPersonName: StringFieldUpdateOperationsInput
   contactPhone: StringFieldUpdateOperationsInput
+  companyInitials: StringFieldUpdateOperationsInput
+  companyLogoUrl: NullableStringFieldUpdateOperationsInput
   user: UserUpdateOneRequiredWithoutResellerProfileNestedInput
   requestedBiller: UserUpdateOneWithoutRequestedResellersNestedInput
 }
@@ -22365,6 +22389,8 @@ input ResellerProfileUpdateWithoutRequestedBillerInput {
   companyName: StringFieldUpdateOperationsInput
   contactPersonName: StringFieldUpdateOperationsInput
   contactPhone: StringFieldUpdateOperationsInput
+  companyInitials: StringFieldUpdateOperationsInput
+  companyLogoUrl: NullableStringFieldUpdateOperationsInput
   user: UserUpdateOneRequiredWithoutResellerProfileNestedInput
   biller: UserUpdateOneWithoutResellerProfileNestedInput
 }
@@ -22398,6 +22424,8 @@ input ResellerProfileScalarWhereInput {
   companyName: StringFilter
   contactPersonName: StringFilter
   contactPhone: StringFilter
+  companyInitials: StringFilter
+  companyLogoUrl: StringNullableFilter
 }
 
 input ResellerProfileUpdateManyMutationInput {
@@ -22413,6 +22441,8 @@ input ResellerProfileUpdateManyMutationInput {
   companyName: StringFieldUpdateOperationsInput
   contactPersonName: StringFieldUpdateOperationsInput
   contactPhone: StringFieldUpdateOperationsInput
+  companyInitials: StringFieldUpdateOperationsInput
+  companyLogoUrl: NullableStringFieldUpdateOperationsInput
 }
 
 input NotificationUpdateManyWithoutUserNestedInput {
@@ -28366,6 +28396,14 @@ input UpdateCustomerProfileInput {
   gender: String
   birthday: DateTime
   preferredStoreId: String
+}
+
+input UpdateResellerBrandingInput {
+  companyInitials: String
+  companyLogoUrl: String
+  companyName: String
+  contactPersonName: String
+  contactPhone: String
 }
 
 input ApplyResellerInput {

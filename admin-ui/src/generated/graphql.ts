@@ -7266,12 +7266,14 @@ export type Mutation = {
   updateManyStore?: Maybe<AffectedRows>;
   updateManyUser?: Maybe<AffectedRows>;
   updateMyProfile: CustomerProfile;
+  updateMyResellerBranding: ResellerProfile;
   updateProduct?: Maybe<Product>;
   updateProductVariant?: Maybe<ProductVariant>;
   updatePurchaseOrderPhase: PurchaseOrder;
   updatePurchaseOrderStatus: PurchaseOrder;
   updateQuotation: Quotation;
   updateQuotationStatus: Quotation;
+  updateResellerBranding: ResellerProfile;
   updateRole: Role;
   updateSalesReturnStatus: Scalars['Boolean']['output'];
   updateStore?: Maybe<Store>;
@@ -8035,6 +8037,11 @@ export type MutationUpdateMyProfileArgs = {
 };
 
 
+export type MutationUpdateMyResellerBrandingArgs = {
+  input: UpdateResellerBrandingInput;
+};
+
+
 export type MutationUpdateProductArgs = {
   data: ProductUpdateInput;
   where: ProductWhereUniqueInput;
@@ -8064,6 +8071,12 @@ export type MutationUpdateQuotationArgs = {
 
 export type MutationUpdateQuotationStatusArgs = {
   input: UpdateQuotationStatusInput;
+};
+
+
+export type MutationUpdateResellerBrandingArgs = {
+  input: UpdateResellerBrandingInput;
+  resellerId: Scalars['String']['input'];
 };
 
 
@@ -9206,12 +9219,15 @@ export type ProcessInvoiceUrlInput = {
 export type Product = {
   __typename?: 'Product';
   _count: ProductCount;
+  assetAssignments: Array<AssetAssignment>;
   barcode?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
   description?: Maybe<Scalars['String']['output']>;
   facets?: Maybe<Array<ProductFacetValue>>;
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
+  primaryAssetAssignment?: Maybe<AssetAssignment>;
+  primaryAssetUrl?: Maybe<Scalars['String']['output']>;
   updatedAt: Scalars['DateTime']['output'];
   variants?: Maybe<Array<ProductVariant>>;
 };
@@ -9822,6 +9838,7 @@ export type ProductVariant = {
   SupplierCatalog?: Maybe<Array<SupplierCatalog>>;
   SupplierQuoteItem?: Maybe<Array<SupplierQuoteItem>>;
   _count: ProductVariantCount;
+  assetAssignments: Array<AssetAssignment>;
   barcode?: Maybe<Scalars['String']['output']>;
   consumerItems?: Maybe<Array<ConsumerSaleItem>>;
   createdAt: Scalars['DateTime']['output'];
@@ -9830,6 +9847,8 @@ export type ProductVariant = {
   legacyArticleCode?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
   price: Scalars['Float']['output'];
+  primaryAssetAssignment?: Maybe<AssetAssignment>;
+  primaryAssetUrl?: Maybe<Scalars['String']['output']>;
   product?: Maybe<Product>;
   productId?: Maybe<Scalars['String']['output']>;
   purchaseReturnItems?: Maybe<Array<PurchaseReturnItem>>;
@@ -16417,6 +16436,8 @@ export type ResellerProfile = {
   activatedAt?: Maybe<Scalars['DateTime']['output']>;
   biller?: Maybe<User>;
   billerId?: Maybe<Scalars['String']['output']>;
+  companyInitials: Scalars['String']['output'];
+  companyLogoUrl?: Maybe<Scalars['String']['output']>;
   companyName: Scalars['String']['output'];
   contactPersonName: Scalars['String']['output'];
   contactPhone: Scalars['String']['output'];
@@ -16436,6 +16457,8 @@ export type ResellerProfile = {
 
 export type ResellerProfileCreateManyBillerInput = {
   activatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  companyInitials?: InputMaybe<Scalars['String']['input']>;
+  companyLogoUrl?: InputMaybe<Scalars['String']['input']>;
   companyName?: InputMaybe<Scalars['String']['input']>;
   contactPersonName?: InputMaybe<Scalars['String']['input']>;
   contactPhone?: InputMaybe<Scalars['String']['input']>;
@@ -16459,6 +16482,8 @@ export type ResellerProfileCreateManyBillerInputEnvelope = {
 export type ResellerProfileCreateManyRequestedBillerInput = {
   activatedAt?: InputMaybe<Scalars['DateTime']['input']>;
   billerId?: InputMaybe<Scalars['String']['input']>;
+  companyInitials?: InputMaybe<Scalars['String']['input']>;
+  companyLogoUrl?: InputMaybe<Scalars['String']['input']>;
   companyName?: InputMaybe<Scalars['String']['input']>;
   contactPersonName?: InputMaybe<Scalars['String']['input']>;
   contactPhone?: InputMaybe<Scalars['String']['input']>;
@@ -16515,6 +16540,8 @@ export type ResellerProfileCreateOrConnectWithoutUserInput = {
 
 export type ResellerProfileCreateWithoutBillerInput = {
   activatedAt?: InputMaybe<Scalars['DateTime']['input']>;
+  companyInitials?: InputMaybe<Scalars['String']['input']>;
+  companyLogoUrl?: InputMaybe<Scalars['String']['input']>;
   companyName?: InputMaybe<Scalars['String']['input']>;
   contactPersonName?: InputMaybe<Scalars['String']['input']>;
   contactPhone?: InputMaybe<Scalars['String']['input']>;
@@ -16533,6 +16560,8 @@ export type ResellerProfileCreateWithoutBillerInput = {
 export type ResellerProfileCreateWithoutRequestedBillerInput = {
   activatedAt?: InputMaybe<Scalars['DateTime']['input']>;
   biller?: InputMaybe<UserCreateNestedOneWithoutResellerProfileInput>;
+  companyInitials?: InputMaybe<Scalars['String']['input']>;
+  companyLogoUrl?: InputMaybe<Scalars['String']['input']>;
   companyName?: InputMaybe<Scalars['String']['input']>;
   contactPersonName?: InputMaybe<Scalars['String']['input']>;
   contactPhone?: InputMaybe<Scalars['String']['input']>;
@@ -16550,6 +16579,8 @@ export type ResellerProfileCreateWithoutRequestedBillerInput = {
 export type ResellerProfileCreateWithoutUserInput = {
   activatedAt?: InputMaybe<Scalars['DateTime']['input']>;
   biller?: InputMaybe<UserCreateNestedOneWithoutResellerProfileInput>;
+  companyInitials?: InputMaybe<Scalars['String']['input']>;
+  companyLogoUrl?: InputMaybe<Scalars['String']['input']>;
   companyName?: InputMaybe<Scalars['String']['input']>;
   contactPersonName?: InputMaybe<Scalars['String']['input']>;
   contactPhone?: InputMaybe<Scalars['String']['input']>;
@@ -16583,6 +16614,8 @@ export type ResellerProfileOrderByWithRelationInput = {
   activatedAt?: InputMaybe<SortOrderInput>;
   biller?: InputMaybe<UserOrderByWithRelationInput>;
   billerId?: InputMaybe<SortOrderInput>;
+  companyInitials?: InputMaybe<SortOrder>;
+  companyLogoUrl?: InputMaybe<SortOrderInput>;
   companyName?: InputMaybe<SortOrder>;
   contactPersonName?: InputMaybe<SortOrder>;
   contactPhone?: InputMaybe<SortOrder>;
@@ -16606,6 +16639,8 @@ export type ResellerProfileScalarWhereInput = {
   OR?: InputMaybe<Array<ResellerProfileScalarWhereInput>>;
   activatedAt?: InputMaybe<DateTimeNullableFilter>;
   billerId?: InputMaybe<StringNullableFilter>;
+  companyInitials?: InputMaybe<StringFilter>;
+  companyLogoUrl?: InputMaybe<StringNullableFilter>;
   companyName?: InputMaybe<StringFilter>;
   contactPersonName?: InputMaybe<StringFilter>;
   contactPhone?: InputMaybe<StringFilter>;
@@ -16623,6 +16658,8 @@ export type ResellerProfileScalarWhereInput = {
 
 export type ResellerProfileUpdateManyMutationInput = {
   activatedAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+  companyInitials?: InputMaybe<StringFieldUpdateOperationsInput>;
+  companyLogoUrl?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   companyName?: InputMaybe<StringFieldUpdateOperationsInput>;
   contactPersonName?: InputMaybe<StringFieldUpdateOperationsInput>;
   contactPhone?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -16701,6 +16738,8 @@ export type ResellerProfileUpdateWithWhereUniqueWithoutRequestedBillerInput = {
 
 export type ResellerProfileUpdateWithoutBillerInput = {
   activatedAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
+  companyInitials?: InputMaybe<StringFieldUpdateOperationsInput>;
+  companyLogoUrl?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   companyName?: InputMaybe<StringFieldUpdateOperationsInput>;
   contactPersonName?: InputMaybe<StringFieldUpdateOperationsInput>;
   contactPhone?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -16719,6 +16758,8 @@ export type ResellerProfileUpdateWithoutBillerInput = {
 export type ResellerProfileUpdateWithoutRequestedBillerInput = {
   activatedAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
   biller?: InputMaybe<UserUpdateOneWithoutResellerProfileNestedInput>;
+  companyInitials?: InputMaybe<StringFieldUpdateOperationsInput>;
+  companyLogoUrl?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   companyName?: InputMaybe<StringFieldUpdateOperationsInput>;
   contactPersonName?: InputMaybe<StringFieldUpdateOperationsInput>;
   contactPhone?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -16736,6 +16777,8 @@ export type ResellerProfileUpdateWithoutRequestedBillerInput = {
 export type ResellerProfileUpdateWithoutUserInput = {
   activatedAt?: InputMaybe<NullableDateTimeFieldUpdateOperationsInput>;
   biller?: InputMaybe<UserUpdateOneWithoutResellerProfileNestedInput>;
+  companyInitials?: InputMaybe<StringFieldUpdateOperationsInput>;
+  companyLogoUrl?: InputMaybe<NullableStringFieldUpdateOperationsInput>;
   companyName?: InputMaybe<StringFieldUpdateOperationsInput>;
   contactPersonName?: InputMaybe<StringFieldUpdateOperationsInput>;
   contactPhone?: InputMaybe<StringFieldUpdateOperationsInput>;
@@ -16775,6 +16818,8 @@ export type ResellerProfileWhereInput = {
   activatedAt?: InputMaybe<DateTimeNullableFilter>;
   biller?: InputMaybe<UserNullableScalarRelationFilter>;
   billerId?: InputMaybe<StringNullableFilter>;
+  companyInitials?: InputMaybe<StringFilter>;
+  companyLogoUrl?: InputMaybe<StringNullableFilter>;
   companyName?: InputMaybe<StringFilter>;
   contactPersonName?: InputMaybe<StringFilter>;
   contactPhone?: InputMaybe<StringFilter>;
@@ -16799,6 +16844,8 @@ export type ResellerProfileWhereUniqueInput = {
   activatedAt?: InputMaybe<DateTimeNullableFilter>;
   biller?: InputMaybe<UserNullableScalarRelationFilter>;
   billerId?: InputMaybe<StringNullableFilter>;
+  companyInitials?: InputMaybe<StringFilter>;
+  companyLogoUrl?: InputMaybe<StringNullableFilter>;
   companyName?: InputMaybe<StringFilter>;
   contactPersonName?: InputMaybe<StringFilter>;
   contactPhone?: InputMaybe<StringFilter>;
@@ -26389,6 +26436,14 @@ export type UpdateQuotationStatusInput = {
   status: QuotationStatus;
 };
 
+export type UpdateResellerBrandingInput = {
+  companyInitials?: InputMaybe<Scalars['String']['input']>;
+  companyLogoUrl?: InputMaybe<Scalars['String']['input']>;
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  contactPersonName?: InputMaybe<Scalars['String']['input']>;
+  contactPhone?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type UpdateRoleInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
@@ -31999,14 +32054,14 @@ export type ConsumerSaleDetailQueryVariables = Exact<{
 }>;
 
 
-export type ConsumerSaleDetailQuery = { __typename?: 'Query', consumerSale: { __typename?: 'ConsumerSale', id: string, saleOrderId: string, customerId?: string | null, storeId: string, billerId: string, status: SaleStatus, channel: SaleChannel, totalAmount: number, createdAt: any, updatedAt: any, items?: Array<{ __typename?: 'ConsumerSaleItem', productVariantId: string, quantity: number, unitPrice: number }> | null, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, customer?: { __typename?: 'Customer', id: string, fullName: string, email?: string | null } | null, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } } };
+export type ConsumerSaleDetailQuery = { __typename?: 'Query', consumerSale: { __typename?: 'ConsumerSale', id: string, saleOrderId: string, customerId?: string | null, storeId: string, billerId: string, status: SaleStatus, channel: SaleChannel, totalAmount: number, createdAt: any, updatedAt: any, items?: Array<{ __typename?: 'ConsumerSaleItem', productVariantId: string, quantity: number, unitPrice: number, productVariant: { __typename?: 'ProductVariant', id: string, name?: string | null, barcode?: string | null, product?: { __typename?: 'Product', id: string, name: string } | null } }> | null, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, customer?: { __typename?: 'Customer', id: string, fullName: string, email?: string | null } | null, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } } };
 
 export type ResellerSaleDetailQueryVariables = Exact<{
   id: Scalars['String']['input'];
 }>;
 
 
-export type ResellerSaleDetailQuery = { __typename?: 'Query', resellerSale: { __typename?: 'ResellerSale', id: string, SaleOrderid: string, resellerId: string, billerId: string, storeId: string, status: SaleStatus, totalAmount: number, createdAt: any, updatedAt: any, items?: Array<{ __typename?: 'ResellerSaleItem', productVariantId: string, quantity: number, unitPrice: number }> | null, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, reseller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } } };
+export type ResellerSaleDetailQuery = { __typename?: 'Query', resellerSale: { __typename?: 'ResellerSale', id: string, SaleOrderid: string, resellerId: string, billerId: string, storeId: string, status: SaleStatus, totalAmount: number, createdAt: any, updatedAt: any, items?: Array<{ __typename?: 'ResellerSaleItem', productVariantId: string, quantity: number, unitPrice: number, productVariant: { __typename?: 'ProductVariant', id: string, name?: string | null, barcode?: string | null, product?: { __typename?: 'Product', id: string, name: string } | null } }> | null, store: { __typename?: 'Store', id: string, name: string, location?: string | null }, reseller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null }, biller: { __typename?: 'User', id: string, email: string, customerProfile?: { __typename?: 'CustomerProfile', fullName: string } | null } } };
 
 export type CreateQuotationDraftMutationVariables = Exact<{
   input: CreateQuotationDraftInput;
@@ -32435,19 +32490,19 @@ export type ResellersQueryVariables = Exact<{
 }>;
 
 
-export type ResellersQuery = { __typename?: 'Query', resellers: Array<{ __typename?: 'ResellerProfile', userId: string, profileStatus: ProfileStatus, tier: UserTier, creditLimit: number, requestedAt: any, companyName: string, contactPersonName: string, contactPhone: string, user: { __typename?: 'User', id: string, email: string }, biller?: { __typename?: 'User', id: string, email: string } | null, requestedBiller?: { __typename?: 'User', id: string, email: string } | null }> };
+export type ResellersQuery = { __typename?: 'Query', resellers: Array<{ __typename?: 'ResellerProfile', userId: string, profileStatus: ProfileStatus, activatedAt?: any | null, tier: UserTier, creditLimit: number, requestedAt: any, companyName: string, contactPersonName: string, contactPhone: string, user: { __typename?: 'User', id: string, email: string }, biller?: { __typename?: 'User', id: string, email: string } | null, requestedBiller?: { __typename?: 'User', id: string, email: string } | null }> };
 
 export type ResellerProfileQueryVariables = Exact<{
   userId: Scalars['String']['input'];
 }>;
 
 
-export type ResellerProfileQuery = { __typename?: 'Query', resellerProfile?: { __typename?: 'ResellerProfile', userId: string, profileStatus: ProfileStatus, tier: UserTier, creditLimit: number, outstandingBalance: number, requestedAt: any, activatedAt?: any | null, rejectedAt?: any | null, rejectionReason?: string | null, companyName: string, contactPersonName: string, contactPhone: string, biller?: { __typename?: 'User', id: string, email: string } | null, requestedBiller?: { __typename?: 'User', id: string, email: string } | null, user: { __typename?: 'User', id: string, email: string } } | null };
+export type ResellerProfileQuery = { __typename?: 'Query', resellerProfile?: { __typename?: 'ResellerProfile', userId: string, profileStatus: ProfileStatus, activatedAt?: any | null, tier: UserTier, creditLimit: number, outstandingBalance: number, requestedAt: any, rejectedAt?: any | null, rejectionReason?: string | null, companyName: string, companyInitials: string, companyLogoUrl?: string | null, contactPersonName: string, contactPhone: string, biller?: { __typename?: 'User', id: string, email: string } | null, requestedBiller?: { __typename?: 'User', id: string, email: string } | null, user: { __typename?: 'User', id: string, email: string } } | null };
 
 export type MyResellerProfileQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MyResellerProfileQuery = { __typename?: 'Query', myResellerProfile?: { __typename?: 'ResellerProfile', userId: string, billerId?: string | null, profileStatus: ProfileStatus, companyName: string, contactPersonName: string, contactPhone: string, biller?: { __typename?: 'User', id: string, email: string } | null, user: { __typename?: 'User', id: string, email: string } } | null };
+export type MyResellerProfileQuery = { __typename?: 'Query', myResellerProfile?: { __typename?: 'ResellerProfile', userId: string, billerId?: string | null, profileStatus: ProfileStatus, activatedAt?: any | null, tier: UserTier, creditLimit: number, outstandingBalance: number, companyName: string, companyInitials: string, companyLogoUrl?: string | null, contactPersonName: string, contactPhone: string, biller?: { __typename?: 'User', id: string, email: string } | null, user: { __typename?: 'User', id: string, email: string } } | null };
 
 export type ApplyResellerMutationVariables = Exact<{
   input: ApplyResellerInput;
@@ -32455,6 +32510,21 @@ export type ApplyResellerMutationVariables = Exact<{
 
 
 export type ApplyResellerMutation = { __typename?: 'Mutation', applyReseller: { __typename?: 'ResellerProfile', userId: string, profileStatus: ProfileStatus } };
+
+export type UpdateResellerBrandingMutationVariables = Exact<{
+  resellerId: Scalars['String']['input'];
+  input: UpdateResellerBrandingInput;
+}>;
+
+
+export type UpdateResellerBrandingMutation = { __typename?: 'Mutation', updateResellerBranding: { __typename?: 'ResellerProfile', userId: string, companyInitials: string, companyLogoUrl?: string | null, companyName: string, tier: UserTier, creditLimit: number, outstandingBalance: number } };
+
+export type UpdateMyResellerBrandingMutationVariables = Exact<{
+  input: UpdateResellerBrandingInput;
+}>;
+
+
+export type UpdateMyResellerBrandingMutation = { __typename?: 'Mutation', updateMyResellerBranding: { __typename?: 'ResellerProfile', userId: string, companyInitials: string, companyLogoUrl?: string | null, companyName: string, contactPersonName: string, contactPhone: string, tier: UserTier, creditLimit: number, outstandingBalance: number } };
 
 export type SalesReturnsByStoreQueryVariables = Exact<{
   storeId: Scalars['String']['input'];
@@ -36466,6 +36536,15 @@ export const ConsumerSaleDetailDocument = gql`
     updatedAt
     items {
       productVariantId
+      productVariant {
+        id
+        name
+        barcode
+        product {
+          id
+          name
+        }
+      }
       quantity
       unitPrice
     }
@@ -36536,6 +36615,15 @@ export const ResellerSaleDetailDocument = gql`
     updatedAt
     items {
       productVariantId
+      productVariant {
+        id
+        name
+        barcode
+        product {
+          id
+          name
+        }
+      }
       quantity
       unitPrice
     }
@@ -38874,6 +38962,7 @@ export const ResellersDocument = gql`
   resellers(status: $status, take: $take, q: $q) {
     userId
     profileStatus
+    activatedAt
     tier
     creditLimit
     requestedAt
@@ -38935,6 +39024,7 @@ export const ResellerProfileDocument = gql`
   resellerProfile(userId: $userId) {
     userId
     profileStatus
+    activatedAt
     tier
     creditLimit
     outstandingBalance
@@ -38943,6 +39033,8 @@ export const ResellerProfileDocument = gql`
     rejectedAt
     rejectionReason
     companyName
+    companyInitials
+    companyLogoUrl
     contactPersonName
     contactPhone
     biller {
@@ -38999,7 +39091,13 @@ export const MyResellerProfileDocument = gql`
     userId
     billerId
     profileStatus
+    activatedAt
+    tier
+    creditLimit
+    outstandingBalance
     companyName
+    companyInitials
+    companyLogoUrl
     contactPersonName
     contactPhone
     biller {
@@ -39079,6 +39177,87 @@ export function useApplyResellerMutation(baseOptions?: Apollo.MutationHookOption
 export type ApplyResellerMutationHookResult = ReturnType<typeof useApplyResellerMutation>;
 export type ApplyResellerMutationResult = Apollo.MutationResult<ApplyResellerMutation>;
 export type ApplyResellerMutationOptions = Apollo.BaseMutationOptions<ApplyResellerMutation, ApplyResellerMutationVariables>;
+export const UpdateResellerBrandingDocument = gql`
+    mutation UpdateResellerBranding($resellerId: String!, $input: UpdateResellerBrandingInput!) {
+  updateResellerBranding(resellerId: $resellerId, input: $input) {
+    userId
+    companyInitials
+    companyLogoUrl
+    companyName
+    tier
+    creditLimit
+    outstandingBalance
+  }
+}
+    `;
+export type UpdateResellerBrandingMutationFn = Apollo.MutationFunction<UpdateResellerBrandingMutation, UpdateResellerBrandingMutationVariables>;
+
+/**
+ * __useUpdateResellerBrandingMutation__
+ *
+ * To run a mutation, you first call `useUpdateResellerBrandingMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateResellerBrandingMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateResellerBrandingMutation, { data, loading, error }] = useUpdateResellerBrandingMutation({
+ *   variables: {
+ *      resellerId: // value for 'resellerId'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateResellerBrandingMutation(baseOptions?: Apollo.MutationHookOptions<UpdateResellerBrandingMutation, UpdateResellerBrandingMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateResellerBrandingMutation, UpdateResellerBrandingMutationVariables>(UpdateResellerBrandingDocument, options);
+      }
+export type UpdateResellerBrandingMutationHookResult = ReturnType<typeof useUpdateResellerBrandingMutation>;
+export type UpdateResellerBrandingMutationResult = Apollo.MutationResult<UpdateResellerBrandingMutation>;
+export type UpdateResellerBrandingMutationOptions = Apollo.BaseMutationOptions<UpdateResellerBrandingMutation, UpdateResellerBrandingMutationVariables>;
+export const UpdateMyResellerBrandingDocument = gql`
+    mutation UpdateMyResellerBranding($input: UpdateResellerBrandingInput!) {
+  updateMyResellerBranding(input: $input) {
+    userId
+    companyInitials
+    companyLogoUrl
+    companyName
+    contactPersonName
+    contactPhone
+    tier
+    creditLimit
+    outstandingBalance
+  }
+}
+    `;
+export type UpdateMyResellerBrandingMutationFn = Apollo.MutationFunction<UpdateMyResellerBrandingMutation, UpdateMyResellerBrandingMutationVariables>;
+
+/**
+ * __useUpdateMyResellerBrandingMutation__
+ *
+ * To run a mutation, you first call `useUpdateMyResellerBrandingMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateMyResellerBrandingMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateMyResellerBrandingMutation, { data, loading, error }] = useUpdateMyResellerBrandingMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateMyResellerBrandingMutation(baseOptions?: Apollo.MutationHookOptions<UpdateMyResellerBrandingMutation, UpdateMyResellerBrandingMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateMyResellerBrandingMutation, UpdateMyResellerBrandingMutationVariables>(UpdateMyResellerBrandingDocument, options);
+      }
+export type UpdateMyResellerBrandingMutationHookResult = ReturnType<typeof useUpdateMyResellerBrandingMutation>;
+export type UpdateMyResellerBrandingMutationResult = Apollo.MutationResult<UpdateMyResellerBrandingMutation>;
+export type UpdateMyResellerBrandingMutationOptions = Apollo.BaseMutationOptions<UpdateMyResellerBrandingMutation, UpdateMyResellerBrandingMutationVariables>;
 export const SalesReturnsByStoreDocument = gql`
     query SalesReturnsByStore($storeId: String!) {
   salesReturnsByStore(storeId: $storeId) {
@@ -41124,12 +41303,12 @@ export const VariantsDocument = gql`
     price
     resellerPrice
     createdAt
-    primaryAssetUrl
     product {
       id
       name
       primaryAssetUrl
     }
+    primaryAssetUrl
     stockItems {
       quantity
       reserved

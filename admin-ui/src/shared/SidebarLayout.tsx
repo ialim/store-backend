@@ -104,6 +104,19 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
   const fulfillmentAccess = permissionList(PERMISSIONS.sale.UPDATE);
   const isRider = hasRole('RIDER');
   const isBiller = hasRole('BILLER');
+  const isReseller = hasRole('RESELLER');
+
+  type NavSection = {
+    key: string;
+    label: string;
+    items: {
+      label: string;
+      to: string;
+      show: boolean;
+      icon: React.ReactNode;
+    }[];
+    collapsible?: boolean;
+  };
 
   const toggleMobileDrawer = () => setMobileOpen((prev) => !prev);
   const [collapsedSections, setCollapsedSections] = React.useState<Record<string, boolean>>({});
@@ -179,12 +192,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     return date.toLocaleString();
   }, []);
 
-  const sections: Array<{
-    key: string;
-    label: string;
-    items: { label: string; to: string; show: boolean; icon: React.ReactNode }[];
-    collapsible?: boolean;
-  }> = [
+  const defaultSections: NavSection[] = [
     {
       key: 'catalog',
       label: 'Catalog & Stock',
@@ -562,6 +570,113 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     },
   ];
 
+  const resellerSections: NavSection[] = [
+    {
+      key: 'reseller-dashboard',
+      label: 'Dashboard',
+      items: [
+        {
+          label: 'Dashboard',
+          to: '/dashboard',
+          show: isReseller,
+          icon: <DashboardIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'reseller-catalog',
+      label: 'Catalog',
+      collapsible: true,
+      items: [
+        {
+          label: 'Products',
+          to: '/products',
+          show: isReseller,
+          icon: <Inventory2Icon fontSize="small" />,
+        },
+        {
+          label: 'Variants',
+          to: '/variants',
+          show: isReseller,
+          icon: <Inventory2Icon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'reseller-orders',
+      label: 'Orders',
+      collapsible: true,
+      items: [
+        {
+          label: 'Orders',
+          to: '/orders',
+          show: isReseller,
+          icon: <ReceiptLongIcon fontSize="small" />,
+        },
+        {
+          label: 'Sale',
+          to: '/orders/sales',
+          show: isReseller,
+          icon: <LocalMallIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'reseller-fulfilments',
+      label: 'Fulfilments',
+      collapsible: true,
+      items: [
+        {
+          label: 'Fulfilment',
+          to: '/fulfillments',
+          show: isReseller,
+          icon: <LocalShippingIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'reseller-returns',
+      label: 'Returns',
+      collapsible: true,
+      items: [
+        {
+          label: 'Returns',
+          to: '/returns',
+          show: isReseller,
+          icon: <UndoIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'reseller-finance',
+      label: 'Finance',
+      collapsible: true,
+      items: [
+        {
+          label: 'Accounts',
+          to: '/accounts',
+          show: isReseller,
+          icon: <PaidIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'reseller-profile',
+      label: 'Profile',
+      collapsible: true,
+      items: [
+        {
+          label: 'Profile',
+          to: '/profile',
+          show: isReseller,
+          icon: <AccountCircleIcon fontSize="small" />,
+        },
+      ],
+    },
+  ];
+
+  const sections = isReseller ? resellerSections : defaultSections;
+
   const headerDate = React.useMemo(() => {
     const now = new Date();
     const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(now);
@@ -767,33 +882,35 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           );
         })}
         <Divider sx={{ my: 3 }} />
-        <List disablePadding>
-          <ListItemButton
-            component={Link}
-            to="/profile"
-            selected={location.pathname.startsWith('/profile')}
-            onClick={() => setMobileOpen(false)}
-            sx={{
-              borderRadius: 2,
-              px: 1.75,
-              py: 1.25,
-              color: location.pathname.startsWith('/profile') ? theme.palette.success.main : 'text.secondary',
-              bgcolor: location.pathname.startsWith('/profile') ? alpha(theme.palette.success.main, 0.15) : 'transparent',
-              '&:hover': {
-                bgcolor: alpha(theme.palette.success.main, 0.12),
-                color: theme.palette.success.main,
-              },
-              '&.Mui-selected:hover': {
-                bgcolor: alpha(theme.palette.success.main, 0.18),
-              },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 42, color: 'inherit' }}>
-              <AccountCircleIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="My Profile" primaryTypographyProps={{ fontWeight: 700 }} />
-          </ListItemButton>
-        </List>
+        {!isReseller && (
+          <List disablePadding>
+            <ListItemButton
+              component={Link}
+              to="/profile"
+              selected={location.pathname.startsWith('/profile')}
+              onClick={() => setMobileOpen(false)}
+              sx={{
+                borderRadius: 2,
+                px: 1.75,
+                py: 1.25,
+                color: location.pathname.startsWith('/profile') ? theme.palette.success.main : 'text.secondary',
+                bgcolor: location.pathname.startsWith('/profile') ? alpha(theme.palette.success.main, 0.15) : 'transparent',
+                '&:hover': {
+                  bgcolor: alpha(theme.palette.success.main, 0.12),
+                  color: theme.palette.success.main,
+                },
+                '&.Mui-selected:hover': {
+                  bgcolor: alpha(theme.palette.success.main, 0.18),
+                },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 42, color: 'inherit' }}>
+                <AccountCircleIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="My Profile" primaryTypographyProps={{ fontWeight: 700 }} />
+            </ListItemButton>
+          </List>
+        )}
       </Box>
 
       <Box sx={{ mt: 1 }}>

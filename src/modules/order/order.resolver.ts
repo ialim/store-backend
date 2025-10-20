@@ -165,10 +165,13 @@ export class OrderResolver {
 
   @Mutation(() => ResellerPayment)
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('BILLER', 'ACCOUNTANT', 'ADMIN', 'SUPERADMIN')
+  @Roles('RESELLER', 'BILLER', 'ACCOUNTANT', 'ADMIN', 'SUPERADMIN')
   @Permissions(PERMISSIONS.order.UPDATE as string)
-  registerResellerPayment(@Args('input') input: CreateResellerPaymentInput) {
-    return this.orders.registerResellerPayment(input);
+  registerResellerPayment(
+    @Args('input') input: CreateResellerPaymentInput,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.orders.registerResellerPayment(input, user);
   }
 
   @Mutation(() => ResellerPayment)
@@ -223,7 +226,7 @@ export class OrderResolver {
 
   @Query(() => [Fulfillment])
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Roles('RESELLER', 'BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   @Permissions(PERMISSIONS.order.READ as string)
   fulfillmentsInProgress(
     @Args('statuses', {
@@ -236,13 +239,17 @@ export class OrderResolver {
     @Args('search', { type: () => String, nullable: true })
     search: string | null,
     @Args('take', { type: () => Int, nullable: true }) take: number | null,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.orders.fulfillmentsInProgress({
-      statuses,
-      storeId,
-      search,
-      take,
-    });
+    return this.orders.fulfillmentsInProgress(
+      {
+        statuses,
+        storeId,
+        search,
+        take,
+      },
+      user,
+    );
   }
 
   @Query(() => SaleWorkflowSummary, { nullable: true })

@@ -54,49 +54,63 @@ class AssetAssignmentsByEntityInput {
   entityId!: string;
 }
 
+const ASSET_READ_ROLES = [
+  'SUPERADMIN',
+  'ADMIN',
+  'MANAGER',
+  'RESELLER',
+] as const;
+const ASSET_MANAGE_ROLES = ['SUPERADMIN', 'ADMIN', 'MANAGER'] as const;
+
 @Resolver(() => Asset)
 @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-@Roles('ADMIN', 'SUPERADMIN', 'MANAGER')
 export class AssetResolver {
   constructor(private readonly assetService: AssetService) {}
 
   @Query(() => [Asset])
+  @Roles(...ASSET_READ_ROLES)
   @Permissions(PERMISSIONS.asset.READ as string)
   assets(@Args() args: FindManyAssetArgs) {
     return this.assetService.findMany(args);
   }
 
   @Query(() => Asset, { nullable: true })
+  @Roles(...ASSET_READ_ROLES)
   @Permissions(PERMISSIONS.asset.READ as string)
   asset(@Args() args: FindUniqueAssetArgs) {
     return this.assetService.findUnique(args);
   }
 
   @Query(() => Asset, { nullable: true })
+  @Roles(...ASSET_READ_ROLES)
   @Permissions(PERMISSIONS.asset.READ as string)
   findFirstAsset(@Args() args: FindFirstAssetArgs) {
     return this.assetService.findFirst(args);
   }
 
   @Query(() => AggregateAsset)
+  @Roles(...ASSET_READ_ROLES)
   @Permissions(PERMISSIONS.asset.READ as string)
   aggregateAsset(@Args() args: AssetAggregateArgs) {
     return this.assetService.aggregate(args);
   }
 
   @Query(() => [AssetGroupBy])
+  @Roles(...ASSET_READ_ROLES)
   @Permissions(PERMISSIONS.asset.READ as string)
   groupByAsset(@Args() args: AssetGroupByArgs) {
     return this.assetService.groupBy(args);
   }
 
   @Mutation(() => Boolean)
+  @Roles(...ASSET_MANAGE_ROLES)
   @Permissions(PERMISSIONS.asset.DELETE as string)
   removeAsset(@Args('assetId') assetId: string) {
     return this.assetService.deleteAssetById(assetId);
   }
 
   @Mutation(() => AssetAssignment)
+  @Roles(...ASSET_MANAGE_ROLES)
   @Permissions(PERMISSIONS.asset.UPDATE as string)
   assignAsset(@Args('input') input: AssignAssetInput) {
     return this.assetService.assignAsset(input.assetId, {
@@ -107,6 +121,7 @@ export class AssetResolver {
   }
 
   @Mutation(() => Boolean)
+  @Roles(...ASSET_MANAGE_ROLES)
   @Permissions(PERMISSIONS.asset.UPDATE as string)
   unassignAsset(@Args('input') input: AssignAssetInput) {
     return this.assetService.unassignAsset({
@@ -117,6 +132,7 @@ export class AssetResolver {
   }
 
   @Query(() => [AssetAssignment])
+  @Roles(...ASSET_READ_ROLES)
   @Permissions(PERMISSIONS.asset.READ as string)
   assetAssignments(@Args('input') input: AssetAssignmentsByEntityInput) {
     return this.assetService.assignmentsForEntity(
@@ -126,6 +142,7 @@ export class AssetResolver {
   }
 
   @Query(() => AssetAssignment, { nullable: true })
+  @Roles(...ASSET_READ_ROLES)
   @Permissions(PERMISSIONS.asset.READ as string)
   primaryAssetAssignment(@Args('input') input: AssetAssignmentsByEntityInput) {
     return this.assetService.primaryAssignment(
@@ -135,6 +152,7 @@ export class AssetResolver {
   }
 
   @ResolveField(() => [AssetAssignment])
+  @Roles(...ASSET_READ_ROLES)
   @Permissions(PERMISSIONS.asset.READ as string)
   assignments(@Parent() asset: { id: string }) {
     return this.assetService.assignmentsForAsset(asset.id);

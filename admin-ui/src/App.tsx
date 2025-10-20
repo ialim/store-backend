@@ -65,6 +65,8 @@ const OrdersQuotationCreate = lazy(() => import('./pages/OrdersQuotationCreate')
 const OrdersQuotationEdit = lazy(() => import('./pages/OrdersQuotationEdit'));
 const CustomerSales = lazy(() => import('./pages/CustomerSales'));
 const ResellerSalesPage = lazy(() => import('./pages/ResellerSalesPage'));
+const ResellerDashboard = lazy(() => import('./pages/ResellerDashboard'));
+const Accounts = lazy(() => import('./pages/Accounts'));
 const Addresses = lazy(() => import('./pages/Addresses'));
 const Riders = lazy(() => import('./pages/Riders'));
 import { PERMISSIONS, permissionList } from './shared/permissions';
@@ -119,6 +121,24 @@ export default function App() {
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/complete-profile" element={<ProtectedRoute element={<CompleteProfile />} />} />
             <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute
+                  roles={['RESELLER']}
+                  element={<ResellerDashboard />}
+                />
+              }
+            />
+            <Route
+              path="/accounts"
+              element={
+                <ProtectedRoute
+                  roles={['RESELLER']}
+                  element={<Accounts />}
+                />
+              }
+            />
+            <Route
               path="/outbox"
               element={
                 <ProtectedRoute
@@ -149,6 +169,7 @@ export default function App() {
                     'ACCOUNTANT',
                     'BILLER',
                     'RIDER',
+                    'RESELLER',
                   ]}
                   perms={[...fulfillmentAccess, ...orderReadAccess]}
                   element={<Fulfillments />}
@@ -166,6 +187,7 @@ export default function App() {
                     'ACCOUNTANT',
                     'BILLER',
                     'RIDER',
+                    'RESELLER',
                   ]}
                   perms={[...orderReadAccess, ...fulfillmentAccess]}
                   element={<FulfillmentDetail />}

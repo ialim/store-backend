@@ -245,9 +245,13 @@ export default function OrderDetail() {
     skip: !id,
     fetchPolicy: 'cache-and-network',
   });
+  const canViewStores =
+    hasPermission(PERMISSIONS.store.READ ?? 'STORE_READ') ||
+    hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER');
   const { data: storesData } = useQuery<StoreListData>(Stores, {
     variables: { take: 500 },
     fetchPolicy: 'cache-first',
+    skip: !canViewStores,
   });
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = React.useState<string | null>(null);
@@ -385,6 +389,13 @@ export default function OrderDetail() {
     !isQuotationPhase &&
     hasPermission(PERMISSIONS.order.APPROVE ?? 'ORDER_APPROVE') &&
     (hasRole('MANAGER') || hasRole('ADMIN') || hasRole('SUPERADMIN'));
+  const isResellerOwner = Boolean(
+    isReseller &&
+      normalizedOrderType === 'RESELLER' &&
+      user?.id &&
+      (order?.resellerSale?.resellerId === user.id ||
+        quotation?.resellerId === user.id),
+  );
 
   const initialFulfillmentType =
     (order?.fulfillmentType as 'PICKUP' | 'DELIVERY' | null) ?? 'PICKUP';
@@ -435,12 +446,14 @@ export default function OrderDetail() {
   const canRegisterPayment = Boolean(
     order &&
       !isQuotationPhase &&
-      (canUpdateOrder || isSuperAdmin || isOrderBiller) &&
+      (canUpdateOrder || isSuperAdmin || isOrderBiller || isResellerOwner) &&
       (normalizedOrderType === 'CONSUMER' || normalizedOrderType === 'RESELLER'),
   );
 
   const primaryStore = order?.consumerSale?.store ?? order?.resellerSale?.store ?? null;
-  const storeLabel = formatStoreLabel(primaryStore, order?.storeId);
+  const storeFallbackLabel =
+    (order?.storeId && storeMap.get(order.storeId)) || order?.storeId;
+  const storeLabel = formatStoreLabel(primaryStore, storeFallbackLabel);
 
   const payments = React.useMemo<PaymentRow[]>(() => {
     if (!order) return [];
@@ -750,14 +763,21 @@ export default function OrderDetail() {
           },
         });
       } else if (normalizedOrderType === 'RESELLER') {
-        const resellerId =
+        const rawResellerId =
           order.resellerSale?.resellerId || quotation?.resellerId || null;
+        const resellerId = isResellerOwner
+          ? user?.id ?? rawResellerId
+          : rawResellerId;
         if (!resellerId) {
           setActionError('Order is missing reseller information.');
           return;
         }
-        if (!user?.id) {
-          setActionError('Current user context is required to log payment.');
+        const receiverId =
+          isResellerOwner && order?.billerId
+            ? order.billerId
+            : user?.id ?? null;
+        if (!receiverId) {
+          setActionError('Unable to determine who received this payment.');
           return;
         }
         const resellerSaleId =
@@ -767,7 +787,7 @@ export default function OrderDetail() {
             input: {
               saleOrderId: order.id,
               resellerId,
-              receivedById: user.id,
+              receivedById: receiverId,
               amount,
               method: paymentMethod,
               ...(reference ? { reference } : {}),
@@ -809,6 +829,8 @@ export default function OrderDetail() {
     registerConsumerPayment,
     registerResellerPayment,
     runCreditCheck,
+    isResellerOwner,
+    order?.billerId,
     user?.id,
   ]);
 

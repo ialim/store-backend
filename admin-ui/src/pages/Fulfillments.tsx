@@ -62,7 +62,9 @@ export default function Fulfillments() {
   const navigate = useNavigate();
   const { hasRole, hasPermission } = useAuth();
   const isRider = hasRole('RIDER');
-  const canManage = hasPermission('ORDER_READ') || hasRole('BILLER');
+  const isReseller = hasRole('RESELLER');
+  const canManage =
+    hasPermission('ORDER_READ') || hasRole('BILLER') || isReseller;
 
   const [search, setSearch] = useState('');
 

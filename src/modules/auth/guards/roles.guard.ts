@@ -30,7 +30,12 @@ export class RolesGuard implements CanActivate {
       throw new UnauthorizedException();
     }
     const roleName = user.role?.name;
-    if (roleName && requiredRoles.includes(roleName)) {
+    if (!roleName) {
+      throw new ForbiddenException("You don't have permission (RolesGuard)");
+    }
+    const normalizedRole = roleName.toUpperCase();
+    const normalizedRequired = requiredRoles.map((r) => r.toUpperCase());
+    if (normalizedRequired.includes(normalizedRole)) {
       return true;
     }
     throw new ForbiddenException("You don't have permission (RolesGuard)");

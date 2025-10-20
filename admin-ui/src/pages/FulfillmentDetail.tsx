@@ -65,8 +65,16 @@ export default function FulfillmentDetail() {
   const { saleOrderId } = useParams<{ saleOrderId: string }>();
   const { hasPermission, hasRole, user } = useAuth();
   const isRider = hasRole('RIDER');
-  const canManage = hasPermission('ORDER_READ') || hasRole('BILLER');
+  const isReseller = hasRole('RESELLER');
+  const canManage =
+    hasPermission('ORDER_READ') || hasRole('BILLER');
   const canAssign = hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER');
+  const canViewRiderInterests = hasRole(
+    'SUPERADMIN',
+    'ADMIN',
+    'MANAGER',
+    'BILLER',
+  );
 
   const [volunteerEta, setVolunteerEta] = useState('');
   const [volunteerMessage, setVolunteerMessage] = useState('');
@@ -129,11 +137,13 @@ export default function FulfillmentDetail() {
     refetch: refetchInterests,
   } = useFulfillmentRiderInterestsQuery({
     variables: { saleOrderId: saleOrderId ?? '' },
-    skip: !saleOrderId,
+    skip: !saleOrderId || !canViewRiderInterests,
     fetchPolicy: 'network-only',
   });
 
-  const riderInterests = interestsData?.fulfillmentRiderInterests ?? [];
+  const riderInterests = canViewRiderInterests
+    ? interestsData?.fulfillmentRiderInterests ?? []
+    : [];
 
   const activeInterest = useMemo(
     () =>
@@ -434,80 +444,82 @@ export default function FulfillmentDetail() {
             </Paper>
           )}
 
-          <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
-            <Stack spacing={2}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Rider interests
-              </Typography>
+          {canViewRiderInterests && (
+            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+              <Stack spacing={2}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Rider interests
+                </Typography>
 
-              {loadingInterests ? (
-                <Stack alignItems="center" py={3}>
-                  <CircularProgress size={24} />
-                </Stack>
-              ) : riderInterests.length ? (
-                <Stack spacing={1.5}>
-                  {riderInterests.map((interest) => (
-                    <Paper
-                      key={interest.id}
-                      elevation={0}
-                      sx={{
-                        p: 1.75,
-                        borderRadius: 2,
-                        border: '1px solid rgba(16, 94, 62, 0.1)',
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: 1.5,
-                      }}
-                    >
-                      <Stack spacing={0.5}>
-                        <Typography variant="subtitle2">
-                          {riderDisplayName(interest)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Submitted {formatDistanceToNow(new Date(interest.createdAt), { addSuffix: true })}
-                        </Typography>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Chip size="small" label={interest.status} color={chipColor(interest.status) as any} />
-                          {interest.etaMinutes != null && (
-                            <Typography variant="caption" color="text.secondary">
-                              ETA: {interest.etaMinutes} min
-                            </Typography>
-                          )}
-                          {interest.proposedCost != null && (
-                            <Typography variant="caption" color="text.secondary">
-                              Cost: {interest.proposedCost}
+                {loadingInterests ? (
+                  <Stack alignItems="center" py={3}>
+                    <CircularProgress size={24} />
+                  </Stack>
+                ) : riderInterests.length ? (
+                  <Stack spacing={1.5}>
+                    {riderInterests.map((interest) => (
+                      <Paper
+                        key={interest.id}
+                        elevation={0}
+                        sx={{
+                          p: 1.75,
+                          borderRadius: 2,
+                          border: '1px solid rgba(16, 94, 62, 0.1)',
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: 1.5,
+                        }}
+                      >
+                        <Stack spacing={0.5}>
+                          <Typography variant="subtitle2">
+                            {riderDisplayName(interest)}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Submitted {formatDistanceToNow(new Date(interest.createdAt), { addSuffix: true })}
+                          </Typography>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Chip size="small" label={interest.status} color={chipColor(interest.status) as any} />
+                            {interest.etaMinutes != null && (
+                              <Typography variant="caption" color="text.secondary">
+                                ETA: {interest.etaMinutes} min
+                              </Typography>
+                            )}
+                            {interest.proposedCost != null && (
+                              <Typography variant="caption" color="text.secondary">
+                                Cost: {interest.proposedCost}
+                              </Typography>
+                            )}
+                          </Stack>
+                          {interest.message && (
+                            <Typography variant="body2" color="text.secondary">
+                              “{interest.message}”
                             </Typography>
                           )}
                         </Stack>
-                        {interest.message && (
-                          <Typography variant="body2" color="text.secondary">
-                            “{interest.message}”
-                          </Typography>
-                        )}
-                      </Stack>
 
-                      {canAssign && interest.status === FulfillmentRiderInterestStatus.Active && (
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={() => handleAssignRider(interest.riderId)}
-                          disabled={assigningRider}
-                        >
-                          Assign rider
-                        </Button>
-                      )}
-                    </Paper>
-                  ))}
-                </Stack>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No riders have registered interest yet.
-                </Typography>
-              )}
-            </Stack>
-          </Paper>
+                        {canAssign && interest.status === FulfillmentRiderInterestStatus.Active && (
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => handleAssignRider(interest.riderId)}
+                            disabled={assigningRider}
+                          >
+                            Assign rider
+                          </Button>
+                        )}
+                      </Paper>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No riders have registered interest yet.
+                  </Typography>
+                )}
+              </Stack>
+            </Paper>
+          )}
 
           {canManage && (
             <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>

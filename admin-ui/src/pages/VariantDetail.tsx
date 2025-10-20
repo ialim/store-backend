@@ -43,6 +43,8 @@ export default function VariantDetail() {
   const hasId = Boolean(params.id);
   const navigate = useNavigate();
   const auth = useAuth();
+  const isReseller = auth.hasRole('RESELLER');
+  const canManageCatalog = !isReseller;
   const [openCart, setOpenCart] = React.useState(false);
   const [qty, setQty] = React.useState<number>(1);
   const { data, loading, error } = useVariantQuery({ variables: { id }, skip: !hasId, fetchPolicy: 'cache-and-network' as any });
@@ -112,110 +114,115 @@ export default function VariantDetail() {
         <Typography variant="subtitle1">Facets</Typography>
         <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
           {facets.length ? (
-            facets.map((f, i) => (
-              <Chip
-                key={`${f.facet.id}_${i}`}
-                label={`${f.facet.name || f.facet.code}: ${f.value}`}
-                onDelete={async () => {
-                  if (!window.confirm(`Remove facet \"${f.facet.name || f.facet.code}\": ${f.value}?`)) return;
-                  try {
-                    await removeFacet({
-                      variables: {
-                        productVariantId: id,
-                        facetId: f.facet.id,
-                        value: f.value,
-                      },
-                    });
-                    notify('Facet removed', 'info');
-                    await refetchFacets();
-                  } catch (e: any) {
-                    notify(e?.message || 'Failed to remove facet', 'error');
-                  }
-                }}
-              />
-            ))
+            facets.map((f, i) => {
+              const handleDelete = async () => {
+                if (!window.confirm(`Remove facet \"${f.facet.name || f.facet.code}\": ${f.value}?`)) return;
+                try {
+                  await removeFacet({
+                    variables: {
+                      productVariantId: id,
+                      facetId: f.facet.id,
+                      value: f.value,
+                    },
+                  });
+                  notify('Facet removed', 'info');
+                  await refetchFacets();
+                } catch (e: any) {
+                  notify(e?.message || 'Failed to remove facet', 'error');
+                }
+              };
+              return (
+                <Chip
+                  key={`${f.facet.id}_${i}`}
+                  label={`${f.facet.name || f.facet.code}: ${f.value}`}
+                  onDelete={canManageCatalog ? handleDelete : undefined}
+                />
+              );
+            })
           ) : (
             <Typography color="text.secondary">No facets</Typography>
           )}
         </Stack>
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={1}
-          sx={{ mt: 1 }}
-        >
-          <Select
-            size="small"
-            value={selFacetId}
-            onChange={(e) => {
-              setSelFacetId(e.target.value as string);
-              setSelValue('');
-            }}
-            displayEmpty
-            sx={{ minWidth: 220 }}
+        {canManageCatalog && (
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1}
+            sx={{ mt: 1 }}
           >
-            <MenuItem value="">
-              <em>Select facet…</em>
-            </MenuItem>
-            {allFacets.map((f) => (
-              <MenuItem key={f.id} value={f.id}>
-                {f.name} ({f.code})
+            <Select
+              size="small"
+              value={selFacetId}
+              onChange={(e) => {
+                setSelFacetId(e.target.value as string);
+                setSelValue('');
+              }}
+              displayEmpty
+              sx={{ minWidth: 220 }}
+            >
+              <MenuItem value="">
+                <em>Select facet…</em>
               </MenuItem>
-            ))}
-          </Select>
-          {(() => {
-            const f = allFacets.find((x) => x.id === selFacetId);
-            if (f && Array.isArray(f.values) && f.values.length) {
+              {allFacets.map((f) => (
+                <MenuItem key={f.id} value={f.id}>
+                  {f.name} ({f.code})
+                </MenuItem>
+              ))}
+            </Select>
+            {(() => {
+              const f = allFacets.find((x) => x.id === selFacetId);
+              if (f && Array.isArray(f.values) && f.values.length) {
+                return (
+                  <Autocomplete
+                    size="small"
+                    options={f.values}
+                    value={selValue || ''}
+                    inputValue={selValue}
+                    onInputChange={(_, v) => setSelValue(v)}
+                    onChange={(_, v) => setSelValue((v as string) || '')}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Value" />
+                    )}
+                    sx={{ minWidth: 180 }}
+                    freeSolo
+                  />
+                );
+              }
               return (
-                <Autocomplete
+                <TextField
                   size="small"
-                  options={f.values}
-                  value={selValue || ''}
-                  inputValue={selValue}
-                  onInputChange={(_, v) => setSelValue(v)}
-                  onChange={(_, v) => setSelValue((v as string) || '')}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Value" />
-                  )}
-                  sx={{ minWidth: 180 }}
-                  freeSolo
+                  label="Value"
+                  value={selValue}
+                  onChange={(e) => setSelValue(e.target.value)}
                 />
               );
-            }
-            return (
-              <TextField
-                size="small"
-                label="Value"
-                value={selValue}
-                onChange={(e) => setSelValue(e.target.value)}
-              />
-            );
-          })()}
-          <Button
-            size="small"
-            variant="contained"
-            disabled={!selFacetId || !selValue}
-            onClick={async () => {
-              try {
-                await assignFacet({
-                  variables: {
-                    productVariantId: id,
-                    facetId: selFacetId,
-                    value: selValue,
-                  },
-                });
-                notify('Facet assigned', 'success');
-                setSelValue('');
-                await refetchFacets();
-              } catch (e: any) {
+            })()}
+            <Button
+              size="small"
+              variant="contained"
+              disabled={!selFacetId || !selValue}
+              onClick={async () => {
+                try {
+                  await assignFacet({
+                    variables: {
+                      productVariantId: id,
+                      facetId: selFacetId,
+                      value: selValue,
+                    },
+                  });
+                  notify('Facet assigned', 'success');
+                  setSelValue('');
+                  await refetchFacets();
+                } catch (e: any) {
                   notify(e?.message || 'Failed to assign facet', 'error');
-              }
-            }}
-          >
-            Assign
-          </Button>
-        </Stack>
+                }
+              }}
+            >
+              Assign
+            </Button>
+          </Stack>
+        )}
       </Box>
-      <VariantAssetsSection variantId={id} />
+      <VariantAssetsSection variantId={id} readOnly={!canManageCatalog} />
       <RelatedVariants currentId={id} brand={brand} gender={gender} />
 
       <Drawer anchor="right" open={openCart} onClose={() => setOpenCart(false)}>
@@ -258,7 +265,7 @@ export default function VariantDetail() {
   );
 }
 
-function VariantAssetsSection({ variantId }: { variantId: string }) {
+function VariantAssetsSection({ variantId, readOnly = false }: { variantId: string; readOnly?: boolean }) {
   const [uploading, setUploading] = React.useState(false);
   const { data, loading, error, refetch } = useAssetAssignmentsQuery({
     variables: {
@@ -284,40 +291,42 @@ function VariantAssetsSection({ variantId }: { variantId: string }) {
           justifyContent="space-between"
         >
           <Typography variant="subtitle1">Assets</Typography>
-          <Button
-            component="label"
-            variant="outlined"
-            size="small"
-            disabled={uploading}
-          >
-            {uploading ? 'Uploading…' : 'Upload asset'}
-            <input
-              type="file"
-              hidden
-              accept="image/*"
-              onChange={async (event) => {
-                const file = event.target.files?.[0];
-                event.target.value = '';
-                if (!file) return;
-                setUploading(true);
-                try {
-                  await uploadAsset({
-                    file,
-                    kind: AssetKind.Image,
-                    entityType: AssetEntityType.ProductVariant,
-                    entityId: variantId,
-                    isPrimary: assignments.length === 0,
-                  });
-                  notify('Asset uploaded', 'success');
-                  await refetch();
-                } catch (err: any) {
-                  notify(err?.message || 'Failed to upload asset', 'error');
-                } finally {
-                  setUploading(false);
-                }
-              }}
-            />
-          </Button>
+          {!readOnly && (
+            <Button
+              component="label"
+              variant="outlined"
+              size="small"
+              disabled={uploading}
+            >
+              {uploading ? 'Uploading…' : 'Upload asset'}
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = '';
+                  if (!file) return;
+                  setUploading(true);
+                  try {
+                    await uploadAsset({
+                      file,
+                      kind: AssetKind.Image,
+                      entityType: AssetEntityType.ProductVariant,
+                      entityId: variantId,
+                      isPrimary: assignments.length === 0,
+                    });
+                    notify('Asset uploaded', 'success');
+                    await refetch();
+                  } catch (err: any) {
+                    notify(err?.message || 'Failed to upload asset', 'error');
+                  } finally {
+                    setUploading(false);
+                  }
+                }}
+              />
+            </Button>
+          )}
         </Stack>
 
         {loading && !assignments.length && (
@@ -370,67 +379,82 @@ function VariantAssetsSection({ variantId }: { variantId: string }) {
                       <Chip size="small" color="success" label="Primary" sx={{ alignSelf: 'flex-start' }} />
                     )}
                     <Stack direction="column" spacing={0.5} sx={{ mt: 'auto' }}>
-                      {!isPrimary && (
+                      {asset?.url && (
                         <Button
                           size="small"
-                          onClick={async () => {
-                            try {
-                              await assignAsset({
-                                variables: {
-                                  assetId: assignment.assetId,
-                                  entityType: AssetEntityType.ProductVariant,
-                                  entityId: variantId,
-                                  isPrimary: true,
-                                },
-                              });
-                              notify('Primary asset updated', 'success');
-                              await refetch();
-                            } catch (err: any) {
-                              notify(err?.message || 'Failed to set primary asset', 'error');
-                            }
-                          }}
+                          component="a"
+                          href={asset.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
                         >
-                          Set as primary
+                          View asset
                         </Button>
                       )}
-                      <Button
-                        size="small"
-                        color="warning"
-                        onClick={async () => {
-                          if (!window.confirm('Unassign this asset from the variant?')) return;
-                          try {
-                            await unassignAsset({
-                              variables: {
-                                assetId: assignment.assetId,
-                                entityType: AssetEntityType.ProductVariant,
-                                entityId: variantId,
-                              },
-                            });
-                            notify('Asset unassigned', 'info');
-                            await refetch();
-                          } catch (err: any) {
-                            notify(err?.message || 'Failed to unassign asset', 'error');
-                          }
-                        }}
-                      >
-                        Unassign
-                      </Button>
-                      <Button
-                        size="small"
-                        color="error"
-                        onClick={async () => {
-                          if (!window.confirm('Delete this asset from storage? This affects all assignments.')) return;
-                          try {
-                            await removeAsset({ variables: { assetId: assignment.assetId } });
-                            notify('Asset deleted', 'success');
-                            await refetch();
-                          } catch (err: any) {
-                            notify(err?.message || 'Failed to delete asset', 'error');
-                          }
-                        }}
-                      >
-                        Delete asset
-                      </Button>
+                      {!readOnly && (
+                        <>
+                          {!isPrimary && (
+                            <Button
+                              size="small"
+                              onClick={async () => {
+                                try {
+                                  await assignAsset({
+                                    variables: {
+                                      assetId: assignment.assetId,
+                                      entityType: AssetEntityType.ProductVariant,
+                                      entityId: variantId,
+                                      isPrimary: true,
+                                    },
+                                  });
+                                  notify('Primary asset updated', 'success');
+                                  await refetch();
+                                } catch (err: any) {
+                                  notify(err?.message || 'Failed to set primary asset', 'error');
+                                }
+                              }}
+                            >
+                              Set as primary
+                            </Button>
+                          )}
+                          <Button
+                            size="small"
+                            color="warning"
+                            onClick={async () => {
+                              if (!window.confirm('Unassign this asset from the variant?')) return;
+                              try {
+                                await unassignAsset({
+                                  variables: {
+                                    assetId: assignment.assetId,
+                                    entityType: AssetEntityType.ProductVariant,
+                                    entityId: variantId,
+                                  },
+                                });
+                                notify('Asset unassigned', 'info');
+                                await refetch();
+                              } catch (err: any) {
+                                notify(err?.message || 'Failed to unassign asset', 'error');
+                              }
+                            }}
+                          >
+                            Unassign
+                          </Button>
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={async () => {
+                              if (!window.confirm('Delete this asset from storage? This affects all assignments.')) return;
+                              try {
+                                await removeAsset({ variables: { assetId: assignment.assetId } });
+                                notify('Asset deleted', 'success');
+                                await refetch();
+                              } catch (err: any) {
+                                notify(err?.message || 'Failed to delete asset', 'error');
+                              }
+                            }}
+                          >
+                            Delete asset
+                          </Button>
+                        </>
+                      )}
                     </Stack>
                   </CardContent>
                 </Card>

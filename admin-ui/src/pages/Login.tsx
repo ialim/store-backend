@@ -15,6 +15,7 @@ import { notify } from '../shared/notify';
 import { decodeJwt } from '../shared/jwt';
 import { Link as RouterLink } from 'react-router-dom';
 import Link from '@mui/material/Link';
+import { getDefaultRoute } from '../shared/routes';
 
 
 export default function Login() {
@@ -22,13 +23,16 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [login, { loading }] = useLoginMutation();
-  const { setAuth, token } = useAuth();
+  const { setAuth, token, user } = useAuth();
   const navigate = useNavigate();
 
   // If already authenticated, redirect to default page
   useEffect(() => {
-    if (token) navigate('/outbox', { replace: true });
-  }, [token, navigate]);
+    if (token) {
+      const destination = getDefaultRoute(user?.roleName);
+      navigate(destination, { replace: true });
+    }
+  }, [token, user?.roleName, navigate]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +52,8 @@ export default function Login() {
       };
       setAuth({ token, user });
       notify(`Welcome ${user.email}`, 'success');
-      navigate('/outbox');
+      const destination = getDefaultRoute(user.roleName);
+      navigate(destination, { replace: true });
     } catch (err: any) {
       setError(err?.message || 'Login failed');
     }

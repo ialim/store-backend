@@ -35,6 +35,8 @@ import { FulfillConsumerSaleInput } from './dto/fulfill-consumer-sale.input';
 import { SaleOrder } from '../../shared/prismagraphql/sale-order/sale-order.model';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../auth/auth.service';
 
 @Resolver()
 export class SalesResolver {
@@ -146,10 +148,13 @@ export class SalesResolver {
 
   @Mutation(() => ResellerPayment)
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('BILLER', 'ACCOUNTANT', 'ADMIN', 'SUPERADMIN')
+  @Roles('RESELLER', 'BILLER', 'ACCOUNTANT', 'ADMIN', 'SUPERADMIN')
   @Permissions(PERMISSIONS.sale.UPDATE as string)
-  registerResellerPayment(@Args('input') input: CreateResellerPaymentInput) {
-    return this.salesService.registerResellerPayment(input);
+  registerResellerPayment(
+    @Args('input') input: CreateResellerPaymentInput,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.salesService.registerResellerPayment(input, user);
   }
 
   @Mutation(() => ResellerPayment)

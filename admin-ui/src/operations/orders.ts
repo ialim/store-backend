@@ -461,6 +461,15 @@ export const ConsumerSaleDetail = gql`
       updatedAt
       items {
         productVariantId
+        productVariant {
+          id
+          name
+          barcode
+          product {
+            id
+            name
+          }
+        }
         quantity
         unitPrice
       }
@@ -499,6 +508,15 @@ export const ResellerSaleDetail = gql`
       updatedAt
       items {
         productVariantId
+        productVariant {
+          id
+          name
+          barcode
+          product {
+            id
+            name
+          }
+        }
         quantity
         unitPrice
       }
