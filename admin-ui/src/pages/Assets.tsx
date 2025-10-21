@@ -14,6 +14,8 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { notify } from '../shared/notify';
+import { useAuth } from '../shared/AuthProvider';
+import { PERMISSIONS, permissionList } from '../shared/permissions';
 import { uploadAsset } from '../shared/assets';
 import {
   AssetKind,
@@ -48,6 +50,7 @@ function formatDate(value?: string | null): string {
 }
 
 export default function Assets() {
+  const { hasPermission } = useAuth();
   const [uploading, setUploading] = React.useState(false);
   const [search, setSearch] = React.useState('');
   const { data, loading, error, refetch } = useAssetsQuery({
@@ -55,6 +58,8 @@ export default function Assets() {
     fetchPolicy: 'cache-and-network',
   });
   const [removeAsset] = useRemoveAssetMutation();
+  const canUpload = hasPermission(...permissionList(PERMISSIONS.asset.CREATE));
+  const canDelete = hasPermission(...permissionList(PERMISSIONS.asset.DELETE));
 
   const assets = data?.assets ?? [];
 
@@ -211,30 +216,32 @@ export default function Assets() {
                 <OpenInNewIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Delete asset">
-              <span>
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={async () => {
-                    if (
-                      window.confirm(
-                        'Delete this asset from storage? This action cannot be undone.',
-                      )
-                    ) {
-                      await handleDeleteAsset(asset);
-                    }
-                  }}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
+            {canDelete && (
+              <Tooltip title="Delete asset">
+                <span>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={async () => {
+                      if (
+                        window.confirm(
+                          'Delete this asset from storage? This action cannot be undone.',
+                        )
+                      ) {
+                        await handleDeleteAsset(asset);
+                      }
+                    }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
           </Stack>
         ),
       },
     ],
-    [handleCopyUrl, handleDeleteAsset],
+    [handleCopyUrl, handleDeleteAsset, canDelete],
   );
 
   return (
@@ -250,16 +257,18 @@ export default function Assets() {
 
       <ListingHero
         action={
-          <Button
-            component="label"
-            variant="contained"
-            startIcon={<CloudUploadIcon />}
-            disabled={uploading}
-            sx={{ borderRadius: 999 }}
-          >
-            {uploading ? 'Uploading…' : 'Upload Asset'}
-            <input hidden type="file" accept="*/*" onChange={handleUpload} />
-          </Button>
+          canUpload ? (
+            <Button
+              component="label"
+              variant="contained"
+              startIcon={<CloudUploadIcon />}
+              disabled={uploading}
+              sx={{ borderRadius: 999 }}
+            >
+              {uploading ? 'Uploading…' : 'Upload Asset'}
+              <input hidden type="file" accept="*/*" onChange={handleUpload} />
+            </Button>
+          ) : undefined
         }
         search={{
           value: search,

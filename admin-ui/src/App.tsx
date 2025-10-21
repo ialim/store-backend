@@ -5,6 +5,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Outbox = lazy(() => import('./pages/Outbox'));
 const LowStock = lazy(() => import('./pages/LowStock'));
 const Fulfillments = lazy(() => import('./pages/Fulfillments'));
+const MyFulfillments = lazy(() => import('./pages/MyFulfillments'));
 const FulfillmentDetail = lazy(() => import('./pages/FulfillmentDetail'));
 import ProtectedRoute from './shared/ProtectedRoute';
 import IndexRedirect from './pages/IndexRedirect';
@@ -22,7 +23,9 @@ const Stock = lazy(() => import('./pages/Stock'));
 const Users = lazy(() => import('./pages/Users'));
 const Payments = lazy(() => import('./pages/Payments'));
 const Returns = lazy(() => import('./pages/Returns'));
+const PurchaseReturns = lazy(() => import('./pages/PurchaseReturns'));
 const Analytics = lazy(() => import('./pages/Analytics'));
+const BillerDashboard = lazy(() => import('./pages/BillerDashboard'));
 const Stores = lazy(() => import('./pages/Stores'));
 const Support = lazy(() => import('./pages/Support'));
 const Staff = lazy(() => import('./pages/Staff'));
@@ -65,8 +68,11 @@ const OrdersQuotationCreate = lazy(() => import('./pages/OrdersQuotationCreate')
 const OrdersQuotationEdit = lazy(() => import('./pages/OrdersQuotationEdit'));
 const CustomerSales = lazy(() => import('./pages/CustomerSales'));
 const ResellerSalesPage = lazy(() => import('./pages/ResellerSalesPage'));
+const ResellerDashboard = lazy(() => import('./pages/ResellerDashboard'));
+const Accounts = lazy(() => import('./pages/Accounts'));
 const Addresses = lazy(() => import('./pages/Addresses'));
 const Riders = lazy(() => import('./pages/Riders'));
+const RiderDashboard = lazy(() => import('./pages/RiderDashboard'));
 import { PERMISSIONS, permissionList } from './shared/permissions';
 
 export default function App() {
@@ -77,6 +83,7 @@ export default function App() {
     PERMISSIONS.product.UPDATE,
     PERMISSIONS.product.DELETE,
   );
+  const assetReadAccess = permissionList(PERMISSIONS.asset.READ);
   const userManageAccess = permissionList(
     PERMISSIONS.user.CREATE,
     PERMISSIONS.user.READ,
@@ -119,6 +126,34 @@ export default function App() {
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/complete-profile" element={<ProtectedRoute element={<CompleteProfile />} />} />
             <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute
+                  roles={['RESELLER']}
+                  element={<ResellerDashboard />}
+                />
+              }
+            />
+            <Route
+              path="/biller-dashboard"
+              element={
+                <ProtectedRoute roles={['BILLER']} element={<BillerDashboard />} />
+              }
+            />
+            <Route
+              path="/rider/dashboard"
+              element={<ProtectedRoute roles={['RIDER']} element={<RiderDashboard />} />}
+            />
+            <Route
+              path="/accounts"
+              element={
+                <ProtectedRoute
+                  roles={['RESELLER']}
+                  element={<Accounts />}
+                />
+              }
+            />
+            <Route
               path="/outbox"
               element={
                 <ProtectedRoute
@@ -149,10 +184,17 @@ export default function App() {
                     'ACCOUNTANT',
                     'BILLER',
                     'RIDER',
+                    'RESELLER',
                   ]}
                   perms={[...fulfillmentAccess, ...orderReadAccess]}
                   element={<Fulfillments />}
                 />
+              }
+            />
+            <Route
+              path="/fulfillments/my"
+              element={
+                <ProtectedRoute roles={['RIDER']} element={<MyFulfillments />} />
               }
             />
             <Route
@@ -166,6 +208,7 @@ export default function App() {
                     'ACCOUNTANT',
                     'BILLER',
                     'RIDER',
+                    'RESELLER',
                   ]}
                   perms={[...orderReadAccess, ...fulfillmentAccess]}
                   element={<FulfillmentDetail />}
@@ -397,7 +440,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
-                  perms={productWriteAccess}
+                  perms={assetReadAccess}
                   element={<Assets />}
                 />
               }
@@ -486,17 +529,17 @@ export default function App() {
                   perms={[...productReadAccess, ...productWriteAccess]}
                   element={<ProductDetail />}
                 />
-              }
-            />
-            <Route
-              path="/stock"
-              element={
-                <ProtectedRoute
-                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
-                  element={<Stock />}
-                />
-              }
-            />
+        }
+      />
+      <Route
+        path="/stock"
+        element={
+          <ProtectedRoute
+            roles={['SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER']}
+            element={<Stock />}
+          />
+        }
+      />
             <Route
               path="/users"
               element={
@@ -588,8 +631,24 @@ export default function App() {
               path="/returns"
               element={
                 <ProtectedRoute
-                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  roles={[
+                    'SUPERADMIN',
+                    'ADMIN',
+                    'MANAGER',
+                    'ACCOUNTANT',
+                    'BILLER',
+                    'RESELLER',
+                  ]}
                   element={<Returns />}
+                />
+              }
+            />
+            <Route
+              path="/returns/purchase"
+              element={
+                <ProtectedRoute
+                  roles={['SUPERADMIN', 'ADMIN', 'MANAGER']}
+                  element={<PurchaseReturns />}
                 />
               }
             />

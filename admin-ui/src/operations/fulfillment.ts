@@ -6,7 +6,18 @@ export const AssignFulfillmentPersonnel = gql`
       id
       status
       deliveryPersonnelId
+      costStatus
+      paymentStatus
       updatedAt
+      payments {
+        id
+        amount
+        method
+        reference
+        receivedAt
+        receivedById
+        notes
+      }
     }
   }
 `;
@@ -17,6 +28,7 @@ export const UpdateFulfillmentStatus = gql`
       id
       status
       updatedAt
+      paymentStatus
     }
   }
 `;
@@ -47,6 +59,71 @@ export const MyFulfillmentInterests = gql`
         saleOrderId
         deliveryAddress
         status
+      }
+    }
+  }
+`;
+
+export const MyAssignedFulfillments = gql`
+  query MyAssignedFulfillments {
+    myAssignedFulfillments {
+      id
+      saleOrderId
+      type
+      status
+      deliveryAddress
+      cost
+      costStatus
+      costAcceptedAt
+      paymentStatus
+      createdAt
+      updatedAt
+      saleOrder {
+        id
+        storeId
+        consumerSale {
+          id
+          store {
+            id
+            name
+            location
+          }
+          customer {
+            id
+            fullName
+            email
+          }
+        }
+        resellerSale {
+          id
+          store {
+            id
+            name
+            location
+          }
+          reseller {
+            id
+            email
+            customerProfile {
+              fullName
+            }
+          }
+        }
+      }
+      payments {
+        id
+        amount
+        method
+        reference
+        receivedAt
+        notes
+        receivedBy {
+          id
+          email
+          customerProfile {
+            fullName
+          }
+        }
       }
     }
   }
@@ -109,6 +186,33 @@ export const AssignFulfillmentRider = gql`
       riderId
       proposedCost
       fulfillmentId
+      updatedAt
+    }
+  }
+`;
+
+export const RecordFulfillmentPayment = gql`
+  mutation RecordFulfillmentPayment($input: RecordFulfillmentPaymentInput!) {
+    recordFulfillmentPayment(input: $input) {
+      id
+      paymentStatus
+      costStatus
+      payments {
+        id
+        amount
+        method
+        reference
+        receivedAt
+        receivedById
+        notes
+        receivedBy {
+          id
+          email
+          customerProfile {
+            fullName
+          }
+        }
+      }
       updatedAt
     }
   }

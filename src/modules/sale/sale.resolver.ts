@@ -23,6 +23,7 @@ import { CreateFulfillmentInput } from './dto/create-fulfillment.input';
 import { UpdateFulfillmentPreferencesInput } from './dto/update-fulfillment-preferences.input';
 import { AssignFulfillmentPersonnelInput } from './dto/assign-fulfillment-personnel.input';
 import { UpdateFulfillmentStatusInput } from './dto/update-fulfillment-status.input';
+import { RecordFulfillmentPaymentInput } from './dto/record-fulfillment-payment.input';
 import { CreateResellerSaleInput } from './dto/create-reseller-sale.input';
 import { CreateResellerPaymentInput } from './dto/create-reseller-payment.input';
 import { Quotation } from '../../shared/prismagraphql/quotation/quotation.model';
@@ -35,6 +36,8 @@ import { FulfillConsumerSaleInput } from './dto/fulfill-consumer-sale.input';
 import { SaleOrder } from '../../shared/prismagraphql/sale-order/sale-order.model';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../auth/auth.service';
 
 @Resolver()
 export class SalesResolver {
@@ -146,10 +149,13 @@ export class SalesResolver {
 
   @Mutation(() => ResellerPayment)
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('BILLER', 'ACCOUNTANT', 'ADMIN', 'SUPERADMIN')
+  @Roles('RESELLER', 'BILLER', 'ACCOUNTANT', 'ADMIN', 'SUPERADMIN')
   @Permissions(PERMISSIONS.sale.UPDATE as string)
-  registerResellerPayment(@Args('input') input: CreateResellerPaymentInput) {
-    return this.salesService.registerResellerPayment(input);
+  registerResellerPayment(
+    @Args('input') input: CreateResellerPaymentInput,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.salesService.registerResellerPayment(input, user);
   }
 
   @Mutation(() => ResellerPayment)
@@ -176,12 +182,13 @@ export class SalesResolver {
       'Update fulfillment preferences (type, delivery address) for a sale order.',
   })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Roles('BILLER', 'RESELLER', 'CUSTOMER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   @Permissions(PERMISSIONS.order.UPDATE as string)
   updateFulfillmentPreferences(
     @Args('input') input: UpdateFulfillmentPreferencesInput,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.salesService.updateFulfillmentPreferences(input);
+    return this.salesService.updateFulfillmentPreferences(input, user);
   }
 
   @Mutation(() => Fulfillment, {
@@ -189,7 +196,7 @@ export class SalesResolver {
       'Update fulfillment status (ASSIGNED, IN_TRANSIT, DELIVERED, CANCELLED). If DELIVERED and a PIN is set, confirmationPin is required.',
   })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   @Permissions(PERMISSIONS.sale.UPDATE as string)
   assignFulfillmentPersonnel(
     @Args('input') input: AssignFulfillmentPersonnelInput,
@@ -199,15 +206,26 @@ export class SalesResolver {
 
   @Mutation(() => Fulfillment)
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   @Permissions(PERMISSIONS.sale.UPDATE as string)
   updateFulfillmentStatus(@Args('input') input: UpdateFulfillmentStatusInput) {
     return this.salesService.updateFulfillmentStatus(input);
   }
 
+  @Mutation(() => Fulfillment)
+  @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Permissions(PERMISSIONS.sale.UPDATE as string)
+  recordFulfillmentPayment(
+    @Args('input') input: RecordFulfillmentPaymentInput,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.salesService.recordFulfillmentPayment(input, user);
+  }
+
   @Mutation(() => SaleOrder)
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('ADMIN', 'SUPERADMIN')
+  @Roles('BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   @Permissions(PERMISSIONS.sale.APPROVE as string)
   adminRevertOrderToQuotation(@Args('saleOrderId') saleOrderId: string) {
     return this.salesService.adminRevertOrderToQuotation(saleOrderId);
@@ -216,7 +234,7 @@ export class SalesResolver {
   // Admin queries for customer history
   @Query(() => [ConsumerSale])
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('ADMIN', 'SUPERADMIN')
+  @Roles('BILLER', 'ACCOUNTANT', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   @Permissions(PERMISSIONS.sale.READ as string)
   consumerSalesByCustomer(
     @Args('customerId') customerId: string,

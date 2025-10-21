@@ -83,6 +83,7 @@ export const Resellers = gql`
     resellers(status: $status, take: $take, q: $q) {
       userId
       profileStatus
+      activatedAt
       tier
       creditLimit
       requestedAt
@@ -110,6 +111,7 @@ export const ResellerProfile = gql`
     resellerProfile(userId: $userId) {
       userId
       profileStatus
+      activatedAt
       tier
       creditLimit
       outstandingBalance
@@ -118,6 +120,8 @@ export const ResellerProfile = gql`
       rejectedAt
       rejectionReason
       companyName
+      companyInitials
+      companyLogoUrl
       contactPersonName
       contactPhone
       biller {
@@ -142,7 +146,13 @@ export const MyResellerProfile = gql`
       userId
       billerId
       profileStatus
+      activatedAt
+      tier
+      creditLimit
+      outstandingBalance
       companyName
+      companyInitials
+      companyLogoUrl
       contactPersonName
       contactPhone
       biller {
@@ -160,5 +170,35 @@ export const MyResellerProfile = gql`
 export const ApplyReseller = gql`
   mutation ApplyReseller($input: ApplyResellerInput!) {
     applyReseller(input: $input) { userId profileStatus }
+  }
+`;
+
+export const UpdateResellerBranding = gql`
+  mutation UpdateResellerBranding($resellerId: String!, $input: UpdateResellerBrandingInput!) {
+    updateResellerBranding(resellerId: $resellerId, input: $input) {
+      userId
+      companyInitials
+      companyLogoUrl
+      companyName
+      tier
+      creditLimit
+      outstandingBalance
+    }
+  }
+`;
+
+export const UpdateMyResellerBranding = gql`
+  mutation UpdateMyResellerBranding($input: UpdateResellerBrandingInput!) {
+    updateMyResellerBranding(input: $input) {
+      userId
+      companyInitials
+      companyLogoUrl
+      companyName
+      contactPersonName
+      contactPhone
+      tier
+      creditLimit
+      outstandingBalance
+    }
   }
 `;

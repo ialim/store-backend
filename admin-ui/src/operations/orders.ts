@@ -73,6 +73,9 @@ export const Order = gql`
       phase
       fulfillmentType
       deliveryAddress
+      receiverName
+      receiverPhone
+      deliveryNotes
       saleWorkflowState
       saleWorkflowContext
       saleWorkflowSummary {
@@ -166,6 +169,25 @@ export const Order = gql`
         }
         deliveryAddress
         cost
+        costStatus
+        costAcceptedAt
+        paymentStatus
+        payments {
+          id
+          amount
+          method
+          reference
+          receivedAt
+          receivedById
+          notes
+          receivedBy {
+            id
+            email
+            customerProfile {
+              fullName
+            }
+          }
+        }
         createdAt
         updatedAt
         fulfillmentWorkflowContext
@@ -339,6 +361,13 @@ export const ConsumerSales = gql`
           fullName
         }
       }
+      saleOrder: SaleOrder {
+        id
+        status
+        fulfillment {
+          cost
+        }
+      }
     }
   }
 `;
@@ -461,6 +490,15 @@ export const ConsumerSaleDetail = gql`
       updatedAt
       items {
         productVariantId
+        productVariant {
+          id
+          name
+          barcode
+          product {
+            id
+            name
+          }
+        }
         quantity
         unitPrice
       }
@@ -499,6 +537,15 @@ export const ResellerSaleDetail = gql`
       updatedAt
       items {
         productVariantId
+        productVariant {
+          id
+          name
+          barcode
+          product {
+            id
+            name
+          }
+        }
         quantity
         unitPrice
       }

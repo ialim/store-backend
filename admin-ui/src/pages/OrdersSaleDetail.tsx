@@ -66,6 +66,12 @@ type ConsumerSaleData = {
     } | null;
     items: Array<{
       productVariantId: string;
+      productVariant?: {
+        id: string;
+        name?: string | null;
+        barcode?: string | null;
+        product?: { id: string; name?: string | null } | null;
+      } | null;
       quantity: number;
       unitPrice: number;
     }>;
@@ -100,6 +106,12 @@ type ResellerSaleData = {
     } | null;
     items: Array<{
       productVariantId: string;
+      productVariant?: {
+        id: string;
+        name?: string | null;
+        barcode?: string | null;
+        product?: { id: string; name?: string | null } | null;
+      } | null;
       quantity: number;
       unitPrice: number;
     }>;
@@ -164,6 +176,28 @@ function formatUserLabel(
   return fallback ?? '—';
 }
 
+type SaleItem = {
+  productVariantId: string;
+  productVariant?: {
+    id: string;
+    name?: string | null;
+    barcode?: string | null;
+    product?: { id: string; name?: string | null } | null;
+  } | null;
+  quantity: number;
+  unitPrice: number;
+};
+
+function formatVariantLabel(item: SaleItem): string {
+  const variantName = item.productVariant?.name?.trim();
+  if (variantName) return variantName;
+  const productName = item.productVariant?.product?.name?.trim();
+  if (productName) return productName;
+  const barcode = item.productVariant?.barcode?.trim();
+  if (barcode) return barcode;
+  return item.productVariantId;
+}
+
 export default function OrdersSaleDetail() {
   const params = useParams<{ kind: string; id: string }>();
   const navigate = useNavigate();
@@ -185,6 +219,7 @@ export default function OrdersSaleDetail() {
   const { data: storesData } = useQuery<StoreListData>(Stores, {
     variables: { take: 500 },
     fetchPolicy: 'cache-first',
+    skip: !hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER'),
   });
 
   const storeMap = React.useMemo(() => {
@@ -246,30 +281,29 @@ export default function OrdersSaleDetail() {
         resellerSale?.resellerId ?? undefined,
       );
 
-  const itemRows = sale?.items ?? [];
+  const itemRows = (sale?.items ?? []) as SaleItem[];
   const itemColumns = React.useMemo(
     () => [
       {
         key: 'variant',
-        label: 'Product Variant',
-        render: (row: { productVariantId: string }) => row.productVariantId,
+        label: 'Product',
+        render: (row: SaleItem) => formatVariantLabel(row),
       },
       {
         key: 'quantity',
         label: 'Qty',
-        render: (row: { quantity: number }) => row.quantity,
+        render: (row: SaleItem) => row.quantity,
       },
       {
         key: 'price',
         label: 'Unit Price (₦)',
-        render: (row: { unitPrice: number }) => formatMoney(row.unitPrice),
+        render: (row: SaleItem) => formatMoney(row.unitPrice),
         align: 'right' as const,
       },
       {
         key: 'total',
         label: 'Line Total (₦)',
-        render: (row: { unitPrice: number; quantity: number }) =>
-          formatMoney(row.unitPrice * row.quantity),
+        render: (row: SaleItem) => formatMoney(row.unitPrice * row.quantity),
         align: 'right' as const,
       },
     ],
@@ -281,12 +315,19 @@ export default function OrdersSaleDetail() {
     () => Object.values(PaymentMethod),
     [],
   );
+  const isBiller = hasRole('BILLER');
+  const isResellerUser = hasRole('RESELLER');
   const isAssignedBiller = Boolean(
     sale?.billerId && user?.id && sale.billerId === user.id,
   );
+  const isResellerOwner = Boolean(
+    !isConsumer && resellerSale?.resellerId && user?.id && resellerSale.resellerId === user.id,
+  );
   const paymentMutationLoading = registeringConsumer || registeringReseller;
   const canRegisterPayment = Boolean(
-    sale && hasRole('BILLER') && isAssignedBiller,
+    sale &&
+      ((isBiller && isAssignedBiller) ||
+        (isResellerUser && isResellerOwner)),
   );
 
   const handleOpenPaymentDialog = React.useCallback(() => {
@@ -405,12 +446,20 @@ export default function OrdersSaleDetail() {
           setActionError('Missing reseller payment metadata.');
           return;
         }
+        const receiverId =
+          isResellerUser && resellerSale?.billerId
+            ? resellerSale.billerId
+            : user.id;
+        if (!receiverId) {
+          setActionError('No receiver available for this payment.');
+          return;
+        }
         await registerResellerPayment({
           variables: {
             input: {
               saleOrderId,
               resellerId: resellerSale.resellerId,
-              receivedById: user.id,
+              receivedById: receiverId,
               amount,
               method: paymentMethod,
               ...(reference ? { reference } : {}),
@@ -440,8 +489,10 @@ export default function OrdersSaleDetail() {
     registerConsumerPayment,
     resellerSale?.resellerId,
     resellerSale?.id,
+    resellerSale?.billerId,
     registerResellerPayment,
     resellerResult,
+    isResellerUser,
     user?.id,
     handleClosePaymentDialog,
   ]);

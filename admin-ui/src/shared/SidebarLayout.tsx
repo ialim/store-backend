@@ -38,6 +38,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import PaidIcon from '@mui/icons-material/Paid';
 import UndoIcon from '@mui/icons-material/Undo';
+import AssignmentReturnedIcon from '@mui/icons-material/AssignmentReturned';
 import InsightsIcon from '@mui/icons-material/Insights';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -85,6 +86,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     PERMISSIONS.product.UPDATE,
     PERMISSIONS.product.DELETE,
   );
+  const assetRead = permissionList(PERMISSIONS.asset.READ);
   const orderRead = permissionList(PERMISSIONS.order.READ);
   const saleRead = permissionList(PERMISSIONS.sale.READ);
   const userManage = permissionList(
@@ -104,6 +106,19 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
   const fulfillmentAccess = permissionList(PERMISSIONS.sale.UPDATE);
   const isRider = hasRole('RIDER');
   const isBiller = hasRole('BILLER');
+  const isReseller = hasRole('RESELLER');
+
+  type NavSection = {
+    key: string;
+    label: string;
+    items: {
+      label: string;
+      to: string;
+      show: boolean;
+      icon: React.ReactNode;
+    }[];
+    collapsible?: boolean;
+  };
 
   const toggleMobileDrawer = () => setMobileOpen((prev) => !prev);
   const [collapsedSections, setCollapsedSections] = React.useState<Record<string, boolean>>({});
@@ -179,12 +194,32 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     return date.toLocaleString();
   }, []);
 
-  const sections: Array<{
-    key: string;
-    label: string;
-    items: { label: string; to: string; show: boolean; icon: React.ReactNode }[];
-    collapsible?: boolean;
-  }> = [
+  const defaultSections: NavSection[] = [
+    {
+      key: 'dashboards',
+      label: 'Dashboards',
+      collapsible: true,
+      items: [
+        {
+          label: 'Biller Dashboard',
+          to: '/biller-dashboard',
+          show: hasRole('BILLER'),
+          icon: <DashboardIcon fontSize="small" />,
+        },
+        {
+          label: 'Reseller Dashboard',
+          to: '/dashboard',
+          show: isReseller,
+          icon: <DashboardIcon fontSize="small" />,
+        },
+        {
+          label: 'Rider Dashboard',
+          to: '/rider/dashboard',
+          show: isRider,
+          icon: <DashboardIcon fontSize="small" />,
+        },
+      ],
+    },
     {
       key: 'catalog',
       label: 'Catalog & Stock',
@@ -219,8 +254,9 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           to: '/assets',
           show:
             !isRider &&
+            !isBiller &&
             (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
-              hasPermission(...productWrite)),
+              hasPermission(...assetRead)),
           icon: <PhotoLibraryIcon fontSize="small" />,
         },
         {
@@ -244,7 +280,10 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         {
           label: 'Stock',
           to: '/stock',
-          show: !isRider && hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          show:
+            !isRider &&
+            (hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER') ||
+              hasPermission(...productRead)),
           icon: <Inventory2Icon fontSize="small" />,
         },
         {
@@ -264,28 +303,42 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           label: 'Orders',
           to: '/orders',
           show:
-            !isBiller &&
-            (hasRole(
+            hasRole(
               'SUPERADMIN',
               'ADMIN',
               'MANAGER',
               'ACCOUNTANT',
               'RESELLER',
-            ) || hasPermission(...orderRead, ...saleRead)),
+              'BILLER',
+            ) || hasPermission(...orderRead, ...saleRead),
           icon: <ReceiptLongIcon fontSize="small" />,
+        },
+        {
+          label: 'Quotations',
+          to: '/orders/quotations',
+          show:
+            hasRole(
+              'SUPERADMIN',
+              'ADMIN',
+              'MANAGER',
+              'ACCOUNTANT',
+              'RESELLER',
+              'BILLER',
+            ) || hasPermission(...orderRead, ...saleRead),
+          icon: <AssignmentIcon fontSize="small" />,
         },
         {
           label: 'Sales',
           to: '/orders/sales',
           show:
-            !isBiller &&
-            (hasRole(
+            hasRole(
               'SUPERADMIN',
               'ADMIN',
               'MANAGER',
               'ACCOUNTANT',
               'RESELLER',
-            ) || hasPermission(...orderRead, ...saleRead)),
+              'BILLER',
+            ) || hasPermission(...orderRead, ...saleRead),
           icon: <LocalMallIcon fontSize="small" />,
         },
       ],
@@ -339,6 +392,12 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
             hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER', 'ACCOUNTANT', 'RIDER') ||
             hasPermission(...fulfillmentAccess),
           icon: <LocalShippingIcon fontSize="small" />,
+        },
+        {
+          label: 'My Fulfillments',
+          to: '/fulfillments/my',
+          show: isRider,
+          icon: <DeliveryDiningIcon fontSize="small" />,
         },
         {
           label: 'Addresses',
@@ -485,7 +544,18 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       label: 'Returns',
       collapsible: true,
       items: [
-        { label: 'Returns', to: '/returns', show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'), icon: <UndoIcon fontSize="small" /> },
+        {
+          label: 'Sales Returns',
+          to: '/returns',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT', 'BILLER', 'RESELLER'),
+          icon: <UndoIcon fontSize="small" />,
+        },
+        {
+          label: 'Purchase Returns',
+          to: '/returns/purchase',
+          show: hasRole('SUPERADMIN', 'ADMIN', 'MANAGER'),
+          icon: <AssignmentReturnedIcon fontSize="small" />,
+        },
       ],
     },
     {
@@ -561,6 +631,126 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       ],
     },
   ];
+
+  const resellerSections: NavSection[] = [
+    {
+      key: 'reseller-dashboard',
+      label: 'Dashboard',
+      items: [
+        {
+          label: 'Dashboard',
+          to: '/dashboard',
+          show: isReseller,
+          icon: <DashboardIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'reseller-catalog',
+      label: 'Catalog',
+      collapsible: true,
+      items: [
+        {
+          label: 'Variants',
+          to: '/variants',
+          show: isReseller,
+          icon: <Inventory2Icon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'reseller-orders',
+      label: 'Orders',
+      collapsible: true,
+      items: [
+        {
+          label: 'Orders',
+          to: '/orders',
+          show: isReseller,
+          icon: <ReceiptLongIcon fontSize="small" />,
+        },
+        {
+          label: 'Sale',
+          to: '/orders/sales',
+          show: isReseller,
+          icon: <LocalMallIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'reseller-fulfilments',
+      label: 'Fulfilments',
+      collapsible: true,
+      items: [
+        {
+          label: 'Fulfilment',
+          to: '/fulfillments',
+          show: isReseller,
+          icon: <LocalShippingIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'reseller-returns',
+      label: 'Returns',
+      collapsible: true,
+      items: [
+        {
+          label: 'Returns',
+          to: '/returns',
+          show: isReseller,
+          icon: <UndoIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'reseller-finance',
+      label: 'Finance',
+      collapsible: true,
+      items: [
+        {
+          label: 'Accounts',
+          to: '/accounts',
+          show: isReseller,
+          icon: <PaidIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
+      key: 'reseller-profile',
+      label: 'Profile',
+      collapsible: true,
+      items: [
+        {
+          label: 'Profile',
+          to: '/profile',
+          show: isReseller,
+          icon: <AccountCircleIcon fontSize="small" />,
+        },
+      ],
+    },
+  ];
+
+  const billerSections: NavSection[] = [
+    {
+      key: 'biller-dashboard',
+      label: 'Dashboard',
+      items: [
+        {
+          label: 'Dashboard',
+          to: '/biller-dashboard',
+          show: isBiller,
+          icon: <DashboardIcon fontSize="small" />,
+        },
+      ],
+    },
+  ];
+
+  const sections = isReseller
+    ? resellerSections
+    : isBiller
+    ? [...billerSections, ...defaultSections.filter((section) => !['customers', 'resellers'].includes(section.key))]
+    : defaultSections;
 
   const headerDate = React.useMemo(() => {
     const now = new Date();
@@ -767,33 +957,35 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           );
         })}
         <Divider sx={{ my: 3 }} />
-        <List disablePadding>
-          <ListItemButton
-            component={Link}
-            to="/profile"
-            selected={location.pathname.startsWith('/profile')}
-            onClick={() => setMobileOpen(false)}
-            sx={{
-              borderRadius: 2,
-              px: 1.75,
-              py: 1.25,
-              color: location.pathname.startsWith('/profile') ? theme.palette.success.main : 'text.secondary',
-              bgcolor: location.pathname.startsWith('/profile') ? alpha(theme.palette.success.main, 0.15) : 'transparent',
-              '&:hover': {
-                bgcolor: alpha(theme.palette.success.main, 0.12),
-                color: theme.palette.success.main,
-              },
-              '&.Mui-selected:hover': {
-                bgcolor: alpha(theme.palette.success.main, 0.18),
-              },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 42, color: 'inherit' }}>
-              <AccountCircleIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="My Profile" primaryTypographyProps={{ fontWeight: 700 }} />
-          </ListItemButton>
-        </List>
+        {!isReseller && (
+          <List disablePadding>
+            <ListItemButton
+              component={Link}
+              to="/profile"
+              selected={location.pathname.startsWith('/profile')}
+              onClick={() => setMobileOpen(false)}
+              sx={{
+                borderRadius: 2,
+                px: 1.75,
+                py: 1.25,
+                color: location.pathname.startsWith('/profile') ? theme.palette.success.main : 'text.secondary',
+                bgcolor: location.pathname.startsWith('/profile') ? alpha(theme.palette.success.main, 0.15) : 'transparent',
+                '&:hover': {
+                  bgcolor: alpha(theme.palette.success.main, 0.12),
+                  color: theme.palette.success.main,
+                },
+                '&.Mui-selected:hover': {
+                  bgcolor: alpha(theme.palette.success.main, 0.18),
+                },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 42, color: 'inherit' }}>
+                <AccountCircleIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="My Profile" primaryTypographyProps={{ fontWeight: 700 }} />
+            </ListItemButton>
+          </List>
+        )}
       </Box>
 
       <Box sx={{ mt: 1 }}>

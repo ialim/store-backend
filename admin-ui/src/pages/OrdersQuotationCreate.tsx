@@ -68,7 +68,9 @@ export default function OrdersQuotationCreate() {
     isReseller ? 'RESELLER' : 'CONSUMER',
   );
   const [channel, setChannel] = React.useState<'WEB' | 'APP' | 'IN_STORE'>('IN_STORE');
-  const [storeId, setStoreId] = React.useState('');
+  const [storeId, setStoreId] = React.useState(() =>
+    isReseller ? '__AUTO__' : '',
+  );
   const [consumerId, setConsumerId] = React.useState('');
   const [resellerId, setResellerId] = React.useState(() =>
     isReseller && user?.id ? user.id : '',
@@ -85,6 +87,7 @@ export default function OrdersQuotationCreate() {
     skip: !isReseller,
     fetchPolicy: 'cache-and-network',
   });
+
 
   const assignedResellerProfile = myResellerData?.myResellerProfile ?? null;
   const assignedBillerId = assignedResellerProfile?.biller?.id ?? null;
@@ -140,7 +143,7 @@ export default function OrdersQuotationCreate() {
     event.preventDefault();
     setFormError(null);
 
-    if (!storeId.trim()) {
+    if (!isReseller && !storeId.trim()) {
       setFormError('Store ID is required.');
       return;
     }
@@ -236,6 +239,11 @@ export default function OrdersQuotationCreate() {
                   const next = event.target.value as 'CONSUMER' | 'RESELLER';
                   setType(next);
                   resetPartyFields(next);
+                  if (next === 'RESELLER') {
+                    setStoreId(isReseller ? '__AUTO__' : '');
+                  } else if (next === 'CONSUMER' && !isReseller) {
+                    setStoreId('');
+                  }
                 }}
                 disabled={isReseller}
               >
@@ -264,12 +272,22 @@ export default function OrdersQuotationCreate() {
               </TextField>
             </Grid>
             <Grid item xs={12} md={4}>
-              <StoreSelect
-                value={storeId}
-                onChange={setStoreId}
-                label="Store"
-                placeholder="Search stores"
-              />
+              {isReseller ? (
+                <TextField
+                  fullWidth
+                  label="Store"
+                  value="Default store (auto)"
+                  InputProps={{ readOnly: true }}
+                  helperText="The main store will be used for reseller quotations."
+                />
+              ) : (
+                <StoreSelect
+                  value={storeId}
+                  onChange={setStoreId}
+                  label="Store"
+                  placeholder="Search stores"
+                />
+              )}
             </Grid>
             {type === 'CONSUMER' ? (
               <Grid item xs={12} md={4}>

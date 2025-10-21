@@ -1,10 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import {
-  AssetKind,
-  AssetEntityType,
-  Prisma,
-  type AssetAssignment,
-} from '@prisma/client';
+import { AssetKind, AssetEntityType, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { BaseCrudService } from '../base.services';
@@ -36,6 +31,10 @@ interface UploadAssetOptions {
 
 export type AssetWithAssignments = Prisma.AssetGetPayload<{
   include: { assignments: true };
+}>;
+
+type AssetAssignmentWithAsset = Prisma.AssetAssignmentGetPayload<{
+  include: { asset: true };
 }>;
 
 type AssignmentWhere = {
@@ -123,7 +122,7 @@ export class AssetService extends BaseCrudService<
       entityId: string;
       isPrimary?: boolean;
     },
-  ): Promise<AssetAssignment> {
+  ): Promise<AssetAssignmentWithAsset> {
     await this.prisma.asset.findUniqueOrThrow({ where: { id: assetId } });
     return this.assignAssetInternal(assetId, assignment);
   }
@@ -140,26 +139,31 @@ export class AssetService extends BaseCrudService<
   async primaryAssignment(
     entityType: AssetEntityType,
     entityId: string,
-  ): Promise<AssetAssignment | null> {
+  ): Promise<AssetAssignmentWithAsset | null> {
     return this.prisma.assetAssignment.findFirst({
       where: { entityType, entityId, isPrimary: true },
+      include: { asset: true },
     });
   }
 
   async assignmentsForEntity(
     entityType: AssetEntityType,
     entityId: string,
-  ): Promise<AssetAssignment[]> {
+  ): Promise<AssetAssignmentWithAsset[]> {
     return this.prisma.assetAssignment.findMany({
       where: { entityType, entityId },
       orderBy: { createdAt: 'desc' },
+      include: { asset: true },
     });
   }
 
-  async assignmentsForAsset(assetId: string): Promise<AssetAssignment[]> {
+  async assignmentsForAsset(
+    assetId: string,
+  ): Promise<AssetAssignmentWithAsset[]> {
     return this.prisma.assetAssignment.findMany({
       where: { assetId },
       orderBy: { createdAt: 'desc' },
+      include: { asset: true },
     });
   }
 
@@ -182,7 +186,7 @@ export class AssetService extends BaseCrudService<
       entityId: string;
       isPrimary?: boolean;
     },
-  ): Promise<AssetAssignment> {
+  ): Promise<AssetAssignmentWithAsset> {
     if (assignment.isPrimary) {
       await this.prisma.assetAssignment.updateMany({
         where: {
@@ -211,6 +215,7 @@ export class AssetService extends BaseCrudService<
       update: {
         isPrimary: assignment.isPrimary ?? undefined,
       },
+      include: { asset: true },
     });
   }
 

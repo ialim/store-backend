@@ -103,7 +103,7 @@ export class AddressService extends BaseCrudService<
       id: string;
       label?: string | null;
       isPrimary?: boolean;
-      metadata?: Prisma.InputJsonValue | null;
+      metadata?: Prisma.InputJsonValue | typeof Prisma.JsonNull | null;
     };
   }): Promise<AddressWithAssignments> {
     const { address, owner } = options;
@@ -138,7 +138,7 @@ export class AddressService extends BaseCrudService<
       id: string;
       label?: string | null;
       isPrimary?: boolean;
-      metadata?: Prisma.InputJsonValue | null;
+      metadata?: Prisma.InputJsonValue | typeof Prisma.JsonNull | null;
     },
   ): Promise<AddressAssignment> {
     const exists = await this.prisma.address.findUnique({
@@ -183,7 +183,7 @@ export class AddressService extends BaseCrudService<
       id: string;
       label?: string | null;
       isPrimary?: boolean;
-      metadata?: Prisma.InputJsonValue | null;
+      metadata?: Prisma.InputJsonValue | typeof Prisma.JsonNull | null;
     };
   }): Promise<AddressWithAssignments> {
     let result: GeocodeResult;

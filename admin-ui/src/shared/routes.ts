@@ -8,11 +8,11 @@ export function getDefaultRoute(roleName?: string | null): string {
     case 'ACCOUNTANT':
       return '/outbox';
     case 'RIDER':
-      return '/fulfillments';
+      return '/rider/dashboard';
     case 'BILLER':
-      return '/fulfillments';
+      return '/biller-dashboard';
     case 'RESELLER':
-      return '/profile';
+      return '/dashboard';
     case 'CUSTOMER':
       return '/profile';
     default:

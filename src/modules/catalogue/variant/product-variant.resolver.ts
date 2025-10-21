@@ -15,7 +15,15 @@ import {
   DeleteManyProductVariantArgs,
 } from '../../../shared/prismagraphql/product-variant';
 import { AffectedRows } from '../../../shared/prismagraphql/prisma';
-import { Resolver, Query, Args, Mutation, Int } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Args,
+  Mutation,
+  Int,
+  ResolveField,
+  Parent,
+} from '@nestjs/graphql';
 import { ProductVariantService } from './product-variant.service';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../../auth/guards/gql-auth.guard';
@@ -34,6 +42,9 @@ import {
 } from '../dto/loose-product-variant.input';
 import { ProductVariantWhereInput } from '../../../shared/prismagraphql/product-variant';
 import { PERMISSIONS } from '../../../../shared/permissions';
+import { AssetService } from '../../asset/asset.service';
+import { AssetAssignment } from '../../../shared/prismagraphql/asset-assignment/asset-assignment.model';
+import { AssetEntityType } from '@prisma/client';
 
 const toAffectedRows = (payload: unknown): AffectedRows => {
   if (typeof payload === 'object' && payload && 'count' in payload) {
@@ -47,7 +58,10 @@ const toAffectedRows = (payload: unknown): AffectedRows => {
 };
 @Resolver(() => ProductVariant)
 export class ProductVariantsResolver {
-  constructor(private readonly ProductVariantService: ProductVariantService) {}
+  constructor(
+    private readonly ProductVariantService: ProductVariantService,
+    private readonly assetService: AssetService,
+  ) {}
 
   @Query(() => ProductVariant, { nullable: true })
   @UseGuards(GqlAuthGuard, PermissionsGuard)
@@ -56,6 +70,39 @@ export class ProductVariantsResolver {
     @Args() args: FindFirstProductVariantArgs,
   ): Promise<ProductVariant | null> {
     return this.ProductVariantService.findFirst(args);
+  }
+
+  @ResolveField(() => [AssetAssignment])
+  assetAssignments(@Parent() variant: ProductVariant) {
+    return this.assetService.assignmentsForEntity(
+      AssetEntityType.PRODUCT_VARIANT,
+      variant.id,
+    );
+  }
+
+  @ResolveField(() => AssetAssignment, { nullable: true })
+  primaryAssetAssignment(@Parent() variant: ProductVariant) {
+    return this.assetService.primaryAssignment(
+      AssetEntityType.PRODUCT_VARIANT,
+      variant.id,
+    );
+  }
+
+  @ResolveField(() => String, { nullable: true })
+  async primaryAssetUrl(
+    @Parent() variant: ProductVariant,
+  ): Promise<string | null> {
+    const primary = await this.assetService.primaryAssignment(
+      AssetEntityType.PRODUCT_VARIANT,
+      variant.id,
+    );
+    if (primary?.asset?.url) return primary.asset.url;
+    const assignments = await this.assetService.assignmentsForEntity(
+      AssetEntityType.PRODUCT_VARIANT,
+      variant.id,
+    );
+    const fallback = assignments.find((a) => a.asset?.url);
+    return fallback?.asset?.url ?? null;
   }
 
   @Query(() => ProductVariant, { nullable: true })
@@ -73,7 +120,7 @@ export class ProductVariantsResolver {
   listProductVariants(
     @Args() args: FindManyProductVariantArgs,
   ): Promise<ProductVariant[]> {
-    return this.ProductVariantService.findMany(args);
+    return this.ProductVariantService.findManyWithRelations(args);
   }
 
   @Query(() => [ProductVariantGroupBy], { nullable: false })

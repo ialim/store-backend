@@ -37,6 +37,7 @@ import { PERMISSIONS, permissionList } from '../shared/permissions';
 export default function Variants() {
   const theme = useTheme();
   const auth = useAuth();
+  const isReseller = auth.hasRole('RESELLER');
   const productManagePermissions = permissionList(
     PERMISSIONS.product.READ,
     PERMISSIONS.product.CREATE,
@@ -46,6 +47,7 @@ export default function Variants() {
   const isManager =
     auth.hasRole('SUPERADMIN', 'ADMIN', 'MANAGER') ||
     auth.hasPermission(...productManagePermissions);
+  const canManageVariants = !isReseller && isManager;
   const navigate = useNavigate();
   const [take, setTake] = React.useState(50);
   const [page, setPage] = React.useState(1);
@@ -152,6 +154,11 @@ export default function Variants() {
   // Selection for bulk operations via TableList API
   const [selectedIds, setSelectedIds] = React.useState<Array<string | number>>([]);
   const clearSelection = () => setSelectedIds([]);
+  React.useEffect(() => {
+    if (!canManageVariants) {
+      setSelectedIds([]);
+    }
+  }, [canManageVariants]);
 
   // Bulk facet assign/remove
   const [bulkFacetId, setBulkFacetId] = React.useState('');
@@ -199,6 +206,37 @@ export default function Variants() {
       0,
     );
   }, []);
+
+  const getAvailabilityStatus = React.useCallback(
+    (available: number) => {
+      if (available <= 0) {
+        return {
+          label: 'Out of stock',
+          tone: (theme: any) => ({
+            bgcolor: alpha(theme.palette.error.main, 0.16),
+            color: theme.palette.error.dark,
+          }),
+        };
+      }
+      if (available <= 10) {
+        return {
+          label: 'Low stock',
+          tone: (theme: any) => ({
+            bgcolor: alpha(theme.palette.warning.main, 0.18),
+            color: theme.palette.warning.dark,
+          }),
+        };
+      }
+      return {
+        label: 'In stock',
+        tone: (theme: any) => ({
+          bgcolor: alpha(theme.palette.success.main, 0.16),
+          color: theme.palette.success.dark,
+        }),
+      };
+    },
+    [],
+  );
 
   const filtersRow = (
     <Stack
@@ -360,17 +398,19 @@ export default function Variants() {
         }}
         action={(
           <Stack direction="row" spacing={1} alignItems="center">
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={() => {
-                setCreateForm({ name: '', barcode: '', price: '0', resellerPrice: '0', productId: '' });
-                setCreateOpen(true);
-              }}
-            >
-              New Variant
-            </Button>
+            {canManageVariants && (
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => {
+                  setCreateForm({ name: '', barcode: '', price: '0', resellerPrice: '0', productId: '' });
+                  setCreateOpen(true);
+                }}
+              >
+                New Variant
+              </Button>
+            )}
             <Button
               variant="outlined"
               size="small"
@@ -411,113 +451,115 @@ export default function Variants() {
         density="compact"
       />
       <Box sx={toolbarSx}>{filtersRow}</Box>
-      <ListingSelectionCard count={selectedIds.length}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }} flexWrap="wrap">
-          <Select
-            size="small"
-            value={bulkFacetId}
-            onChange={(e) => {
-              setBulkFacetId(e.target.value);
-              setBulkValue('');
-            }}
-            displayEmpty
-            sx={{ minWidth: 220 }}
-          >
-            <MenuItem value="">
-              <em>Select facet…</em>
-            </MenuItem>
-            {allFacets.map((f) => (
-              <MenuItem key={f.id} value={f.id}>
-                {f.name} ({f.code})
+      {canManageVariants && (
+        <ListingSelectionCard count={selectedIds.length}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }} flexWrap="wrap">
+            <Select
+              size="small"
+              value={bulkFacetId}
+              onChange={(e) => {
+                setBulkFacetId(e.target.value);
+                setBulkValue('');
+              }}
+              displayEmpty
+              sx={{ minWidth: 220 }}
+            >
+              <MenuItem value="">
+                <em>Select facet…</em>
               </MenuItem>
-            ))}
-          </Select>
-          {(() => {
-            const f = allFacets.find((x) => x.id === bulkFacetId);
-            if (f && Array.isArray(f.values) && f.values.length) {
+              {allFacets.map((f) => (
+                <MenuItem key={f.id} value={f.id}>
+                  {f.name} ({f.code})
+                </MenuItem>
+              ))}
+            </Select>
+            {(() => {
+              const f = allFacets.find((x) => x.id === bulkFacetId);
+              if (f && Array.isArray(f.values) && f.values.length) {
+                return (
+                  <Select
+                    size="small"
+                    value={bulkValue}
+                    onChange={(e) => setBulkValue(e.target.value)}
+                    displayEmpty
+                    sx={{ minWidth: 180 }}
+                  >
+                    <MenuItem value="">
+                      <em>Value…</em>
+                    </MenuItem>
+                    {(f.values || []).map((v) => (
+                      <MenuItem key={v} value={v}>
+                        {v}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                );
+              }
               return (
-                <Select
+                <TextField
                   size="small"
+                  label="Value"
                   value={bulkValue}
                   onChange={(e) => setBulkValue(e.target.value)}
-                  displayEmpty
-                  sx={{ minWidth: 180 }}
-                >
-                  <MenuItem value="">
-                    <em>Value…</em>
-                  </MenuItem>
-                  {(f.values || []).map((v) => (
-                    <MenuItem key={v} value={v}>
-                      {v}
-                    </MenuItem>
-                  ))}
-                </Select>
+                />
               );
-            }
-            return (
-              <TextField
-                size="small"
-                label="Value"
-                value={bulkValue}
-                onChange={(e) => setBulkValue(e.target.value)}
-              />
-            );
-          })()}
-          <Button
-            size="small"
-            variant="contained"
-            disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkAssignLoading}
-            onClick={async () => {
-              try {
-                await bulkAssign({
-                  variables: {
-                    variantIds: selectedIds as string[],
-                    facetId: bulkFacetId,
-                    value: bulkValue,
-                  },
-                });
-                notify('Facet assigned to selected variants', 'success');
-                clearSelection();
-                await refetch({ take, skip, where });
-                await refetchVariantCount({ where });
-              } catch (err: any) {
-                notify(err?.message || 'Failed to assign facet to selected variants', 'error');
-              }
-            }}
-          >
-            Assign to selected
-          </Button>
-          <Button
-            size="small"
-            color="error"
-            variant="outlined"
-            disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkRemoveLoading}
-            onClick={async () => {
-              try {
-                await bulkRemove({
-                  variables: {
-                    variantIds: selectedIds as string[],
-                    facetId: bulkFacetId,
-                    value: bulkValue,
-                  },
-                });
-                notify('Facet removed from selected variants', 'success');
-                clearSelection();
-                await refetch({ take, skip, where });
-                await refetchVariantCount({ where });
-              } catch (err: any) {
-                notify(err?.message || 'Failed to remove facet from selected variants', 'error');
-              }
-            }}
-          >
-            Remove from selected
-          </Button>
-          <Button size="small" variant="text" onClick={clearSelection}>
-            Clear selection
-          </Button>
-        </Stack>
-      </ListingSelectionCard>
-      {createOpen && (
+            })()}
+            <Button
+              size="small"
+              variant="contained"
+              disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkAssignLoading}
+              onClick={async () => {
+                try {
+                  await bulkAssign({
+                    variables: {
+                      variantIds: selectedIds as string[],
+                      facetId: bulkFacetId,
+                      value: bulkValue,
+                    },
+                  });
+                  notify('Facet assigned to selected variants', 'success');
+                  clearSelection();
+                  await refetch({ take, skip, where });
+                  await refetchVariantCount({ where });
+                } catch (err: any) {
+                  notify(err?.message || 'Failed to assign facet to selected variants', 'error');
+                }
+              }}
+            >
+              Assign to selected
+            </Button>
+            <Button
+              size="small"
+              color="error"
+              variant="outlined"
+              disabled={!bulkFacetId || !bulkValue || !selectedIds.length || bulkRemoveLoading}
+              onClick={async () => {
+                try {
+                  await bulkRemove({
+                    variables: {
+                      variantIds: selectedIds as string[],
+                      facetId: bulkFacetId,
+                      value: bulkValue,
+                    },
+                  });
+                  notify('Facet removed from selected variants', 'success');
+                  clearSelection();
+                  await refetch({ take, skip, where });
+                  await refetchVariantCount({ where });
+                } catch (err: any) {
+                  notify(err?.message || 'Failed to remove facet from selected variants', 'error');
+                }
+              }}
+            >
+              Remove from selected
+            </Button>
+            <Button size="small" variant="text" onClick={clearSelection}>
+              Clear selection
+            </Button>
+          </Stack>
+        </ListingSelectionCard>
+      )}
+      {canManageVariants && createOpen && (
         <Dialog open onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle>New Variant</DialogTitle>
           <DialogContent>
@@ -705,7 +747,11 @@ export default function Variants() {
             width: 96,
             align: 'center',
             render: (variant: any) => {
+              const variantPrimary = variant.primaryAssetUrl;
+              const productPrimary = variant.product?.primaryAssetUrl;
               const candidates: Array<any> = [
+                variantPrimary,
+                productPrimary,
                 variant.imageUrl,
                 variant.thumbnailUrl,
                 typeof variant.image === 'string' ? variant.image : variant.image?.url,
@@ -842,43 +888,23 @@ export default function Variants() {
             ),
           },
           {
-            key: 'stock',
-            label: 'Stock',
-            align: 'center',
-            sort: true,
-            filter: true,
-            filterPlaceholder: 'Filter stock',
-            accessor: (variant: any) => getAvailableStock(variant),
-            render: (variant: any) => {
-              const available = getAvailableStock(variant);
-              return (
-                <Typography variant="body2" sx={{ fontWeight: 600, color: available > 0 ? 'success.main' : 'error.main' }}>
-                  {available}
-                </Typography>
-              );
-            },
-          },
-          {
-            key: 'status',
-            label: 'Status',
+            key: 'availability',
+            label: 'Availability',
             align: 'center',
             sort: true,
             accessor: (variant: any) => getAvailableStock(variant),
             render: (variant: any) => {
               const available = getAvailableStock(variant);
-              const active = available > 0;
+              const status = getAvailabilityStatus(available);
               return (
                 <Chip
                   size="small"
-                  label={active ? 'Active' : 'Inactive'}
+                  label={`${status.label} (${available})`}
                   sx={(theme) => ({
                     fontWeight: 600,
                     borderRadius: 1.5,
                     px: 1.5,
-                    bgcolor: active
-                      ? alpha(theme.palette.success.main, 0.16)
-                      : alpha(theme.palette.error.main, 0.16),
-                    color: active ? theme.palette.success.dark : theme.palette.error.dark,
+                    ...status.tone(theme),
                   })}
                 />
               );
@@ -906,9 +932,9 @@ export default function Variants() {
         enableUrlState
         urlKey="variants"
         onRowClick={(v: any) => navigate(`/variants/${v.id}`)}
-        selectable
-        selectedIds={selectedIds}
-        onSelectedIdsChange={(ids) => setSelectedIds(ids)}
+        selectable={canManageVariants}
+        selectedIds={canManageVariants ? selectedIds : undefined}
+        onSelectedIdsChange={canManageVariants ? (ids) => setSelectedIds(ids) : undefined}
         size="medium"
         paginated={false}
         rowAccent={(variant: any) => {

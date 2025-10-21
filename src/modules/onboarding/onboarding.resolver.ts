@@ -19,6 +19,7 @@ import { AdminUpdateCustomerProfileInput } from './dto/admin-update-customer-pro
 import { AdminCreateCustomerInput } from './dto/admin-create-customer.input';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/auth.service';
+import { UpdateResellerBrandingInput } from './dto/update-reseller-branding.input';
 
 @Resolver()
 export class OnboardingResolver {
@@ -51,6 +52,32 @@ export class OnboardingResolver {
       throw new UnauthorizedException('Missing authenticated user');
     }
     return this.onboardingService.updateMyProfile(user.id, input);
+  }
+
+  @Mutation(() => ResellerProfile)
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('RESELLER')
+  updateMyResellerBranding(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Args('input') input: UpdateResellerBrandingInput,
+  ) {
+    if (!user?.id) {
+      throw new UnauthorizedException('Missing authenticated user');
+    }
+    return this.onboardingService.updateMyResellerBranding(user.id, input);
+  }
+
+  @Mutation(() => ResellerProfile)
+  @UseGuards(GqlAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.resellerProfile.UPDATE as string)
+  updateResellerBranding(
+    @Args('resellerId') resellerId: string,
+    @Args('input') input: UpdateResellerBrandingInput,
+  ) {
+    return this.onboardingService.adminUpdateResellerBranding(
+      resellerId,
+      input,
+    );
   }
 
   @Mutation(() => ResellerProfile)

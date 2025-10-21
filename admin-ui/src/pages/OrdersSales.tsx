@@ -13,6 +13,7 @@ import { ConsumerSales, ResellerSales } from '../operations/orders';
 import { Stores } from '../operations/stores';
 import TableList from '../shared/TableList';
 import { ListingHero } from '../shared/ListingLayout';
+import { useAuth } from '../shared/AuthProvider';
 import { formatMoney } from '../shared/format';
 
 type StoreInfo = {
@@ -32,6 +33,11 @@ type ConsumerSaleRow = {
   totalAmount: number;
   createdAt: string;
   updatedAt: string;
+  saleOrder?: {
+    id: string;
+    status: string;
+    fulfillment?: { cost?: number | null } | null;
+  } | null;
   store?: StoreInfo;
   customer?: {
     id: string;
@@ -62,6 +68,11 @@ type ResellerSaleRow = {
   totalAmount: number;
   createdAt: string;
   updatedAt: string;
+  saleOrder?: {
+    id: string;
+    status: string;
+    fulfillment?: { cost?: number | null } | null;
+  } | null;
   store?: StoreInfo;
   reseller?: ResellerInfo;
   biller?: ResellerInfo;
@@ -154,9 +165,13 @@ function formatUserLabel(
 export default function OrdersSales() {
   const navigate = useNavigate();
   const [search, setSearch] = React.useState('');
+  const auth = useAuth();
+  const isReseller = auth.hasRole('RESELLER');
+  const isBiller = auth.hasRole('BILLER');
 
   const consumerResult = useQuery<ConsumerSalesData>(ConsumerSales, {
     fetchPolicy: 'cache-and-network',
+    skip: isReseller,
   });
   const resellerResult = useQuery<ResellerSalesData>(ResellerSales, {
     fetchPolicy: 'cache-and-network',
@@ -164,6 +179,7 @@ export default function OrdersSales() {
   const { data: storesData } = useQuery<StoreListData>(Stores, {
     variables: { take: 500 },
     fetchPolicy: 'cache-first',
+    skip: isReseller || isBiller,
   });
 
   const storeMap = React.useMemo(() => {
@@ -174,11 +190,13 @@ export default function OrdersSales() {
     return new Map(entries ?? []);
   }, [storesData]);
 
-  const loading = consumerResult.loading || resellerResult.loading;
-  const error = consumerResult.error || resellerResult.error;
+  const consumerLoading = !isReseller && consumerResult.loading;
+  const consumerError = !isReseller ? consumerResult.error : undefined;
+  const loading = consumerLoading || resellerResult.loading;
+  const error = consumerError || resellerResult.error;
   const sales: SalesRow[] = React.useMemo(() => {
     const consumerRows =
-      consumerResult.data?.consumerSales.map((sale) => {
+      (isReseller ? [] : consumerResult.data?.consumerSales)?.map((sale) => {
         const storeLabel =
           (sale.storeId && storeMap.get(sale.storeId)) ??
           formatStoreLabel(sale.store ?? null, sale.storeId ?? undefined);
@@ -243,7 +261,7 @@ export default function OrdersSales() {
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  }, [consumerResult.data?.consumerSales, resellerResult.data?.resellerSales, storeMap]);
+  }, [consumerResult.data?.consumerSales, resellerResult.data?.resellerSales, storeMap, isReseller]);
 
   const term = search.trim().toLowerCase();
   const filtered = React.useMemo(() => {
@@ -367,7 +385,14 @@ export default function OrdersSales() {
       </ListingHero>
 
       {error && (
-        <Alert severity="error" onClick={() => { consumerResult.refetch(); resellerResult.refetch(); }} sx={{ cursor: 'pointer' }}>
+        <Alert
+          severity="error"
+          onClick={() => {
+            if (!isReseller) consumerResult.refetch();
+            resellerResult.refetch();
+          }}
+          sx={{ cursor: 'pointer' }}
+        >
           {error.message} (tap to retry)
         </Alert>
       )}
@@ -412,7 +437,7 @@ export default function OrdersSales() {
             variant="outlined"
             size="small"
             onClick={() => {
-              consumerResult.refetch();
+              if (!isReseller) consumerResult.refetch();
               resellerResult.refetch();
             }}
             startIcon={<LocalMallIcon fontSize="small" />}

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert,
@@ -22,10 +22,12 @@ import {
   useFulfilmentWorkflowQuery,
   useOrderQuery,
   useRegisterFulfillmentInterestMutation,
+  useRecordFulfillmentPaymentMutation,
   useUpdateFulfillmentStatusMutation,
   useWithdrawFulfillmentInterestMutation,
 } from '../generated/graphql';
 import { useAuth } from '../shared/AuthProvider';
+import { formatMoney } from '../shared/format';
 
 function formatStatus(status?: FulfillmentStatus | null) {
   if (!status) return '—';
@@ -60,13 +62,62 @@ function chipColor(status: FulfillmentRiderInterestStatus) {
   }
 }
 
+function costStatusChipColor(status?: string | null) {
+  switch ((status || '').toUpperCase()) {
+    case 'ACCEPTED':
+      return 'success';
+    case 'REJECTED':
+      return 'error';
+    default:
+      return 'warning';
+  }
+}
+
+function paymentStatusChipColor(status?: string | null) {
+  switch ((status || '').toUpperCase()) {
+    case 'PAID':
+      return 'success';
+    case 'PARTIAL':
+      return 'warning';
+    default:
+      return 'default';
+  }
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return '—';
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return value;
+  }
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return 'An unexpected error occurred';
+  }
+}
+
 export default function FulfillmentDetail() {
   const navigate = useNavigate();
   const { saleOrderId } = useParams<{ saleOrderId: string }>();
   const { hasPermission, hasRole, user } = useAuth();
   const isRider = hasRole('RIDER');
-  const canManage = hasPermission('ORDER_READ') || hasRole('BILLER');
+  const isReseller = hasRole('RESELLER');
+  const canManage =
+    hasPermission('ORDER_READ') || hasRole('BILLER');
   const canAssign = hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER');
+  const canViewRiderInterests = hasRole(
+    'SUPERADMIN',
+    'ADMIN',
+    'MANAGER',
+    'BILLER',
+  );
 
   const [volunteerEta, setVolunteerEta] = useState('');
   const [volunteerMessage, setVolunteerMessage] = useState('');
@@ -76,6 +127,11 @@ export default function FulfillmentDetail() {
     FulfillmentStatus.Assigned,
   );
   const [pin, setPin] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [paymentDate, setPaymentDate] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,6 +149,25 @@ export default function FulfillmentDetail() {
   const order = orderData?.order ?? null;
   const fulfillment = order?.fulfillment ?? null;
   const fulfillmentId = fulfillment?.id ?? null;
+  const fulfillmentAssigned = Boolean(fulfillment?.deliveryPersonnelId);
+  const costStatus = fulfillment?.costStatus ?? null;
+  const paymentStatus = fulfillment?.paymentStatus ?? null;
+  const receiverName = order?.receiverName?.trim();
+  const receiverPhone = order?.receiverPhone?.trim();
+  const payments = fulfillment?.payments ?? [];
+  const totalPaid = useMemo(
+    () => payments.reduce((sum, payment) => sum + (payment?.amount ?? 0), 0),
+    [payments],
+  );
+  const remainingBalance = useMemo(() => {
+    if (fulfillment?.cost == null) return null;
+    const outstanding = fulfillment.cost - totalPaid;
+    return outstanding > 0 ? outstanding : 0;
+  }, [fulfillment?.cost, totalPaid]);
+  const acceptingVolunteerSubmissions =
+    fulfillment?.status === FulfillmentStatus.Pending &&
+    !fulfillmentAssigned &&
+    costStatus !== 'ACCEPTED';
 
   const customerLabel = useMemo(() => {
     const consumer = order?.consumerSale?.customer;
@@ -129,11 +204,13 @@ export default function FulfillmentDetail() {
     refetch: refetchInterests,
   } = useFulfillmentRiderInterestsQuery({
     variables: { saleOrderId: saleOrderId ?? '' },
-    skip: !saleOrderId,
+    skip: !saleOrderId || !canViewRiderInterests,
     fetchPolicy: 'network-only',
   });
 
-  const riderInterests = interestsData?.fulfillmentRiderInterests ?? [];
+  const riderInterests = canViewRiderInterests
+    ? interestsData?.fulfillmentRiderInterests ?? []
+    : [];
 
   const activeInterest = useMemo(
     () =>
@@ -161,13 +238,23 @@ export default function FulfillmentDetail() {
     useUpdateFulfillmentStatusMutation();
   const [assignRiderMutation, { loading: assigningRider }] =
     useAssignFulfillmentRiderMutation();
+  const [recordPayment, { loading: recordingPayment }] =
+    useRecordFulfillmentPaymentMutation();
 
-  const refreshAll = async () => {
-    await Promise.all([refetchOrder(), refetchInterests()]);
-  };
+  const refreshAll = useCallback(async () => {
+    const tasks: Array<Promise<unknown>> = [refetchOrder()];
+    if (canViewRiderInterests) {
+      tasks.push(refetchInterests());
+    }
+    await Promise.all(tasks);
+  }, [refetchOrder, refetchInterests, canViewRiderInterests]);
 
   const handleVolunteer = async () => {
     if (!fulfillmentId) return;
+    if (!acceptingVolunteerSubmissions) {
+      setError('This fulfillment is no longer accepting rider interest.');
+      return;
+    }
     setMessage(null);
     setError(null);
 
@@ -207,8 +294,8 @@ export default function FulfillmentDetail() {
       setVolunteerCost('');
       setMessage('Your interest has been recorded.');
       await refreshAll();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to register interest.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to register interest.');
     }
   };
 
@@ -220,8 +307,8 @@ export default function FulfillmentDetail() {
       await withdrawInterest({ variables: { fulfillmentId } });
       setMessage('Interest withdrawn.');
       await refreshAll();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to withdraw interest.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to withdraw interest.');
     }
   };
 
@@ -235,8 +322,8 @@ export default function FulfillmentDetail() {
       });
       setMessage('Assigned rider to fulfillment.');
       await refreshAll();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to assign rider.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to assign rider.');
     }
   };
 
@@ -259,8 +346,45 @@ export default function FulfillmentDetail() {
       });
       setMessage('Delivery personnel assigned.');
       await refreshAll();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to assign delivery personnel.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to assign delivery personnel.');
+    }
+  };
+
+  const handleRecordPayment = async () => {
+    if (!fulfillmentId) return;
+    const amountValue = Number.parseFloat(paymentAmount.trim());
+    if (!Number.isFinite(amountValue) || amountValue <= 0) {
+      setError('Payment amount must be a positive number.');
+      return;
+    }
+    const receivedAtValue = paymentDate
+      ? new Date(paymentDate).toISOString()
+      : undefined;
+    setMessage(null);
+    setError(null);
+    try {
+      await recordPayment({
+        variables: {
+          input: {
+            fulfillmentId,
+            amount: amountValue,
+            method: paymentMethod.trim() || undefined,
+            reference: paymentReference.trim() || undefined,
+            notes: paymentNotes.trim() || undefined,
+            receivedAt: receivedAtValue,
+          },
+        },
+      });
+      setPaymentAmount('');
+      setPaymentMethod('');
+      setPaymentReference('');
+      setPaymentNotes('');
+      setPaymentDate('');
+      setMessage('Fulfillment payment recorded.');
+      await refreshAll();
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to record payment.');
     }
   };
 
@@ -281,8 +405,8 @@ export default function FulfillmentDetail() {
       setMessage('Fulfillment status updated.');
       setPin('');
       await refreshAll();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to update status.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to update status.');
     }
   };
 
@@ -324,7 +448,11 @@ export default function FulfillmentDetail() {
                 </Typography>
               </Box>
 
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
+              <Stack
+                direction={{ xs: 'column', md: 'row' }}
+                spacing={3}
+                sx={{ flexWrap: 'wrap' }}
+              >
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="subtitle2" color="text.secondary">
                     Delivery address
@@ -341,9 +469,71 @@ export default function FulfillmentDetail() {
                 </Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="subtitle2" color="text.secondary">
+                    Receiver contact
+                  </Typography>
+                  <Stack spacing={0.25}>
+                    <Typography variant="body1">
+                      {receiverName || '—'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {receiverPhone || '—'}
+                    </Typography>
+                  </Stack>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" color="text.secondary">
                     Customer / Reseller
                   </Typography>
                   <Typography variant="body1">{customerLabel}</Typography>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Delivery cost
+                  </Typography>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="body1">
+                      {fulfillment?.cost != null
+                        ? formatMoney(fulfillment.cost)
+                        : '—'}
+                    </Typography>
+                    {costStatus && (
+                      <Chip
+                        size="small"
+                        label={costStatus}
+                        color={costStatusChipColor(costStatus) as any}
+                      />
+                    )}
+                  </Stack>
+                  <Typography variant="caption" color="text.secondary">
+                    {fulfillment?.costAcceptedAt
+                      ? `Accepted ${formatDistanceToNow(
+                          new Date(fulfillment.costAcceptedAt),
+                          { addSuffix: true },
+                        )}`
+                      : 'Awaiting confirmation'}
+                  </Typography>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Payment status
+                  </Typography>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Chip
+                      size="small"
+                      label={paymentStatus ?? 'UNPAID'}
+                      color={paymentStatusChipColor(paymentStatus) as any}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      Paid: {formatMoney(totalPaid)}
+                      {fulfillment?.cost != null &&
+                        ` / ${formatMoney(fulfillment.cost)}`}
+                    </Typography>
+                  </Stack>
+                  {remainingBalance != null && (
+                    <Typography variant="caption" color="text.secondary">
+                      Outstanding: {formatMoney(remainingBalance)}
+                    </Typography>
+                  )}
                 </Box>
               </Stack>
 
@@ -376,7 +566,7 @@ export default function FulfillmentDetail() {
             </Stack>
           </Paper>
 
-          {isRider && (
+          {isRider && acceptingVolunteerSubmissions && (
             <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
               <Stack spacing={2}>
                 <Box>
@@ -434,80 +624,92 @@ export default function FulfillmentDetail() {
             </Paper>
           )}
 
-          <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
-            <Stack spacing={2}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Rider interests
+          {isRider && !acceptingVolunteerSubmissions && (
+            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, bgcolor: 'grey.50' }}>
+              <Typography color="text.secondary">
+                This fulfillment already has an assigned rider or is no longer accepting volunteers.
               </Typography>
+            </Paper>
+          )}
 
-              {loadingInterests ? (
-                <Stack alignItems="center" py={3}>
-                  <CircularProgress size={24} />
-                </Stack>
-              ) : riderInterests.length ? (
-                <Stack spacing={1.5}>
-                  {riderInterests.map((interest) => (
-                    <Paper
-                      key={interest.id}
-                      elevation={0}
-                      sx={{
-                        p: 1.75,
-                        borderRadius: 2,
-                        border: '1px solid rgba(16, 94, 62, 0.1)',
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: 1.5,
-                      }}
-                    >
-                      <Stack spacing={0.5}>
-                        <Typography variant="subtitle2">
-                          {riderDisplayName(interest)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Submitted {formatDistanceToNow(new Date(interest.createdAt), { addSuffix: true })}
-                        </Typography>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Chip size="small" label={interest.status} color={chipColor(interest.status) as any} />
-                          {interest.etaMinutes != null && (
-                            <Typography variant="caption" color="text.secondary">
-                              ETA: {interest.etaMinutes} min
-                            </Typography>
-                          )}
-                          {interest.proposedCost != null && (
-                            <Typography variant="caption" color="text.secondary">
-                              Cost: {interest.proposedCost}
+          {canViewRiderInterests && (
+            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+              <Stack spacing={2}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Rider interests
+                </Typography>
+
+                {loadingInterests ? (
+                  <Stack alignItems="center" py={3}>
+                    <CircularProgress size={24} />
+                  </Stack>
+                ) : riderInterests.length ? (
+                  <Stack spacing={1.5}>
+                    {riderInterests.map((interest) => (
+                      <Paper
+                        key={interest.id}
+                        elevation={0}
+                        sx={{
+                          p: 1.75,
+                          borderRadius: 2,
+                          border: '1px solid rgba(16, 94, 62, 0.1)',
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: 1.5,
+                        }}
+                      >
+                        <Stack spacing={0.5}>
+                          <Typography variant="subtitle2">
+                            {riderDisplayName(interest)}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Submitted {formatDistanceToNow(new Date(interest.createdAt), { addSuffix: true })}
+                          </Typography>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Chip size="small" label={interest.status} color={chipColor(interest.status) as any} />
+                            {interest.etaMinutes != null && (
+                              <Typography variant="caption" color="text.secondary">
+                                ETA: {interest.etaMinutes} min
+                              </Typography>
+                            )}
+                            {interest.proposedCost != null && (
+                              <Typography variant="caption" color="text.secondary">
+                                Cost: {interest.proposedCost}
+                              </Typography>
+                            )}
+                          </Stack>
+                          {interest.message && (
+                            <Typography variant="body2" color="text.secondary">
+                              “{interest.message}”
                             </Typography>
                           )}
                         </Stack>
-                        {interest.message && (
-                          <Typography variant="body2" color="text.secondary">
-                            “{interest.message}”
-                          </Typography>
-                        )}
-                      </Stack>
 
-                      {canAssign && interest.status === FulfillmentRiderInterestStatus.Active && (
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={() => handleAssignRider(interest.riderId)}
-                          disabled={assigningRider}
-                        >
-                          Assign rider
-                        </Button>
-                      )}
-                    </Paper>
-                  ))}
-                </Stack>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No riders have registered interest yet.
-                </Typography>
-              )}
-            </Stack>
-          </Paper>
+                        {canAssign &&
+                          interest.status === FulfillmentRiderInterestStatus.Active &&
+                          !fulfillmentAssigned && (
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => handleAssignRider(interest.riderId)}
+                            disabled={assigningRider}
+                          >
+                            Assign rider
+                          </Button>
+                        )}
+                      </Paper>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No riders have registered interest yet.
+                  </Typography>
+                )}
+              </Stack>
+            </Paper>
+          )}
 
           {canManage && (
             <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
@@ -523,15 +725,24 @@ export default function FulfillmentDetail() {
                     value={personId}
                     onChange={(event) => setPersonId(event.target.value)}
                     sx={{ maxWidth: 260 }}
+                    disabled={fulfillmentAssigned}
                   />
                   <Button
                     variant="contained"
                     onClick={handleAssignPersonnel}
-                    disabled={assigningPersonnel || !personId.trim()}
+                    disabled={
+                      assigningPersonnel || !personId.trim() || fulfillmentAssigned
+                    }
                   >
                     Assign personnel
                   </Button>
                 </Stack>
+
+                {fulfillmentAssigned && (
+                  <Typography variant="body2" color="text.secondary">
+                    Delivery personnel already assigned. Reassigning is disabled.
+                  </Typography>
+                )}
 
                 <Divider light />
 
@@ -571,6 +782,145 @@ export default function FulfillmentDetail() {
               </Stack>
             </Paper>
           )}
+
+          {canManage && (
+            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+              <Stack spacing={2}>
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={1}
+                  alignItems={{ sm: 'center' }}
+                  justifyContent="space-between"
+                >
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Fulfillment payments
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={`Status: ${paymentStatus ?? 'UNPAID'}`}
+                    color={paymentStatusChipColor(paymentStatus) as any}
+                  />
+                </Stack>
+
+                <Typography variant="body2" color="text.secondary">
+                  Total paid: {formatMoney(totalPaid)}
+                  {fulfillment?.cost != null &&
+                    ` • Expected: ${formatMoney(fulfillment.cost)}`}
+                  {remainingBalance != null &&
+                    ` • Outstanding: ${formatMoney(remainingBalance)}`}
+                </Typography>
+
+                {payments.length ? (
+                  <Stack spacing={1.5}>
+                    {payments.map((payment) => (
+                      <Paper
+                        key={payment.id}
+                        elevation={0}
+                        sx={{
+                          p: 1.5,
+                          borderRadius: 2,
+                          border: '1px solid rgba(16, 94, 62, 0.1)',
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          justifyContent: 'space-between',
+                          gap: 1.5,
+                        }}
+                      >
+                        <Stack spacing={0.5}>
+                          <Typography variant="subtitle2">
+                            {formatMoney(payment.amount)}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {payment.method || 'Method not specified'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatDateTime(payment.receivedAt)}
+                          </Typography>
+                        </Stack>
+                        <Stack spacing={0.5} alignItems="flex-end">
+                          {payment.reference && (
+                            <Typography variant="caption" color="text.secondary">
+                              Ref: {payment.reference}
+                            </Typography>
+                          )}
+                          {payment.receivedBy?.customerProfile?.fullName && (
+                            <Typography variant="caption" color="text.secondary">
+                              Recorded by: {payment.receivedBy.customerProfile.fullName}
+                            </Typography>
+                          )}
+                          {payment.notes && (
+                            <Typography variant="caption" color="text.secondary">
+                              “{payment.notes}”
+                            </Typography>
+                          )}
+                        </Stack>
+                      </Paper>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No payments recorded yet.
+                  </Typography>
+                )}
+
+                <Divider light />
+
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'flex-end' }}>
+                  <TextField
+                    label="Amount (₦)"
+                    size="small"
+                    type="number"
+                    value={paymentAmount}
+                    onChange={(event) => setPaymentAmount(event.target.value)}
+                    sx={{ maxWidth: 180 }}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                  <TextField
+                    label="Method"
+                    size="small"
+                    value={paymentMethod}
+                    onChange={(event) => setPaymentMethod(event.target.value)}
+                    sx={{ maxWidth: 200 }}
+                  />
+                  <TextField
+                    label="Reference"
+                    size="small"
+                    value={paymentReference}
+                    onChange={(event) => setPaymentReference(event.target.value)}
+                    sx={{ maxWidth: 220 }}
+                  />
+                </Stack>
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'flex-end' }}>
+                  <TextField
+                    label="Received at"
+                    size="small"
+                    type="datetime-local"
+                    value={paymentDate}
+                    onChange={(event) => setPaymentDate(event.target.value)}
+                    sx={{ maxWidth: 240 }}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                  <TextField
+                    label="Notes"
+                    size="small"
+                    value={paymentNotes}
+                    onChange={(event) => setPaymentNotes(event.target.value)}
+                    sx={{ flex: 1 }}
+                    multiline
+                    minRows={1}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleRecordPayment}
+                    disabled={recordingPayment || !paymentAmount.trim()}
+                  >
+                    Record payment
+                  </Button>
+                </Stack>
+              </Stack>
+            </Paper>
+          )}
+
         </React.Fragment>
       ) : (
         <Typography variant="body2" color="text.secondary">

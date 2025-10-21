@@ -72,7 +72,19 @@ export class RiderInterestResolver {
   @Permissions(PERMISSIONS.sale.UPDATE as string)
   async assignFulfillmentRider(
     @Args('input') input: AssignFulfillmentRiderInput,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.riderInterests.assignRider(input.fulfillmentId, input.riderId);
+    return this.riderInterests.assignRider(
+      input.fulfillmentId,
+      input.riderId,
+      user,
+    );
+  }
+
+  @Query(() => [Fulfillment])
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles('RIDER')
+  myAssignedFulfillments(@CurrentUser() user: AuthenticatedUser) {
+    return this.riderInterests.myAssignedFulfillments(user.id);
   }
 }

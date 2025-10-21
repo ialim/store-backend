@@ -89,7 +89,12 @@ export const Variants = gql`
       price
       resellerPrice
       createdAt
-      product { id name }
+      product {
+        id
+        name
+        primaryAssetUrl
+      }
+      primaryAssetUrl
       stockItems { quantity reserved }
     }
   }

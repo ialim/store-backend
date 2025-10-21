@@ -1,9 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { BadRequestException, UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/auth.service';
 import {
@@ -18,20 +16,23 @@ import {
   SystemSettingValueType,
 } from './system-settings.constants';
 import { SystemSettingValue } from './system-settings.types';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../../shared/permissions';
 
 @Resolver(() => SystemSettingDto)
-@UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-@Roles('SUPERADMIN')
+@UseGuards(GqlAuthGuard, PermissionsGuard)
 export class SystemSettingsResolver {
   constructor(private readonly systemSettings: SystemSettingsService) {}
 
   @Query(() => [SystemSettingDto])
+  @Permissions(PERMISSIONS.systemSettings.READ as string)
   async systemSettingsList(): Promise<SystemSettingDto[]> {
     const settings = await this.systemSettings.listSettings();
     return settings.map((setting) => this.toDto(setting));
   }
 
   @Mutation(() => SystemSettingDto)
+  @Permissions(PERMISSIONS.systemSettings.UPDATE as string)
   async updateSystemSetting(
     @Args('input') input: UpdateSystemSettingInput,
     @CurrentUser() user: AuthenticatedUser,

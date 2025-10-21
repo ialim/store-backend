@@ -25,10 +25,13 @@ import React from 'react';
 import TableList from '../shared/TableList';
 import { useNavigate } from 'react-router-dom';
 import { ListingHero, ListingSelectionCard } from '../shared/ListingLayout';
+import { useAuth } from '../shared/AuthProvider';
 
 export default function Products() {
   const [take, setTake] = React.useState(20);
   const navigate = useNavigate();
+  const auth = useAuth();
+  const isReseller = auth.hasRole('RESELLER');
   const [q, setQ] = React.useState('');
   const where = React.useMemo(() => {
     const w: Record<string, unknown> = {};
@@ -120,15 +123,17 @@ export default function Products() {
       </Box>
       <ListingHero
         action={(
-          <Button
-            variant="contained"
-            color="success"
-            startIcon={<AddIcon />}
-            onClick={() => setOpen(true)}
-            sx={{ borderRadius: 999 }}
-          >
-            Add New
-          </Button>
+          !isReseller && (
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<AddIcon />}
+              onClick={() => setOpen(true)}
+              sx={{ borderRadius: 999 }}
+            >
+              Add New
+            </Button>
+          )
         )}
         search={{ value: q, onChange: setQ, placeholder: 'Search name or barcode' }}
         trailing={(

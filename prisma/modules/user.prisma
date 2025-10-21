@@ -49,6 +49,7 @@ model User {
   Fulfillment Fulfillment[]
   FulfillmentRiderInterests FulfillmentRiderInterest[] @relation("RiderInterests")
   RiderCoverageAreas RiderCoverageArea[] @relation("RiderCoverageAreas")
+  FulfillmentPaymentsReceived FulfillmentPayment[] @relation("FulfillmentPaymentReceivedBy")
 
   systemSettingsUpdated SystemSetting[] @relation("SystemSettingUpdatedBy")
 
@@ -102,6 +103,8 @@ model ResellerProfile {
   companyName        String   @default("")
   contactPersonName  String   @default("")
   contactPhone       String   @default("")
+  companyInitials    String   @default("")
+  companyLogoUrl     String?
 
   user               User     @relation(fields: [userId], references: [id])
   biller             User?    @relation("BillerResellers", fields: [billerId], references: [id])

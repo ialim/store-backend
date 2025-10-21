@@ -198,10 +198,7 @@ export class ProductVariantService extends BaseCrudService<
         price: input.price,
         resellerPrice: input.resellerPrice,
       },
-      include: {
-        product: true,
-        stockItems: true,
-      },
+      include: { product: true, stockItems: true },
     });
   }
 
@@ -212,10 +209,7 @@ export class ProductVariantService extends BaseCrudService<
     return this.prisma.productVariant.update({
       where: { id: variantId },
       data: { productId },
-      include: {
-        product: true,
-        stockItems: true,
-      },
+      include: { product: true, stockItems: true },
     });
   }
 
@@ -223,10 +217,22 @@ export class ProductVariantService extends BaseCrudService<
     return this.prisma.productVariant.update({
       where: { id: variantId },
       data: { productId: null },
-      include: {
-        product: true,
-        stockItems: true,
-      },
+      include: { product: true, stockItems: true },
+    });
+  }
+
+  async findManyWithRelations(
+    args: FindManyProductVariantArgs,
+  ): Promise<VariantWithDetails[]> {
+    const { where, orderBy, cursor, take, skip, distinct } = args;
+    return this.prisma.productVariant.findMany({
+      where: where ?? undefined,
+      orderBy: orderBy ?? undefined,
+      cursor: cursor ?? undefined,
+      take: typeof take === 'number' ? take : undefined,
+      skip: typeof skip === 'number' ? skip : undefined,
+      distinct: distinct ?? undefined,
+      include: { product: true, stockItems: true },
     });
   }
 

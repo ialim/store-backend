@@ -7,11 +7,11 @@ export class CreateOrderReturnInput {
   @Field()
   orderId!: string;
 
-  @Field()
-  returnedById!: string;
+  @Field(() => String, { nullable: true })
+  returnedById?: string | null;
 
-  @Field()
-  receivedById!: string;
+  @Field(() => String, { nullable: true })
+  receivedById?: string | null;
 
   @Field(() => ReturnLocation)
   returnLocation!: ReturnLocation;

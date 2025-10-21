@@ -31,6 +31,9 @@ type AddressAutocompleteFieldProps = {
   countryCode?: string;
   onChange: (text: string) => void;
   onSelect: (suggestion: Suggestion | null) => void;
+  disabled?: boolean;
+  error?: boolean;
+  helperText?: string;
 };
 
 export function AddressAutocompleteField({
@@ -40,6 +43,9 @@ export function AddressAutocompleteField({
   countryCode,
   onChange,
   onSelect,
+  disabled = false,
+  error = false,
+  helperText,
 }: AddressAutocompleteFieldProps) {
   const [inputValue, setInputValue] = React.useState(value);
   const [loadSuggestions, { data, loading }] = useLazyQuery<{
@@ -78,6 +84,7 @@ export function AddressAutocompleteField({
       loading={loading}
       value={value}
       inputValue={inputValue}
+      disabled={disabled}
       onInputChange={(event, newValue, reason) => {
         setInputValue(newValue);
         if (reason === 'input') {
@@ -99,6 +106,9 @@ export function AddressAutocompleteField({
           label={label}
           placeholder={placeholder}
           fullWidth
+          disabled={disabled}
+          error={error}
+          helperText={helperText}
           InputProps={{
             ...params.InputProps,
             endAdornment: (

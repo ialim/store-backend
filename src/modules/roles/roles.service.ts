@@ -20,9 +20,19 @@ export class RolesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listPermissions() {
-    return this.prisma.permission.findMany({
+    const permissions = await this.prisma.permission.findMany({
       orderBy: [{ module: 'asc' }, { action: 'asc' }],
     });
+
+    return permissions.map((permission) => ({
+      ...permission,
+      module: permission.module ?? 'General',
+      action:
+        permission.action ??
+        (permission.name.includes('_')
+          ? permission.name.split('_').slice(-1)[0]
+          : 'UNKNOWN'),
+    }));
   }
 
   async listRoles() {
