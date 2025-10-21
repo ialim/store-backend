@@ -37,18 +37,25 @@ function isAbortError(err: any) {
   );
 }
 
-const errorLink = onError(({ graphQLErrors, networkError }) => {
+const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
   if (graphQLErrors) {
     for (const err of graphQLErrors) {
       const code = (err.extensions?.code as string) || '';
       if (code === 'UNAUTHENTICATED') {
+        const opName = operation?.operationName;
+        const onLoginPage =
+          typeof window !== 'undefined' &&
+          window.location?.pathname === '/login';
+        const skipRedirect = opName === 'Login' || onLoginPage;
         try {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
         } catch {}
-        notify('Session expired. Please login again.', 'warning');
-        // Small delay to allow snackbar render
-        setTimeout(() => (window.location.href = '/login'), 200);
+        if (!skipRedirect) {
+          notify('Session expired. Please login again.', 'warning');
+          // Small delay to allow snackbar render
+          setTimeout(() => (window.location.href = '/login'), 200);
+        }
         continue;
       }
       if (code === 'FORBIDDEN') {
