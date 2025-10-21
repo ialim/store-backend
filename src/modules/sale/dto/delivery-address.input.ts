@@ -3,7 +3,10 @@ import { AddressCreateInput } from '../../../shared/prismagraphql/address/addres
 
 @InputType()
 export class DeliveryAddressInput {
-  @Field(() => String, { nullable: true, description: 'Existing address identifier to reuse.' })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Existing address identifier to reuse.',
+  })
   addressId?: string;
 
   @Field(() => AddressCreateInput, {
@@ -13,7 +16,10 @@ export class DeliveryAddressInput {
   })
   address?: AddressCreateInput | null;
 
-  @Field(() => String, { nullable: true, description: 'Recipient full name displayed to riders.' })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Recipient full name displayed to riders.',
+  })
   receiverName?: string;
 
   @Field(() => String, {
@@ -24,7 +30,8 @@ export class DeliveryAddressInput {
 
   @Field(() => String, {
     nullable: true,
-    description: 'Additional delivery instructions for the rider or dispatcher.',
+    description:
+      'Additional delivery instructions for the rider or dispatcher.',
   })
   deliveryNotes?: string;
 }
