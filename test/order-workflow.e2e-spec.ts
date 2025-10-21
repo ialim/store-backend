@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { FulfillmentType } from '@prisma/client';
+import { FulfillmentType, AddressSource } from '@prisma/client';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/common/prisma/prisma.service';
 import { SalesService } from '../src/modules/sale/sale.service';
@@ -115,18 +115,32 @@ describe('Order Workflow (e2e)', () => {
     expect(saleOrder?.workflowContext).toBeTruthy();
 
     const summary = await sales.creditCheck(orderId);
-    expect(summary.outstanding).toBeGreaterThan(0);
-    expect((summary.context as any)?.credit?.overage).toBeGreaterThan(0);
+    expect(summary).not.toBeNull();
+    expect(summary!.outstanding).toBeGreaterThan(0);
+    expect((summary!.context as any)?.credit?.overage).toBeGreaterThan(0);
 
     const fulfilment = await sales.createFulfillment({
       saleOrderId: orderId,
       type: FulfillmentType.DELIVERY,
       deliveryPersonnelId: manager.id,
-      deliveryAddress: '123 Workflow Street',
+      deliveryDetails: {
+        address: {
+          formattedAddress: '123 Workflow Street, Test City',
+          countryCode: 'NG',
+          provider: `${AddressSource.MANUAL}`,
+          streetLine1: '123 Workflow Street',
+          city: 'Test City',
+        },
+        receiverName: 'Workflow Receiver',
+        receiverPhone: '+2348000000000',
+        deliveryNotes: 'Leave with reception',
+      },
     });
 
     expect(fulfilment.workflowState).toBe('ALLOCATING_STOCK');
     expect(fulfilment.workflowContext).toBeTruthy();
+    expect(fulfilment.deliveryAddressId).toBeDefined();
+    expect(fulfilment.receiverName).toBe('Workflow Receiver');
 
     const fulfilmentSnapshot = await sales.getFulfilmentWorkflowSnapshot(
       orderId,

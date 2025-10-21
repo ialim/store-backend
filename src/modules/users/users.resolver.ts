@@ -66,7 +66,10 @@ export class UsersResolver {
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN', 'SUPERADMIN', 'BILLER')
   @Permissions(PERMISSIONS.user.READ as string)
-  listUsers(@Args() args: FindManyUserArgs, @CurrentUser() user: AuthenticatedUser) {
+  listUsers(
+    @Args() args: FindManyUserArgs,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     let nextArgs = args;
     if (this.isBiller(user)) {
       const customerOnlyFilter = {

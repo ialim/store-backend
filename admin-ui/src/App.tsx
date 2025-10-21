@@ -72,6 +72,7 @@ const ResellerDashboard = lazy(() => import('./pages/ResellerDashboard'));
 const Accounts = lazy(() => import('./pages/Accounts'));
 const Addresses = lazy(() => import('./pages/Addresses'));
 const Riders = lazy(() => import('./pages/Riders'));
+const RiderDashboard = lazy(() => import('./pages/RiderDashboard'));
 import { PERMISSIONS, permissionList } from './shared/permissions';
 
 export default function App() {
@@ -138,6 +139,10 @@ export default function App() {
               element={
                 <ProtectedRoute roles={['BILLER']} element={<BillerDashboard />} />
               }
+            />
+            <Route
+              path="/rider/dashboard"
+              element={<ProtectedRoute roles={['RIDER']} element={<RiderDashboard />} />}
             />
             <Route
               path="/accounts"

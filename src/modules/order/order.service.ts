@@ -93,6 +93,7 @@ export class OrderService {
       include: {
         fulfillment: {
           include: {
+            deliveryAddressRecord: true,
             payments: {
               orderBy: { createdAt: 'desc' },
               include: {
@@ -108,6 +109,7 @@ export class OrderService {
         },
         transitionLogs: { orderBy: { occurredAt: 'desc' } },
         quotation: { include: { items: true } },
+        deliveryAddressRecord: true,
         consumerSale: {
           include: {
             store: true,
@@ -122,6 +124,9 @@ export class OrderService {
             reseller: { include: { customerProfile: true } },
             store: true,
           },
+        },
+        ConsumerPayment: {
+          orderBy: { receivedAt: 'desc' },
         },
         ResellerPayment: true,
         biller: { include: { customerProfile: true } },
@@ -136,6 +141,7 @@ export class OrderService {
       include: {
         fulfillment: {
           include: {
+            deliveryAddressRecord: true,
             payments: {
               orderBy: { createdAt: 'desc' },
               include: {
@@ -151,6 +157,7 @@ export class OrderService {
         },
         transitionLogs: { orderBy: { occurredAt: 'desc' } },
         quotation: { include: { items: true } },
+        deliveryAddressRecord: true,
         consumerSale: {
           include: {
             store: true,
@@ -165,6 +172,9 @@ export class OrderService {
             reseller: { include: { customerProfile: true } },
             store: true,
           },
+        },
+        ConsumerPayment: {
+          orderBy: { receivedAt: 'desc' },
         },
         ResellerPayment: true,
         biller: { include: { customerProfile: true } },
@@ -228,8 +238,10 @@ export class OrderService {
           biller: { include: { customerProfile: true } },
           SaleOrder: {
             include: {
+              deliveryAddressRecord: true,
               fulfillment: {
                 include: {
+                  deliveryAddressRecord: true,
                   payments: {
                     orderBy: { createdAt: 'desc' },
                     include: {
@@ -276,8 +288,10 @@ export class OrderService {
           biller: { include: { customerProfile: true } },
           SaleOrder: {
             include: {
+              deliveryAddressRecord: true,
               fulfillment: {
                 include: {
+                  deliveryAddressRecord: true,
                   payments: {
                     orderBy: { createdAt: 'desc' },
                     include: {
@@ -319,7 +333,31 @@ export class OrderService {
               },
             },
           },
-          SaleOrder: true,
+          SaleOrder: {
+            include: {
+              deliveryAddressRecord: true,
+              fulfillment: {
+                include: {
+                  deliveryAddressRecord: true,
+                  payments: {
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                      receivedBy: {
+                        select: {
+                          id: true,
+                          email: true,
+                          customerProfile: true,
+                        },
+                      },
+                    },
+                  },
+                  deliveryPersonnel: {
+                    select: { id: true, email: true, customerProfile: true },
+                  },
+                },
+              },
+            },
+          },
           biller: { include: { customerProfile: true } },
           reseller: { include: { customerProfile: true } },
           store: true,
@@ -341,8 +379,10 @@ export class OrderService {
           },
           SaleOrder: {
             include: {
+              deliveryAddressRecord: true,
               fulfillment: {
                 include: {
+                  deliveryAddressRecord: true,
                   payments: {
                     orderBy: { createdAt: 'desc' },
                     include: {

@@ -196,6 +196,31 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
   const defaultSections: NavSection[] = [
     {
+      key: 'dashboards',
+      label: 'Dashboards',
+      collapsible: true,
+      items: [
+        {
+          label: 'Biller Dashboard',
+          to: '/biller-dashboard',
+          show: hasRole('BILLER'),
+          icon: <DashboardIcon fontSize="small" />,
+        },
+        {
+          label: 'Reseller Dashboard',
+          to: '/dashboard',
+          show: isReseller,
+          icon: <DashboardIcon fontSize="small" />,
+        },
+        {
+          label: 'Rider Dashboard',
+          to: '/rider/dashboard',
+          show: isRider,
+          icon: <DashboardIcon fontSize="small" />,
+        },
+      ],
+    },
+    {
       key: 'catalog',
       label: 'Catalog & Stock',
       collapsible: true,

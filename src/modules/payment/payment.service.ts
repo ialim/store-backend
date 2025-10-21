@@ -45,11 +45,11 @@ export class PaymentService {
         receiptUrl: data.receiptUrl || undefined,
       },
     });
-    await this.notifications.createNotification(
-      payment.saleOrderId,
-      'CONSUMER_PAYMENT_REGISTERED',
-      `Payment ${payment.id} registered.`,
-    );
+    await this.dispatchConsumerPaymentRegisteredNotifications({
+      saleOrderId: payment.saleOrderId,
+      paymentId: payment.id,
+      message: `Payment ${payment.id} registered for order ${payment.saleOrderId}.`,
+    });
     return payment;
   }
 
@@ -133,11 +133,11 @@ export class PaymentService {
           reference,
         },
       });
-      await this.notifications.createNotification(
-        payment.saleOrderId,
-        'CONSUMER_PAYMENT_REGISTERED',
-        `Payment ${payment.id} registered via ${payload.provider}.`,
-      );
+      await this.dispatchConsumerPaymentRegisteredNotifications({
+        saleOrderId: payment.saleOrderId,
+        paymentId: payment.id,
+        message: `Payment ${payment.id} registered for order ${payment.saleOrderId} via ${payload.provider}.`,
+      });
     } else {
       payment = await this.prisma.consumerPayment.update({
         where: { id: payment.id },
@@ -161,6 +161,64 @@ export class PaymentService {
         });
       }
     }
+  }
+
+  private async dispatchConsumerPaymentRegisteredNotifications(options: {
+    saleOrderId: string;
+    paymentId: string;
+    message: string;
+  }) {
+    const order = await this.prisma.saleOrder.findUnique({
+      where: { id: options.saleOrderId },
+      select: {
+        billerId: true,
+        storeId: true,
+        resellerSale: { select: { resellerId: true } },
+      },
+    });
+
+    if (!order) {
+      this.logger.warn(
+        `Unable to dispatch payment notification; sale order ${options.saleOrderId} not found.`,
+      );
+      return;
+    }
+
+    const recipients = new Set<string>();
+    if (order.billerId) {
+      recipients.add(order.billerId);
+    }
+    if (order.resellerSale?.resellerId) {
+      recipients.add(order.resellerSale.resellerId);
+    }
+    if (order.storeId) {
+      const store = await this.prisma.store.findUnique({
+        where: { id: order.storeId },
+        select: { managerId: true },
+      });
+      if (store?.managerId) {
+        recipients.add(store.managerId);
+      }
+    }
+
+    if (!recipients.size) {
+      return;
+    }
+
+    await this.domainEvents.publish(
+      'NOTIFICATION',
+      {
+        notifications: Array.from(recipients).map((userId) => ({
+          userId,
+          type: 'CONSUMER_PAYMENT_REGISTERED',
+          message: options.message,
+        })),
+      },
+      {
+        aggregateType: 'Payment',
+        aggregateId: options.paymentId,
+      },
+    );
   }
 
   async handleResellerPaymentWebhook(

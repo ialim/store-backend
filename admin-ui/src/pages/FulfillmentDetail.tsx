@@ -152,6 +152,8 @@ export default function FulfillmentDetail() {
   const fulfillmentAssigned = Boolean(fulfillment?.deliveryPersonnelId);
   const costStatus = fulfillment?.costStatus ?? null;
   const paymentStatus = fulfillment?.paymentStatus ?? null;
+  const receiverName = order?.receiverName?.trim();
+  const receiverPhone = order?.receiverPhone?.trim();
   const payments = fulfillment?.payments ?? [];
   const totalPaid = useMemo(
     () => payments.reduce((sum, payment) => sum + (payment?.amount ?? 0), 0),
@@ -464,6 +466,19 @@ export default function FulfillmentDetail() {
                     Assigned rider
                   </Typography>
                   <Typography variant="body1">{assignedRiderLabel}</Typography>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Receiver contact
+                  </Typography>
+                  <Stack spacing={0.25}>
+                    <Typography variant="body1">
+                      {receiverName || '—'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {receiverPhone || '—'}
+                    </Typography>
+                  </Stack>
                 </Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="subtitle2" color="text.secondary">

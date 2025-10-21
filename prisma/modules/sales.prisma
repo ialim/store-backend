@@ -37,32 +37,37 @@ enum FulfillmentPaymentStatus {
 }
 
 model SaleOrder {
-  id           String      @id @default(uuid())
-  storeId      String
-  billerId     String
-  type         SaleType
-  status       SaleStatus  @default(PENDING)
-  phase        OrderPhase  @default(QUOTATION)
-  fulfillmentType FulfillmentType?
-  deliveryAddress  String?
-  workflowState   String?
-  workflowContext Json?
-  totalAmount  Float
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id                String      @id @default(uuid())
+  storeId           String
+  billerId          String
+  type              SaleType
+  status            SaleStatus  @default(PENDING)
+  phase             OrderPhase  @default(QUOTATION)
+  fulfillmentType   FulfillmentType?
+  deliveryAddress   String?
+  deliveryAddressId String?
+  receiverName      String?
+  receiverPhone     String?
+  deliveryNotes     String?
+  workflowState     String?
+  workflowContext   Json?
+  totalAmount       Float
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
   
   resellerSaleid String?
 
-  consumerSale ConsumerSale?  
-  resellerSale ResellerSale?
-  fulfillment  Fulfillment?
-  quotation    Quotation? 
+  consumerSale        ConsumerSale?  
+  resellerSale        ResellerSale?
+  fulfillment         Fulfillment?
+  quotation           Quotation? 
+  deliveryAddressRecord Address?   @relation("SaleOrderDeliveryAddress", fields: [deliveryAddressId], references: [id])
 
   ConsumerPayment ConsumerPayment[]
 
   ResellerPayment ResellerPayment[]
   transitionLogs  SaleOrderTransitionLog[]
-  biller         User       @relation("SaleOrderBiller", fields: [billerId], references: [id])
+  biller          User       @relation("SaleOrderBiller", fields: [billerId], references: [id])
 }
 
 model Quotation {
@@ -257,6 +262,10 @@ model Fulfillment {
   type                FulfillmentType
   deliveryPersonnelId String?
   deliveryAddress     String?
+  deliveryAddressId   String?
+  receiverName        String?
+  receiverPhone       String?
+  deliveryNotes       String?
   status              FulfillmentStatus @default(PENDING)
   workflowState       String?
   workflowContext     Json?
@@ -270,6 +279,7 @@ model Fulfillment {
 
   saleOrder           SaleOrder          @relation(fields: [saleOrderId], references: [id])
   deliveryPersonnel   User?              @relation(fields: [deliveryPersonnelId], references: [id])
+  deliveryAddressRecord Address?         @relation("FulfillmentDeliveryAddress", fields: [deliveryAddressId], references: [id])
   transitionLogs      FulfillmentTransitionLog[]
   riderInterests      FulfillmentRiderInterest[]
   payments            FulfillmentPayment[] @relation("FulfillmentPayments")

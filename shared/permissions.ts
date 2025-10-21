@@ -28,6 +28,9 @@ export const PERMISSION_MODULES = {
   support: 'Support',
   role: 'Role',
   address: 'Address',
+  systemSettings: 'SystemSettings',
+  sync: 'Sync',
+  uploads: 'Uploads',
 } as const;
 
 export type PermissionModuleKey = keyof typeof PERMISSION_MODULES;
@@ -139,6 +142,16 @@ export const PERMISSIONS: ModulePermissionMap = {
     READ: 'ADDRESS_READ',
     UPDATE: 'ADDRESS_UPDATE',
     DELETE: 'ADDRESS_DELETE',
+  },
+  systemSettings: {
+    READ: 'SYSTEM_SETTINGS_READ',
+    UPDATE: 'SYSTEM_SETTINGS_UPDATE',
+  },
+  sync: {
+    UPDATE: 'SYNC_UPDATE',
+  },
+  uploads: {
+    CREATE: 'UPLOADS_CREATE',
   },
 } as const;
 

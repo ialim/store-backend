@@ -16,7 +16,8 @@ import type { Request } from 'express';
 import type { AuthenticatedUser } from '../auth/auth.service';
 import { PERMISSIONS } from '../../../shared/permissions';
 
-const PRODUCT_MAINTENANCE_PERMISSIONS = [
+const SYNC_ALLOWED_PERMISSIONS = [
+  PERMISSIONS.sync.UPDATE,
   PERMISSIONS.product.CREATE,
   PERMISSIONS.product.UPDATE,
   PERMISSIONS.product.DELETE,
@@ -34,12 +35,12 @@ export class SyncController {
     const hasPrivilegedRole = roleName
       ? ['SUPERADMIN', 'ADMIN', 'MANAGER'].includes(roleName)
       : false;
-    const hasProductMaintenancePermission = Boolean(
+    const hasSyncPermission = Boolean(
       user?.role?.permissions?.some((permission) =>
-        PRODUCT_MAINTENANCE_PERMISSIONS.includes(permission.name),
+        SYNC_ALLOWED_PERMISSIONS.includes(permission.name),
       ),
     );
-    if (!hasPrivilegedRole && !hasProductMaintenancePermission) {
+    if (!hasPrivilegedRole && !hasSyncPermission) {
       throw new ForbiddenException('Insufficient permissions');
     }
   }

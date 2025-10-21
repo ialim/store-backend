@@ -31,6 +31,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { formatMoney } from '../shared/format';
+import { AddressAutocompleteField } from '../components/AddressAutocompleteField';
 import {
   Order,
   UpdateQuotationStatus,
@@ -98,6 +99,9 @@ type OrderData = {
     phase: string;
     fulfillmentType?: string | null;
     deliveryAddress?: string | null;
+    receiverName?: string | null;
+    receiverPhone?: string | null;
+    deliveryNotes?: string | null;
     saleWorkflowState?: string | null;
     saleWorkflowContext?: any;
     saleWorkflowSummary?: WorkflowSummary | null;
@@ -245,9 +249,13 @@ export default function OrderDetail() {
     skip: !id,
     fetchPolicy: 'cache-and-network',
   });
+  const isSuperAdmin = hasRole('SUPERADMIN');
+  const isAdmin = hasRole('ADMIN');
+  const isAdminOrSuperAdmin = isAdmin || isSuperAdmin;
   const canViewStores =
     hasPermission(PERMISSIONS.store.READ ?? 'STORE_READ') ||
-    hasRole('SUPERADMIN', 'ADMIN', 'MANAGER', 'BILLER');
+    isAdminOrSuperAdmin ||
+    hasRole('MANAGER', 'BILLER');
   const { data: storesData } = useQuery<StoreListData>(Stores, {
     variables: { take: 500 },
     fetchPolicy: 'cache-first',
@@ -272,6 +280,10 @@ export default function OrderDetail() {
   const [receiptUploadError, setReceiptUploadError] = React.useState<string | null>(null);
   const [fulfillmentTypeDraft, setFulfillmentTypeDraft] = React.useState<'PICKUP' | 'DELIVERY'>('PICKUP');
   const [deliveryAddressDraft, setDeliveryAddressDraft] = React.useState('');
+  const [deliveryAddressCountry, setDeliveryAddressCountry] = React.useState('NG');
+  const [receiverNameDraft, setReceiverNameDraft] = React.useState('');
+  const [receiverPhoneDraft, setReceiverPhoneDraft] = React.useState('');
+  const [deliveryNotesDraft, setDeliveryNotesDraft] = React.useState('');
   const [updateStatus, { loading: statusUpdating }] = useMutation(
     UpdateQuotationStatus,
   );
@@ -365,7 +377,18 @@ export default function OrderDetail() {
       (order.fulfillmentType as 'PICKUP' | 'DELIVERY' | null) ?? 'PICKUP';
     setFulfillmentTypeDraft(normalizedType);
     setDeliveryAddressDraft(order.deliveryAddress ?? '');
-  }, [order?.id, order?.fulfillmentType, order?.deliveryAddress]);
+    setReceiverNameDraft(order.receiverName ?? '');
+    setReceiverPhoneDraft(order.receiverPhone ?? '');
+    setDeliveryNotesDraft(order.deliveryNotes ?? '');
+    setDeliveryAddressCountry('NG');
+  }, [
+    order?.id,
+    order?.fulfillmentType,
+    order?.deliveryAddress,
+    order?.receiverName,
+    order?.receiverPhone,
+    order?.deliveryNotes,
+  ]);
   const quotation = order?.quotation ?? null;
   const normalizedStatus = (quotation?.status || '').toUpperCase();
   const hasOrderUpdatePermission = hasPermission(
@@ -375,11 +398,11 @@ export default function OrderDetail() {
     PERMISSIONS.order.APPROVE ?? 'ORDER_APPROVE',
   );
   const isReseller = hasRole('RESELLER');
-  const isSuperAdmin = hasRole('SUPERADMIN');
   const canConfirmPayments =
-    hasPaymentApprovalPermission &&
-    (hasRole('ACCOUNTANT') || hasRole('ADMIN') || isSuperAdmin);
-  const canUpdateOrder = hasOrderUpdatePermission;
+    isAdminOrSuperAdmin ||
+    (hasPaymentApprovalPermission &&
+      (hasRole('ACCOUNTANT') || hasRole('MANAGER')));
+  const canUpdateOrder = isAdminOrSuperAdmin || hasOrderUpdatePermission;
   const ownsQuotation =
     isReseller && quotation?.resellerId && quotation.resellerId === user?.id;
   const normalizedOrderType = (order?.type || '').toUpperCase();
@@ -387,8 +410,9 @@ export default function OrderDetail() {
   const isQuotationPhase = normalizedOrderPhase === 'QUOTATION';
   const canGrantOverrides =
     !isQuotationPhase &&
-    hasPermission(PERMISSIONS.order.APPROVE ?? 'ORDER_APPROVE') &&
-    (hasRole('MANAGER') || hasRole('ADMIN') || hasRole('SUPERADMIN'));
+    (isAdminOrSuperAdmin ||
+      (hasPermission(PERMISSIONS.order.APPROVE ?? 'ORDER_APPROVE') &&
+        hasRole('MANAGER')));
   const isResellerOwner = Boolean(
     isReseller &&
       normalizedOrderType === 'RESELLER' &&
@@ -400,15 +424,20 @@ export default function OrderDetail() {
   const initialFulfillmentType =
     (order?.fulfillmentType as 'PICKUP' | 'DELIVERY' | null) ?? 'PICKUP';
   const initialDeliveryAddress = order?.deliveryAddress ?? '';
+  const initialReceiverName = order?.receiverName ?? '';
+  const initialReceiverPhone = order?.receiverPhone ?? '';
+  const initialDeliveryNotes = order?.deliveryNotes ?? '';
   const isDelivery = fulfillmentTypeDraft === 'DELIVERY';
   const deliveryAddressError = isDelivery && !deliveryAddressDraft.trim();
+  const receiverNameError = isDelivery && !receiverNameDraft.trim();
+  const receiverPhoneError = isDelivery && !receiverPhoneDraft.trim();
   const preferencesDirty =
     fulfillmentTypeDraft !== initialFulfillmentType ||
     (isDelivery &&
-      deliveryAddressDraft.trim() !== initialDeliveryAddress.trim());
-  const canEditFulfillmentPreferences = hasPermission(
-    PERMISSIONS.order.UPDATE ?? 'ORDER_UPDATE',
-  );
+      (deliveryAddressDraft.trim() !== initialDeliveryAddress.trim() ||
+        receiverNameDraft.trim() !== initialReceiverName.trim() ||
+        receiverPhoneDraft.trim() !== initialReceiverPhone.trim() ||
+        deliveryNotesDraft.trim() !== initialDeliveryNotes.trim()));
 
   const billerUser =
     order?.consumerSale?.biller ??
@@ -432,6 +461,9 @@ export default function OrderDetail() {
         order?.quotation?.billerId === user.id
       ),
   );
+  const isOrderCustomer = Boolean(
+    user?.id && order?.consumerSale?.customer?.id === user.id,
+  );
   const isDraft = normalizedStatus === 'DRAFT';
   const isSent = normalizedStatus === 'SENT';
   const canConfirm = Boolean(
@@ -443,10 +475,24 @@ export default function OrderDetail() {
   const canEditQuotation =
     ownsQuotation && canUpdateOrder && (isDraft || isSent);
 
+  const canEditFulfillmentPreferences =
+    hasPermission(PERMISSIONS.order.UPDATE ?? 'ORDER_UPDATE') ||
+    isOrderBiller ||
+    isResellerOwner ||
+    isOrderCustomer ||
+    isAdminOrSuperAdmin;
+
+  const outstandingBalance = workflowSummary?.outstanding ?? null;
+  const paymentCleared =
+    outstandingBalance != null &&
+    Number.isFinite(outstandingBalance) &&
+    outstandingBalance <= 0;
+
   const canRegisterPayment = Boolean(
     order &&
       !isQuotationPhase &&
-      (canUpdateOrder || isSuperAdmin || isOrderBiller || isResellerOwner) &&
+      !paymentCleared &&
+      (canUpdateOrder || isAdminOrSuperAdmin || isOrderBiller || isResellerOwner) &&
       (normalizedOrderType === 'CONSUMER' || normalizedOrderType === 'RESELLER'),
   );
 
@@ -568,6 +614,13 @@ export default function OrderDetail() {
   const handleSaveFulfillmentPreferences = React.useCallback(async () => {
     if (!order) return;
     try {
+      const deliveryDetailsInput = isDelivery
+        ? {
+            receiverName: receiverNameDraft.trim() || null,
+            receiverPhone: receiverPhoneDraft.trim() || null,
+            deliveryNotes: deliveryNotesDraft.trim() || null,
+          }
+        : undefined;
       await updateFulfillmentPreferencesMutation({
         variables: {
           input: {
@@ -576,6 +629,7 @@ export default function OrderDetail() {
             deliveryAddress: isDelivery
               ? deliveryAddressDraft.trim() || null
               : null,
+            deliveryDetails: deliveryDetailsInput,
           },
         },
         refetchQueries: [{ query: Order, variables: { id: order.id } }],
@@ -591,6 +645,9 @@ export default function OrderDetail() {
     order,
     fulfillmentTypeDraft,
     deliveryAddressDraft,
+    receiverNameDraft,
+    receiverPhoneDraft,
+    deliveryNotesDraft,
     isDelivery,
     updateFulfillmentPreferencesMutation,
   ]);
@@ -957,7 +1014,7 @@ export default function OrderDetail() {
               >
                 Log Payment
               </Button>
-            )}
+              )}
             {canGrantOverrides && (
               <>
                 <Button
@@ -1196,26 +1253,91 @@ export default function OrderDetail() {
                   <MenuItem value="PICKUP">Pickup</MenuItem>
                   <MenuItem value="DELIVERY">Delivery</MenuItem>
                 </TextField>
-                <TextField
-                  label="Delivery Address"
-                  size="small"
-                  value={deliveryAddressDraft}
-                  onChange={(event) => setDeliveryAddressDraft(event.target.value)}
-                  disabled=
-                    {!canEditFulfillmentPreferences || !isDelivery || updatingFulfillmentPreferences}
-                  error={deliveryAddressError}
-                  helperText={
-                    isDelivery
-                      ? deliveryAddressError
-                        ? 'Delivery address is required for delivery orders.'
-                        : 'Shared with the rider and fulfillment team.'
-                      : 'Pickup orders do not require a delivery address.'
-                  }
-                  sx={{ flex: 1 }}
-                  multiline
-                  minRows={isDelivery ? 2 : 1}
-                />
+                <Box sx={{ flex: 1 }}>
+                  <AddressAutocompleteField
+                    label="Delivery Address"
+                    value={deliveryAddressDraft}
+                    onChange={(text) => setDeliveryAddressDraft(text)}
+                    countryCode={deliveryAddressCountry}
+                    onSelect={(suggestion) => {
+                      if (suggestion?.formattedAddress) {
+                        setDeliveryAddressDraft(suggestion.formattedAddress);
+                      }
+                      if (suggestion?.countryCode) {
+                        setDeliveryAddressCountry(suggestion.countryCode);
+                      }
+                    }}
+                    disabled={
+                      !canEditFulfillmentPreferences || !isDelivery || updatingFulfillmentPreferences
+                    }
+                    error={deliveryAddressError}
+                    helperText={
+                      isDelivery
+                        ? deliveryAddressError
+                          ? 'Delivery address is required for delivery orders.'
+                          : 'Shared with the rider and fulfillment team.'
+                        : 'Pickup orders do not require a delivery address.'
+                    }
+                  />
+                </Box>
               </Stack>
+              {isDelivery && (
+                <Stack spacing={2}>
+                  <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                    <TextField
+                      label="Country Code"
+                      size="small"
+                      value={deliveryAddressCountry}
+                      onChange={(event) =>
+                        setDeliveryAddressCountry(event.target.value.toUpperCase())
+                      }
+                      disabled={!canEditFulfillmentPreferences || updatingFulfillmentPreferences}
+                      helperText="ISO code used to bias geocoding (e.g. NG)"
+                      sx={{ width: { xs: '100%', md: 160 } }}
+                    />
+                  </Stack>
+                  <Stack
+                    direction={{ xs: 'column', md: 'row' }}
+                    spacing={2}
+                    alignItems={{ md: 'flex-end' }}
+                  >
+                    <TextField
+                      label="Receiver Name"
+                      size="small"
+                      value={receiverNameDraft}
+                      onChange={(event) => setReceiverNameDraft(event.target.value)}
+                      disabled={!canEditFulfillmentPreferences || updatingFulfillmentPreferences}
+                      error={receiverNameError}
+                      helperText={
+                        receiverNameError ? 'Receiver name is required for delivery orders.' : ''
+                      }
+                      sx={{ flex: 1 }}
+                    />
+                    <TextField
+                      label="Receiver Phone"
+                      size="small"
+                      value={receiverPhoneDraft}
+                      onChange={(event) => setReceiverPhoneDraft(event.target.value)}
+                      disabled={!canEditFulfillmentPreferences || updatingFulfillmentPreferences}
+                      error={receiverPhoneError}
+                      helperText={
+                        receiverPhoneError ? 'Receiver phone is required for delivery orders.' : ''
+                      }
+                      sx={{ flex: 1 }}
+                    />
+                  </Stack>
+                  <TextField
+                    label="Delivery Notes"
+                    size="small"
+                    value={deliveryNotesDraft}
+                    onChange={(event) => setDeliveryNotesDraft(event.target.value)}
+                    disabled={!canEditFulfillmentPreferences || updatingFulfillmentPreferences}
+                    helperText="Optional notes shared with the rider (landmarks, special instructions, etc.)."
+                    multiline
+                    minRows={2}
+                  />
+                </Stack>
+              )}
               {canEditFulfillmentPreferences && (
                 <Stack direction="row" spacing={1}>
                   <Button
@@ -1224,6 +1346,8 @@ export default function OrderDetail() {
                     onClick={handleSaveFulfillmentPreferences}
                     disabled={
                       deliveryAddressError ||
+                      receiverNameError ||
+                      receiverPhoneError ||
                       !preferencesDirty ||
                       updatingFulfillmentPreferences
                     }
@@ -1236,6 +1360,10 @@ export default function OrderDetail() {
                     onClick={() => {
                       setFulfillmentTypeDraft(initialFulfillmentType);
                       setDeliveryAddressDraft(initialDeliveryAddress);
+                      setReceiverNameDraft(initialReceiverName);
+                      setReceiverPhoneDraft(initialReceiverPhone);
+                      setDeliveryNotesDraft(initialDeliveryNotes);
+                      setDeliveryAddressCountry('NG');
                     }}
                   >
                     Reset

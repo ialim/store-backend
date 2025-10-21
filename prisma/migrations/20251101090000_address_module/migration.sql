@@ -60,3 +60,29 @@ CREATE UNIQUE INDEX "AddressAssignment_addressId_ownerType_ownerId_key" ON "Addr
 
 -- AddForeignKey
 ALTER TABLE "AddressAssignment" ADD CONSTRAINT "AddressAssignment_addressId_fkey" FOREIGN KEY ("addressId") REFERENCES "Address"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'SaleOrder_deliveryAddressId_fkey'
+  ) THEN
+    ALTER TABLE "SaleOrder"
+      ADD CONSTRAINT "SaleOrder_deliveryAddressId_fkey"
+        FOREIGN KEY ("deliveryAddressId") REFERENCES "Address"("id")
+        ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'Fulfillment_deliveryAddressId_fkey'
+  ) THEN
+    ALTER TABLE "Fulfillment"
+      ADD CONSTRAINT "Fulfillment_deliveryAddressId_fkey"
+        FOREIGN KEY ("deliveryAddressId") REFERENCES "Address"("id")
+        ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END
+$$;

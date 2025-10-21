@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, AddressSource } from '@prisma/client';
 import { NotificationService } from '../notification/notification.service';
 import { CreateConsumerSaleInput } from './dto/create-consumer-sale.input';
 import { CreateResellerSaleInput } from './dto/create-reseller-sale.input';
@@ -64,6 +64,8 @@ import { WorkflowService } from '../../state/workflow.service';
 import { SaleOrder } from '@prisma/client';
 import { SystemSettingsService } from '../system-settings/system-settings.service';
 import { AuthenticatedUser } from '../auth/auth.service';
+import { DeliveryAddressInput } from './dto/delivery-address.input';
+import { AddressCreateInput } from '../../shared/prismagraphql/address/address-create.input';
 
 type PrismaCustomerClient = PrismaService | Prisma.TransactionClient;
 
@@ -167,6 +169,185 @@ export class SalesService {
       admin: overrides?.admin ? { ...overrides.admin } : undefined,
       credit: overrides?.credit ? { ...overrides.credit } : undefined,
     };
+  }
+
+  private sanitizeNullableString(
+    input: string | null | undefined,
+  ): string | null | undefined {
+    if (input === undefined) return undefined;
+    if (input === null) return null;
+    const trimmed = input.trim();
+    return trimmed.length ? trimmed : null;
+  }
+
+  private toDeliveryMetadata(values: {
+    receiverName: string | null;
+    receiverPhone: string | null;
+    deliveryNotes: string | null;
+  }): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput {
+    const payload = {
+      receiverName: values.receiverName ?? null,
+      receiverPhone: values.receiverPhone ?? null,
+      deliveryNotes: values.deliveryNotes ?? null,
+    };
+    const hasContent = Object.values(payload).some(
+      (value) => value !== null && value !== '',
+    );
+    return hasContent ? (payload as Prisma.InputJsonValue) : Prisma.JsonNull;
+  }
+
+  private toAddressCreateData(
+    input: AddressCreateInput,
+  ): Prisma.AddressCreateInput {
+    if (!input.formattedAddress?.trim()) {
+      throw new BadRequestException(
+        'Address formattedAddress is required when creating a new delivery address.',
+      );
+    }
+    if (!input.countryCode?.trim()) {
+      throw new BadRequestException(
+        'Address countryCode is required when creating a new delivery address.',
+      );
+    }
+    if (!input.provider) {
+      throw new BadRequestException(
+        'Address provider is required when creating a new delivery address.',
+      );
+    }
+
+    return {
+      formattedAddress: input.formattedAddress.trim(),
+      streetLine1: this.sanitizeNullableString(input.streetLine1) ?? null,
+      streetLine2: this.sanitizeNullableString(input.streetLine2) ?? null,
+      city: this.sanitizeNullableString(input.city) ?? null,
+      state: this.sanitizeNullableString(input.state) ?? null,
+      postalCode: this.sanitizeNullableString(input.postalCode) ?? null,
+      countryCode: input.countryCode.trim().toUpperCase(),
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
+      placeId: this.sanitizeNullableString(input.placeId) ?? null,
+      plusCode: this.sanitizeNullableString(input.plusCode) ?? null,
+      provider: input.provider as AddressSource,
+      externalRaw:
+        input.externalRaw !== undefined && input.externalRaw !== null
+          ? (input.externalRaw as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
+      confidence: input.confidence ?? null,
+      verifiedAt: input.verifiedAt ? new Date(input.verifiedAt) : new Date(),
+    };
+  }
+
+  private async resolveDeliveryDetails(options: {
+    tx: Prisma.TransactionClient;
+    details?: DeliveryAddressInput | null;
+    fallbackAddress?: string | null;
+    current: {
+      addressId: string | null;
+      deliveryAddress: string | null;
+      receiverName: string | null;
+      receiverPhone: string | null;
+      deliveryNotes: string | null;
+    };
+    requireAddress: boolean;
+  }): Promise<{
+    addressId: string | null;
+    deliveryAddress: string | null;
+    receiverName: string | null;
+    receiverPhone: string | null;
+    deliveryNotes: string | null;
+    touchedAddress: boolean;
+  }> {
+    const { tx, details, fallbackAddress, current, requireAddress } = options;
+    const sanitizedFallback =
+      this.sanitizeNullableString(fallbackAddress) ?? null;
+
+    let addressId = current.addressId;
+    let deliveryAddress = current.deliveryAddress ?? sanitizedFallback ?? null;
+    let touchedAddress = false;
+
+    if (details) {
+      if (details.addressId !== undefined && details.addressId !== null) {
+        touchedAddress = true;
+        const address = await tx.address.findUnique({
+          where: { id: details.addressId },
+        });
+        if (!address) {
+          throw new NotFoundException('Delivery address not found');
+        }
+        addressId = address.id;
+        deliveryAddress = address.formattedAddress ?? deliveryAddress;
+      } else if (details.address) {
+        touchedAddress = true;
+        const created = await tx.address.create({
+          data: this.toAddressCreateData(details.address),
+        });
+        addressId = created.id;
+        deliveryAddress = created.formattedAddress ?? deliveryAddress;
+      } else if (details.addressId === null) {
+        touchedAddress = true;
+        addressId = null;
+        deliveryAddress = sanitizedFallback ?? deliveryAddress ?? null;
+      }
+    }
+
+    if (!deliveryAddress && sanitizedFallback) {
+      deliveryAddress = sanitizedFallback;
+    }
+
+    if (requireAddress && !deliveryAddress) {
+      throw new BadRequestException(
+        'Delivery fulfillment requires a delivery address.',
+      );
+    }
+
+    const receiverName =
+      details && details.receiverName !== undefined
+        ? (this.sanitizeNullableString(details.receiverName) ?? null)
+        : current.receiverName;
+
+    const receiverPhone =
+      details && details.receiverPhone !== undefined
+        ? (this.sanitizeNullableString(details.receiverPhone) ?? null)
+        : current.receiverPhone;
+
+    const deliveryNotes =
+      details && details.deliveryNotes !== undefined
+        ? (this.sanitizeNullableString(details.deliveryNotes) ?? null)
+        : current.deliveryNotes;
+
+    return {
+      addressId,
+      deliveryAddress,
+      receiverName: receiverName ?? null,
+      receiverPhone: receiverPhone ?? null,
+      deliveryNotes: deliveryNotes ?? null,
+      touchedAddress,
+    };
+  }
+
+  private async upsertDeliveryAssignment(options: {
+    tx: Prisma.TransactionClient;
+    addressId: string;
+    ownerType: string;
+    ownerId: string;
+    metadata: Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue;
+  }) {
+    const { tx, addressId, ownerType, ownerId, metadata } = options;
+    await tx.addressAssignment.upsert({
+      where: {
+        addressId_ownerType_ownerId: { addressId, ownerType, ownerId },
+      },
+      create: {
+        addressId,
+        ownerType,
+        ownerId,
+        metadata,
+      },
+      update: {
+        metadata,
+        archivedAt: null,
+      },
+    });
   }
 
   private toIsoOrNull(input?: Date | string | null): string | null {
@@ -814,6 +995,31 @@ export class SalesService {
         store: true,
         customer: true,
         biller: { include: { customerProfile: true } },
+        SaleOrder: {
+          include: {
+            deliveryAddressRecord: true,
+            fulfillment: {
+              include: {
+                deliveryAddressRecord: true,
+                payments: {
+                  orderBy: { createdAt: 'desc' },
+                  include: {
+                    receivedBy: {
+                      select: {
+                        id: true,
+                        email: true,
+                        customerProfile: true,
+                      },
+                    },
+                  },
+                },
+                deliveryPersonnel: {
+                  select: { id: true, email: true, customerProfile: true },
+                },
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -832,6 +1038,31 @@ export class SalesService {
         store: true,
         customer: true,
         biller: { include: { customerProfile: true } },
+        SaleOrder: {
+          include: {
+            deliveryAddressRecord: true,
+            fulfillment: {
+              include: {
+                deliveryAddressRecord: true,
+                payments: {
+                  orderBy: { createdAt: 'desc' },
+                  include: {
+                    receivedBy: {
+                      select: {
+                        id: true,
+                        email: true,
+                        customerProfile: true,
+                      },
+                    },
+                  },
+                },
+                deliveryPersonnel: {
+                  select: { id: true, email: true, customerProfile: true },
+                },
+              },
+            },
+          },
+        },
       },
     });
     if (!sale) throw new NotFoundException('Consumer sale not found');
@@ -1714,58 +1945,185 @@ export class SalesService {
   }
 
   async createFulfillment(data: CreateFulfillmentInput) {
-    const trimmedAddress = (data.deliveryAddress ?? '').trim() || null;
+    const isDelivery = data.type === 'DELIVERY';
 
-    if (data.type === 'DELIVERY' && !trimmedAddress) {
-      throw new BadRequestException(
-        'Delivery fulfillment requires a delivery address.',
+    const { fulfillment, orderStoreId, assignedPersonnelId } =
+      await this.prisma.$transaction(async (trx) => {
+        const order = await trx.saleOrder.findUnique({
+          where: { id: data.saleOrderId },
+          include: { fulfillment: true },
+        });
+        if (!order) {
+          throw new NotFoundException('Sale order not found');
+        }
+        if (order.fulfillment) {
+          throw new BadRequestException(
+            'Fulfillment already exists for order.',
+          );
+        }
+
+        const currentState = {
+          addressId:
+            (order as SaleOrder & { deliveryAddressId?: string | null })
+              .deliveryAddressId ?? null,
+          deliveryAddress: order.deliveryAddress ?? null,
+          receiverName:
+            (order as SaleOrder & { receiverName?: string | null })
+              .receiverName ?? null,
+          receiverPhone:
+            (order as SaleOrder & { receiverPhone?: string | null })
+              .receiverPhone ?? null,
+          deliveryNotes:
+            (order as SaleOrder & { deliveryNotes?: string | null })
+              .deliveryNotes ?? null,
+        };
+
+        const deliveryResolution = isDelivery
+          ? await this.resolveDeliveryDetails({
+              tx: trx,
+              details: data.deliveryDetails ?? null,
+              fallbackAddress: data.deliveryAddress ?? null,
+              current: currentState,
+              requireAddress: true,
+            })
+          : {
+              addressId: null,
+              deliveryAddress: null,
+              receiverName: null,
+              receiverPhone: null,
+              deliveryNotes: null,
+              touchedAddress:
+                !!currentState.addressId || !!currentState.deliveryAddress,
+            };
+
+        const metadata = this.toDeliveryMetadata({
+          receiverName: deliveryResolution.receiverName,
+          receiverPhone: deliveryResolution.receiverPhone,
+          deliveryNotes: deliveryResolution.deliveryNotes,
+        });
+
+        const created = await trx.fulfillment.create({
+          data: {
+            saleOrderId: data.saleOrderId,
+            type: data.type as PrismaFulfillmentType,
+            deliveryPersonnelId: data.deliveryPersonnelId ?? null,
+            deliveryAddress: deliveryResolution.deliveryAddress,
+            deliveryAddressId: deliveryResolution.addressId,
+            receiverName: deliveryResolution.receiverName,
+            receiverPhone: deliveryResolution.receiverPhone,
+            deliveryNotes: deliveryResolution.deliveryNotes,
+            cost: data.cost ?? null,
+            workflowState: 'ALLOCATING_STOCK',
+            workflowContext: toFulfilmentContextPayload({
+              saleOrderId: data.saleOrderId,
+            }) as Prisma.InputJsonValue,
+          },
+        });
+
+        await this.workflow.recordFulfilmentTransition({
+          fulfillmentId: created.id,
+          fromState: null,
+          toState: 'ALLOCATING_STOCK',
+          event: 'fulfilment.created_manual',
+          context: toFulfilmentContextPayload({
+            saleOrderId: created.saleOrderId,
+          }) as Prisma.InputJsonValue,
+          tx: trx,
+        });
+
+        await trx.saleOrder.update({
+          where: { id: data.saleOrderId },
+          data: {
+            phase: OrderPhase.FULFILLMENT,
+            fulfillmentType: data.type as PrismaFulfillmentType,
+            deliveryAddress: deliveryResolution.deliveryAddress,
+            deliveryAddressId: deliveryResolution.addressId,
+            receiverName: deliveryResolution.receiverName,
+            receiverPhone: deliveryResolution.receiverPhone,
+            deliveryNotes: deliveryResolution.deliveryNotes,
+          },
+        });
+
+        if (deliveryResolution.addressId) {
+          await this.upsertDeliveryAssignment({
+            tx: trx,
+            addressId: deliveryResolution.addressId,
+            ownerType: 'SALE_ORDER',
+            ownerId: order.id,
+            metadata,
+          });
+          await this.upsertDeliveryAssignment({
+            tx: trx,
+            addressId: deliveryResolution.addressId,
+            ownerType: 'FULFILLMENT',
+            ownerId: created.id,
+            metadata,
+          });
+        }
+
+        return {
+          fulfillment: created,
+          orderStoreId: order.storeId,
+          assignedPersonnelId: data.deliveryPersonnelId ?? null,
+        };
+      });
+
+    const riderRecipientIds = new Set<string>();
+    if (orderStoreId) {
+      const coverageRiders = await this.prisma.riderCoverageArea.findMany({
+        where: { storeId: orderStoreId },
+        select: { riderId: true },
+      });
+      coverageRiders.forEach((record) => {
+        if (record.riderId) {
+          riderRecipientIds.add(record.riderId);
+        }
+      });
+    }
+
+    if (!riderRecipientIds.size) {
+      const allRiders = await this.prisma.user.findMany({
+        where: { role: { name: { equals: 'RIDER' } } },
+        select: { id: true },
+      });
+      allRiders.forEach((user) => {
+        if (user.id) {
+          riderRecipientIds.add(user.id);
+        }
+      });
+    }
+
+    if (riderRecipientIds.size) {
+      await this.domainEvents.publish(
+        'NOTIFICATION',
+        {
+          notifications: Array.from(riderRecipientIds).map((riderId) => ({
+            userId: riderId,
+            type: 'DELIVERY_AVAILABLE',
+            message: `New delivery available for order ${fulfillment.saleOrderId}.`,
+          })),
+        },
+        {
+          aggregateType: 'Fulfillment',
+          aggregateId: fulfillment.id,
+        },
       );
     }
 
-    const fulfillment = await this.prisma.$transaction(async (trx) => {
-      const created = await trx.fulfillment.create({
-        data: {
-          ...data,
-          deliveryAddress: trimmedAddress,
-          workflowState: 'ALLOCATING_STOCK',
-          workflowContext: toFulfilmentContextPayload({
-            saleOrderId: data.saleOrderId,
-          }) as Prisma.InputJsonValue,
-        },
-      });
-
-      await this.workflow.recordFulfilmentTransition({
-        fulfillmentId: created.id,
-        fromState: null,
-        toState: 'ALLOCATING_STOCK',
-        event: 'fulfilment.created_manual',
-        context: toFulfilmentContextPayload({
-          saleOrderId: created.saleOrderId,
-        }) as Prisma.InputJsonValue,
-        tx: trx,
-      });
-
-      await trx.saleOrder.update({
-        where: { id: data.saleOrderId },
-        data: {
-          phase: OrderPhase.FULFILLMENT,
-          fulfillmentType: data.type as PrismaFulfillmentType,
-          deliveryAddress: trimmedAddress,
-        },
-      });
-
-      return created;
-    });
-
-    await this.notificationService.createNotification(
-      data.deliveryPersonnelId || data.saleOrderId,
-      'FULFILLMENT_CREATED',
-      `Fulfillment for order ${data.saleOrderId} created.`,
-    );
+    if (assignedPersonnelId) {
+      await this.notificationService.createNotification(
+        assignedPersonnelId,
+        'FULFILLMENT_CREATED',
+        `Fulfillment for order ${fulfillment.saleOrderId} created.`,
+      );
+    }
     return fulfillment;
   }
 
-  async updateFulfillmentPreferences(input: UpdateFulfillmentPreferencesInput) {
+  async updateFulfillmentPreferences(
+    input: UpdateFulfillmentPreferencesInput,
+    user?: AuthenticatedUser | null,
+  ) {
     const attemptAutoAdvance = input.attemptAutoAdvance ?? true;
     const requestedType =
       input.fulfillmentType !== undefined && input.fulfillmentType !== null
@@ -1779,41 +2137,199 @@ export class SalesService {
     await this.prisma.$transaction(async (trx) => {
       const order = await trx.saleOrder.findUnique({
         where: { id: input.saleOrderId },
-        include: { fulfillment: true },
+        include: {
+          fulfillment: true,
+          consumerSale: { select: { billerId: true, customerId: true } },
+          resellerSale: { select: { resellerId: true, billerId: true } },
+          quotation: {
+            select: { resellerId: true, consumerId: true, billerId: true },
+          },
+        },
       });
       if (!order) {
         throw new NotFoundException('Sale order not found');
       }
 
-      const currentTrimmedAddress = (order.deliveryAddress ?? '').trim();
+      const actorRole = (user?.role?.name || '').toUpperCase();
+      const actorId = user?.id ?? null;
+
+      const ensureActorMatches = (
+        allowedIds: Array<string | null | undefined>,
+      ) => {
+        if (!actorId) {
+          return false;
+        }
+        return allowedIds.filter(Boolean).some((id) => id === actorId);
+      };
+
+      if (actorRole === 'BILLER') {
+        const allowed = ensureActorMatches([
+          order.billerId,
+          order.consumerSale?.billerId,
+          order.resellerSale?.billerId,
+          order.quotation?.billerId,
+        ]);
+        if (!allowed) {
+          throw new ForbiddenException(
+            'You are not allowed to update fulfillment preferences for this order.',
+          );
+        }
+      } else if (actorRole === 'RESELLER') {
+        const allowed = ensureActorMatches([
+          order.resellerSale?.resellerId,
+          order.quotation?.resellerId,
+        ]);
+        if (!allowed) {
+          throw new ForbiddenException(
+            'You are not allowed to update fulfillment preferences for this order.',
+          );
+        }
+      } else if (actorRole === 'CUSTOMER') {
+        const allowed = ensureActorMatches([
+          order.consumerSale?.customerId,
+          order.quotation?.consumerId,
+        ]);
+        if (!allowed) {
+          throw new ForbiddenException(
+            'You are not allowed to update fulfillment preferences for this order.',
+          );
+        }
+      }
+
+      const currentState = {
+        addressId:
+          (order as SaleOrder & { deliveryAddressId?: string | null })
+            .deliveryAddressId ?? null,
+        deliveryAddress: order.deliveryAddress ?? null,
+        receiverName:
+          (order as SaleOrder & { receiverName?: string | null })
+            .receiverName ?? null,
+        receiverPhone:
+          (order as SaleOrder & { receiverPhone?: string | null })
+            .receiverPhone ?? null,
+        deliveryNotes:
+          (order as SaleOrder & { deliveryNotes?: string | null })
+            .deliveryNotes ?? null,
+      };
+
       const nextType: PrismaFulfillmentType | null =
         requestedType !== undefined
           ? requestedType
           : (order.fulfillmentType ?? null);
+      const isDelivery = nextType === PrismaFulfillmentType.DELIVERY;
 
-      let nextAddress: string | null;
-      if (nextType === PrismaFulfillmentType.DELIVERY) {
-        const candidate =
-          providedAddress !== undefined
-            ? providedAddress
-            : currentTrimmedAddress;
-        nextAddress = candidate ? candidate : null;
-      } else {
-        nextAddress = null;
+      if (
+        order.fulfillment &&
+        (providedAddress !== undefined ||
+          input.deliveryDetails !== undefined) &&
+        order.fulfillment.status !== FulfillmentStatus.PENDING &&
+        order.fulfillment.status !== FulfillmentStatus.ASSIGNED
+      ) {
+        throw new BadRequestException(
+          'Cannot change delivery address after fulfillment is in transit.',
+        );
       }
 
-      if (nextType === PrismaFulfillmentType.DELIVERY && !nextAddress) {
+      if (
+        order.fulfillment &&
+        requestedType !== undefined &&
+        nextType !== order.fulfillment.type &&
+        order.fulfillment.status !== FulfillmentStatus.PENDING
+      ) {
+        throw new BadRequestException(
+          'Cannot change fulfillment type once fulfillment has progressed.',
+        );
+      }
+
+      const deliveryResolution = isDelivery
+        ? await this.resolveDeliveryDetails({
+            tx: trx,
+            details: input.deliveryDetails ?? null,
+            fallbackAddress:
+              providedAddress !== undefined ? providedAddress : null,
+            current: currentState,
+            requireAddress: true,
+          })
+        : {
+            addressId: null,
+            deliveryAddress: null,
+            receiverName:
+              input.deliveryDetails &&
+              input.deliveryDetails.receiverName !== undefined
+                ? (this.sanitizeNullableString(
+                    input.deliveryDetails.receiverName,
+                  ) ?? null)
+                : null,
+            receiverPhone:
+              input.deliveryDetails &&
+              input.deliveryDetails.receiverPhone !== undefined
+                ? (this.sanitizeNullableString(
+                    input.deliveryDetails.receiverPhone,
+                  ) ?? null)
+                : null,
+            deliveryNotes:
+              input.deliveryDetails &&
+              input.deliveryDetails.deliveryNotes !== undefined
+                ? (this.sanitizeNullableString(
+                    input.deliveryDetails.deliveryNotes,
+                  ) ?? null)
+                : null,
+            touchedAddress:
+              !!currentState.addressId || !!currentState.deliveryAddress,
+          };
+
+      if (isDelivery && !deliveryResolution.deliveryAddress) {
         throw new BadRequestException(
           'Delivery orders require a delivery address.',
         );
       }
 
-      const saleOrderUpdate: Prisma.SaleOrderUpdateInput = {};
+      const nextDeliveryAddress = isDelivery
+        ? deliveryResolution.deliveryAddress
+        : null;
+      const nextDeliveryAddressId = isDelivery
+        ? deliveryResolution.addressId
+        : null;
+      const nextReceiverName = isDelivery
+        ? deliveryResolution.receiverName
+        : (deliveryResolution.receiverName ?? null);
+      const nextReceiverPhone = isDelivery
+        ? deliveryResolution.receiverPhone
+        : (deliveryResolution.receiverPhone ?? null);
+      const nextDeliveryNotes = isDelivery
+        ? deliveryResolution.deliveryNotes
+        : (deliveryResolution.deliveryNotes ?? null);
+
+      const saleOrderUpdate: Prisma.SaleOrderUncheckedUpdateInput = {};
       if (requestedType !== undefined && nextType !== order.fulfillmentType) {
         saleOrderUpdate.fulfillmentType = nextType;
       }
-      if (nextAddress !== currentTrimmedAddress) {
-        saleOrderUpdate.deliveryAddress = nextAddress;
+      if ((order.deliveryAddress ?? null) !== nextDeliveryAddress) {
+        saleOrderUpdate.deliveryAddress = nextDeliveryAddress;
+      }
+      if (
+        ((order as SaleOrder & { deliveryAddressId?: string | null })
+          .deliveryAddressId ?? null) !== nextDeliveryAddressId
+      ) {
+        saleOrderUpdate.deliveryAddressId = nextDeliveryAddressId;
+      }
+      if (
+        ((order as SaleOrder & { receiverName?: string | null }).receiverName ??
+          null) !== nextReceiverName
+      ) {
+        saleOrderUpdate.receiverName = nextReceiverName;
+      }
+      if (
+        ((order as SaleOrder & { receiverPhone?: string | null })
+          .receiverPhone ?? null) !== nextReceiverPhone
+      ) {
+        saleOrderUpdate.receiverPhone = nextReceiverPhone;
+      }
+      if (
+        ((order as SaleOrder & { deliveryNotes?: string | null })
+          .deliveryNotes ?? null) !== nextDeliveryNotes
+      ) {
+        saleOrderUpdate.deliveryNotes = nextDeliveryNotes;
       }
 
       if (Object.keys(saleOrderUpdate).length) {
@@ -1824,27 +2340,7 @@ export class SalesService {
       }
 
       if (order.fulfillment) {
-        const fulfilmentUpdate: Prisma.FulfillmentUpdateInput = {};
-        if (
-          requestedType !== undefined &&
-          nextType !== order.fulfillment.type &&
-          order.fulfillment.status !== FulfillmentStatus.PENDING
-        ) {
-          throw new BadRequestException(
-            'Cannot change fulfillment type once fulfillment has progressed.',
-          );
-        }
-
-        if (
-          providedAddress !== undefined &&
-          order.fulfillment.status !== FulfillmentStatus.PENDING &&
-          order.fulfillment.status !== FulfillmentStatus.ASSIGNED
-        ) {
-          throw new BadRequestException(
-            'Cannot change delivery address after fulfillment is in transit.',
-          );
-        }
-
+        const fulfilmentUpdate: Prisma.FulfillmentUncheckedUpdateInput = {};
         if (
           requestedType !== undefined &&
           nextType !== order.fulfillment.type &&
@@ -1854,12 +2350,45 @@ export class SalesService {
         }
 
         if (
-          (nextType === PrismaFulfillmentType.DELIVERY &&
-            nextAddress !== (order.fulfillment.deliveryAddress ?? null)) ||
-          (nextType !== PrismaFulfillmentType.DELIVERY &&
-            order.fulfillment.deliveryAddress)
+          (order.fulfillment.deliveryAddress ?? null) !== nextDeliveryAddress
         ) {
-          fulfilmentUpdate.deliveryAddress = nextAddress;
+          fulfilmentUpdate.deliveryAddress = nextDeliveryAddress;
+        }
+        if (
+          ((
+            order.fulfillment as typeof order.fulfillment & {
+              deliveryAddressId?: string | null;
+            }
+          ).deliveryAddressId ?? null) !== nextDeliveryAddressId
+        ) {
+          fulfilmentUpdate.deliveryAddressId = nextDeliveryAddressId;
+        }
+        if (
+          ((
+            order.fulfillment as typeof order.fulfillment & {
+              receiverName?: string | null;
+            }
+          ).receiverName ?? null) !== nextReceiverName
+        ) {
+          fulfilmentUpdate.receiverName = nextReceiverName;
+        }
+        if (
+          ((
+            order.fulfillment as typeof order.fulfillment & {
+              receiverPhone?: string | null;
+            }
+          ).receiverPhone ?? null) !== nextReceiverPhone
+        ) {
+          fulfilmentUpdate.receiverPhone = nextReceiverPhone;
+        }
+        if (
+          ((
+            order.fulfillment as typeof order.fulfillment & {
+              deliveryNotes?: string | null;
+            }
+          ).deliveryNotes ?? null) !== nextDeliveryNotes
+        ) {
+          fulfilmentUpdate.deliveryNotes = nextDeliveryNotes;
         }
 
         if (Object.keys(fulfilmentUpdate).length) {
@@ -1868,6 +2397,45 @@ export class SalesService {
             data: fulfilmentUpdate,
           });
         }
+      }
+
+      const metadata = this.toDeliveryMetadata({
+        receiverName: nextReceiverName ?? null,
+        receiverPhone: nextReceiverPhone ?? null,
+        deliveryNotes: nextDeliveryNotes ?? null,
+      });
+
+      if (nextDeliveryAddressId) {
+        await this.upsertDeliveryAssignment({
+          tx: trx,
+          addressId: nextDeliveryAddressId,
+          ownerType: 'SALE_ORDER',
+          ownerId: order.id,
+          metadata,
+        });
+        if (order.fulfillment) {
+          await this.upsertDeliveryAssignment({
+            tx: trx,
+            addressId: nextDeliveryAddressId,
+            ownerType: 'FULFILLMENT',
+            ownerId: order.fulfillment.id,
+            metadata,
+          });
+        }
+      } else if (currentState.addressId) {
+        await trx.addressAssignment.updateMany({
+          where: {
+            addressId: currentState.addressId,
+            ownerType: { in: ['SALE_ORDER', 'FULFILLMENT'] },
+            ownerId: {
+              in: [
+                order.id,
+                ...(order.fulfillment ? [order.fulfillment.id] : []),
+              ],
+            },
+          },
+          data: { archivedAt: new Date() },
+        });
       }
     });
 

@@ -29,6 +29,8 @@ model Address {
   updatedAt        DateTime  @updatedAt
 
   assignments      AddressAssignment[]
+  saleOrders       SaleOrder[]    @relation("SaleOrderDeliveryAddress")
+  fulfillments     Fulfillment[]  @relation("FulfillmentDeliveryAddress")
 
   @@index([countryCode, state, city])
 }

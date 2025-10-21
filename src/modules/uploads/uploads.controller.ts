@@ -15,6 +15,7 @@ import type { Request } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import type { AuthenticatedUser } from '../auth/auth.service';
 import { InvoiceStorageService } from './invoice-storage.service';
+import { PERMISSIONS } from '../../../shared/permissions';
 
 type RequestWithUser = Request & { user?: AuthenticatedUser };
 
@@ -47,12 +48,12 @@ export class UploadsController {
     const hasPrivilegedRole = roleName
       ? ['SUPERADMIN', 'ADMIN', 'MANAGER'].includes(roleName)
       : false;
-    const hasManageProductsPermission = Boolean(
+    const hasUploadPermission = Boolean(
       user?.role?.permissions?.some(
-        (permission) => permission.name === 'MANAGE_PRODUCTS',
+        (permission) => permission.name === PERMISSIONS.uploads.CREATE,
       ),
     );
-    if (!hasPrivilegedRole && !hasManageProductsPermission) {
+    if (!hasPrivilegedRole && !hasUploadPermission) {
       throw new ForbiddenException('Insufficient permissions');
     }
   }

@@ -182,12 +182,13 @@ export class SalesResolver {
       'Update fulfillment preferences (type, delivery address) for a sale order.',
   })
   @UseGuards(GqlAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles('BILLER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
+  @Roles('BILLER', 'RESELLER', 'CUSTOMER', 'MANAGER', 'ADMIN', 'SUPERADMIN')
   @Permissions(PERMISSIONS.order.UPDATE as string)
   updateFulfillmentPreferences(
     @Args('input') input: UpdateFulfillmentPreferencesInput,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.salesService.updateFulfillmentPreferences(input);
+    return this.salesService.updateFulfillmentPreferences(input, user);
   }
 
   @Mutation(() => Fulfillment, {

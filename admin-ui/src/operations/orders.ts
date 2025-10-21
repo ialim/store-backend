@@ -73,6 +73,9 @@ export const Order = gql`
       phase
       fulfillmentType
       deliveryAddress
+      receiverName
+      receiverPhone
+      deliveryNotes
       saleWorkflowState
       saleWorkflowContext
       saleWorkflowSummary {
