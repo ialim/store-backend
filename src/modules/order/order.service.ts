@@ -30,6 +30,10 @@ export class OrderService {
     private sales: SalesService,
   ) {}
 
+  private isRider(user?: AuthenticatedUser | null): boolean {
+    return (user?.role?.name || '').toUpperCase() === 'RIDER';
+  }
+
   private isReseller(user?: AuthenticatedUser | null): boolean {
     return (user?.role?.name || '').toUpperCase() === 'RESELLER';
   }
@@ -168,6 +172,12 @@ export class OrderService {
     });
     if (!o) {
       throw new NotFoundException('Order not found');
+    }
+    if (this.isRider(user)) {
+      const assignedPersonnelId = o.fulfillment?.deliveryPersonnelId ?? null;
+      if (assignedPersonnelId && assignedPersonnelId !== user?.id) {
+        throw new NotFoundException('Order not found');
+      }
     }
     if (this.isReseller(user)) {
       const ownsQuotation = o.quotation?.resellerId === user?.id;

@@ -107,6 +107,7 @@ export class RiderInterestService {
     const where: Prisma.FulfillmentWhereInput = {
       type: FulfillmentType.DELIVERY,
       status: FulfillmentStatus.PENDING,
+      deliveryPersonnelId: null,
       riderInterests: {
         none: {
           riderId,
@@ -204,6 +205,11 @@ export class RiderInterestService {
       if (fulfillment.type !== FulfillmentType.DELIVERY) {
         throw new BadRequestException(
           'Only delivery fulfilments accept riders',
+        );
+      }
+      if (fulfillment.deliveryPersonnelId) {
+        throw new BadRequestException(
+          'Fulfillment already has assigned delivery personnel',
         );
       }
       if (fulfillment.status !== FulfillmentStatus.PENDING) {
