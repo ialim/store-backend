@@ -5,7 +5,7 @@ BEGIN
     SELECT 1
     FROM pg_indexes
     WHERE schemaname = 'public'
-      AND indexname = 'fulfillment_deliveryaddressid_idx'
+      AND lower(indexname) = 'fulfillment_deliveryaddressid_idx'
   ) THEN
     EXECUTE 'DROP INDEX IF EXISTS "public"."Fulfillment_deliveryAddressId_idx"';
   END IF;
@@ -14,7 +14,7 @@ BEGIN
     SELECT 1
     FROM pg_indexes
     WHERE schemaname = 'public'
-      AND indexname = 'saleorder_deliveryaddressid_idx'
+      AND lower(indexname) = 'saleorder_deliveryaddressid_idx'
   ) THEN
     EXECUTE 'DROP INDEX IF EXISTS "public"."SaleOrder_deliveryAddressId_idx"';
   END IF;
