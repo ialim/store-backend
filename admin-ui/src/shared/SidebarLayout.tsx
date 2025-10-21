@@ -1314,8 +1314,8 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           Store Admin
         </Typography>
         <Stack direction="row" spacing={1.5}>
-          <Button component={Link} to="/login" variant="contained" color="success">
-            Login
+          <Button component={Link} to="/signup" variant="contained" color="success">
+            Sign up
           </Button>
         </Stack>
       </Stack>
