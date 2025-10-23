@@ -1,0 +1,22 @@
+{
+  "name": "@store/design-tokens",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared design tokens (colors, typography, spacing) used across web and mobile surfaces.",
+  "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

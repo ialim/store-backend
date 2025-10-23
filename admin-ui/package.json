@@ -17,6 +17,8 @@
     "@emotion/styled": "^11.13.0",
     "@mui/icons-material": "^6.2.0",
     "@mui/material": "^6.2.0",
+    "@store/design-tokens": "file:../packages/design-tokens",
+    "@store/ui-web": "file:../packages/ui-web",
     "date-fns": "^3.6.0",
     "decimal.js": "^10.6.0",
     "graphql": "^16.11.0",

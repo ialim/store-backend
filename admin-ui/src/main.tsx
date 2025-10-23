@@ -8,61 +8,58 @@ import { client } from './shared/apolloClient';
 import { AuthProvider } from './shared/AuthProvider';
 import { NotificationProvider } from './shared/NotificationProvider';
 import NetworkIndicator from './shared/NetworkIndicator';
+import { colors, radii, shadows } from '@store/design-tokens';
 
 const baseTheme = createTheme();
-const brandGreen = '#0f5b3a';
-const brandGreenDark = '#0b3f29';
-const brandAccent = '#ff8a3d';
-const canvas = '#f3f6f9';
 
 const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: brandGreen,
-      dark: brandGreenDark,
-      light: '#2c7b54',
-      contrastText: '#ffffff',
+      main: colors.brand.primary,
+      dark: colors.brand.primaryDark,
+      light: colors.brand.primaryLight,
+      contrastText: colors.neutral.white,
     },
     secondary: {
-      main: brandAccent,
-      contrastText: '#ffffff',
+      main: colors.brand.accent,
+      contrastText: colors.neutral.white,
     },
     success: {
-      main: brandGreen,
-      dark: brandGreenDark,
-      light: '#d9f0e4',
-      contrastText: '#ffffff',
+      main: colors.brand.primary,
+      dark: colors.brand.primaryDark,
+      light: colors.feedback.successBg,
+      contrastText: colors.neutral.white,
     },
     background: {
-      default: canvas,
-      paper: '#ffffff',
+      default: colors.neutral.canvas,
+      paper: colors.neutral.white,
     },
     text: {
-      primary: '#1c262b',
-      secondary: '#5f6b6b',
+      primary: colors.neutral.textPrimary,
+      secondary: colors.neutral.textSecondary,
     },
   },
   shape: {
-    borderRadius: 16,
+    borderRadius: radii.md,
   },
   shadows: baseTheme.shadows.map((shadow, index) => {
-    if (index === 1) return '0 12px 24px rgba(15, 91, 58, 0.08)';
-    if (index === 2) return '0 18px 36px rgba(15, 91, 58, 0.12)';
+    if (index === 1) return shadows.level1;
+    if (index === 2) return shadows.level2;
     return shadow;
   }) as typeof baseTheme.shadows,
   components: {
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          backgroundColor: canvas,
+          backgroundColor: colors.neutral.canvas,
         },
       },
     },
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 999,
+          borderRadius: radii.pill,
           textTransform: 'none',
           fontWeight: 600,
         },
@@ -71,8 +68,8 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 24,
-          boxShadow: '0 24px 48px rgba(15, 91, 58, 0.08)',
+          borderRadius: radii.lg,
+          boxShadow: shadows.card,
         },
       },
     },

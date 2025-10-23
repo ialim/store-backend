@@ -749,7 +749,12 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
   const sections = isReseller
     ? resellerSections
     : isBiller
-    ? [...billerSections, ...defaultSections.filter((section) => !['customers', 'resellers'].includes(section.key))]
+    ? [
+        ...billerSections,
+        ...defaultSections.filter((section) =>
+          !['customers', 'resellers', 'dashboards'].includes(section.key),
+        ),
+      ]
     : defaultSections;
 
   const headerDate = React.useMemo(() => {

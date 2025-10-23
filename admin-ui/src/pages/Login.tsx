@@ -1,21 +1,14 @@
 import { useEffect, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Paper,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Stack, Typography, Link as MuiLink } from '@mui/material';
 import { useLoginMutation } from '../generated/graphql';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../shared/AuthProvider';
 import { notify } from '../shared/notify';
 import { decodeJwt } from '../shared/jwt';
 import { Link as RouterLink } from 'react-router-dom';
-import Link from '@mui/material/Link';
 import { getDefaultRoute } from '../shared/routes';
+import { Screen, Card, TextField, Button } from '@store/ui-web';
+import { spacing } from '@store/design-tokens';
 
 
 export default function Login() {
@@ -108,55 +101,84 @@ export default function Login() {
     }
   };
 
+  const buttonDisabled = loading || Boolean(emailError) || Boolean(passwordError);
+
   return (
-    <Box display="flex" justifyContent="center" mt={8}>
-      <Paper sx={{ p: 3, width: 360 }}>
+    <Screen
+      padded
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingBlock: `${spacing['2xl']}px`,
+      }}
+    >
+      <Card
+        sx={{
+          width: 400,
+          maxWidth: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: `${spacing.lg}px`,
+        }}
+      >
         <Box component="form" onSubmit={submit} noValidate>
-          <Stack spacing={2}>
-          <Typography variant="h6">Admin Login</Typography>
-          {error && <Alert severity="error">{error}</Alert>}
-          <TextField
-            label="Email"
-            value={email}
-            onChange={handleEmailChange}
-            onBlur={() => setEmailError(validateEmail(email))}
-            error={Boolean(emailError)}
-            helperText={emailError || ' '}
-            fullWidth
-            type="email"
-            autoComplete="email"
-            required
-          />
-          <TextField
-            label="Password"
-            type="password"
-            value={password}
-            onChange={handlePasswordChange}
-            onBlur={() => setPasswordError(validatePassword(password))}
-            error={Boolean(passwordError)}
-            helperText={passwordError || ' '}
-            fullWidth
-            autoComplete="current-password"
-            required
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={loading || Boolean(emailError) || Boolean(passwordError)}
-          >
-            {loading ? 'Logging in…' : 'Login'}
-          </Button>
-          <Typography variant="body2">
-            New customer?{' '}
-            <Link component={RouterLink} to="/signup">Create an account</Link>
-          </Typography>
-          <Typography variant="body2">
-            Are you a reseller?{' '}
-            <Link component={RouterLink} to="/apply-reseller">Apply here</Link>
-          </Typography>
+          <Stack spacing={`${spacing.lg}px`}>
+            <Box>
+              <Typography variant="h5" fontWeight={700} gutterBottom>
+                Welcome back
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Sign in with your administrator credentials.
+              </Typography>
+            </Box>
+            {error && <Alert severity="error">{error}</Alert>}
+            <TextField
+              label="Email"
+              value={email}
+              onChange={handleEmailChange}
+              onBlur={() => setEmailError(validateEmail(email))}
+              error={Boolean(emailError)}
+              helperText={emailError || ' '}
+              fullWidth
+              type="email"
+              autoComplete="email"
+              required
+            />
+            <TextField
+              label="Password"
+              type="password"
+              value={password}
+              onChange={handlePasswordChange}
+              onBlur={() => setPasswordError(validatePassword(password))}
+              error={Boolean(passwordError)}
+              helperText={passwordError || ' '}
+              fullWidth
+              autoComplete="current-password"
+              required
+            />
+            <Button
+              type="submit"
+              label={loading ? 'Logging in…' : 'Login'}
+              loading={loading}
+              disabled={buttonDisabled}
+              fullWidth
+            />
+            <Typography variant="body2">
+              New customer?{' '}
+              <MuiLink component={RouterLink} to="/signup">
+                Create an account
+              </MuiLink>
+            </Typography>
+            <Typography variant="body2">
+              Are you a reseller?{' '}
+              <MuiLink component={RouterLink} to="/apply-reseller">
+                Apply here
+              </MuiLink>
+            </Typography>
           </Stack>
         </Box>
-      </Paper>
-    </Box>
+      </Card>
+    </Screen>
   );
 }
