@@ -7,8 +7,8 @@ import { notify } from '../shared/notify';
 import { decodeJwt } from '../shared/jwt';
 import { Link as RouterLink } from 'react-router-dom';
 import { getDefaultRoute } from '../shared/routes';
-import { Screen, Card, TextField, Button } from '@store/ui-web';
-import { spacing } from '@store/design-tokens';
+import { Screen, NavBar, Card, TextField, Button, ListItem, Tag } from '@store/ui-web';
+import { spacing, radii } from '@store/design-tokens';
 
 
 export default function Login() {
@@ -104,15 +104,8 @@ export default function Login() {
   const buttonDisabled = loading || Boolean(emailError) || Boolean(passwordError);
 
   return (
-    <Screen
-      padded
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingBlock: `${spacing['2xl']}px`,
-      }}
-    >
+    <Screen padded sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBlock: `${spacing['2xl']}px` }}>
+      <NavBar title="Sign in" subtitle={stakeholderCopy(user?.roleName)} showDivider sx={{ width: '100%', maxWidth: 480, mb: `${spacing.lg}px` }} />
       <Card
         sx={{
           width: 400,
@@ -125,12 +118,8 @@ export default function Login() {
         <Box component="form" onSubmit={submit} noValidate>
           <Stack spacing={`${spacing.lg}px`}>
             <Box>
-              <Typography variant="h5" fontWeight={700} gutterBottom>
-                Welcome back
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Sign in with your administrator credentials.
-              </Typography>
+              <Typography variant="h5" fontWeight={700} gutterBottom>Welcome back</Typography>
+              <Typography variant="body2" color="text.secondary">Sign in with your administrator credentials.</Typography>
             </Box>
             {error && <Alert severity="error">{error}</Alert>}
             <TextField
@@ -179,6 +168,26 @@ export default function Login() {
           </Stack>
         </Box>
       </Card>
+      <Card
+        sx={{
+          width: 400,
+          maxWidth: '100%',
+          mt: `${spacing.lg}px`,
+          paddingBlock: `${spacing.lg}px`,
+        }}
+      >
+        <ListItem
+          title="Need help accessing your account?"
+          description="Contact support and mention your registered email so we can verify quickly."
+          trailing={<Tag label="Support" variant="info" tone="subtle" uppercase />}
+          sx={{ borderRadius: `${radii.md}px` }}
+        />
+      </Card>
     </Screen>
   );
+}
+
+function stakeholderCopy(roleName?: string) {
+  if (!roleName) return undefined;
+  return `Signed in as ${roleName}`;
 }
