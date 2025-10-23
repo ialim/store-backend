@@ -15,6 +15,14 @@ export declare const colors: {
     readonly feedback: {
         readonly successBg: "#d9f0e4";
     };
+    readonly state: {
+        readonly info: "#2563eb";
+        readonly infoBg: "#dbeafe";
+        readonly warning: "#f97316";
+        readonly warningBg: "#ffedd5";
+        readonly danger: "#d92d20";
+        readonly dangerBg: "#fee2e2";
+    };
 };
 export type ColorTokenGroup = typeof colors;
 //# sourceMappingURL=colors.d.ts.map

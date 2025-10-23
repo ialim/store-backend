@@ -7,7 +7,7 @@
 
 ## Building Blocks
 - `@store/design-tokens`: exposes raw tokens (palette, radii, typography, spacing, shadows). Currently consumed by the admin theme and `@store/ui`.
-- `@store/ui`: React Native-first implementation of shared primitives (`Screen`, `Card`, `TextField`, `Button`). Web adapters will wrap MUI components in a follow-up iteration.
+- `@store/ui`: React Native-first implementation of shared primitives (`Screen`, `NavBar`, `ListItem`, `TextField`, `Button`, `Tag`, etc.). Web adapters (`@store/ui-web`) wrap MUI components with the same API surface.
 
 ## Web Migration Outline
 1. **Create MUI adapter layer**: introduce a `/packages/ui-web` (or similar) package that maps `@store/ui` component contracts to MUI implementations, reusing tokens for styling overrides.

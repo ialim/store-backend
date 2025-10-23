@@ -15,6 +15,14 @@ export const colors = {
   feedback: {
     successBg: '#d9f0e4',
   },
+  state: {
+    info: '#2563eb',
+    infoBg: '#dbeafe',
+    warning: '#f97316',
+    warningBg: '#ffedd5',
+    danger: '#d92d20',
+    dangerBg: '#fee2e2',
+  },
 } as const;
 
 export type ColorTokenGroup = typeof colors;
