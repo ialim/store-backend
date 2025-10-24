@@ -1,0 +1,22 @@
+{
+  "name": "@store/mobile-shared",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared domain models, GraphQL fragments, and utilities reused across mobile clients.",
+  "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "react-native": "./dist/index.js",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
