@@ -1,7 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
-import { Alert, Stack, Typography } from '@mui/material';
+import {
+  Alert,
+  Chip,
+  Stack,
+  Typography,
+  Button,
+} from '@mui/material';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import TableList from '../shared/TableList';
 import { ListingHero } from '../shared/ListingLayout';
@@ -10,8 +16,6 @@ import { Orders, OrderBillers } from '../operations/orders';
 import { Stores } from '../operations/stores';
 import { useAuth } from '../shared/AuthProvider';
 import { PERMISSIONS } from '../shared/permissions';
-import { Screen, NavBar, Card, Button, Tag, ListItem } from '@store/ui-web';
-import { spacing } from '@store/design-tokens';
 
 type FulfillmentSummary = {
   id: string;
@@ -90,25 +94,19 @@ function formatDate(value?: string | null) {
   }
 }
 
-type TagStyle = {
-  variant: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
-  tone?: 'solid' | 'subtle';
-};
-
-function statusTagProps(status?: string): TagStyle {
+function statusColor(status?: string) {
   switch ((status || '').toUpperCase()) {
     case 'CANCELLED':
     case 'REJECTED':
-      return { variant: 'danger', tone: 'subtle' };
+      return 'error';
     case 'FULFILLED':
     case 'COMPLETED':
     case 'APPROVED':
-      return { variant: 'success', tone: 'subtle' };
+      return 'success';
     case 'PENDING':
-    case 'DRAFT':
-      return { variant: 'warning', tone: 'subtle' };
+      return 'warning';
     default:
-      return { variant: 'neutral', tone: 'subtle' };
+      return 'default';
   }
 }
 
@@ -215,7 +213,11 @@ export default function OrdersPage() {
         key: 'status',
         label: 'Status',
         render: (row: OrderRow) => (
-          <Tag label={row.status} {...statusTagProps(row.status)} uppercase />
+          <Chip
+            size="small"
+            label={row.status}
+            color={statusColor(row.status) as any}
+          />
         ),
         accessor: (row: OrderRow) => row.status,
         sort: true,
@@ -225,10 +227,10 @@ export default function OrdersPage() {
         label: 'Sale State',
         render: (row: OrderRow) =>
           row.saleWorkflowState ? (
-            <Tag
+            <Chip
+              size="small"
               label={row.saleWorkflowState}
-              {...statusTagProps(row.saleWorkflowState)}
-              uppercase
+              color={statusColor(row.saleWorkflowState) as any}
             />
           ) : (
             '—'
@@ -253,10 +255,10 @@ export default function OrdersPage() {
         label: 'Quotation',
         render: (row: OrderRow) =>
           row.quotation?.status ? (
-            <Tag
+            <Chip
+              size="small"
               label={row.quotation.status}
-              {...statusTagProps(row.quotation.status)}
-              uppercase
+              color={statusColor(row.quotation.status) as any}
             />
           ) : (
             '—'
@@ -299,16 +301,18 @@ export default function OrdersPage() {
         label: 'Fulfillment',
         render: (row: OrderRow) =>
           row.fulfillmentWorkflowState ? (
-            <Tag
+            <Chip
+              size="small"
               label={row.fulfillmentWorkflowState}
-              {...statusTagProps(row.fulfillmentWorkflowState)}
-              uppercase
+              color={statusColor(row.fulfillmentWorkflowState) as any}
+              icon={<ReceiptLongIcon fontSize="small" />}
             />
           ) : row.fulfillment ? (
-            <Tag
+            <Chip
+              size="small"
               label={row.fulfillment.status}
-              {...statusTagProps(row.fulfillment.status)}
-              uppercase
+              color={statusColor(row.fulfillment.status) as any}
+              icon={<ReceiptLongIcon fontSize="small" />}
             />
           ) : (
             '—'
@@ -333,78 +337,81 @@ export default function OrdersPage() {
     return `${orders.length} order${orders.length === 1 ? '' : 's'} available`;
   }, [filteredOrders.length, normalizedSearch, orders.length]);
 
-  const handleCreateQuotation = () => navigate('/orders/quotations/new');
-
   return (
-    <Screen padded>
-      <Stack spacing={4}>
-        <NavBar
-          title="Orders"
-          subtitle={summary}
-          rightSlot={<Button label="Add quotation" onClick={handleCreateQuotation} />}
-          showDivider
-        />
-
-        <Card padding="xl">
-          <ListingHero
-            density="compact"
-            search={{
-              value: search,
-              onChange: setSearch,
-              placeholder: 'Search orders by ID, status, store, or biller',
-            }}
-          >
-            <Typography variant="body2" color="text.secondary">
-              Review all orders across stores, track fulfillment progress, and stay on top of outstanding actions.
-            </Typography>
-          </ListingHero>
-        </Card>
-
-        {error && (
-          <Alert severity="error" onClick={() => refetch()} sx={{ cursor: 'pointer' }}>
-            {error.message} (tap to retry)
-          </Alert>
-        )}
-
-        <Card padding="xl">
-          <TableList
-            columns={columns as any}
-            rows={filteredOrders}
-            loading={loading && !orders.length}
-            emptyMessage="No orders to display."
-            getRowKey={(row: OrderRow) => row.id}
-            defaultSortKey="createdAt"
-            defaultSortDir="desc"
-            rowsPerPageOptions={[10, 25, 50, 100]}
-            defaultRowsPerPage={25}
-            actions={{
-              view: {
-                label: 'View details',
-                onClick: (row: OrderRow) => navigate(`/orders/${row.id}`),
-              },
-            }}
-            onRowClick={(row: OrderRow) => navigate(`/orders/${row.id}`)}
-          />
-        </Card>
-
-        {!orders.length && !loading && (
-          <Card padding="xl">
-            <Stack spacing={2} alignItems="center">
-              <Typography color="text.secondary">
-                There are no orders yet. Orders will appear here once they are created.
-              </Typography>
-              <Button label="Refresh" variant="secondary" onClick={() => refetch()} />
-              <ListItem
-                title="Create your first quotation"
-                description="Kick off the order workflow by raising a quotation for a reseller or customer."
-                trailing={<Tag label="Tip" variant="info" tone="subtle" uppercase />}
-                onClick={handleCreateQuotation}
-                sx={{ width: '100%' }}
-              />
-            </Stack>
-          </Card>
-        )}
+    <Stack spacing={3}>
+      <Stack spacing={1}>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Orders
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Review all orders across stores, track fulfillment progress, and stay on top of outstanding actions.
+        </Typography>
       </Stack>
-    </Screen>
+
+      <ListingHero
+        density="compact"
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: 'Search orders by ID, status, store, or biller',
+        }}
+        action={
+          <Button
+            variant="contained"
+            color="success"
+            onClick={() => navigate('/orders/quotations/new')}
+            startIcon={<ReceiptLongIcon fontSize="small" />}
+            sx={{ borderRadius: 999 }}
+          >
+            Add Quotation
+          </Button>
+        }
+      >
+        <Typography variant="body2" color="text.secondary">
+          {summary}
+        </Typography>
+      </ListingHero>
+
+      {error && (
+        <Alert severity="error" onClick={() => refetch()} sx={{ cursor: 'pointer' }}>
+          {error.message} (tap to retry)
+        </Alert>
+      )}
+
+      <TableList
+        columns={columns as any}
+        rows={filteredOrders}
+        loading={loading && !orders.length}
+        emptyMessage="No orders to display."
+        getRowKey={(row: OrderRow) => row.id}
+        defaultSortKey="createdAt"
+        defaultSortDir="desc"
+        rowsPerPageOptions={[10, 25, 50, 100]}
+        defaultRowsPerPage={25}
+        actions={{
+          view: {
+            label: 'View details',
+            onClick: (row: OrderRow) => navigate(`/orders/${row.id}`),
+          },
+        }}
+        onRowClick={(row: OrderRow) => navigate(`/orders/${row.id}`)}
+      />
+
+      {!orders.length && !loading && (
+        <Stack spacing={1} alignItems="center" py={4}>
+          <Typography color="text.secondary">
+            There are no orders yet. Orders will appear here once they are created.
+          </Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => refetch()}
+            startIcon={<ReceiptLongIcon fontSize="small" />}
+          >
+            Refresh
+          </Button>
+        </Stack>
+      )}
+    </Stack>
   );
 }
